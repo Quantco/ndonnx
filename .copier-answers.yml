@@ -1,0 +1,19 @@
+# This file is managed by Copier; DO NOT EDIT OR REMOVE.
+_commit: v0.11.1
+_src_path: git@github.com:Quantco/copier-template-python.git
+add_windows_tests_to_ci: false
+build_conda_package: true
+build_docs: true
+github_url: https://github.com/quantco/ndonnx
+github_user: adityagoel4512
+lint_sql_dialect: none
+project_name: ndonnx
+project_short_description: "ONNX-backed array library that is compliant with the Array API standard"
+project_slug: ndonnx
+project_versioning: semver-pre-v1
+strip_jupyter_notebook_output: false
+use_changelog: true
+use_conventional_commits: false
+use_devcontainer: false
+use_mypy: true
+use_rattler_build: true

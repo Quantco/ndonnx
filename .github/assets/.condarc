@@ -1,0 +1,5 @@
+repodata_use_zst: true
+channels:
+  - conda-forge
+conda_build:
+  pkg_format: 2

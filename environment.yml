@@ -1,0 +1,33 @@
+name: ndonnx
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - hypothesis
+  - make
+  - mypy =1.9.0
+  - ndindex
+  - numpy
+  - numpydoc
+  - sphinx
+  - sphinxcontrib-apidoc
+  - sphinx_rtd_theme
+  - sphinx-toolbox
+  - nbsphinx
+  - jupyterlab
+  - onnx>=1.15
+  - onnxruntime
+  - pandas
+  - pip
+  - pre-commit
+  - pytest >=6 # Adds --import-mode option
+  - pytest-cov
+  - pytest-json-report
+  - pytest-xdist
+  - python >=3.9
+  - setuptools >=61 # Adds support for pyproject.toml package declaration.
+  - setuptools-scm
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinxcontrib-apidoc
+  - spox>=0.10

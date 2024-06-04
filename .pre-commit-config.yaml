@@ -1,0 +1,39 @@
+exclude: ^\.copier-answers\.yml$
+repos:
+  - repo: https://github.com/Quantco/pre-commit-mirrors-insert-license
+    rev: 1.3.0
+    hooks:
+      - id: insert-license
+        types: [python]
+        args:
+          - --dynamic-years
+          - --comment-style
+          - "#"
+  - repo: https://github.com/Quantco/pre-commit-mirrors-docformatter
+    rev: 1.7.5
+    hooks:
+      - id: docformatter-conda
+  - repo: https://github.com/Quantco/pre-commit-mirrors-ruff
+    rev: 0.4.7
+    hooks:
+      - id: ruff-conda
+  - repo: https://github.com/Quantco/pre-commit-mirrors-black
+    rev: 24.4.2
+    hooks:
+      - id: black-conda
+  - repo: https://github.com/Quantco/pre-commit-mirrors-prettier
+    rev: 3.2.5
+    hooks:
+      - id: prettier-conda
+        files: \.(md|yml|yaml)$
+  - repo: https://github.com/Quantco/pre-commit-mirrors-pre-commit-hooks
+    rev: 4.6.0
+    hooks:
+      - id: trailing-whitespace-conda
+      - id: end-of-file-fixer-conda
+      - id: check-merge-conflict-conda
+        args: ["--assume-in-merge"]
+  - repo: https://github.com/Quantco/pre-commit-mirrors-typos
+    rev: 1.21.0
+    hooks:
+      - id: typos-conda
