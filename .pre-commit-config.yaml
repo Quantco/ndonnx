@@ -1,0 +1,76 @@
+exclude: ^(\.copier-answers\.yml)|.pixi$
+repos:
+  - repo: local
+    hooks:
+      # ensure pixi environments are up to date
+      # workaround for https://github.com/prefix-dev/pixi/issues/1482
+      - id: pixi-install
+        name: pixi-install
+        entry: pixi install -e default -e lint
+        language: system
+        always_run: true
+        require_serial: true
+        pass_filenames: false
+      # insert-license
+      - id: insert-license
+        name: insert-license
+        entry: >-
+          pixi run -e lint
+          insert-license
+          --license-base64 Q29weXJpZ2h0IChjKSBRdWFudENvIHt5ZWFyX3N0YXJ0fS17eWVhcl9lbmR9ClNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBMaWNlbnNlUmVmLVF1YW50Q28K
+          --dynamic-years
+          --comment-style "#"
+        language: system
+        types: [python]
+      # docformatter
+      - id: docformatter
+        name: docformatter
+        entry: pixi run -e lint docformatter -i
+        language: system
+        types: [python]
+      # ruff
+      - id: ruff
+        name: ruff
+        entry: pixi run -e lint ruff check --fix --exit-non-zero-on-fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff-format
+        entry: pixi run -e lint ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      # mypy
+      - id: mypy
+        name: mypy
+        entry: pixi run -e default mypy
+        language: system
+        types: [python]
+        require_serial: true
+        exclude: ^(tests|api-coverage-tests)/
+      # prettier
+      - id: prettier
+        name: prettier
+        entry: pixi run -e lint prettier --write --list-different --ignore-unknown
+        language: system
+        types: [text]
+        files: \.(md|yml|yaml)$
+      # pre-commit-hooks
+      - id: trailing-whitespace-fixer
+        name: trailing-whitespace-fixer
+        entry: pixi run -e lint trailing-whitespace-fixer
+        language: system
+        types: [text]
+      - id: end-of-file-fixer
+        name: end-of-file-fixer
+        entry: pixi run -e lint end-of-file-fixer
+        language: system
+        types: [text]
+      # typos
+      - id: typos
+        name: typos
+        entry: pixi run -e lint typos --force-exclude
+        language: system
+        types: [text]
+        require_serial: true

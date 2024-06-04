@@ -1,0 +1,6 @@
+build
+conda.recipe
+.copier-answers.yml
+
+*.html
+*.properties

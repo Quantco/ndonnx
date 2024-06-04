@@ -1,0 +1,3 @@
+[submodule "array-api-tests"]
+	path = api-coverage-tests
+	url = git@github.com:data-apis/array-api-tests.git

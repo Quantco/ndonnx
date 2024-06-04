@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm", "wheel"]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+
+[project]
+name = "ndonnx"
+description = "ONNX backed array library compliant with Array API standard."
+readme = "README.md"
+dynamic = ["version"]
+authors = [
+    { name = "Aditya Goel", email = "agoel4512@gmail.com" },
+    { name = "Christian Bourjau", email = "christian.bourjau@quantco.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10"
+
+[project.urls]
+repository = "https://github.com/quantco/ndonnx"
+
+
+[tool.setuptools.packages.find]
+include = ["ndonnx"]
+namespaces = false
+
+[project.scripts]
+
+[tool.docformatter]
+black = true # only sets the style options to the default values of black
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+ignore = [
+    "N803",  # https://docs.astral.sh/ruff/rules/invalid-argument-name
+    "N806",  # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
+    "E501",  # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
+    "UP038", # https://github.com/astral-sh/ruff/issues/7871
+    "UP007",
+]
+select = [
+    # pyflakes
+    "F",
+    # pycodestyle
+    "E",
+    "W",
+    # isort
+    "I",
+    # pep8-naming
+    "N",
+    # pyupgrade
+    "UP",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = '3.10'
+no_implicit_optional = true
+check_untyped_defs = true
+exclude = ["api-coverage-tests", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["onnxruntime"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "--import-mode=importlib --ignore=api-coverage-tests"
+testpaths = ["tests"]
+exclude = ["docs/"]
+
+[tool.typos.default]
+extend-ignore-identifiers-re = ["scatter_nd", "arange"]

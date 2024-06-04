@@ -1,0 +1,45 @@
+name: Array API coverage tests
+on:
+  push:
+    branches:
+      - "*"
+  schedule:
+    - cron: "0 8 * * *"
+
+# Automatically stop old builds on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  array-api-tests:
+    # Run if the commit message contains 'run array-api tests' or if the job is triggered on schedule
+    if: >-
+      contains(github.event.head_commit.message, 'run array-api tests') ||
+      github.event_name == 'schedule'
+    name: Array API test
+    timeout-minutes: 90
+    runs-on: ubuntu-latest-8core
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
+      - name: Install repository
+        run: pixi run postinstall
+      - name: Run Array API tests
+        env:
+          ARRAY_API_TESTS_MODULE: ndonnx
+        run: |
+          pushd api-coverage-tests
+          pixi run pytest --ci --max-examples 2 array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto -vv --skips-file=../skips.txt
+          popd
+      - name: Upload Array API tests report
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage-tests
+          path: api-coverage-tests/api-coverage-tests.json
