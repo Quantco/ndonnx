@@ -37,7 +37,6 @@ jobs:
           - macos-latest
           - windows-latest
         environment:
-          - py39
           - py310
           - py311
           - py312
