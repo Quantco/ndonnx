@@ -8,13 +8,13 @@ An ONNX-backed array library that is compliant with the [Array API](https://data
 
 ## Installation
 
-You can install `ndonnx` using `conda`:
+Releases are available on PyPI and conda-forge.
 
 ```bash
+# using pip
+pip install ndonnx
 # using conda
 conda install ndonnx
-# using micromamba
-micromamba install ndonnx
 # using pixi
 pixi add ndonnx
 ```
