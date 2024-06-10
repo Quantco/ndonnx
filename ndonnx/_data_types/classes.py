@@ -18,7 +18,7 @@ from .coretype import CoreType
 from .structtype import StructType
 
 if TYPE_CHECKING:
-    from ndonnx.array import Array
+    from ndonnx import Array
 
 
 class Numerical(CoreType):
