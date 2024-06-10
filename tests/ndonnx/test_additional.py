@@ -1,6 +1,7 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: LicenseRef-QuantCo
 
+import sys
 
 import numpy as np
 import pytest
@@ -65,6 +66,10 @@ def test_searchsorted_raises():
         ndx.searchsorted(a, b, side="middle")  # type: ignore[arg-type]
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
+)
 def test_static_map():
     a = ndx.array(shape=(3,), dtype=ndx.int64)
     b = nda.static_map(a, {1: 2, 2: 3})
@@ -83,6 +88,10 @@ def test_static_map():
     )
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
+)
 def test_isin():
     a = ndx.array(shape=("N",), dtype=ndx.utf8)
     b = nda.isin(a, ["foo", "bar", "baz"])

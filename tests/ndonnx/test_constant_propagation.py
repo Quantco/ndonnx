@@ -45,7 +45,7 @@ def arithmetic_model(mode: Literal["lazy", "constant"]):
 
 def dynamic_masking_model(mode: Literal["lazy", "constant"]):
     if mode == "constant":
-        a = ndx.asarray([0, 1, 2, 3])
+        a = ndx.asarray([0, 1, 2, 3], dtype=ndx.int64)
     else:
         a = ndx.array(
             shape=("N",),
@@ -67,13 +67,13 @@ def dynamic_masking_model(mode: Literal["lazy", "constant"]):
 
 def constant_indexing_model(mode: Literal["lazy", "constant"]):
     if mode == "constant":
-        a = ndx.asarray([0, 1, 2, 3])
+        a = ndx.asarray([0, 1, 2, 3], dtype=ndx.int64)
     else:
         a = ndx.array(
             shape=("N",),
             dtype=ndx.int64,
         )
-    b = ndx.asarray([5, 7, 8, 8, 9, 9, 234])
+    b = ndx.asarray([5, 7, 8, 8, 9, 9, 234], dtype=ndx.int64)
     idx = ndx.asarray([1, 3, 5, 0])
     result = a * b[idx]
     return ndx.build({"a": a} if mode == "lazy" else {}, {"y": result})

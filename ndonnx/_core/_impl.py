@@ -540,7 +540,10 @@ class CoreOperationsImpl(OperationsBlock):
 
         # FIXME: I think we can simply use arange/ones+cumsum or something for the indices
         # maybe: indices = opx.cumsum(ones_like(flattened, dtype=dtypes.i64), axis=ndx.asarray(0))
-        indices = opx.squeeze(opx.ndindex(opx.shape(flattened._core())), opx.const([1]))
+        indices = opx.squeeze(
+            opx.ndindex(opx.shape(flattened._core())),
+            opx.const([1], dtype=dtypes.int64),
+        )
 
         ret = namedtuple("ret", ["values", "indices", "inverse_indices", "counts"])
 

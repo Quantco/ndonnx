@@ -184,6 +184,8 @@ def const(value, dtype: CoreType | None = None) -> _CoreArray:
 
 @eager_propagate
 def squeeze(data: _CoreArray, axes: _CoreArray | None = None) -> _CoreArray:
+    if axes is not None and axes.dtype != dtypes.int64:
+        raise ValueError(f"Expected axes to be of type int64, got {axes.dtype}")
     return _CoreArray(op.squeeze(data.var, axes=axes.var if axes is not None else None))
 
 
@@ -364,6 +366,8 @@ def concat(inputs: list[_CoreArray], axis: int) -> _CoreArray:
 
 @eager_propagate
 def unsqueeze(data: _CoreArray, axes: _CoreArray) -> _CoreArray:
+    if axes.dtype != dtypes.int64:
+        raise TypeError(f"axes must be int64, got {axes.dtype}")
     return _CoreArray(op.unsqueeze(data.var, axes.var))
 
 
@@ -503,7 +507,7 @@ def getitem_null(corearray: _CoreArray, index: _CoreArray) -> _CoreArray:
     if get_rank(index) == 0:
 
         def extend_shape(x: Var) -> Var:
-            return op.concat([op.const([1]), op.shape(x)], axis=0)
+            return op.concat([op.const([1], dtype=np.int64), op.shape(x)], axis=0)
 
         var = op.reshape(var, extend_shape(var), allowzero=True)
         index_var = op.reshape(index.var, extend_shape(index.var), allowzero=True)
@@ -514,7 +518,8 @@ def getitem_null(corearray: _CoreArray, index: _CoreArray) -> _CoreArray:
             reshaped_var, reshaped_index = var, index.var
         else:
             ret_shape = op.concat(
-                [op.const([-1]), op.shape(var, start=get_rank(index))], axis=0
+                [op.const([-1], dtype=np.int64), op.shape(var, start=get_rank(index))],
+                axis=0,
             )
             reshaped_var = op.reshape(var, ret_shape, allowzero=True)
             reshaped_index = op.reshape(index.var, op.const([-1]), allowzero=True)
@@ -583,7 +588,7 @@ def getitem(
     index_filtered = [x for x in index if isinstance(x, (type(None), slice))]
     axis_new_axes = [ind for ind, x in enumerate(index_filtered) if x is None]
     if len(axis_new_axes) != 0:
-        var = op.unsqueeze(var, axes=op.const(axis_new_axes))
+        var = op.unsqueeze(var, axes=op.const(axis_new_axes, dtype=np.int64))
 
     return _CoreArray(var)
 
@@ -607,7 +612,11 @@ def setitem(
     indices = getitem(ndindex(_CoreArray(op.shape(var))), index)
 
     # broadcast updates as appropriate
-    index_path_shape = op.slice(op.shape(indices.var), op.const([0]), op.const([-1]))
+    index_path_shape = op.slice(
+        op.shape(indices.var),
+        op.const([0], dtype=np.int64),
+        op.const([-1], dtype=np.int64),
+    )
     return _CoreArray(
         op.scatter_nd(var, indices.var, op.expand(updates.var, index_path_shape))
     )
@@ -640,14 +649,19 @@ def ndindex(shape: _CoreArray, to_reverse=None, axes_permutation=None) -> _CoreA
         axes_indices = [axes_permutation.index(i) for i in builtins.range(rank)]
 
     shape_var = shape.var
+    dtype = shape_var.unwrap_tensor().dtype
     ranges = [
         (
-            op.range(op.const(0), op.gather(shape_var, op.const(i)), op.const(1))
+            op.range(
+                op.const(0, dtype=dtype),
+                op.gather(shape_var, op.const(i)),
+                op.const(1, dtype=dtype),
+            )
             if i not in to_reverse
             else op.range(
-                op.sub(op.gather(shape_var, op.const(i)), op.const(1)),
-                op.const(-1),
-                op.const(-1),
+                op.sub(op.gather(shape_var, op.const(i)), op.const(1, dtype=dtype)),
+                op.const(-1, dtype=dtype),
+                op.const(-1, dtype=dtype),
             )
         )
         for i in builtins.range(rank)
@@ -657,7 +671,8 @@ def ndindex(shape: _CoreArray, to_reverse=None, axes_permutation=None) -> _CoreA
         op.unsqueeze(
             r,
             op.const(
-                [j for j in builtins.range(rank) if axes_indices[i] != j], dtype=np.int_
+                [j for j in builtins.range(rank) if axes_indices[i] != j],
+                dtype=np.int64,
             ),
         )
         for i, r in enumerate(ranges)
@@ -669,7 +684,7 @@ def ndindex(shape: _CoreArray, to_reverse=None, axes_permutation=None) -> _CoreA
     expanded_ranges = [op.expand(r, shape_var) for r in fit_ranges]
 
     ret = op.concat(
-        [op.unsqueeze(r, op.const([-1])) for r in expanded_ranges],
+        [op.unsqueeze(r, op.const([-1], dtype=np.int64)) for r in expanded_ranges],
         axis=-1,
     )
 
@@ -692,6 +707,8 @@ def static_map(
     input: _CoreArray, mapping: Mapping[KeyType, ValueType], default: ValueType | None
 ) -> _CoreArray:
     keys = np.array(tuple(mapping.keys()))
+    if keys.dtype == np.int32:
+        keys = keys.astype(np.int64)
     values = np.array(tuple(mapping.values()))
     value_dtype = values.dtype
     if default is None:
@@ -726,10 +743,11 @@ def get_indices(
     split_pos_var = split_pos.var
     positions_var = positions.var
     indices_x = op.reshape(
-        op.slice(positions_var, op.const([0]), split_pos_var), op.const([-1])
+        op.slice(positions_var, op.const([0], dtype=np.int64), split_pos_var),
+        op.const([-1], dtype=np.int64),
     )
     indices_y = op.reshape(
         op.slice(positions_var, split_pos_var, op.const([np.iinfo(np.int64).max])),
-        op.const([-1]),
+        op.const([-1], dtype=np.int64),
     )
     return _CoreArray(indices_x), _CoreArray(indices_y)

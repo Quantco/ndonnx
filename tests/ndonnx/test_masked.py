@@ -19,10 +19,12 @@ def testfill_null():
 
     model = ndx.build({"a": a}, {"b": b})
 
-    expected_b = np.ma.masked_array([1, 2, 0], mask=[0, 0, 0])
+    expected_b = np.ma.masked_array([1, 2, 0], mask=[0, 0, 0], dtype=np.int64)
     np.testing.assert_equal(
         expected_b,
-        run(model, {"a": np.ma.masked_array([1, 2, -1], mask=[0, 0, 1])})["b"],
+        run(
+            model, {"a": np.ma.masked_array([1, 2, -1], mask=[0, 0, 1], dtype=np.int64)}
+        )["b"],
     )
 
 
@@ -134,7 +136,10 @@ def test_masked_getitem():
     model = ndx.build({"a": a}, {"b": a[0]})
 
     np.testing.assert_equal(
-        [1], run(model, {"a": np.ma.masked_array([1, 2, 3], mask=[0, 0, 1])})["b"]
+        [1],
+        run(
+            model, {"a": np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64)}
+        )["b"],
     )
 
 
@@ -148,7 +153,9 @@ def test_masked_setitem():
 
     np.testing.assert_equal(
         [1, 2, 3],
-        run(model, dict(a=np.ma.masked_array([1, 2, 3], mask=[0, 0, 0])))["b"],
+        run(
+            model, dict(a=np.ma.masked_array([1, 2, 3], mask=[0, 0, 0], dtype=np.int64))
+        )["b"],
     )
 
 
@@ -177,17 +184,20 @@ def test_opset_extensions():
 
 
 def test_eager_mode():
-    a = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1]), dtype=ndx.nint64)
-    b = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1]), dtype=ndx.nint64)
+    a = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64))
+    b = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64))
     c = ndx.asarray(
-        np.ma.masked_array([-12, 21, 12213], mask=[1, 0, 0]), dtype=ndx.nint64
+        np.ma.masked_array([-12, 21, 12213], mask=[1, 0, 0], dtype=np.int64)
     )
     np.testing.assert_equal(
-        (a + b).to_numpy(), np.ma.masked_array([2, 4, 6], mask=[0, 0, 1])
+        (a + b).to_numpy(),
+        np.ma.masked_array([2, 4, 6], mask=[0, 0, 1], dtype=np.int64),
     )
     np.testing.assert_equal(
-        (a - b).to_numpy(), np.ma.masked_array([0, 0, 0], mask=[0, 0, 1])
+        (a - b).to_numpy(),
+        np.ma.masked_array([0, 0, 0], mask=[0, 0, 1], dtype=np.int64),
     )
     np.testing.assert_equal(
-        (a * c).to_numpy(), np.ma.masked_array([-12, 42, 36639], mask=[1, 0, 1])
+        (a * c).to_numpy(),
+        np.ma.masked_array([-12, 42, 36639], mask=[1, 0, 1], dtype=np.int64),
     )

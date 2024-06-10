@@ -618,7 +618,9 @@ def expand_dims(x, axis=0):
     if (out := x.dtype._ops.expand_dims(x, axis)) is not NotImplemented:
         return out
     return x._transmute(
-        lambda corearray: opx.unsqueeze(corearray, axes=opx.const([axis]))
+        lambda corearray: opx.unsqueeze(
+            corearray, axes=opx.const([axis], dtype=dtypes.int64)
+        )
     )
 
 
@@ -691,10 +693,15 @@ def roll(x, shift, axis=None):
         len_single = opx.gather(
             asarray(x.shape, dtype=dtypes.int64)._core(), opx.const(ax)
         )
-        shift_single = opx.add(opx.const(-sh), len_single)
+        shift_single = opx.add(opx.const(-sh, dtype=dtypes.int64), len_single)
         # Find the needed element index and then gather from it
         range = opx.cast(
-            opx.range(opx.const(0), len_single, opx.const(1)), to=dtypes.int64
+            opx.range(
+                opx.const(0, dtype=len_single.dtype),
+                len_single,
+                opx.const(1, dtype=len_single.dtype),
+            ),
+            to=dtypes.int64,
         )
         new_indices = opx.mod(opx.add(range, shift_single), len_single)
         x = take(x, _from_corearray(new_indices), axis=ax)
