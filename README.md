@@ -1,8 +1,8 @@
 # ndonnx
 
-[![CI](https://github.com/quantco/ndonnx/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/quantco/ndonnx/actions/workflows/ci.yml)
-[![Documentation](https://img.shields.io/badge/docs-latest-success?branch=main&style=plastic)](https://docs.dev.quantco.cloud/qc-github-artifacts/Quantco/ndonnx/latest/index.html)
-[![Quetz](https://img.shields.io/badge/quetz-ndonnx-success?style=plastic)](https://conda.prod.quantco.cloud/channels/qc-internal/packages/ndonnx)
+[![CI](https://img.shields.io/github/actions/workflow/status/quantco/ndonnx/ci.yml?style=flat-square&branch=main)](https://github.com/quantco/ndonnx/actions/workflows/ci.yml)
+[![Documentation](https://img.shields.io/github/actions/workflow/status/quantco/ndonnx/docs.yml?style=flat-square&branch=main)](https://quantco.github.io/ndonnx)
+[![conda-forge](https://img.shields.io/conda/pn/conda-forge/ndonnx?style=flat-square&logoColor=white&logo=conda-forge)](https://prefix.dev/channels/conda-forge/packages/ndonnx)
 
 An ONNX-backed array library that is compliant with the [Array API](https://data-apis.org/array-api/) standard.
 
