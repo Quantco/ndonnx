@@ -124,9 +124,7 @@ def _aggregate_arguments(
             else:
                 if obj.dtype in (ndx.utf8, ndx.nutf8):
                     # Lazy variant due to onnxruntime bug
-                    lazy = ndx.array(
-                        shape=obj._static_shape, dtype=obj.dtype
-                    )  # type: ignore
+                    lazy = ndx.array(shape=obj._static_shape, dtype=obj.dtype)  # type: ignore
 
                     # disassemble the array into its core_arrays
                     _flatten(obj, lazy, flattened_inference_inputs)

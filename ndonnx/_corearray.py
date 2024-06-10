@@ -81,7 +81,6 @@ class _CoreArray:
     def _normalise_index(
         self, index: IndexType
     ) -> _CoreArray | tuple[ScalarIndexType, ...]:
-
         if isinstance(index, _CoreArray):
             return index
         else:

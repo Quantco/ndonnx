@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 
 
 class CoreOperationsImpl(OperationsBlock):
-
     # elementwise.py
 
     def abs(self, x):
@@ -522,7 +521,6 @@ class CoreOperationsImpl(OperationsBlock):
 
     # set.py
     def unique_all(self, x):
-
         new_dtype = x.dtype
         if isinstance(x.dtype, dtypes.Integral) or x.dtype in (
             dtypes.bool,

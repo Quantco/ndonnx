@@ -472,7 +472,7 @@ class Array:
         return ndx.not_equal(self, other)
 
     @property
-    def mT(self) -> ndx.Array:
+    def mT(self) -> ndx.Array:  # noqa: N802
         """Transpose of a matrix (or a stack of matrices).
 
         If an array instance has fewer than two dimensions, an error should be raised.
@@ -496,7 +496,7 @@ class Array:
         return ndx.prod(self.shape)
 
     @property
-    def T(self) -> ndx.Array:
+    def T(self) -> ndx.Array:  # noqa: N802
         """Transpose of the array.
 
         The array instance must be two-dimensional.

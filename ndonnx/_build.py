@@ -89,7 +89,7 @@ def _get_dtype(dtype: str, version: int) -> dtypes.StructType | dtypes.CoreType:
 
 
 def _extract_output_names(
-    output_dtypes: dict[str, dtypes.StructType | dtypes.CoreType]
+    output_dtypes: dict[str, dtypes.StructType | dtypes.CoreType],
 ) -> dict[str, ndx.CoreType]:
     """Given a dictionary mapping output names to their data types, extract the
     underlying fully qualified names and their CoreTypes.

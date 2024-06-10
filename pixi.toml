@@ -37,6 +37,7 @@ pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = "*"
 mypy = ">=1.9,<1.10"
+pandas-stubs = "*"
 jupyterlab = "*"
 [feature.test.tasks]
 test = "pytest"
@@ -55,8 +56,6 @@ typos = "*"
 pre-commit-install = "pre-commit install"
 pre-commit-run = "pre-commit run -a"
 
-[feature.py38.dependencies]
-python = "3.8.*"
 [feature.py39.dependencies]
 python = "3.9.*"
 [feature.py310.dependencies]

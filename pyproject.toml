@@ -69,21 +69,15 @@ check_untyped_defs = true
 
 exclude = ["api-coverage-tests", "tests"]
 
-# If you run into `missing library stubs or py.typed marker` errors
-# and no stubs are available for this library, you can add an override
-# to ignore the missing imports.
-# [[tool.mypy.overrides]]
-# module = ["my_module"]
-# ignore_missing_imports = true
+[[tool.mypy.overrides]]
+# https://github.com/onnx/onnx/issues/4404
+module = ["onnxruntime", "ndonnx.array"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-pythonpath = [".", "src"]
 addopts = "--import-mode=importlib --ignore=api-coverage-tests"
 testpaths = ["tests"]
 exclude = ["docs/"]
 
 [tool.typos.default]
-extend-ignore-identifiers-re = [
-    "scatter_nd",
-    "arange",
-]
+extend-ignore-identifiers-re = ["scatter_nd", "arange"]

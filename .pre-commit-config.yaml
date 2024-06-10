@@ -39,6 +39,7 @@ repos:
         language: system
         types: [python]
         require_serial: true
+        exclude: ^(tests|api-coverage-tests)/
       # prettier
       - id: prettier
         name: prettier
