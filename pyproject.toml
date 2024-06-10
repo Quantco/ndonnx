@@ -63,7 +63,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = '3.9'
+python_version = '3.10'
 no_implicit_optional = true
 check_untyped_defs = true
 exclude = ["api-coverage-tests", "tests"]
