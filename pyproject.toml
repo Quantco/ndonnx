@@ -66,15 +66,14 @@ indent-style = "space"
 python_version = '3.9'
 no_implicit_optional = true
 check_untyped_defs = true
-
 exclude = ["api-coverage-tests", "tests"]
 
 [[tool.mypy.overrides]]
-# https://github.com/onnx/onnx/issues/4404
-module = ["onnxruntime", "ndonnx.array"]
+module = ["onnxruntime"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+pythonpath = "."
 addopts = "--import-mode=importlib --ignore=api-coverage-tests"
 testpaths = ["tests"]
 exclude = ["docs/"]
