@@ -32,13 +32,13 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          # - ubuntu-latest
-          # - macos-latest
+          - ubuntu-latest
+          - macos-latest
           - windows-latest
         environment:
-          # - py310
+          - py310
           - py311
-          # - py312
+          - py312
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
