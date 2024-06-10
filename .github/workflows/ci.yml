@@ -26,7 +26,7 @@ jobs:
   unit-tests:
     name: pytest
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
