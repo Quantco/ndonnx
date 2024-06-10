@@ -5,8 +5,8 @@ from __future__ import annotations
 import functools
 import warnings
 from collections import namedtuple
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Callable, Literal
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -100,7 +100,7 @@ class CoreOperationsImpl(OperationsBlock):
         return _binary_op(x, y, opx.bitwise_xor)
 
     def ceil(self, x):
-        if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
+        if isinstance(x.dtype, dtypes.Floating | dtypes.NullableFloating):
             return _unary_op(x, opx.ceil, dtypes.float64)
         return ndx.asarray(x, copy=False)
 

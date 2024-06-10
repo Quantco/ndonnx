@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeAlias, TypeVar
 
 import numpy as np
-from typing_extensions import TypeAlias
 
 import ndonnx as ndx
 from ndonnx import _opset_extensions as opx

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-from typing import Union
 
 import numpy as np
 import onnx
@@ -18,7 +17,7 @@ from ndonnx._build import (
     _get_dtype,
 )
 
-Dtype = Union[dtypes.StructType, dtypes.CoreType]
+Dtype = dtypes.StructType | dtypes.CoreType
 
 
 def run(

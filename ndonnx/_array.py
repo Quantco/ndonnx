@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import typing
-from typing import Callable, Union
+from collections.abc import Callable
+from typing import Union
 
 import numpy as np
 import spox.opset.ai.onnx.v19 as op

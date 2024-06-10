@@ -11,11 +11,11 @@ readme = "README.md"
 dynamic = ["version"]
 authors = [{ name = "QuantCo, Inc.", email = "noreply@quantco.com" }]
 classifiers = [
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.10"
 
@@ -37,22 +37,24 @@ line-length = 88
 
 [tool.ruff.lint]
 ignore = [
-  "N803", # https://docs.astral.sh/ruff/rules/invalid-argument-name
-  "N806", # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
-  "E501", # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
+    "N803",  # https://docs.astral.sh/ruff/rules/invalid-argument-name
+    "N806",  # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
+    "E501",  # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
+    "UP038", # https://github.com/astral-sh/ruff/issues/7871
+    "UP007",
 ]
 select = [
-  # pyflakes
-  "F",
-  # pycodestyle
-  "E",
-  "W",
-  # isort
-  "I",
-  # pep8-naming
-  "N",
-  # pyupgrade
-  "UP",
+    # pyflakes
+    "F",
+    # pycodestyle
+    "E",
+    "W",
+    # isort
+    "I",
+    # pep8-naming
+    "N",
+    # pyupgrade
+    "UP",
 ]
 
 [tool.ruff.lint.per-file-ignores]

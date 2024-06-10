@@ -47,7 +47,7 @@ def index_normalise(a: Iterable[ScalarIndexType]) -> tuple[ScalarIndexType, ...]
 
 
 def construct_index(
-    arr, index: Union[ScalarIndexType, tuple[ScalarIndexType, ...]]
+    arr, index: ScalarIndexType | tuple[ScalarIndexType, ...]
 ) -> tuple[ScalarIndexType, ...]:
     index_ = index if isinstance(index, tuple) else (index,)
     if any(i is Ellipsis for i in index_):

@@ -406,6 +406,3 @@ output/
 # Type-generated
 ndonnx/_types.pyi
 ndonnx/__init__.pyi
-# pixi environments
-.pixi
-*.egg-info
