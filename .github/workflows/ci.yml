@@ -20,6 +20,9 @@ jobs:
           auth-host: https://conda.prod.quantco.cloud
           auth-conda-token: ${{ secrets.QUETZ_API_KEY }}
           environments: default lint
+      - name: Install repository
+        # needed for mypy
+        run: pixi run postinstall
       - name: pre-commit
         run: pixi run pre-commit-run --color=always --show-diff-on-failure
 
