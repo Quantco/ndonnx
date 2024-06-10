@@ -2,6 +2,15 @@ exclude: ^(\.copier-answers\.yml)|.pixi$
 repos:
   - repo: local
     hooks:
+      # ensure pixi environments are up to date
+      # workaround for https://github.com/prefix-dev/pixi/issues/1482
+      - id: pixi-install
+        name: pixi-install
+        entry: pixi install -e default -e lint
+        language: system
+        always_run: true
+        require_serial: true
+        pass_filenames: false
       # insert-license
       - id: insert-license
         name: insert-license
