@@ -1,5 +1,9 @@
 name: Documentation
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,35 +34,9 @@ jobs:
         with:
           name: docs
           path: docs/_build/html
-
-  upload:
-    name: Upload Docs
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Download html
-        uses: actions/download-artifact@v4
+      - name: Publish docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e
         with:
-          name: docs
-      - name: Authenticate with GCP
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: projects/610600912298/locations/global/workloadIdentityPools/doqker-devel-github-actions-pool/providers/github-actions-provider
-          service_account: sa-github-actions@doqker-devel.iam.gserviceaccount.com
-          token_format: access_token
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-      - name: Set ref (release)
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "docs-path=${{ github.ref_name }}" >> $GITHUB_ENV
-      - name: Set ref (main)
-        if: github.ref == 'refs/heads/main'
-        run: echo "docs-path=latest" >> $GITHUB_ENV
-      - name: Set ref (pull_request)
-        if: startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
-        run: echo "docs-path=${{ github.ref }}" >> $GITHUB_ENV
-      - name: Upload to Google Cloud Storage
-        run: gcloud storage cp -r * gs://qc-github-artifacts/${{ github.repository }}/${{ env.docs-path }}/
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html
