@@ -30,6 +30,11 @@ nbsphinx = "*"
 [feature.docs.tasks]
 docs = "cd docs && make html"
 
+[feature.build.dependencies]
+build = "*"
+[feature.build.tasks]
+build-wheel = "python -m build --no-isolation ."
+
 [feature.test.dependencies]
 pytest = ">=6"
 pytest-cov = "*"
@@ -72,4 +77,5 @@ py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
 docs = ["docs"]
+build = { features = ["build"], no-default-feature = true }
 lint = { features = ["lint"], no-default-feature = true }
