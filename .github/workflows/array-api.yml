@@ -2,55 +2,36 @@ name: Array API coverage tests
 on:
   push:
     branches:
-      - "*"
-  schedule:
-    - cron: "0 8 * * *"
+      - main
+  pull_request:
 
 # Automatically stop old builds on the same branch/PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    shell: bash -el {0}
-
-env:
-  QUETZ_API_KEY: ${{ secrets.QUETZ_API_KEY }}
-
 jobs:
   array-api-tests:
-    # Run if the commit message contains 'run array-api tests' or if the job is triggered on schedule
-    if: >-
-      contains(github.event.head_commit.message, 'run array-api tests') ||
-      github.event_name == 'schedule'
-    name: "Array API test"
+    name: Array API test
     timeout-minutes: 90
     runs-on: ubuntu-latest-16core
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-          submodules: "recursive"
-      - name: Set up Conda env
-        uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822
-        with:
-          condarc-file: .github/assets/.condarc
-          environment-file: environment.yml
-          create-args: >-
-            python=3.12
-            pytest-md
-            pytest-emoji
+          submodules: recursive
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
       - name: Install repository
-        run: python -m pip install --no-build-isolation --no-deps --disable-pip-version-check -e .
+        run: pixi run postinstall
       - name: Run Array API tests
         env:
           ARRAY_API_TESTS_MODULE: ndonnx
         run: |
           pushd api-coverage-tests
-          pytest --ci --max-examples 2 array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto -vv --skips-file=../skips.txt
+          pixi run pytest --ci --max-examples 2 array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto -vv --skips-file=../skips.txt
           popd
       - name: Upload Array API tests report
         uses: actions/upload-artifact@v4
