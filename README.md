@@ -31,9 +31,8 @@ cd ndonnx
 git submodule update --init --recursive
 
 # Set up development environment
-pixi shell
-pre-commit install
-pip install -e .
+pixi run pre-commit-install
+pip install --no-build-isolation --no-deps -e .
 pytest tests -n auto
 ```
 

@@ -2,8 +2,9 @@ name: Array API coverage tests
 on:
   push:
     branches:
-      - main
-  pull_request:
+      - "*"
+  schedule:
+    - cron: "0 8 * * *"
 
 # Automatically stop old builds on the same branch/PR
 concurrency:
