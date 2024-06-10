@@ -26,11 +26,15 @@ You can install the package in development mode using:
 ```bash
 git clone https://github.com/quantco/ndonnx
 cd ndonnx
+
+# For Array API tests
 git submodule update --init --recursive
 
-pixi run pre-commit-install
-pixi run postinstall
-pixi run test
+# Set up development environment
+pixi shell
+pre-commit install
+pip install -e .
+pytest tests -n auto
 ```
 
 ## Quick start
@@ -100,5 +104,5 @@ Summary(1119 total):
 Run the tests with:
 
 ```bash
-ARRAY_API_TESTS_MODULE=ndonnx pytest array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto
+pixi run arrayapitests
 ```

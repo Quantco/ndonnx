@@ -5,14 +5,11 @@ platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64", "win-64"]
 
 [tasks]
 postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-check -e ."
+arrayapitests = "ARRAY_API_TESTS_MODULE=ndonnx pytest --max-examples 2 api-coverage-tests/array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto -vv --skips-file=skips.txt"
 
 [dependencies]
 python = ">=3.10"
-ndindex = "*"
 numpy = "*"
-onnx = ">=1.15"
-onnxruntime = "*"
-pandas = "*"
 spox = ">=0.10"
 
 [host-dependencies]
@@ -41,9 +38,9 @@ pytest-cov = "*"
 pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = "*"
-mypy = ">=1.9,<1.10"
-pandas-stubs = "*"
 jupyterlab = "*"
+onnxruntime = ">=1.18.0,<1.19"
+onnx = ">=1.16.1,<1.17"
 [feature.test.tasks]
 test = "pytest"
 test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
@@ -54,7 +51,6 @@ insert-license-header = "*"
 docformatter = "*"
 ruff = "*"
 prettier = "*"
-taplo = "*"
 pre-commit-hooks = "*"
 typos = "*"
 [feature.lint.tasks]

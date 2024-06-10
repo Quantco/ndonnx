@@ -6,3 +6,5 @@
 *.bat text eol=crlf
 
 pixi.lock linguist-language=YAML linguist-generated=true
+# GitHub syntax highlighting
+pixi.lock linguist-language=YAML

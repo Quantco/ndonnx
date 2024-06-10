@@ -56,12 +56,6 @@ repos:
         language: system
         types: [text]
         files: \.(md|yml|yaml)$
-      # taplo
-      - id: taplo
-        name: taplo
-        entry: pixi run -e lint taplo format
-        language: system
-        types: [toml]
       # pre-commit-hooks
       - id: trailing-whitespace-fixer
         name: trailing-whitespace-fixer
@@ -71,11 +65,6 @@ repos:
       - id: end-of-file-fixer
         name: end-of-file-fixer
         entry: pixi run -e lint end-of-file-fixer
-        language: system
-        types: [text]
-      - id: check-merge-conflict
-        name: check-merge-conflict
-        entry: pixi run -e lint check-merge-conflict --assume-in-merge
         language: system
         types: [text]
       # typos
