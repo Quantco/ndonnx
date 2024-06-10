@@ -30,4 +30,3 @@ ndonnx is an ONNX-backed Python array library that implements the `Array API sta
     :caption: Other
 
     Motivation <motivation/motivation>
-    Changelog <changelog>

@@ -6,16 +6,16 @@ version_scheme = "post-release"
 
 [project]
 name = "ndonnx"
-description = "A array-api implementation backed-up by ONNX."
+description = "A array-api implementation backed-up by ONNX"
 readme = "README.md"
 dynamic = ["version"]
 authors = [{ name = "QuantCo, Inc.", email = "noreply@quantco.com" }]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.9"
 
@@ -30,63 +30,60 @@ namespaces = false
 [project.scripts]
 
 [tool.docformatter]
-black = true
-
-[tool.black]
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.venv
-  | build
-  | dist
-)/
-'''
+black = true # only sets the style options to the default values of black
 
 [tool.ruff]
 line-length = 88
 
 [tool.ruff.lint]
 ignore = [
-    "N803", # https://docs.astral.sh/ruff/rules/invalid-argument-name
-    "N806", # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
-    "E501", # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
-    "N802",
+  "N803", # https://docs.astral.sh/ruff/rules/invalid-argument-name
+  "N806", # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
+  "E501", # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
 ]
 select = [
-    # pyflakes
-    "F",
-    # pycodestyle
-    "E",
-    "W",
-    # isort
-    "I",
-    # pep8-naming
-    "N",
-    # pyupgrade
-    "UP",
+  # pyflakes
+  "F",
+  # pycodestyle
+  "E",
+  "W",
+  # isort
+  "I",
+  # pep8-naming
+  "N",
+  # pyupgrade
+  "UP",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["I"]
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.mypy]
 python_version = '3.9'
-ignore_missing_imports = true
 no_implicit_optional = true
 check_untyped_defs = true
+
 exclude = ["api-coverage-tests", "tests"]
 
+# If you run into `missing library stubs or py.typed marker` errors
+# and no stubs are available for this library, you can add an override
+# to ignore the missing imports.
+# [[tool.mypy.overrides]]
+# module = ["my_module"]
+# ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+addopts = "--import-mode=importlib --ignore=api-coverage-tests"
+testpaths = ["tests"]
+exclude = ["docs/"]
 
 [tool.typos.default]
 extend-ignore-identifiers-re = [
     "scatter_nd",
     "arange",
 ]
-
-[tool.pytest.ini_options]
-pythonpath = [".", "src"]
-addopts = "--ignore=api-coverage-tests --import-mode=importlib --cov=ndonnx --cov-report term-missing"
-exclude = ["docs/"]
-testpaths = ["tests"]

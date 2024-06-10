@@ -325,12 +325,6 @@ poetry.toml
 # ruff
 .ruff_cache/
 
-# OS-specific
-.DS_Store
-
-# Type-generated
-ndonnx/_types.pyi
-ndonnx/__init__.pyi
 # LSP config files
 pyrightconfig.json
 
@@ -405,3 +399,10 @@ $RECYCLE.BIN/
 output/
 # setuptools-scm needs `.git/refs/tags`, don't ignore
 !.git/refs/tags
+
+# OS-specific
+.DS_Store
+
+# Type-generated
+ndonnx/_types.pyi
+ndonnx/__init__.pyi

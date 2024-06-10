@@ -6,83 +6,48 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    shell: bash -el {0}
-
-env:
-  QUETZ_API_KEY: ${{ secrets.QUETZ_API_KEY }}
-
 jobs:
   pre-commit-checks:
     name: Pre-commit Checks
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    env:
-      PRE_COMMIT_USE_MICROMAMBA: 1
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
         with:
-          ref: ${{ github.head_ref }}
-          # needed for 'pre-commit-mirrors-insert-license'
-          fetch-depth: 0
-      - name: Run pre-commit-conda
-        uses: quantco/pre-commit-conda@v1
-  mypy-type-checks:
-    name: Mypy Type Checks
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - name: Set up Conda env
-        uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822
-        with:
-          condarc-file: .github/assets/.condarc
-          environment-file: environment.yml
-          cache-environment: true
-      - name: Install repository
-        run: python -m pip install --no-build-isolation --no-deps --disable-pip-version-check -e .
-      - name: Run mypy
-        run: mypy .
+          auth-host: https://conda.prod.quantco.cloud
+          auth-conda-token: ${{ secrets.QUETZ_API_KEY }}
+          environments: default lint
+      - name: pre-commit
+        run: pixi run pre-commit-run --color=always --show-diff-on-failure
 
   unit-tests:
-    name: Unit Tests - ${{ matrix.os == 'ubuntu-latest-8core' && 'Linux' || 'Windows' }} - Python ${{ matrix.python-version }}
+    name: pytest
     timeout-minutes: 30
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        environment:
+          - py39
+          - py310
+          - py311
+          - py312
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - name: Set up Conda env
-        uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
         with:
-          condarc-file: .github/assets/.condarc
-          environment-file: environment.yml
-          create-args: >-
-            python=${{ matrix.python-version }}
-            pytest-md
-            pytest-emoji
+          auth-host: https://conda.prod.quantco.cloud
+          auth-conda-token: ${{ secrets.QUETZ_API_KEY }}
+          environments: ${{ matrix.environment }}
       - name: Install repository
-        run: python -m pip install --no-build-isolation --no-deps --disable-pip-version-check -e .
-      - name: Checkout Quantco/pytest-action
-        uses: actions/checkout@v4.1.1
-        with:
-          repository: Quantco/pytest-action
-          ref: v2
-          token: ${{ secrets.FQ_GH_TOKEN }}
-          path: .github/pytest-action
-      - name: Run unittests
-        uses: quantco/pytest-action@v2
-        with:
-          report-title: "Unit tests Linux - Python ${{ matrix.PYTHON_VERSION }}"
+        run: pixi run -e ${{ matrix.environment }} postinstall
+      - name: Run pytest
+        run: pixi run -e ${{ matrix.environment }} test-coverage --color=yes

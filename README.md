@@ -11,7 +11,12 @@ An ONNX-backed array library that is compliant with the [Array API](https://data
 You can install `ndonnx` using `conda`:
 
 ```bash
-conda install ndonnx -c qc-internal
+# using conda
+conda install ndonnx
+# using micromamba
+micromamba install ndonnx
+# using pixi
+pixi add ndonnx
 ```
 
 ## Development
@@ -23,13 +28,9 @@ git clone https://github.com/quantco/ndonnx
 cd ndonnx
 git submodule update --init --recursive
 
-# create and activate a fresh environment named ndonnx
-# see environment.yml for details
-micromamba create -f environment.yml
-micromamba activate ndonnx
-
-pre-commit install
-pip install --no-build-isolation -e .
+pixi run pre-commit-install
+pixi run postinstall
+pixi run test
 ```
 
 ## Quick start

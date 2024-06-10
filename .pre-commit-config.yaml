@@ -1,39 +1,77 @@
-exclude: ^\.copier-answers\.yml$
+exclude: ^(\.copier-answers\.yml)|.pixi$
 repos:
-  - repo: https://github.com/Quantco/pre-commit-mirrors-insert-license
-    rev: 1.3.0
+  - repo: local
     hooks:
+      # insert-license
       - id: insert-license
+        name: insert-license
+        entry: >-
+          pixi run -e lint
+          insert-license
+          --license-base64 Q29weXJpZ2h0IChjKSBRdWFudENvIHt5ZWFyX3N0YXJ0fS17eWVhcl9lbmR9ClNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBMaWNlbnNlUmVmLVF1YW50Q28K
+          --dynamic-years
+          --comment-style "#"
+        language: system
         types: [python]
-        args:
-          - --dynamic-years
-          - --comment-style
-          - "#"
-  - repo: https://github.com/Quantco/pre-commit-mirrors-docformatter
-    rev: 1.7.5
-    hooks:
-      - id: docformatter-conda
-  - repo: https://github.com/Quantco/pre-commit-mirrors-ruff
-    rev: 0.4.7
-    hooks:
-      - id: ruff-conda
-  - repo: https://github.com/Quantco/pre-commit-mirrors-black
-    rev: 24.4.2
-    hooks:
-      - id: black-conda
-  - repo: https://github.com/Quantco/pre-commit-mirrors-prettier
-    rev: 3.2.5
-    hooks:
-      - id: prettier-conda
+      # docformatter
+      - id: docformatter
+        name: docformatter
+        entry: pixi run -e lint docformatter -i
+        language: system
+        types: [python]
+      # ruff
+      - id: ruff
+        name: ruff
+        entry: pixi run -e lint ruff check --fix --exit-non-zero-on-fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff-format
+        entry: pixi run -e lint ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      # mypy
+      - id: mypy
+        name: mypy
+        entry: pixi run -e default mypy
+        language: system
+        types: [python]
+        require_serial: true
+      # prettier
+      - id: prettier
+        name: prettier
+        entry: pixi run -e lint prettier --write --list-different --ignore-unknown
+        language: system
+        types: [text]
         files: \.(md|yml|yaml)$
-  - repo: https://github.com/Quantco/pre-commit-mirrors-pre-commit-hooks
-    rev: 4.6.0
-    hooks:
-      - id: trailing-whitespace-conda
-      - id: end-of-file-fixer-conda
-      - id: check-merge-conflict-conda
-        args: ["--assume-in-merge"]
-  - repo: https://github.com/Quantco/pre-commit-mirrors-typos
-    rev: 1.21.0
-    hooks:
-      - id: typos-conda
+      # taplo
+      - id: taplo
+        name: taplo
+        entry: pixi run -e lint taplo format
+        language: system
+        types: [toml]
+      # pre-commit-hooks
+      - id: trailing-whitespace-fixer
+        name: trailing-whitespace-fixer
+        entry: pixi run -e lint trailing-whitespace-fixer
+        language: system
+        types: [text]
+      - id: end-of-file-fixer
+        name: end-of-file-fixer
+        entry: pixi run -e lint end-of-file-fixer
+        language: system
+        types: [text]
+      - id: check-merge-conflict
+        name: check-merge-conflict
+        entry: pixi run -e lint check-merge-conflict --assume-in-merge
+        language: system
+        types: [text]
+      # typos
+      - id: typos
+        name: typos
+        entry: pixi run -e lint typos --force-exclude
+        language: system
+        types: [text]
+        require_serial: true

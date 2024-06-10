@@ -1,0 +1,76 @@
+[project]
+name = "ndonnx"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64"]
+
+[tasks]
+postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-check -e ."
+
+[dependencies]
+python = ">=3.9"
+ndindex = "*"
+numpy = "*"
+onnx = ">=1.15"
+onnxruntime = "*"
+pandas = "*"
+spox = ">=0.10"
+
+[host-dependencies]
+pip = "*"
+setuptools = ">=61"
+setuptools-scm = "*"
+[feature.docs.dependencies]
+make = "*"
+numpydoc = "*"
+sphinx = "*"
+sphinxcontrib-apidoc = "*"
+sphinx_rtd_theme = "*"
+sphinx-toolbox = "*"
+nbsphinx = "*"
+[feature.docs.tasks]
+docs = "cd docs && make html"
+
+[feature.test.dependencies]
+pytest = ">=6"
+pytest-cov = "*"
+pytest-json-report = "*"
+pytest-xdist = "*"
+hypothesis = "*"
+mypy = ">=1.9,<1.10"
+jupyterlab = "*"
+[feature.test.tasks]
+test = "pytest"
+test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
+
+[feature.lint.dependencies]
+pre-commit = "*"
+insert-license-header = "*"
+docformatter = "*"
+ruff = "*"
+prettier = "*"
+taplo = "*"
+pre-commit-hooks = "*"
+typos = "*"
+[feature.lint.tasks]
+pre-commit-install = "pre-commit install"
+pre-commit-run = "pre-commit run -a"
+
+[feature.py38.dependencies]
+python = "3.8.*"
+[feature.py39.dependencies]
+python = "3.9.*"
+[feature.py310.dependencies]
+python = "3.10.*"
+[feature.py311.dependencies]
+python = "3.11.*"
+[feature.py312.dependencies]
+python = "3.12.*"
+
+[environments]
+default = ["test"]
+py39 = ["py39", "test"]
+py310 = ["py310", "test"]
+py311 = ["py311", "test"]
+py312 = ["py312", "test"]
+docs = ["docs"]
+lint = { features = ["lint"], no-default-feature = true }
