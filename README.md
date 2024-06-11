@@ -30,8 +30,8 @@ cd ndonnx
 # For Array API tests
 git submodule update --init --recursive
 
-# Set up development environment
-pixi run pre-commit-install
+pixi shell
+pre-commit run -a
 pip install --no-build-isolation --no-deps -e .
 pytest tests -n auto
 ```

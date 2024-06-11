@@ -6,13 +6,15 @@ version_scheme = "post-release"
 
 [project]
 name = "ndonnx"
-description = "A array-api implementation backed-up by ONNX"
+description = "ONNX backed array library compliant with Array API standard."
 readme = "README.md"
 dynamic = ["version"]
-authors = [{ name = "QuantCo, Inc.", email = "noreply@quantco.com" }]
+authors = [
+    { name = "Aditya Goel", email = "agoel4512@gmail.com" },
+    { name = "Christian Bourjau", email = "christian.bourjau@quantco.com" },
+]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
