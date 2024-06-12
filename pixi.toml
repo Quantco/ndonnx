@@ -11,6 +11,7 @@ postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-
 python = ">=3.10"
 numpy = "*"
 spox = ">=0.10"
+typing_extensions = "*"
 
 [host-dependencies]
 pip = "*"

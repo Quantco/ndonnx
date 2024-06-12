@@ -60,7 +60,6 @@ Internally, ``ndonnx`` defines the ``StructType`` interface. This interface is u
 The interface is defined below:
 
 .. autoclass:: ndonnx._experimental.StructType
-   :no-index:
    :members:
    :undoc-members:
    :private-members:

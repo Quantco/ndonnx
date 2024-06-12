@@ -1,5 +1,5 @@
-# Copyright (c) QuantCo 2022-2024
-# SPDX-License-Identifier: LicenseRef-QuantCo
+# Copyright (c) QuantCo 2023-2024
+# SPDX-License-Identifier: BSD-3-Clause
 
 import importlib.metadata
 import warnings
