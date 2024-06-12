@@ -17,7 +17,7 @@ repos:
         entry: >-
           pixi run -e lint
           insert-license
-          --license-base64 Q29weXJpZ2h0IChjKSBRdWFudENvIHt5ZWFyX3N0YXJ0fS17eWVhcl9lbmR9ClNQRFgtTGljZW5zZS1JZGVudGlmaWVyOiBMaWNlbnNlUmVmLVF1YW50Q28K
+          --license-base64 Q29weXJpZ2h0IChjKSBRdWFudENvIDIwMjMtMjAyNApTUERYLUxpY2Vuc2UtSWRlbnRpZmllcjogQlNELTMtQ2xhdXNlCg==
           --dynamic-years
           --comment-style "#"
         language: system
