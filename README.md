@@ -81,6 +81,7 @@ It has a couple of key features:
   ```python
   import onnxruntime as ort
   import numpy as np
+
   inference_session = ort.InferenceSession("mean_drop_outliers.onnx")
   prediction, = inference_session.run(None, {
       "x": np.array([-10, 0.5, 1, 5], dtype=np.float32),
