@@ -42,6 +42,7 @@ hypothesis = "*"
 onnxruntime = "*"
 onnx = "*"
 mypy = ">=1.10.0,<1.11"
+ndindex = "*"
 [feature.test.tasks]
 test = "pytest"
 test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
