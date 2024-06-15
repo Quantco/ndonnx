@@ -2,7 +2,8 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/quantco/ndonnx/ci.yml?style=flat-square&branch=main)](https://github.com/quantco/ndonnx/actions/workflows/ci.yml)
 [![Documentation](https://readthedocs.org/projects/ndonnx/badge/?version=latest)](https://ndonnx.readthedocs.io/en/latest/?badge=latest)
-[![conda-forge](https://img.shields.io/conda/pn/conda-forge/ndonnx?style=flat-square&logoColor=white&logo=conda-forge)](https://prefix.dev/channels/conda-forge/packages/ndonnx)
+[![conda-forge](https://img.shields.io/conda/vn/conda-forge/ndonnx?style=flat-square&logoColor=white&logo=conda-forge)](https://anaconda.org/conda-forge/ndonnx)
+[![pypi](https://img.shields.io/pypi/v/ndonnx.svg?logo=pypi&logoColor=white)](https://pypi.org/project/ndonnx)
 
 An ONNX-backed array library that is compliant with the [Array API](https://data-apis.org/array-api/) standard.
 
@@ -53,46 +54,45 @@ It has a couple of key features:
       xp = a.__array_namespace__()
       return xp.mean(a[(low < a) & (a < high)])
 
-  arr = [-12.12, 1.12, 2.12, 2.13, 123.,]
+  np_result = mean_drop_outliers(npx.asarray([-10, 0.5, 1, 5]))
+  jax_result = mean_drop_outliers(jxp.asarray([-10, 0.5, 1, 5]))
+  onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
 
-  np_result = mean_drop_outliers(npx.asarray(arr))
-  jax_result = mean_drop_outliers(jxp.asarray(arr))
-  ndx_result = mean_drop_outliers(ndx.asarray(arr))
-  print(np_result)  # 1.79
-  print(jax_result)  # 1.79
-  print(ndx_result) # Array(1.79, dtype=ndx.Float64)
-  assert np_result == ndx_result.to_numpy()
+  assert np_result == onnx_result.to_numpy() == jax_result == 0.75
   ```
 
-- It supports ONNX export. This allows you persist your logic into an ONNX computation graph for convenient and performant inference.
+- It supports ONNX export. This allows you persist your logic into an ONNX computation graph.
 
   ```python
-  import onnx
   import ndonnx as ndx
+  import onnx
 
-  a = ndx.array(shape=("N",), dtype=ndx.float64)
-  b = ndx.array(shape=("N",), dtype=ndx.float64)
-  out = a[:2] + b[:2]
-  model_proto = ndx.build({"a": a, "b": b}, {"c": out})
-  onnx.save(model_proto, "model.onnx")
+  # Instantiate placeholder ndonnx array
+  x = ndx.array(shape=("N",), dtype=ndx.float32)
+  y = mean_drop_outliers(x)
 
-  # Having serialised your model to disk, perform
-  # inference using a runtime of your choosing.
+  # Build and save ONNX model to disk
+  model = ndx.build({"x": x}, {"y": y})
+  onnx.save(model, "mean_drop_outliers.onnx")
+  ```
+
+  You can then make predictions using a runtime of your choice.
+
+  ```python
   import onnxruntime as ort
   import numpy as np
-  inference_session = ort.InferenceSession("model.onnx")
+  inference_session = ort.InferenceSession("mean_drop_outliers.onnx")
   prediction, = inference_session.run(None, {
-      "a": np.array([1, 2, 3], dtype=np.float64),
-      "b": np.array([4, 5, 6], dtype=np.float64),
+      "x": np.array([-10, 0.5, 1, 5], dtype=np.float32),
   })
-  print(prediction)  # array([5., 7.])
+  assert prediction == 0.75
   ```
 
 In the future we will be enabling a stable API for an extensible data type system. This will allow users to define their own data types and operations on arrays with these data types.
 
 ## Array API coverage
 
-Array API compatibility is tracked in the array-api coverage test suite in `api-coverage-tests`. Missing coverage is tracked in the `skips.txt` file. Contributions are welcome!
+Array API compatibility is tracked in `api-coverage-tests`. Missing coverage is tracked in the `skips.txt` file. Contributions are welcome!
 
 Summary(1119 total):
 
