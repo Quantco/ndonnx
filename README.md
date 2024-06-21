@@ -46,7 +46,7 @@ It has a couple of key features:
 - It implements the [`Array API`](https://data-apis.org/array-api/) standard. Standard compliant code can be executed without changes across numerous backends such as like `NumPy`, `JAX` and now `ndonnx`.
 
   ```python
-  import numpy.array_api as npx
+  import numpy as np
   import ndonnx as ndx
   from jax.experimental import array_api as jxp
 
@@ -54,7 +54,7 @@ It has a couple of key features:
       xp = a.__array_namespace__()
       return xp.mean(a[(low < a) & (a < high)])
 
-  np_result = mean_drop_outliers(npx.asarray([-10, 0.5, 1, 5]))
+  np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 5]))
   jax_result = mean_drop_outliers(jxp.asarray([-10, 0.5, 1, 5]))
   onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
 

@@ -179,12 +179,12 @@ class _NullableCore(Nullable[CoreType], CastMixin):
     def copy(self) -> Self:
         return self
 
-    def _parse_input(self, input: np.ndarray) -> dict:
-        if not isinstance(input, np.ma.MaskedArray):
-            raise TypeError(f"Expected numpy MaskedArray, got {type(input)}")
+    def _parse_input(self, x: np.ndarray) -> dict:
+        if not isinstance(x, np.ma.MaskedArray):
+            raise TypeError(f"Expected numpy MaskedArray, got {type(x)}")
         return {
-            "values": self.values._parse_input(input.data),
-            "null": self.null._parse_input(input.mask),
+            "values": self.values._parse_input(x.data),
+            "null": self.null._parse_input(x.mask),
         }
 
     def _assemble_output(self, fields: dict[str, np.ndarray]) -> np.ndarray:

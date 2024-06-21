@@ -27,7 +27,7 @@ class StructType:
         ...
 
     @abstractmethod
-    def _parse_input(self, input: np.ndarray) -> dict:
+    def _parse_input(self, x: np.ndarray) -> dict:
         """This method may be used by runtime utilities. It should break down the input
         numpy array into a dictionary of values with an entry for each field in this
         StructType.
@@ -44,14 +44,14 @@ class StructType:
 
             .. code-block:: python
 
-                def _parse_input(self, input: np.ndarray) -> dict[str, np.ndarray]:
+                def _parse_input(self, x: np.ndarray) -> dict[str, np.ndarray]:
                     # We expect a numpy array of python int objects.
-                    if input.dtype != object:
+                    if x.dtype != object:
                         raise TypeError("Input must be an object array")
                     mask = (1 << 64) - 1
                     return {
-                        "low": (input & mask).astype(np.uint64),
-                        "high": (input >> 64).astype(np.uint64) & mask,
+                        "low": (x & mask).astype(np.uint64),
+                        "high": (x >> 64).astype(np.uint64) & mask,
                     }
         """
         ...

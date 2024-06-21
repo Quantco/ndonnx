@@ -4,7 +4,6 @@
 import math
 
 import numpy as np
-import numpy.array_api as npx
 import pytest
 
 import ndonnx as ndx
@@ -105,7 +104,7 @@ def test_reduce_ops_none_filling(fn_name, default_value):
 )
 def test_unary_none_propagation(fn_name, args, kwargs):
     fn = getattr(ndx, fn_name)
-    np_fn = getattr(npx, fn_name)
+    np_fn = getattr(np, fn_name)
 
     a = ndx.array(shape=(1, 3), dtype=ndx.nfloat32)
     b = fn(a, *args)
@@ -115,7 +114,7 @@ def test_unary_none_propagation(fn_name, args, kwargs):
     inp_a = np.ma.masked_array([[0, -2.0, 3.0]], mask=[[1, 0, 0]], dtype=np.float32)
     ret_b = run(model, {"a": inp_a})["b"]
     missing_a = inp_a.mask
-    expected_b = np_fn(npx.asarray(np.ma.filled(inp_a, np.nan)), *args, **kwargs)
+    expected_b = np_fn(np.ma.filled(inp_a, np.nan), *args, **kwargs)
     np.testing.assert_almost_equal(
         np.ma.masked_array(expected_b, mask=missing_a),
         ret_b,

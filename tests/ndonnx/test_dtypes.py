@@ -30,12 +30,12 @@ class Unsigned96(StructType, CastMixin):
             "lower": ndx.uint64,
         }
 
-    def _parse_input(self, input: np.ndarray) -> dict:
+    def _parse_input(self, x: np.ndarray) -> dict:
         upper = self._fields()["upper"]._parse_input(
-            np.array(input >> 64).astype(np.uint32)
+            np.array(x >> 64).astype(np.uint32)
         )
         lower = self._fields()["lower"]._parse_input(
-            (input & np.array([0xFFFFFFFFFFFFFFFF])).astype(np.uint64)
+            (x & np.array([0xFFFFFFFFFFFFFFFF])).astype(np.uint64)
         )
         return {
             "upper": upper,
@@ -91,7 +91,7 @@ def test_unsigned96_casting(u96):
             lower=ndx.asarray(0, dtype=ndx.uint64),
         ).astype(ndx.uint64)
 
-    expected = ndx.asarray(0, dtype=u96)
+    expected = ndx.asarray(np.array(0, dtype=object), dtype=u96)
     actual = ndx.asarray(0, dtype=ndx.uint64).astype(u96)
     custom_equal_result = custom_equal(expected, actual).to_numpy()
     assert custom_equal_result is not None and custom_equal_result.item()

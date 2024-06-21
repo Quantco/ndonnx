@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 
 import numpy as np
-import numpy.array_api as npx
 import pytest
 import spox.opset.ai.onnx.v19 as op
 
@@ -367,7 +366,7 @@ def test_matrix_transpose():
 
     model = ndx.build({"a": a}, {"b": b})
     np.testing.assert_equal(
-        npx.matrix_transpose(npx.reshape(npx.arange(3 * 2 * 3), (3, 2, 3))),
+        np.matrix_transpose(np.reshape(np.arange(3 * 2 * 3), (3, 2, 3))),
         run(model, {"a": np.arange(3 * 2 * 3, dtype=np.int64).reshape(3, 2, 3)})["b"],
     )
 
@@ -378,7 +377,7 @@ def test_matrix_transpose_attribute():
 
     model = ndx.build({"a": a}, {"b": b})
     np.testing.assert_equal(
-        npx.reshape(npx.arange(3 * 2 * 3), (3, 2, 3)).mT,
+        np.reshape(np.arange(3 * 2 * 3), (3, 2, 3)).mT,
         run(model, {"a": np.arange(3 * 2 * 3, dtype=np.int64).reshape(3, 2, 3)})["b"],
     )
 
@@ -389,7 +388,7 @@ def test_transpose_attribute():
 
     model = ndx.build({"a": a}, {"b": b})
     np.testing.assert_equal(
-        npx.reshape(npx.arange(3 * 2), (3, 2)).T,
+        np.reshape(np.arange(3 * 2), (3, 2)).T,
         run(model, {"a": np.arange(3 * 2, dtype=np.int64).reshape(3, 2)})["b"],
     )
 
@@ -399,7 +398,7 @@ def test_array_spox_interoperability():
     add_var = op.add(a.values.data.var, op.const(5, dtype=np.int64))  # type: ignore
     b = ndx.from_spox_var(var=add_var)
     model = ndx.build({"a": a}, {"b": b})
-    expected = npx.reshape(npx.arange(3 * 2), (3, 2)) + 5
+    expected = np.reshape(np.arange(3 * 2), (3, 2)) + 5
     input = np.ma.masked_array(
         np.arange(3 * 2, dtype=np.int64).reshape(3, 2), mask=np.ones((3, 2), dtype=bool)
     )

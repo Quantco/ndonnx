@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import numpy as np
-import numpy.array_api as npx
 import pytest
 
 import ndonnx as ndx
@@ -15,7 +14,7 @@ def test_eager_mode(op):
     b = ndx.asarray(np.array([3.0, 4, 5, 6]), dtype=ndx.float64)
     np.testing.assert_equal(
         getattr(ndx, op)(a, b).to_numpy(),
-        getattr(npx, op)(npx.asarray(a.to_numpy()), npx.asarray(b.to_numpy())),
+        getattr(np, op)(a.to_numpy(), b.to_numpy()),
     )
 
 
