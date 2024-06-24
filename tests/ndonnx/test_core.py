@@ -13,7 +13,7 @@ import ndonnx as ndx
 import ndonnx.additional as nda
 from ndonnx import _data_types as dtypes
 
-from .utils import run
+from .utils import get_numpy_array_api_namespace, run
 
 
 def numpy_to_graph_input(arr, eager=False):
@@ -365,8 +365,9 @@ def test_matrix_transpose():
     b = ndx.matrix_transpose(a)
 
     model = ndx.build({"a": a}, {"b": b})
+    npx = get_numpy_array_api_namespace()
     np.testing.assert_equal(
-        np.matrix_transpose(np.reshape(np.arange(3 * 2 * 3), (3, 2, 3))),
+        npx.matrix_transpose(npx.reshape(npx.arange(3 * 2 * 3), (3, 2, 3))),
         run(model, {"a": np.arange(3 * 2 * 3, dtype=np.int64).reshape(3, 2, 3)})["b"],
     )
 
@@ -376,8 +377,11 @@ def test_matrix_transpose_attribute():
     b = a.mT
 
     model = ndx.build({"a": a}, {"b": b})
+    npx = get_numpy_array_api_namespace()
+    expected = npx.reshape(npx.arange(3 * 2 * 3), (3, 2, 3)).mT
+
     np.testing.assert_equal(
-        np.reshape(np.arange(3 * 2 * 3), (3, 2, 3)).mT,
+        expected,
         run(model, {"a": np.arange(3 * 2 * 3, dtype=np.int64).reshape(3, 2, 3)})["b"],
     )
 
