@@ -61,3 +61,12 @@ def _get_dtypes(
         output_schema[name] = _get_dtype(schema["type_name"], version)
 
     return input_schema, output_schema
+
+
+def get_numpy_array_api_namespace():
+    if np.__version__ < "2":
+        import numpy.array_api as npx
+
+        return npx
+    else:
+        return np

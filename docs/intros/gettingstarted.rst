@@ -93,13 +93,12 @@ Writing code in a strictly Array API compliant fashion makes it instantly reusab
 
         import ndonnx as ndx
         import numpy as np
-        import numpy.array_api as npx
 
         def mean_drop_outliers(a, low=-5, high=5):
             xp = a.__array_namespace__()
             return xp.mean(a[(low < a) & (a < high)])
 
-        np_result = mean_drop_outliers(npx.asarray([-10, 0.5, 1, 4]))
+        np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 4]))
         onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 4]))
         np.testing.assert_equal(np_result, onnx_result.to_numpy())
 

@@ -101,16 +101,17 @@ Note that we will use the ``_experimental`` submodule.
                 author="myextensionlibrary",
             )
 
-        def _parse_input(self, input: np.ndarray) -> dict:
+        def _parse_input(self, x: np.ndarray) -> dict:
             # We accept numpy arrays of dtype datetime64[s] as input only.
-            if input.dtype == np.dtype("datetime64[s]"):
-                unix_timestamp = input.astype(np.int64)
+            if x.dtype == np.dtype("datetime64[s]"):
+                unix_timestamp = x.astype(np.int64)
+                return {
+                    "unix_timestamp": self._fields()["unix_timestamp"]._parse_input(unix_timestamp),
+                }
             else:
-                raise ValueError(f"Cannot parse input of dtype {input.dtype} to {self}")
+                raise ValueError(f"Cannot parse input of dtype {x.dtype} to {self}")
 
-            return {
-                "unix_timestamp": self._fields()["unix_timestamp"]._parse_input(unix_timestamp),
-            }
+
 
         def _assemble_output(self, fields: dict[str, np.ndarray]) -> np.ndarray:
             return fields["unix_timestamp"].astype("datetime64[s]")
