@@ -32,10 +32,12 @@ keywords = [
 [project.urls]
 repository = "https://github.com/quantco/ndonnx"
 
-
 [tool.setuptools.packages.find]
 include = ["ndonnx"]
 namespaces = false
+
+[tool.setuptools.package-data]
+"ndonnx" = ["py.typed"]
 
 [project.scripts]
 
