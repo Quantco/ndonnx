@@ -6,6 +6,13 @@
 Changelog
 =========
 
+0.5.0 (unreleased)
+------------------
+
+**Other changes**
+
+- ndonnx now exports type annotations.
+
 0.4.0 (2024-05-16)
 ------------------
 
