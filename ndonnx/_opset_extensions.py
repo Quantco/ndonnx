@@ -713,7 +713,7 @@ def static_map(
     values = np.array(tuple(mapping.values()))
     value_dtype = values.dtype
     if default is None:
-        if value_dtype == object:
+        if value_dtype is object:
             default_tensor = np.array(["MISSING"])
         else:
             default_tensor = np.array([0], dtype=value_dtype)
