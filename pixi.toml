@@ -39,7 +39,6 @@ pytest-cov = "*"
 pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = "*"
-onnxruntime = "*"
 onnx = "*"
 mypy = ">=1.10.0,<1.11"
 ndindex = "*"
@@ -47,6 +46,8 @@ ndindex = "*"
 test = "pytest"
 test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
 arrayapitests = "ARRAY_API_TESTS_MODULE=ndonnx pytest --max-examples 2 api-coverage-tests/array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto -vv --skips-file=skips.txt"
+[feature.test.pypi-dependencies]
+onnxruntime = "*"
 
 [feature.lint.dependencies]
 pre-commit = "*"
