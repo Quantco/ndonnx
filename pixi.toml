@@ -80,3 +80,7 @@ np1x = ["np1x", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }
+
+[pypi-dependencies]
+onnx = "*"
+onnxruntime = "*"

@@ -32,9 +32,12 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - ubuntu-latest
           - windows-latest
         environment:
+          - py310
           - py311
+          - py312
           - np1x
     steps:
       - name: Checkout branch
