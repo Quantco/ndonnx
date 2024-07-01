@@ -13,6 +13,10 @@ Changelog
 
 - ndonnx now exports type annotations.
 
+**Bug fixes**
+
+- ``__array_namespace__`` now accepts the optional ``api_version`` argument to specify the version of the Array API to use.
+
 0.4.0 (2024-05-16)
 ------------------
 

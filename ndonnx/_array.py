@@ -333,7 +333,7 @@ class Array:
         if api_version is None:
             api_version = "2023.12"
 
-        if api_version == "2022.12":
+        if api_version == "2023.12":
             return ndx
         else:
             raise ValueError(f"Unsupported API version {api_version}")
