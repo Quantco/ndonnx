@@ -329,8 +329,14 @@ class Array:
         return self._core().var
 
     @staticmethod
-    def __array_namespace__():
-        return ndx
+    def __array_namespace__(*, api_version: str | None = None):
+        if api_version is None:
+            api_version = "2023.12"
+
+        if api_version == "2022.12":
+            return ndx
+        else:
+            raise ValueError(f"Unsupported API version {api_version}")
 
     def __float__(self) -> float:
         eager_value = self.to_numpy()
