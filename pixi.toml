@@ -12,6 +12,7 @@ python = ">=3.10"
 numpy = "*"
 spox = ">=0.10"
 typing_extensions = "*"
+onnx = "*"
 
 [host-dependencies]
 pip = "*"
@@ -40,7 +41,6 @@ pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = "*"
 onnxruntime = "*"
-onnx = "*"
 mypy = ">=1.10.0,<1.11"
 ndindex = "*"
 [feature.test.tasks]
