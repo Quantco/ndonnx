@@ -6,13 +6,12 @@
 Changelog
 =========
 
-0.5.1 (unreleased)
+0.6.0 (unreleased)
 ------------------
 
-**Bug fixes**
+**Other changes**
 
-- Public export of :func:`ndonnx.promote_nullable` is now working.
-
+- :func:`ndonnx.promote_nullable` is now publicly exported
 0.5.0 (2024-07-01)
 ------------------
 
