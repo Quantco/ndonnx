@@ -12,6 +12,7 @@ Changelog
 **Other changes**
 
 - :func:`ndonnx.promote_nullable` is now publicly exported
+
 0.5.0 (2024-07-01)
 ------------------
 
