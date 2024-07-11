@@ -6,7 +6,7 @@
 Changelog
 =========
 
-0.6.0 (unreleased)
+0.6.0 (2024-07-11)
 ------------------
 
 **Other changes**
