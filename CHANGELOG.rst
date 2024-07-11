@@ -6,6 +6,14 @@
 Changelog
 =========
 
+0.5.1 (unreleased)
+------------------
+
+**Bug fixes**
+
+- Division now complies more strictly with the Array API standard by returning a floating-point result regardless of input data types.
+
+
 0.5.0 (2024-07-01)
 ------------------
 

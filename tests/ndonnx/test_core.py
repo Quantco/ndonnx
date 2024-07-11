@@ -531,3 +531,11 @@ def test_searchsorted_raises():
         b = ndx.array(shape=(3,), dtype=ndx.int64)
 
         ndx.searchsorted(a, b, side="middle")  # type: ignore[arg-type]
+
+
+def test_truediv():
+    x = ndx.asarray([1, 2, 3], dtype=ndx.int64)
+    y = ndx.asarray([2, 3, 3], dtype=ndx.int64)
+    z = x / y
+    assert isinstance(z.dtype, ndx.Floating)
+    np.testing.assert_array_equal(z.to_numpy(), np.array([0.5, 2 / 3, 1.0]))
