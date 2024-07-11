@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
+from warnings import warn
 
 from .aliases import (
     bool,
@@ -50,6 +51,7 @@ from .schema import Schema
 from .structtype import StructType
 
 
+# TODO: to be removed
 def promote_nullable(dtype: StructType | CoreType) -> _NullableCore:
     """Promotes a non-nullable type to its nullable counterpart, if present.
 
@@ -68,6 +70,12 @@ def promote_nullable(dtype: StructType | CoreType) -> _NullableCore:
     ValueError
         If the input type is unknown to ``ndonnx``.
     """
+
+    warn(
+        "Function 'ndonnx.promote_nullable' will be deprecated in ndonnx 0.7. "
+        "To create nullable array, use 'ndonnx.additional.make_nullable' instead.",
+        DeprecationWarning,
+    )
 
     if dtype == bool:
         return nbool
