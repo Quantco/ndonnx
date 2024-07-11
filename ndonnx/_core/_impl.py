@@ -112,7 +112,20 @@ class CoreOperationsImpl(OperationsBlock):
         return _unary_op(x, opx.cosh, dtypes.float32)
 
     def divide(self, x, y):
-        return _variadic_op([x, y], opx.div, via_dtype=dtypes.float64)
+        x, y = promote(x, y)
+        if not isinstance(x.dtype, (dtypes.Numerical, dtypes.NullableNumerical)):
+            raise TypeError(f"Unsupported dtype for divide: {x.dtype}")
+        bits = (
+            ndx.iinfo(x.dtype).bits
+            if isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral))
+            else ndx.finfo(x.dtype).bits
+        )
+        via_dtype = (
+            dtypes.float64
+            if bits > 32 or x.dtype in (dtypes.nuint32, dtypes.uint32)
+            else dtypes.float32
+        )
+        return _variadic_op([x, y], opx.div, via_dtype=via_dtype, cast_return=False)
 
     def equal(self, x, y) -> Array:
         x, y = promote(x, y)
@@ -134,7 +147,20 @@ class CoreOperationsImpl(OperationsBlock):
         return x
 
     def floor_divide(self, x, y):
-        return self.floor(self.divide(x, y))
+        x, y = promote(x, y)
+        dtype = x.dtype
+        out = self.floor(self.divide(x, y))
+        if isinstance(
+            dtype,
+            (
+                dtypes.Integral,
+                dtypes.NullableIntegral,
+                dtypes.Unsigned,
+                dtypes.NullableUnsigned,
+            ),
+        ):
+            out = out.astype(dtype)
+        return out
 
     def greater(self, x, y):
         return _via_i64_f64(opx.greater, [x, y], cast_return=False)

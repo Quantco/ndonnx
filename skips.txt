@@ -32,9 +32,6 @@ array_api_tests/test_has_names.py::test_has_names[linalg-cross]
 array_api_tests/test_has_names.py::test_has_names[linalg-cholesky]
 array_api_tests/test_linalg.py
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
-array_api_tests/test_operators_and_elementwise_functions.py::test_divide[__itruediv__(x, s)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_divide[__itruediv__(x1, x2)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide
 array_api_tests/test_operators_and_elementwise_functions.py::test_sign
 array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
 array_api_tests/test_set_functions.py::test_unique_all
@@ -68,6 +65,8 @@ array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -0 and x2_i is 
 array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -infinity and x2_i is +infinity) -> roughly -pi/4]
 array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -infinity and x2_i is -infinity) -> roughly -3pi/4]
 array_api_tests/test_special_cases.py::test_binary[floor_divide(copysign(1, x1_i) != copysign(1, x2_i) and isfinite(x1_i) and x1_i != 0 and isfinite(x2_i) and x2_i != 0) -> negative sign]
+array_api_tests/test_special_cases.py::test_binary[__floordiv__(copysign(1, x1_i) != copysign(1, x2_i) and isfinite(x1_i) and x1_i != 0 and isfinite(x2_i) and x2_i != 0) -> negative sign]
+array_api_tests/test_special_cases.py::test_binary[__floordiv__((x1_i is +infinity or x1_i == -infinity) and (x2_i is +infinity or x2_i == -infinity)) -> NaN]
 array_api_tests/test_special_cases.py::test_binary[remainder(isfinite(x1_i) and x1_i < 0 and x2_i is +infinity) -> x2_i]
 array_api_tests/test_special_cases.py::test_binary[remainder(isfinite(x1_i) and x1_i > 0 and x2_i is -infinity) -> x2_i]
 array_api_tests/test_special_cases.py::test_binary[remainder(x1_i is +0 and x2_i < 0) -> -0]
@@ -77,6 +76,7 @@ array_api_tests/test_special_cases.py::test_iop[__imod__(isfinite(x1_i) and x1_i
 array_api_tests/test_special_cases.py::test_iop[__imod__(isfinite(x1_i) and x1_i > 0 and x2_i is -infinity) -> x2_i]
 array_api_tests/test_special_cases.py::test_iop[__imod__(x1_i is +0 and x2_i < 0) -> -0]
 array_api_tests/test_special_cases.py::test_iop[__imod__(x1_i is -0 and x2_i > 0) -> +0]
+array_api_tests/test_special_cases.py::test_iop[__ifloordiv__(copysign(1, x1_i) != copysign(1, x2_i) and isfinite(x1_i) and x1_i != 0 and isfinite(x2_i) and x2_i != 0) -> negative sign]
 array_api_tests/test_special_cases.py::test_nan_propagation[prod]
 array_api_tests/test_special_cases.py::test_unary[acos(x_i < -1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[acos(x_i > 1) -> NaN]
