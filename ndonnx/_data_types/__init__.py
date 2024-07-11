@@ -51,6 +51,7 @@ from .schema import Schema
 from .structtype import StructType
 
 
+# TODO: to be removed
 def promote_nullable(dtype: StructType | CoreType) -> _NullableCore:
     """Promotes a non-nullable type to its nullable counterpart, if present.
 
