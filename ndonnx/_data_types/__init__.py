@@ -72,7 +72,7 @@ def promote_nullable(dtype: StructType | CoreType) -> _NullableCore:
     """
 
     warn(
-        "Function 'ndonnx.promote_nullable' is to be deprecated. "
+        "Function 'ndonnx.promote_nullable' will be deprecated in ndonnx 0.7. "
         "To create nullable array, use 'ndonnx.additional.make_nullable' instead.",
         DeprecationWarning,
     )
