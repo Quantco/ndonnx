@@ -9,15 +9,20 @@ import numpy as np
 import numpy.typing as npt
 from spox import Var
 
-# FIXME: Remove private import from Spox! Better to just use reshape!
-from spox._internal_op import unsafe_reshape
-
+import ndonnx as ndx
 import ndonnx._data_types as dtypes
 
 if TYPE_CHECKING:
     from ndonnx import Array
 
     from ._corearray import _CoreArray
+
+
+class PromotionError(TypeError):
+    """Error raised when type promotion fails."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 def _promote_with_none(*args: Array | npt.ArrayLike) -> list[Array | None]:
@@ -27,27 +32,23 @@ def _promote_with_none(*args: Array | npt.ArrayLike) -> list[Array | None]:
 
     `None` values are passed through.
     """
-    # FIXME: The import structure is rather FUBAR!
-    from ._array import Array
-    from ._funcs import asarray, astype, result_type
-
     arr_or_none: list[Array | None] = []
     scalars: list[Array] = []
     signed_integer = False
     for arg in args:
         if arg is None:
             arr_or_none.append(arg)
-        elif isinstance(arg, Array):
+        elif isinstance(arg, ndx.Array):
             arr_or_none.append(arg)
             if arg.dtype in (dtypes.int8, dtypes.int16, dtypes.int32, dtypes.int64):
                 signed_integer = True
         elif isinstance(arg, np.ndarray):
-            arr_or_none.append(asarray(arg))
+            arr_or_none.append(ndx.asarray(arg))
         elif isinstance(arg, (int, float, str, np.generic)):
             np_dtype = np.min_scalar_type(arg)
             if np_dtype == np.dtype("float16"):
                 np_dtype = np.dtype("float32")
-            arr = asarray(arg, dtypes.from_numpy_dtype(np_dtype))
+            arr = ndx.asarray(arg, dtypes.from_numpy_dtype(np_dtype))
             arr_or_none.append(arr)
             scalars.append(arr)
         else:
@@ -64,9 +65,9 @@ def _promote_with_none(*args: Array | npt.ArrayLike) -> list[Array | None]:
                 dtype = np.dtype(f"int{eager_value.dtype.itemsize * 16}")
             scalar._set(scalar.astype(dtypes.from_numpy_dtype(dtype)))
 
-    target_dtype = result_type(*[arr for arr in arr_or_none if arr is not None])
+    target_dtype = ndx.result_type(*[arr for arr in arr_or_none if arr is not None])
 
-    return [None if arr is None else astype(arr, target_dtype) for arr in arr_or_none]
+    return [None if arr is None else arr.astype(target_dtype) for arr in arr_or_none]
 
 
 def promote(*args: Array | npt.ArrayLike) -> list[Array]:
@@ -99,11 +100,6 @@ def get_shape(x: _CoreArray | Var) -> tuple[int | str | None, ...]:
     if (shape := unwrap_var(x).unwrap_tensor().shape) is None:
         raise ValueError("Shape is not known")
     return shape
-
-
-def set_shape(tensor: _CoreArray | Var, shape):
-    tensor = unwrap_var(tensor)
-    return unsafe_reshape(tensor, shape)
 
 
 def unwrap_var(tensor: _CoreArray | Var) -> Var:

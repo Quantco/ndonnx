@@ -22,20 +22,43 @@ class Unsigned96Impl(OperationsBlock):
     def equal(self, x, y):
         return custom_equal(x, y)
 
+    def add(self, x, y) -> Array:
+        if x.dtype == Unsigned96() and y.dtype == Unsigned96():
+            max_u32 = ndx.iinfo(ndx.uint32).max
+            overflow_amount = (
+                x.lower.astype(ndx.uint64) + y.lower.astype(ndx.uint64)
+            ) >> 32
+            will_overflow = overflow_amount > 0
+            # No where implemented on unsigned types.
+            lower = ((x.lower + y.lower) * (1 - will_overflow)) + (
+                max_u32 * will_overflow
+            )
+            upper = x.upper + y.upper + overflow_amount
+            return Array._from_fields(
+                Unsigned96(),
+                upper=upper,
+                lower=lower,
+            )
+        elif x.dtype == ndx.uint32 and y.dtype == Unsigned96():
+            return y + x
+        elif x.dtype == Unsigned96() and y.dtype == ndx.uint32:
+            return x + y.astype(Unsigned96())
+        return NotImplemented
+
 
 class Unsigned96(StructType, CastMixin):
     def _fields(self) -> dict[str, StructType | CoreType]:
         return {
-            "upper": ndx.uint32,
-            "lower": ndx.uint64,
+            "upper": ndx.uint64,
+            "lower": ndx.uint32,
         }
 
     def _parse_input(self, x: np.ndarray) -> dict:
         upper = self._fields()["upper"]._parse_input(
-            np.array(x >> 64).astype(np.uint32)
+            np.array(x >> 32).astype(np.uint64)
         )
         lower = self._fields()["lower"]._parse_input(
-            (x & np.array([0xFFFFFFFFFFFFFFFF])).astype(np.uint64)
+            (x & np.array([0xFFFFFFFF])).astype(np.uint32)
         )
         return {
             "upper": upper,
@@ -43,7 +66,7 @@ class Unsigned96(StructType, CastMixin):
         }
 
     def _assemble_output(self, fields: dict[str, np.ndarray]) -> np.ndarray:
-        return (fields["upper"].astype(object) << 64) | fields["lower"].astype(object)
+        return (fields["upper"].astype(object) << 32) | fields["lower"].astype(object)
 
     def copy(self) -> Self:
         return self
@@ -55,13 +78,13 @@ class Unsigned96(StructType, CastMixin):
         raise CastError(f"Cannot cast {self} to {dtype}")
 
     def _cast_from(self, array: Array) -> Array:
-        if isinstance(array.dtype, ndx.Integral):
-            array = array.astype(ndx.uint64)
+        if array.dtype == ndx.uint32:
+            array = array.astype(ndx.uint32)
         else:
             raise CastError(f"Cannot cast {array.dtype} to {self}")
 
         return Array._from_fields(
-            Unsigned96(), upper=ndx.asarray(0, dtype=ndx.uint32), lower=array
+            Unsigned96(), upper=ndx.asarray(0, dtype=ndx.uint64), lower=array
         )
 
     _ops: OperationsBlock = Unsigned96Impl()
@@ -87,12 +110,12 @@ def test_unsigned96_casting(u96):
     with pytest.raises(CastError):
         Array._from_fields(
             u96,
-            upper=ndx.asarray(0, dtype=ndx.uint32),
-            lower=ndx.asarray(0, dtype=ndx.uint64),
+            upper=ndx.asarray(0, dtype=ndx.uint64),
+            lower=ndx.asarray(0, dtype=ndx.uint32),
         ).astype(ndx.uint64)
 
     expected = ndx.asarray(np.array(0, dtype=object), dtype=u96)
-    actual = ndx.asarray(0, dtype=ndx.uint64).astype(u96)
+    actual = ndx.asarray(0, dtype=ndx.uint32).astype(u96)
     custom_equal_result = custom_equal(expected, actual).to_numpy()
     assert custom_equal_result is not None and custom_equal_result.item()
 
@@ -115,6 +138,12 @@ def test_custom_dtype_function_dispatch(u96):
 
     np.testing.assert_equal(ndx.equal(x, y).to_numpy(), [True, True, True])
     np.testing.assert_equal(ndx.equal(x, z).to_numpy(), [False, True, False])
+
+    a = ndx.asarray(np.array([10, 0, 100], dtype=object), dtype=u96)
+    np.testing.assert_equal((x + a).to_numpy(), (a + x).to_numpy())
+
+    b = ndx.asarray(np.array([10, 2, 100], dtype=np.uint32))
+    np.testing.assert_equal((x + b).to_numpy(), (b + x).to_numpy())
 
 
 def test_custom_dtype_layout_transformations(u96):

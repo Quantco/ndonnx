@@ -38,8 +38,7 @@ class CoreOperationsImpl(OperationsBlock):
 
     def add(self, x, y) -> ndx.Array:
         x, y = promote(x, y)
-        out_dtype = x.dtype
-        if out_dtype in (ndx.nutf8, ndx.utf8):
+        if x.dtype in (dtypes.utf8, dtypes.nutf8):
             return _binary_op(x, y, opx.string_concat)
         return _via_i64_f64(opx.add, [x, y])
 
@@ -919,9 +918,7 @@ def _variadic_op(
     args = promote(*args)
     out_dtype = args[0].dtype
     if not isinstance(out_dtype, (dtypes.CoreType, dtypes._NullableCore)):
-        raise TypeError(
-            f"Expected ndx.Array with CoreType or NullableCoreType, got {args[0].dtype}"
-        )
+        return NotImplemented
     data, nulls = _split_nulls_and_values(*args)
     if via_dtype is None:
         values = _from_corearray(op(*(x._core() for x in data)))

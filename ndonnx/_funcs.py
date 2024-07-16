@@ -20,6 +20,7 @@ from ndonnx._data_types.structtype import StructType
 from . import _opset_extensions as opx
 from ._array import Array, _from_corearray
 from ._utility import (
+    PromotionError,
     promote,
 )
 
@@ -279,8 +280,11 @@ def isdtype(dtype, kind):
 def result_type(
     *objects: dtypes.CoreType | dtypes.StructType | Array,
 ) -> dtypes.CoreType | dtypes.StructType:
-    """Find the common data type for the provided objects."""
     observed_dtypes = {obj.dtype if isinstance(obj, Array) else obj for obj in objects}
+
+    if len(observed_dtypes) == 1:
+        return next(iter(observed_dtypes))
+
     nullable = False
     np_dtypes = []
     for dtype in observed_dtypes:
@@ -289,7 +293,9 @@ def result_type(
                 nullable = True
                 np_dtypes.append(dtype.values.to_numpy_dtype())
             else:
-                raise TypeError("result_type is not defined for arbitrary Struct types")
+                raise PromotionError(
+                    "result_type is not defined for arbitrary Struct types. You likely need to explicitly cast to the desired dtype."
+                )
         else:
             np_dtypes.append(dtype.to_numpy_dtype())
 
@@ -386,10 +392,17 @@ def equal(x, y):
 def _binary(func_name, x, y):
     x_dtype = asarray(x).dtype
     y_dtype = asarray(y).dtype
-    if (out := getattr(x_dtype._ops, func_name)(x, y)) is not NotImplemented:
-        return out
-    if (out := getattr(y_dtype._ops, func_name)(x, y)) is not NotImplemented:
-        return out
+    try:
+        if (out := getattr(x_dtype._ops, func_name)(x, y)) is not NotImplemented:
+            return out
+    except PromotionError:
+        pass
+
+    try:
+        if (out := getattr(y_dtype._ops, func_name)(x, y)) is not NotImplemented:
+            return out
+    except PromotionError:
+        pass
     raise TypeError(
         f"Unsupported operand type(s) for {func_name}: '{x_dtype}' and '{y_dtype}'"
     )
