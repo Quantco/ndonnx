@@ -1,3 +1,0 @@
-1. binary ops with core types and udts raise exception
-2. __getattr__ exposes fields - probably shouldn't
-3. _fields method in array

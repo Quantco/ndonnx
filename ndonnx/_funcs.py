@@ -281,10 +281,6 @@ def result_type(
     *objects: dtypes.CoreType | dtypes.StructType | Array,
 ) -> dtypes.CoreType | dtypes.StructType:
     observed_dtypes = {obj.dtype if isinstance(obj, Array) else obj for obj in objects}
-
-    if len(observed_dtypes) == 1:
-        return next(iter(observed_dtypes))
-
     nullable = False
     np_dtypes = []
     for dtype in observed_dtypes:
