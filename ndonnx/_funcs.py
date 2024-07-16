@@ -410,8 +410,11 @@ def _binary(func_name, x, y):
 
 def _unary(func_name, x):
     x = asarray(x)
-    if (out := getattr(x.dtype._ops, func_name)(x)) is not NotImplemented:
-        return out
+    try:
+        if (out := getattr(x.dtype._ops, func_name)(x)) is not NotImplemented:
+            return out
+    except PromotionError:
+        pass
     raise TypeError(f"Unsupported operand type for {func_name}: '{x.dtype}'")
 
 
