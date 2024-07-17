@@ -586,7 +586,7 @@ def broadcast_arrays(*arrays):
         if isinstance(x.dtype, dtypes.NullableNumerical):
             return x
         else:
-            return zeros_like(x)
+            return zeros_like(x, dtype=dtypes.int64)
 
     ret = numeric_like(next(it))
     while (x := next(it, None)) is not None:
