@@ -163,6 +163,7 @@ from ._constants import (
     nan,
     pi,
 )
+from ._utility import PromotionError
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -323,6 +324,7 @@ __all__ = [
     "Integral",
     "CoreType",
     "CastError",
+    "PromotionError",
     "promote_nullable",
     "from_numpy_dtype",
 ]
