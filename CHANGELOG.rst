@@ -6,6 +6,14 @@
 Changelog
 =========
 
+0.7.0 (unreleased)
+------------------
+
+**New features**
+
+- ``result_type`` now raises a ``PromotionError`` if the input types are not compatible.
+
+
 0.6.1 (2024-07-12)
 ------------------
 

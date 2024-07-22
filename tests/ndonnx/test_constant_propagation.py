@@ -5,8 +5,10 @@ from typing import Literal
 
 import numpy as np
 import pytest
+import spox.opset.ai.onnx.v20 as op
 
 import ndonnx as ndx
+from ndonnx._propagation import eager_propagate
 
 
 def test_add():
@@ -237,3 +239,27 @@ def test_where_folding(cond, x, y, expected_operators):
     model_proto = ndx.build(inputs, {"out": out})
     operators_used_const = {node.op_type for node in model_proto.graph.node}
     assert operators_used_const == expected_operators
+
+
+def test_eager_propagation_nested_parameters():
+    @eager_propagate
+    def function(
+        x: ndx.Array, mapping: dict[str, ndx.Array], seq: list[ndx.Array]
+    ) -> tuple[ndx.Array, ndx.Array]:
+        # do some spox stuff
+        a = ndx.from_spox_var(op.sigmoid(mapping["a"].astype(ndx.float64).spox_var()))
+        b = ndx.from_spox_var(
+            op.regex_full_match(seq[0].spox_var(), pattern="^hello.*")
+        )
+        return (a + x) * mapping["b"], b
+
+    x, y = function(
+        ndx.asarray([1, 2, 3, 4]),
+        {"a": ndx.asarray([1, -10, 120, 40]), "b": 10},
+        [ndx.asarray(["a", "hello world", "world hello"])],
+    )
+    expected_x = np.asarray([17.310586, 20.000454, 40.0, 50.0])
+    expected_y = np.asarray([False, True, False])
+
+    np.testing.assert_allclose(x.to_numpy(), expected_x)
+    np.testing.assert_array_equal(y.to_numpy(), expected_y)
