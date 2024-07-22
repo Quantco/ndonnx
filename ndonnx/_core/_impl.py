@@ -521,6 +521,14 @@ class CoreOperationsImpl(OperationsBlock):
                         b.astype(dtypes.int32)._core(),
                     )
                 )
+            elif a.dtype in (dtypes.uint16, dtypes.uint32, dtypes.uint64):
+                return _from_corearray(
+                    opx.where(
+                        condition_values._core(),
+                        a.astype(dtypes.int64)._core(),
+                        b.astype(dtypes.int64)._core(),
+                    )
+                ).astype(a.dtype)
             elif isinstance(a.dtype, dtypes.CoreType):
                 return _from_corearray(
                     opx.where(
