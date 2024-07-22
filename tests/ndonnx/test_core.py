@@ -539,3 +539,46 @@ def test_truediv():
     z = x / y
     assert isinstance(z.dtype, ndx.Floating)
     np.testing.assert_array_equal(z.to_numpy(), np.array([0.5, 2 / 3, 1.0]))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ndx.float32,
+        ndx.nfloat32,
+        ndx.int8,
+        ndx.int16,
+        ndx.int32,
+        ndx.int64,
+        ndx.nint8,
+        ndx.nint16,
+        ndx.nint32,
+        ndx.nint64,
+        ndx.uint8,
+        ndx.uint16,
+        ndx.uint32,
+        ndx.uint64,
+        ndx.nuint8,
+        ndx.nuint16,
+        ndx.nuint32,
+        ndx.nuint64,
+    ],
+)
+def test_prod(dtype):
+    x = ndx.asarray([2, 2]).astype(dtype)
+    y = ndx.prod(x)
+
+    np.testing.assert_array_equal(y.to_numpy(), np.array(4))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ndx.float64,
+        ndx.nfloat64,
+    ],
+)
+def test_prod_f64(dtype):
+    x = ndx.asarray([2, 2]).astype(dtype)
+    with pytest.raises(TypeError):
+        ndx.prod(x)

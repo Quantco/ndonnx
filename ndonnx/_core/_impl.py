@@ -725,7 +725,7 @@ class CoreOperationsImpl(OperationsBlock):
             axes = axis  # type: ignore
 
         if isinstance(x.dtype, dtypes.NullableNumerical):
-            fill_value = 1
+            fill_value = ndx.asarray(1, dtype=x.dtype.values)
             x = self.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("prod is not supported for non-numeric types")
@@ -733,7 +733,7 @@ class CoreOperationsImpl(OperationsBlock):
         if dtype is not None:
             x = x.astype(dtype)
 
-        out = _via_i64_f64(
+        out = _via_i64_f32(
             lambda x: opx.reduce_prod(
                 x,
                 opx.const(axes, dtype=dtypes.int64),
@@ -1031,6 +1031,34 @@ def _via_i64_f64(
         via_dtype = dtypes.int64
     elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
         via_dtype = dtypes.float64
+    else:
+        raise TypeError(f"Expected numerical data type, found {dtype}")
+
+    return _variadic_op(arrays, fn, via_dtype, cast_return)
+
+
+def _via_i64_f32(
+    fn: Callable[..., _CoreArray], arrays: list[Array], *, cast_return=True
+) -> ndx.Array:
+    """Like ``_via_dtype`` but uses ``i64`` for integer or boolean types and ``float32``
+    for floating point types except ``float64`` and ``nfloat64``.
+
+    Raises TypeError if the provided arrays are neither.
+    """
+    promoted_values = promote(*arrays)
+
+    dtype = promoted_values[0].dtype
+
+    via_dtype: dtypes.CoreType
+    if isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
+        dtypes.nbool,
+        dtypes.bool,
+    ):
+        via_dtype = dtypes.int64
+    elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
+        if dtype in (dtypes.float64, dtypes.nfloat64):
+            raise TypeError("No implementation for float64 in onnxruntime")
+        via_dtype = dtypes.float32
     else:
         raise TypeError(f"Expected numerical data type, found {dtype}")
 
