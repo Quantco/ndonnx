@@ -290,7 +290,7 @@ def result_type(
                 np_dtypes.append(dtype.values.to_numpy_dtype())
             else:
                 raise PromotionError(
-                    "result_type is not defined for arbitrary Struct types. You likely need to explicitly cast to the desired dtype."
+                    "'result_type' is not defined for arbitrary struct types. You likely need to cast to the desired dtype explicitly."
                 )
         else:
             np_dtypes.append(dtype.to_numpy_dtype())

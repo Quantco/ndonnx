@@ -11,8 +11,7 @@ Changelog
 
 **New features**
 
-- ``result_type`` now raises a ``PromotionError`` if the input types are not compatible.
-
+- :func:`~ndonnx.result_type` now raises a :class:`~ndonnx.PromotionError` if the input types are not compatible.
 
 0.6.1 (2024-07-12)
 ------------------
