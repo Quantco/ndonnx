@@ -1026,8 +1026,11 @@ def _via_upcast(
     """Like ``_via_dtype`` but chooses a dtype from the available that doesn't result in
     loss.
 
-    Raises TypeError for non-numerical types and if the type can't be safely casted to
-    any available type.
+    Raises
+    ------
+    TypeError
+        For non-numerical types and if the type can't be safely casted to
+        any available type.
     """
     promoted_values = promote(*arrays)
 
