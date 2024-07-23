@@ -733,7 +733,7 @@ class CoreOperationsImpl(OperationsBlock):
         if dtype is not None:
             x = x.astype(dtype)
 
-        out = _via_i64_f32(
+        out = _via_upcast(
             lambda x: opx.reduce_prod(
                 x,
                 opx.const(axes, dtype=dtypes.int64),
@@ -741,6 +741,8 @@ class CoreOperationsImpl(OperationsBlock):
                 noop_with_empty_axes=axis is not None,
             ),
             [x],
+            int_dtype=dtypes.int64,
+            float_dtype=dtypes.float32,
         )
 
         if isinstance(x.dtype, dtypes.Unsigned):
@@ -1011,6 +1013,72 @@ def _via_dtype(
         return out_value
 
 
+def _via_upcast(
+    fn: Callable[..., _CoreArray],
+    arrays: list[Array],
+    *,
+    int_dtype: dtypes.Integral | None = None,
+    float_dtype: dtypes.Floating | None = None,
+    uint_dtype: dtypes.Unsigned | None = None,
+    use_unsafe_uint_cast=False,
+    cast_return=True,
+) -> ndx.Array:
+    """Like ``_via_dtype`` but chooses a dtype from the available that doesn't result in
+    loss.
+
+    Raises TypeError for non-numerical types and if the type can't be safely casted to
+    any available type.
+    """
+    promoted_values = promote(*arrays)
+
+    dtype = promoted_values[0].dtype
+
+    # For logging
+    available_types = [t for t in [int_dtype, float_dtype, uint_dtype] if t is not None]
+
+    via_dtype: dtypes.CoreType
+    if isinstance(dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+        if (
+            uint_dtype is not None
+            and ndx.iinfo(dtype).bits <= ndx.iinfo(uint_dtype).bits
+        ):
+            via_dtype = uint_dtype
+        elif int_dtype is not None and ndx.iinfo(dtype).bits <= (
+            ndx.iinfo(int_dtype).bits
+            if use_unsafe_uint_cast
+            else ndx.iinfo(int_dtype).bits - 1
+        ):
+            via_dtype = int_dtype
+        else:
+            raise TypeError(
+                f"Can't upcast unsigned type {dtype}. Available implementations are for {*available_types,}"
+            )
+    elif isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
+        dtypes.nbool,
+        dtypes.bool,
+    ):
+        if int_dtype is not None and ndx.iinfo(dtype).bits <= ndx.iinfo(int_dtype).bits:
+            via_dtype = int_dtype
+        else:
+            raise TypeError(
+                f"Can't upcast signed type {dtype}. Available implementations are for {*available_types,}"
+            )
+    elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
+        if (
+            float_dtype is not None
+            and ndx.finfo(dtype).bits <= ndx.finfo(float_dtype).bits
+        ):
+            via_dtype = float_dtype
+        else:
+            raise TypeError(
+                f"Can't upcast float type {dtype}. Available implementations are for {*available_types,}"
+            )
+    else:
+        raise TypeError(f"Expected numerical data type, found {dtype}")
+
+    return _variadic_op(arrays, fn, via_dtype, cast_return)
+
+
 def _via_i64_f64(
     fn: Callable[..., _CoreArray], arrays: list[Array], *, cast_return=True
 ) -> ndx.Array:
@@ -1019,22 +1087,14 @@ def _via_i64_f64(
 
     Raises TypeError if the provided arrays are neither.
     """
-    promoted_values = promote(*arrays)
-
-    dtype = promoted_values[0].dtype
-
-    via_dtype: dtypes.CoreType
-    if isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
-        dtypes.nbool,
-        dtypes.bool,
-    ):
-        via_dtype = dtypes.int64
-    elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
-        via_dtype = dtypes.float64
-    else:
-        raise TypeError(f"Expected numerical data type, found {dtype}")
-
-    return _variadic_op(arrays, fn, via_dtype, cast_return)
+    return _via_upcast(
+        fn,
+        arrays,
+        int_dtype=dtypes.int64,
+        float_dtype=dtypes.float64,
+        use_unsafe_uint_cast=True,  # TODO this can cause overflow, we should set it to false and fix all uses
+        cast_return=cast_return,
+    )
 
 
 def _via_i64_f32(
