@@ -1061,7 +1061,7 @@ def _via_upcast(
             via_dtype = int_dtype
         else:
             raise TypeError(
-                f"Can't upcast signed type {dtype}. Available implementations are for {*available_types,}"
+                f"Can't upcast signed type `{dtype}`. Available implementations are for `{*available_types,}`"
             )
     elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
         if (
@@ -1071,7 +1071,7 @@ def _via_upcast(
             via_dtype = float_dtype
         else:
             raise TypeError(
-                f"Can't upcast float type {dtype}. Available implementations are for {*available_types,}"
+                f"Can't upcast float type `{dtype}`. Available implementations are for `{*available_types,}`"
             )
     else:
         raise TypeError(f"Expected numerical data type, found {dtype}")
