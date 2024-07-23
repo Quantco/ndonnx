@@ -1051,7 +1051,7 @@ def _via_upcast(
             via_dtype = int_dtype
         else:
             raise TypeError(
-                f"Can't upcast unsigned type {dtype}. Available implementations are for {*available_types,}"
+                f"Can't upcast unsigned type `{dtype}`. Available implementations are for `{*available_types,}`"
             )
     elif isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
         dtypes.nbool,
