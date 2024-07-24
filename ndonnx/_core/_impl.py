@@ -520,7 +520,7 @@ class CoreOperationsImpl(OperationsBlock):
                         a.astype(dtypes.int32)._core(),
                         b.astype(dtypes.int32)._core(),
                     )
-                )
+                ).astype(a.dtype)
             elif a.dtype in (dtypes.uint16, dtypes.uint32, dtypes.uint64):
                 return _from_corearray(
                     opx.where(
