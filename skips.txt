@@ -31,9 +31,6 @@ array_api_tests/test_has_names.py::test_has_names[linear_algebra-vecdot]
 array_api_tests/test_has_names.py::test_has_names[linalg-cross]
 array_api_tests/test_has_names.py::test_has_names[linalg-cholesky]
 array_api_tests/test_linalg.py
-array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
-array_api_tests/test_operators_and_elementwise_functions.py::test_sign
-array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
 array_api_tests/test_set_functions.py::test_unique_all
 array_api_tests/test_set_functions.py::test_unique_counts
 array_api_tests/test_set_functions.py::test_unique_inverse
@@ -104,3 +101,7 @@ array_api_tests/test_has_names.py::test_has_names[array_attribute-size]
 array_api_tests/test_has_names.py::test_has_names[creation-from_dlpack]
 array_api_tests/test_has_names.py::test_has_names[creation-meshgrid]
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow
+array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide
+array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
+array_api_tests/test_operators_and_elementwise_functions.py::test_sign
+array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
