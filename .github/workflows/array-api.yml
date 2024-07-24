@@ -1,10 +1,5 @@
 name: Array API coverage tests
-on:
-  push:
-    branches:
-      - "*"
-  schedule:
-    - cron: "0 8 * * *"
+on: [push]
 
 # Automatically stop old builds on the same branch/PR
 concurrency:
@@ -14,9 +9,6 @@ concurrency:
 jobs:
   array-api-tests:
     # Run if the commit message contains 'run array-api tests' or if the job is triggered on schedule
-    if: >-
-      contains(github.event.head_commit.message, 'run array-api tests') ||
-      github.event_name == 'schedule'
     name: Array API test
     timeout-minutes: 90
     runs-on: ubuntu-latest

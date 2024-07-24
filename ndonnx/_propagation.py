@@ -133,6 +133,8 @@ def _aggregate_arguments(
                     return ndx.asarray(obj_value, obj.dtype)
         elif isinstance(obj, (list, tuple)):
             return type(obj)(map(collect_lazy_arguments, obj))
+        elif isinstance(obj, dict):
+            return {key: collect_lazy_arguments(value) for key, value in obj.items()}
         elif isinstance(obj, slice):
             return slice(
                 collect_lazy_arguments(obj.start),
