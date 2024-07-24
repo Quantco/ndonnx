@@ -1095,7 +1095,7 @@ def _via_i64_f64(
         arrays,
         int_dtype=dtypes.int64,
         float_dtype=dtypes.float64,
-        use_unsafe_uint_cast=True,  # TODO this can cause overflow, we should set it to false and fix all uses
+        use_unsafe_uint_cast=False,  # TODO this can cause overflow, we should set it to false and fix all uses
         cast_return=cast_return,
     )
 
