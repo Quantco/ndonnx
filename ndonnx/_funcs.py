@@ -144,10 +144,12 @@ def full(
         raise ValueError("fill_value must be a scalar")
 
     dtype = fill_value.dtype if dtype is None else dtype
-    shape = asarray(shape, dtype=dtypes.int64)._core()
-    return fill_value._transmute(lambda corearray: opx.expand(corearray, shape)).astype(
-        dtype
-    )
+    shape = asarray(shape, dtype=dtypes.int64)
+    if shape.ndim == 0:
+        shape = reshape(shape, [1])
+    return fill_value._transmute(
+        lambda corearray: opx.expand(corearray, shape._core())
+    ).astype(dtype)
 
 
 def full_like(

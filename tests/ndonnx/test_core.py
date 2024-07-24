@@ -435,6 +435,25 @@ def test_creation_full():
     c = ndx.full((2, 3), "a", dtype=ndx.nutf8)
     np.testing.assert_equal(np.full((2, 3), "a"), c.to_numpy())
 
+    d = ndx.full(2, 5, dtype=ndx.int8)
+    np.testing.assert_equal(np.full(2, 5, dtype=np.int8), d.to_numpy())
+
+    # Check lazy creation
+    e = ndx.array(shape=tuple(), dtype=ndx.int64)
+    f = ndx.full(e, 10)
+    model_proto = ndx.build({"e": e}, {"f": f})
+    actual = run(model_proto, {"e": np.array(5, dtype=np.int64)})["f"]
+    np.testing.assert_equal(np.array([10] * 5, dtype=np.int64), actual)
+
+    # Note we must know the output shape to export an ONNX artifact.
+    g = ndx.array(shape=(2,), dtype=ndx.int64)
+    h = ndx.full(g, 10)
+    model_proto = ndx.build({"g": g}, {"h": h})
+    np.testing.assert_equal(
+        np.array([[10, 10, 10], [10, 10, 10]]),
+        run(model_proto, {"g": np.array([2, 3])})["h"],
+    )
+
 
 @pytest.mark.parametrize(
     "args, expected",
