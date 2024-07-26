@@ -94,7 +94,7 @@ class Array:
         )
         if field_dtypes != expected_dtypes:
             raise TypeError(
-                f"Expected fields {expected_dtypes} for {dtype}, received {fields}"
+                f"Expected fields `{expected_dtypes}` for `{dtype}`, received `{fields}`"
             )
         instance._fields = fields
         for name, field in fields.items():
