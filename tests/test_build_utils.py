@@ -28,7 +28,7 @@ def test_input_output_name_backwards_compatibility(dtype):
     model_proto = ndx.build({"input": a}, {"output": a})
     assert [node.name for node in model_proto.graph.input] == ["input"]
     assert [node.name for node in model_proto.graph.output] == ["output"]
-    a = ndx.array(shape=("N",), dtype=ndx._data_types.promote_nullable(dtype))
+    a = ndx.array(shape=("N",), dtype=ndx._data_types.into_nullable(dtype))
     model_proto = ndx.build({"input": a}, {"output": a})
     assert [node.name for node in model_proto.graph.input] == [
         "input_values",

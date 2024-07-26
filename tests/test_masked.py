@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import math
+import warnings
 
 import numpy as np
 import pytest
@@ -116,7 +117,11 @@ def test_unary_none_propagation(fn_name, args, kwargs):
     npx = get_numpy_array_api_namespace()
     np_fn = getattr(npx, fn_name)
     inp_a = npx.asarray(np.ma.filled(inp_a, np.nan))
-    expected_b = np_fn(inp_a, *args, **kwargs)
+
+    # Numpy might complain about invalid values
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        expected_b = np_fn(inp_a, *args, **kwargs)
     np.testing.assert_almost_equal(
         np.ma.masked_array(expected_b, mask=missing_a),
         ret_b,

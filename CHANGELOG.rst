@@ -6,6 +6,14 @@
 Changelog
 =========
 
+0.6.2 (unreleased)
+------------------
+
+**Other changes**
+
+- Fixed various deprecation warnings
+
+
 0.6.1 (2024-07-12)
 ------------------
 
@@ -13,12 +21,14 @@ Changelog
 
 - Division now complies more strictly with the Array API standard by returning a floating-point result regardless of input data types.
 
+
 0.6.0 (2024-07-11)
 ------------------
 
 **Other changes**
 
 - ``ndonnx.promote_nullable`` is now publicly exported.
+
 
 0.5.0 (2024-07-01)
 ------------------
@@ -30,6 +40,7 @@ Changelog
 **Bug fixes**
 
 - ``__array_namespace__`` now accepts the optional ``api_version`` argument to specify the version of the Array API to use.
+
 
 0.4.0 (2024-05-16)
 ------------------
