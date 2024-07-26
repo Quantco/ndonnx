@@ -601,3 +601,8 @@ def test_prod_no_implementation(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     with pytest.raises(TypeError):
         ndx.prod(x)
+
+
+def test_promote_nullable():
+    with pytest.warns(DeprecationWarning):
+        assert ndx.promote_nullable(np.int64) == ndx.nint64
