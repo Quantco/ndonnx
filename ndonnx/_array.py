@@ -88,13 +88,13 @@ class Array:
     ) -> Array:
         instance = cls.__new__(cls)
         instance.dtype = dtype
-        if isinstance(dtype, dtypes.CoreType) and tuple(fields.keys()) != ("data",):
-            raise ValueError(f"Expected a single field 'data' for CoreType {dtype}")
-        if isinstance(dtype, dtypes.StructType) and set(fields.keys()) != set(
-            dtype._fields()
-        ):
-            raise ValueError(
-                f"Expected fields {dtype._fields()} for StructType {dtype}, received {fields}"
+        field_dtypes = {name: field.dtype for name, field in fields.items()}
+        expected_dtypes = (
+            {"data": dtype} if isinstance(dtype, dtypes.CoreType) else dtype._fields()
+        )
+        if field_dtypes != expected_dtypes:
+            raise TypeError(
+                f"Expected fields `{expected_dtypes}` for `{dtype}`, received `{fields}`"
             )
         instance._fields = fields
         for name, field in fields.items():

@@ -603,6 +603,34 @@ def test_prod_no_implementation(dtype):
         ndx.prod(x)
 
 
+def test_array_creation_with_invalid_fields():
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.nutf8,
+            values=ndx.array(shape=(3,), dtype=ndx.int32),
+            invalid_field=ndx.array(shape=(3,), dtype=ndx.utf8),
+        )
+
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.nutf8,
+            values=ndx.array(shape=(3,), dtype=ndx.int32),
+            null=ndx.array(shape=(3,), dtype=ndx.bool),
+        )
+
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.utf8,
+            values=ndx.array(shape=(3,), dtype=ndx.utf8),
+        )
+
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.utf8,
+            values=ndx.array(shape=(3,), dtype=ndx.int32)._core(),
+        )
+
+
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
