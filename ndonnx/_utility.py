@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from functools import wraps
+from typing import TYPE_CHECKING
 from warnings import warn
 
 import numpy as np
