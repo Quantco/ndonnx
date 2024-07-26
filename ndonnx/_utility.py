@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+from functools import wraps
 from typing import TYPE_CHECKING
+from warnings import warn
 
 import numpy as np
 import numpy.typing as npt
@@ -111,3 +113,17 @@ def unwrap_var(tensor: _CoreArray | Var) -> Var:
         return tensor
     else:
         return tensor.var
+
+
+def deprecated(msg: str):
+    """Decorates a function as deprecated and raises a warning when it is called."""
+
+    def _deprecated(fn):
+        @wraps(fn)
+        def inner(*args, **kwargs):
+            warn(msg, DeprecationWarning)
+            return fn(*args, **kwargs)
+
+        return inner
+
+    return _deprecated

@@ -19,7 +19,7 @@ from .utils import get_numpy_array_api_namespace, run
 def numpy_to_graph_input(arr, eager=False):
     dtype: dtypes.CoreType | dtypes.StructType
     if isinstance(arr, np.ma.MaskedArray):
-        dtype = dtypes.promote_nullable(dtypes.from_numpy_dtype(arr.dtype))
+        dtype = dtypes.into_nullable(dtypes.from_numpy_dtype(arr.dtype))
     else:
         dtype = dtypes.from_numpy_dtype(arr.dtype)
     return (
@@ -601,3 +601,8 @@ def test_prod_no_implementation(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     with pytest.raises(TypeError):
         ndx.prod(x)
+
+
+def test_promote_nullable():
+    with pytest.warns(DeprecationWarning):
+        assert ndx.promote_nullable(np.int64) == ndx.nint64

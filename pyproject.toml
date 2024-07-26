@@ -87,10 +87,10 @@ module = ["onnxruntime"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-pythonpath = "."
-addopts = "--import-mode=importlib --ignore=api-coverage-tests"
-testpaths = ["tests"]
-exclude = ["docs/"]
+addopts = "--ignore=api-coverage-tests"
+filterwarnings = [
+    "ignore:.*google.protobuf.pyext.*:DeprecationWarning",
+]
 
 [tool.typos.default]
 extend-ignore-identifiers-re = ["scatter_nd", "arange"]
