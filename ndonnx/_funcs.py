@@ -77,7 +77,7 @@ def asarray(
         if dtype is None:
             dtype = dtypes.from_numpy_dtype(arr.dtype)
             if isinstance(arr, np.ma.masked_array):
-                dtype = dtypes.promote_nullable(dtype)
+                dtype = dtypes.into_nullable(dtype)
 
         ret = Array._construct(
             shape=arr.shape, dtype=dtype, eager_values=dtype._parse_input(arr)
@@ -297,7 +297,7 @@ def result_type(
 
     ret_dtype = dtypes.from_numpy_dtype(np.result_type(*np_dtypes))
     if nullable:
-        return dtypes.promote_nullable(ret_dtype)
+        return dtypes.into_nullable(ret_dtype)
     else:
         return ret_dtype
 

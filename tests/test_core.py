@@ -19,7 +19,7 @@ from .utils import get_numpy_array_api_namespace, run
 def numpy_to_graph_input(arr, eager=False):
     dtype: dtypes.CoreType | dtypes.StructType
     if isinstance(arr, np.ma.MaskedArray):
-        dtype = dtypes.promote_nullable(dtypes.from_numpy_dtype(arr.dtype))
+        dtype = dtypes.into_nullable(dtypes.from_numpy_dtype(arr.dtype))
     else:
         dtype = dtypes.from_numpy_dtype(arr.dtype)
     return (

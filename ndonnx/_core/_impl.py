@@ -15,7 +15,6 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
-from ndonnx.additional import make_nullable
 
 from ._interface import OperationsBlock
 
@@ -311,7 +310,7 @@ class CoreOperationsImpl(OperationsBlock):
         if x_null is None:
             return out_values
         else:
-            return make_nullable(out_values, x_null)
+            return ndx.additional.make_nullable(out_values, x_null)
 
     def sin(self, x):
         return _unary_op(x, opx.sin, dtypes.float64)
@@ -549,7 +548,7 @@ class CoreOperationsImpl(OperationsBlock):
         if condition.dtype == ndx.nbool:
             # propagate null if present
             if not isinstance(output.dtype, dtypes.Nullable):
-                output = make_nullable(output, condition.null)
+                output = ndx.additional.make_nullable(output, condition.null)
             else:
                 output.null = output.null | condition.null
         return output
@@ -889,9 +888,9 @@ class CoreOperationsImpl(OperationsBlock):
         if null.dtype != dtypes.bool:
             raise TypeError("null must be a boolean array")
         if not isinstance(x.dtype, dtypes.CoreType):
-            raise TypeError("make_nullable does not accept nullable arrays")
+            raise TypeError("'make_nullable' does not accept nullable arrays")
         return ndx.Array._from_fields(
-            dtypes.promote_nullable(x.dtype),
+            dtypes.into_nullable(x.dtype),
             values=x.copy(),
             null=ndx.reshape(null, x.shape),
         )
@@ -939,7 +938,7 @@ def _variadic_op(
         values = _via_dtype(op, via_dtype, data, cast_return=cast_return)
 
     if (out_null := functools.reduce(_or_nulls, nulls)) is not None:
-        dtype = dtypes.promote_nullable(values.dtype)
+        dtype = dtypes.into_nullable(values.dtype)
         return ndx.Array._from_fields(dtype, values=values, null=out_null)
     else:
         return values
@@ -1002,7 +1001,7 @@ def _via_dtype(
 
     if out_null is not None:
         out_value = ndx.Array._from_fields(
-            dtypes.promote_nullable(out_value.dtype), values=out_value, null=out_null
+            dtypes.into_nullable(out_value.dtype), values=out_value, null=out_null
         )
     else:
         out_value = ndx.Array._from_fields(out_value.dtype, data=out_value._core())
