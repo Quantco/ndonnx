@@ -601,3 +601,31 @@ def test_prod_no_implementation(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     with pytest.raises(TypeError):
         ndx.prod(x)
+
+
+def test_array_creation_with_invalid_fields():
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.nutf8,
+            values=ndx.array(shape=(3,), dtype=ndx.int32),
+            invalid_field=ndx.array(shape=(3,), dtype=ndx.utf8),
+        )
+
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.nutf8,
+            values=ndx.array(shape=(3,), dtype=ndx.int32),
+            null=ndx.array(shape=(3,), dtype=ndx.bool),
+        )
+
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.utf8,
+            values=ndx.array(shape=(3,), dtype=ndx.utf8),
+        )
+
+    with pytest.raises(TypeError):
+        ndx.Array._from_fields(
+            ndx.utf8,
+            values=ndx.array(shape=(3,), dtype=ndx.int32)._core(),
+        )
