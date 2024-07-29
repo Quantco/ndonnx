@@ -267,7 +267,7 @@ def isdtype(dtype, kind):
         elif kind == "real floating":
             return isinstance(dtype, dtypes.Floating)
         elif kind == "complex floating":
-            raise ValueError("complex floating is not supported")
+            raise ValueError("'complex floating' is not supported")
         elif kind == "numeric":
             return isinstance(dtype, dtypes.Numerical)
     elif isinstance(kind, dtypes.CoreType):
