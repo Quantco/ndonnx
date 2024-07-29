@@ -6,6 +6,10 @@ from ndonnx._utility import deprecated
 
 from .aliases import (
     bool,
+    complex64,
+    complex128,
+    ncomplex64,
+    ncomplex128,
     float32,
     float64,
     int8,
@@ -71,6 +75,10 @@ def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
     """
     if dtype == bool:
         return nbool
+    elif dtype == complex64:
+        return ncomplex64
+    elif dtype == complex128:
+        return ncomplex128
     elif dtype == float32:
         return nfloat32
     elif dtype == float64:
@@ -96,7 +104,7 @@ def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
     elif isinstance(dtype, _NullableCore):
         return dtype
     else:
-        raise ValueError(f"Cannot promote {dtype} to nullable")
+        raise ValueError(f"Cannot promote `{dtype}` to nullable")
 
 
 @deprecated(
@@ -121,6 +129,8 @@ __all__ = [
     "Unsigned",
     "Numerical",
     "bool",
+    "complex64",
+    "complex128",
     "from_numpy_dtype",
     "float32",
     "float64",
@@ -134,6 +144,8 @@ __all__ = [
     "uint8",
     "utf8",
     "nbool",
+    "ncomplex64",
+    "ncomplex128",
     "nfloat32",
     "nfloat64",
     "nint8",

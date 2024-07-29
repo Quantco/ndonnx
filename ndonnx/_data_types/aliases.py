@@ -3,6 +3,8 @@
 
 from .classes import (
     Boolean,
+    Complex64,
+    Complex128,
     Float32,
     Float64,
     Int8,
@@ -10,6 +12,8 @@ from .classes import (
     Int32,
     Int64,
     NBoolean,
+    NComplex64,
+    NComplex128,
     NFloat32,
     NFloat64,
     NInt8,
@@ -41,6 +45,8 @@ uint32: UInt32 = UInt32()
 uint64: UInt64 = UInt64()
 uint8: UInt8 = UInt8()
 utf8: Utf8 = Utf8()
+complex64 = Complex64()
+complex128 = Complex128()
 
 # Singleton exports of nullable instances of the core data types
 nbool: NBoolean = NBoolean()
@@ -55,3 +61,5 @@ nuint16: NUInt16 = NUInt16()
 nuint32: NUInt32 = NUInt32()
 nuint64: NUInt64 = NUInt64()
 nutf8: NUtf8 = NUtf8()
+ncomplex64 = NComplex64()
+ncomplex128 = NComplex128()

@@ -121,6 +121,22 @@ class Float64(Floating):
         return np.dtype("float64")
 
 
+class Complex64(Floating):
+    """Complex number composed of two float32 numbers."""
+
+    @staticmethod
+    def to_numpy_dtype() -> np.dtype:
+        return np.dtype("complex64")
+
+
+class Complex128(Floating):
+    """Complex number composed of two float64 numbers."""
+
+    @staticmethod
+    def to_numpy_dtype() -> np.dtype:
+        return np.dtype("complex128")
+
+
 class Boolean(CoreType):
     """Boolean type."""
 
@@ -298,6 +314,16 @@ class NFloat64(NullableFloating):
     null = Boolean()
 
 
+class NComplex64(NullableNumerical):
+    values = Complex64()
+    null = Boolean()
+
+
+class NComplex128(NullableNumerical):
+    values = Complex128()
+    null = Boolean()
+
+
 class NBoolean(_NullableCore):
     values = Boolean()
     null = Boolean()
@@ -330,11 +356,15 @@ def from_numpy_dtype(np_dtype: np.dtype) -> CoreType:
         return Float32()
     if np_dtype == np.dtype("float64"):
         return Float64()
+    if np_dtype == np.dtype("complex64"):
+        return Complex64()
+    if np_dtype == np.dtype("complex128"):
+        return Complex128()
     if np_dtype == np.dtype("bool"):
         return Boolean()
     if np_dtype == np.dtype("str") or np_dtype.kind in ("U", "O"):
         return Utf8()
-    raise TypeError(f"Unsupported data type: {np_dtype}")
+    raise TypeError(f"Unsupported data type: `{np_dtype}`")
 
 
 @dataclass
