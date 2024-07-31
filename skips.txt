@@ -72,6 +72,7 @@ array_api_tests/test_linalg.py::test_vecdot
 array_api_tests/test_manipulation_functions.py::test_concat
 array_api_tests/test_manipulation_functions.py::test_moveaxis
 array_api_tests/test_manipulation_functions.py::test_repeat
+array_api_tests/test_manipulation_functions.py::test_squeeze
 array_api_tests/test_manipulation_functions.py::test_tile
 array_api_tests/test_manipulation_functions.py::test_unstack
 array_api_tests/test_operators_and_elementwise_functions.py::test_acos
@@ -87,6 +88,7 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_cos
 array_api_tests/test_operators_and_elementwise_functions.py::test_cosh
 array_api_tests/test_operators_and_elementwise_functions.py::test_exp
 array_api_tests/test_operators_and_elementwise_functions.py::test_expm1
+array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide[__floordiv__(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide[floor_divide(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
 array_api_tests/test_operators_and_elementwise_functions.py::test_imag
@@ -98,6 +100,7 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_maximum
 array_api_tests/test_operators_and_elementwise_functions.py::test_minimum
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__ipow__(x, s)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__pow__(x, s)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[pow(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_real
 array_api_tests/test_operators_and_elementwise_functions.py::test_sign
 array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
@@ -173,3 +176,5 @@ array_api_tests/test_special_cases.py::test_unary[sinh(x_i is -0) -> -0]
 array_api_tests/test_special_cases.py::test_unary[sinh(x_i is -infinity) -> -infinity]
 array_api_tests/test_special_cases.py::test_unary[sinh(x_i is NaN) -> NaN]
 array_api_tests/test_statistical_functions.py::test_cumulative_sum
+array_api_tests/test_statistical_functions.py::test_prod
+array_api_tests/test_statistical_functions.py::test_sum
