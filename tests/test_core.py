@@ -634,3 +634,14 @@ def test_array_creation_with_invalid_fields():
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
+
+
+@pytest.mark.skip(
+    "Type/shape inference for complex numbers is broken in upstream ONNX."
+)
+@pytest.mark.parametrize("dtype", [ndx.complex128, ndx.complex64])
+def test_complex_numpers(dtype):
+    a = ndx.array(dtype=dtype, shape=("N",))
+
+    res = a + a
+    res.dtype == dtype
