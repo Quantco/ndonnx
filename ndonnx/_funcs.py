@@ -254,7 +254,7 @@ def iinfo(dtype):
     return dtypes.get_iinfo(dtype)
 
 
-def isdtype(dtype, kind):
+def isdtype(dtype, kind) -> bool:
     if isinstance(kind, str):
         if kind == "bool":
             return dtype == dtypes.bool
@@ -267,15 +267,14 @@ def isdtype(dtype, kind):
         elif kind == "real floating":
             return isinstance(dtype, dtypes.Floating)
         elif kind == "complex floating":
-            raise ValueError("complex floating is not supported")
+            raise ValueError("'complex floating' is not supported")
         elif kind == "numeric":
             return isinstance(dtype, dtypes.Numerical)
     elif isinstance(kind, dtypes.CoreType):
         return dtype == kind
     elif isinstance(kind, tuple):
-        return any(isdtype(dtype, k) for k in kind)
-    else:
-        raise TypeError(f"kind must be a string or a dtype, not {type(kind)}")
+        return builtins.any(isdtype(dtype, k) for k in kind)
+    raise TypeError(f"kind must be a string or a dtype, not {type(kind)}")
 
 
 def result_type(

@@ -6,12 +6,17 @@
 Changelog
 =========
 
-0.6.2 (unreleased)
+0.7.0 (unreleased)
 ------------------
+
+**New feature**
+
+- Expose the :func:`ndonnx.isdtype` function.
+
 
 **Other changes**
 
-- Fixed various deprecation warnings
+- Fixed various deprecation warnings.
 
 
 0.6.1 (2024-07-12)
