@@ -646,6 +646,7 @@ def test_promote_nullable():
         (1.5, ndx.float32),
         (0.123456789, ndx.float64),
         (np.float64(0.123456789), ndx.float64),
+        ("hello world", ndx.utf8),
     ],
 )
 def test_scalar_promote(val, expected_dtype):
