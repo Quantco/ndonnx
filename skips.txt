@@ -3,7 +3,6 @@ array_api_tests/test_constants.py::test_newaxis
 array_api_tests/test_creation_functions.py::test_eye
 array_api_tests/test_creation_functions.py::test_meshgrid
 array_api_tests/test_data_type_functions.py::test_can_cast
-array_api_tests/test_data_type_functions.py::test_isdtype
 array_api_tests/test_has_names.py::test_has_names[array_attribute-device]
 array_api_tests/test_has_names.py::test_has_names[array_attribute-size]
 array_api_tests/test_has_names.py::test_has_names[array_method-__complex__]
@@ -12,7 +11,6 @@ array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack_device__
 array_api_tests/test_has_names.py::test_has_names[array_method-to_device]
 array_api_tests/test_has_names.py::test_has_names[creation-from_dlpack]
 array_api_tests/test_has_names.py::test_has_names[creation-meshgrid]
-array_api_tests/test_has_names.py::test_has_names[data_type-isdtype]
 array_api_tests/test_has_names.py::test_has_names[elementwise-conj]
 array_api_tests/test_has_names.py::test_has_names[elementwise-copysign]
 array_api_tests/test_has_names.py::test_has_names[elementwise-hypot]
@@ -88,7 +86,6 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_cos
 array_api_tests/test_operators_and_elementwise_functions.py::test_cosh
 array_api_tests/test_operators_and_elementwise_functions.py::test_exp
 array_api_tests/test_operators_and_elementwise_functions.py::test_expm1
-array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide[__floordiv__(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide[floor_divide(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
 array_api_tests/test_operators_and_elementwise_functions.py::test_imag
@@ -130,7 +127,6 @@ array_api_tests/test_signatures.py::test_func_signature[copysign]
 array_api_tests/test_signatures.py::test_func_signature[from_dlpack]
 array_api_tests/test_signatures.py::test_func_signature[hypot]
 array_api_tests/test_signatures.py::test_func_signature[imag]
-array_api_tests/test_signatures.py::test_func_signature[isdtype]
 array_api_tests/test_signatures.py::test_func_signature[maximum]
 array_api_tests/test_signatures.py::test_func_signature[meshgrid]
 array_api_tests/test_signatures.py::test_func_signature[minimum]
