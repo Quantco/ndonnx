@@ -636,7 +636,7 @@ def test_promote_nullable():
         assert ndx.promote_nullable(np.int64) == ndx.nint64
 
 
-@pytest.mark.parametrize("val", [1, 1.0, 1.5, 0.123456789, "a"])
+@pytest.mark.parametrize("val", [1, 1.0, 1.5, 0.123456789, "a", np.float64(0.123456789)])
 def test_scalar_promote(val):
     x = ndx.asarray([val] * 4)
     actual = (x + val).to_numpy()
