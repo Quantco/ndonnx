@@ -537,13 +537,12 @@ class OperationsBlock:
         dtype: dtypes.CoreType | dtypes.StructType | None = None,
         device=None,
     ):
-        dtype = dtypes.float64 if dtype is None else dtype
-        return ndx.full(shape, 1, dtype=dtype)
+        return NotImplemented
 
     def ones_like(
         self, x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None
     ):
-        return ndx.full_like(x, 1, dtype=dtype)
+        return NotImplemented
 
     def zeros(
         self,
@@ -551,20 +550,18 @@ class OperationsBlock:
         dtype: dtypes.CoreType | dtypes.StructType | None = None,
         device=None,
     ):
-        dtype = dtypes.float64 if dtype is None else dtype
-        return ndx.full(shape, 0, dtype=dtype)
+        return NotImplemented
 
     def zeros_like(
         self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
     ):
-        return ndx.full_like(x, 0, dtype=dtype)
+        return NotImplemented
 
     def empty(self, shape, dtype=None, device=None) -> ndx.Array:
-        shape = ndx.asarray(shape, dtype=dtypes.int64)
-        return ndx.full(shape, 0, dtype=dtype)
+        return NotImplemented
 
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
-        return ndx.full_like(x, 0, dtype=dtype)
+        return NotImplemented
 
     def arange(self, start, stop=None, step=None, dtype=None, device=None) -> ndx.Array:
         return NotImplemented

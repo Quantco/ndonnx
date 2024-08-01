@@ -39,6 +39,7 @@ class BooleanOperationsImpl(OperationsBlock):
     def logical_and(self, x, y):
         # If one of the operands is True and the broadcasted shape can be guaranteed to be the other array's shape,
         # we can return this other array directly.
+        x, y = map(ndx.asarray, (x, y))
         if (
             x.to_numpy() is not None
             and x.to_numpy().size == 1
@@ -61,6 +62,7 @@ class BooleanOperationsImpl(OperationsBlock):
     def logical_or(self, x, y):
         # If one of the operands is False and the broadcasted shape can be guaranteed to be the other array's shape,
         # we can return this other array directly.
+        x, y = map(ndx.asarray, (x, y))
         if (
             x.to_numpy() is not None
             and x.to_numpy().size == 1
@@ -78,6 +80,7 @@ class BooleanOperationsImpl(OperationsBlock):
         return binary_op(x, y, opx.or_)
 
     def logical_xor(self, x, y):
+        x, y = map(ndx.asarray, (x, y))
         return binary_op(x, y, opx.xor)
 
     def argmax(self, x, axis=None, keepdims=False) -> Array:
@@ -108,3 +111,41 @@ class BooleanOperationsImpl(OperationsBlock):
         return ndx.max(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
             ndx.bool
         )
+
+    def ones(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        dtype = dtypes.float64 if dtype is None else dtype
+        return ndx.full(shape, True, dtype=dtype)
+
+    def ones_like(
+        self, x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None
+    ):
+        return ndx.full_like(x, True, dtype=dtype)
+
+    def zeros(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        dtype = dtypes.float64 if dtype is None else dtype
+        return ndx.full(shape, False, dtype=dtype)
+
+    def zeros_like(
+        self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
+    ):
+        return ndx.full_like(x, False, dtype=dtype)
+
+    def empty(self, shape, dtype=None, device=None) -> ndx.Array:
+        shape = ndx.asarray(shape, dtype=dtypes.int64)
+        return ndx.full(shape, False, dtype=dtype)
+
+    def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
+        return ndx.full_like(x, False, dtype=dtype)
+
+    def nonzero(self, x) -> tuple[Array, ...]:
+        return ndx.nonzero(x.astype(ndx.int8))

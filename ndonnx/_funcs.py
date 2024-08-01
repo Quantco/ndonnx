@@ -81,14 +81,20 @@ def asarray(
 
 def empty(shape, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None):
     dtype = dtype or dtypes.float64
-    return dtype._ops.empty(shape, dtype=dtype)
+    if (out := dtype._ops.empty(shape, dtype=dtype)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for empty: '{dtype}'")
 
 
 def empty_like(
     x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
 ):
-    dtype = dtype or dtypes.float64
-    return dtype._ops.empty_like(x, dtype=dtype)
+    dtype = dtype or x.dtype
+    if (out := dtype._ops.empty_like(x, dtype=dtype)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for empty_like: '{dtype}'"
+    )
 
 
 def eye(
@@ -113,7 +119,11 @@ def full(
     device=None,
 ):
     dtype = asarray(fill_value).dtype if dtype is None else dtype
-    return dtype._ops.full(shape, fill_value, dtype=dtype, device=device)
+    if (
+        out := dtype._ops.full(shape, fill_value, dtype=dtype, device=device)
+    ) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for full: '{dtype}'")
 
 
 def full_like(
@@ -122,8 +132,14 @@ def full_like(
     dtype: dtypes.CoreType | dtypes.StructType | None = None,
     device=None,
 ):
-    dtype = asarray(fill_value).dtype if dtype is None else dtype
-    return dtype._ops.full_like(x, fill_value, dtype=dtype, device=device)
+    dtype = x.dtype if dtype is None else dtype
+    if (
+        out := dtype._ops.full_like(x, fill_value, dtype=dtype, device=device)
+    ) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for full_like: '{dtype}'"
+    )
 
 
 def linspace(
@@ -146,12 +162,18 @@ def linspace(
 
 def ones(shape, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None):
     dtype = dtypes.float64 if dtype is None else dtype
-    return dtype._ops.ones(shape, dtype=dtype)
+    if (out := dtype._ops.ones(shape, dtype=dtype)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for ones: '{dtype}'")
 
 
 def ones_like(x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None):
-    dtype = dtypes.float64 if dtype is None else dtype
-    return dtype._ops.ones_like(x, dtype=dtype)
+    dtype = x.dtype if dtype is None else dtype
+    if (out := dtype._ops.ones_like(x, dtype=dtype)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for ones_like: '{dtype}'"
+    )
 
 
 def tril(x: Array, *, k: int = 0) -> Array:
@@ -170,14 +192,20 @@ def triu(x: Array, *, k: int = 0) -> Array:
 
 def zeros(shape, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None):
     dtype = dtypes.float64 if dtype is None else dtype
-    return dtype._ops.zeros(shape, dtype=dtype)
+    if (out := dtype._ops.zeros(shape, dtype=dtype)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for zeros: '{dtype}'")
 
 
 def zeros_like(
     x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
 ):
-    dtype = dtypes.float64 if dtype is None else dtype
-    return dtype._ops.zeros_like(x, dtype=dtype)
+    dtype = x.dtype if dtype is None else dtype
+    if (out := dtype._ops.zeros_like(x, dtype=dtype)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for zeros_like: '{dtype}'"
+    )
 
 
 # data_type.py

@@ -12,11 +12,29 @@ Changelog
 **New feature**
 
 - Expose the :func:`ndonnx.isdtype` function.
-
+- Custom dtypes can now override array creation functions:
+   - :func:`ndonnx.zeros`
+   - :func:`ndonnx.zeros_like`
+   - :func:`ndonnx.ones`
+   - :func:`ndonnx.ones_like`
+   - :func:`ndonnx.full`
+   - :func:`ndonnx.full_like`
+   - :func:`ndonnx.arange`
+   - :func:`ndonnx.arange`
+   - :func:`ndonnx.eye`
+   - :func:`ndonnx.tril`
+   - :func:`ndonnx.triu`
+   - :func:`ndonnx.linspace`
+- Custom dtypes can now provide implementations for :func:`ndonnx.where`.
 
 **Other changes**
 
 - Fixed various deprecation warnings.
+- Invoking a function using arrays with dtypes lacking a corresponding implementation now raise a :class:`UnsupportedOperationError`.
+
+**Bug fixes**
+
+- Numerical operations like :func:`sin` now raise :class:`UnsupportedOperationError` when invoked using invalid data types like ``ndx.utf8`` rather than implicitly casting.
 
 
 0.6.1 (2024-07-12)

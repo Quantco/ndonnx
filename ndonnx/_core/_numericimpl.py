@@ -325,16 +325,19 @@ class NumericOperationsImpl(OperationsBlock):
                 )
         return _via_i64_f64(lambda x: opx.arg_min(x, axis=axis, keepdims=keepdims), [x])
 
-    def nonzero(self, x):
+    def nonzero(self, x) -> tuple[Array, ...]:
+        if not isinstance(x.dtype, dtypes.CoreType):
+            return NotImplemented
+
         if x.ndim == 0:
-            return [ndx.arange(0, x != 0, dtype=dtypes.int64)]
+            return (ndx.arange(0, x != 0, dtype=dtypes.int64),)
 
         ret_full_flattened = ndx.reshape(
-            from_corearray(opx.ndindex(opx.shape(x)))[x != 0],
+            from_corearray(opx.ndindex(opx.shape(x._core())))[x != 0],
             [-1],
         )
 
-        return [
+        return tuple(
             ndx.reshape(
                 from_corearray(
                     opx.gather_elements(
@@ -350,7 +353,7 @@ class NumericOperationsImpl(OperationsBlock):
                 [-1],
             )
             for i in range(x.ndim)
-        ]
+        )
 
     def searchsorted(
         self,
@@ -824,6 +827,41 @@ class NumericOperationsImpl(OperationsBlock):
         return ndx.asarray(
             np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype
         )
+
+    def ones(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        dtype = dtypes.float64 if dtype is None else dtype
+        return ndx.full(shape, 1, dtype=dtype)
+
+    def ones_like(
+        self, x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None
+    ):
+        return ndx.full_like(x, 1, dtype=dtype)
+
+    def zeros(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        dtype = dtypes.float64 if dtype is None else dtype
+        return ndx.full(shape, 0, dtype=dtype)
+
+    def zeros_like(
+        self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
+    ):
+        return ndx.full_like(x, 0, dtype=dtype)
+
+    def empty(self, shape, dtype=None, device=None) -> ndx.Array:
+        shape = ndx.asarray(shape, dtype=dtypes.int64)
+        return ndx.full(shape, 0, dtype=dtype)
+
+    def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
+        return ndx.full_like(x, 0, dtype=dtype)
 
 
 def _via_i64_f64(

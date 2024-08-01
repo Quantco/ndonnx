@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 import ndonnx as ndx
+import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
-from ndonnx._data_types.structtype import StructType
 
 from ._interface import OperationsBlock
 from ._utils import binary_op
@@ -30,8 +30,21 @@ class StringOperationsImpl(OperationsBlock):
             return np.can_cast(from_.to_numpy_dtype(), to.to_numpy_dtype())
         return NotImplemented
 
-    def zeros(self, shape, dtype: ndx.CoreType | StructType | None = None, device=None):
-        return ndx.full(shape, "", dtype=dtype, device=device)
+    def zeros(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        return ndx.full(shape, "", dtype=dtype)
+
+    def zeros_like(
+        self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
+    ):
+        return ndx.full_like(x, "", dtype=dtype)
 
     def empty(self, shape, dtype=None, device=None) -> ndx.Array:
         return ndx.zeros(shape, dtype=dtype, device=device)
+
+    def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
+        return ndx.zeros_like(x, dtype=dtype, device=device)

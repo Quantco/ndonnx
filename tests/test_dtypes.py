@@ -53,6 +53,26 @@ class Unsigned96Impl(OperationsBlock):
             lower=ndx.linspace(start, stop, num, dtype=ndx.uint64, endpoint=endpoint),
         )
 
+    def zeros(self, shape, dtype: CoreType | StructType | None = None, device=None):
+        return Array._from_fields(
+            Unsigned96(),
+            upper=ndx.zeros(shape, dtype=ndx.uint32, device=device),
+            lower=ndx.zeros(shape, dtype=ndx.uint64, device=device),
+        )
+
+    def ones(self, shape, dtype: CoreType | StructType | None = None, device=None):
+        return Array._from_fields(
+            Unsigned96(),
+            upper=ndx.zeros(shape, dtype=ndx.uint32, device=device),
+            lower=ndx.ones(shape, dtype=ndx.uint64, device=device),
+        )
+
+    def empty(self, shape, dtype=None, device=None) -> Array:
+        return ndx.zeros(shape, dtype=Unsigned96(), device=device)
+
+    def empty_like(self, x, dtype=None, device=None) -> Array:
+        return ndx.zeros_like(x, dtype=Unsigned96(), device=device)
+
 
 class Unsigned96(StructType, CastMixin):
     def _fields(self) -> dict[str, StructType | CoreType]:
