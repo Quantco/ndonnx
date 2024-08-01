@@ -634,3 +634,40 @@ def test_array_creation_with_invalid_fields():
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
+
+
+@pytest.mark.parametrize(
+    "operation", [ndx.sin, ndx.cos, ndx.tan, ndx.sinh, ndx.mean, ndx.sum, ndx.abs]
+)
+@pytest.mark.parametrize("dtype", [ndx.utf8, ndx.nutf8, ndx.bool, ndx.nbool])
+def test_numerical_unary_operations_fail_on_non_numeric_input(operation, dtype):
+    a = ndx.array(shape=(3,), dtype=dtype)
+    with pytest.raises(TypeError, match="Unsupported operand type for"):
+        operation(a)
+
+
+def test_string_shape_operations():
+    a = ndx.asarray(["a", "b", "c"])
+    b = ndx.broadcast_to(a, (2, 3))
+    np.testing.assert_array_equal(
+        b.to_numpy(), np.array([["a", "b", "c"], ["a", "b", "c"]])
+    )
+
+    c = ndx.concat([a, a], axis=0)
+    np.testing.assert_array_equal(
+        c.to_numpy(), np.array(["a", "b", "c", "a", "b", "c"])
+    )
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ndx.utf8,
+        ndx.bool,
+    ],
+)
+def test_zeros(dtype):
+    x = ndx.zeros((2, 3), dtype=dtype)
+    np.testing.assert_equal(
+        x.to_numpy(), np.zeros((2, 3), dtype=dtype.to_numpy_dtype())
+    )
