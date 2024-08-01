@@ -56,8 +56,6 @@ def _promote_with_none(*args: Array | npt.ArrayLike) -> list[Array | None]:
             scalars.append(arr)
         elif isinstance(arg, (int, str, np.generic)):
             np_dtype = np.min_scalar_type(arg)
-            if np_dtype == np.dtype("float16"):
-                np_dtype = np.dtype("float32")
             arr = asarray(arg, dtypes.from_numpy_dtype(np_dtype))
             arr_or_none.append(arr)
             scalars.append(arr)
