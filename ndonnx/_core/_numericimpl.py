@@ -18,7 +18,7 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
 
-from ._interface import OperationsBlock
+from ._default import OperationsBlock
 from ._utils import (
     binary_op,
     from_corearray,

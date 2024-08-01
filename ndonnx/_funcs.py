@@ -675,7 +675,9 @@ def where(condition, x, y):
 
 # set.py
 def unique_all(x: Array):
-    return x.dtype._ops.unique_all(x)
+    if (out := x.dtype._ops.unique_all(x)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for unique: '{x.dtype}'")
 
 
 def unique_counts(x):

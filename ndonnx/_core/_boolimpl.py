@@ -13,7 +13,7 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
-from ._interface import OperationsBlock
+from ._default import OperationsBlock
 from ._utils import binary_op, unary_op
 
 if TYPE_CHECKING:

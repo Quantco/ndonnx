@@ -42,17 +42,6 @@ class Unsigned96Impl(OperationsBlock):
             ),
         )
 
-    def linspace(
-        self, start, stop, num, *, dtype=None, device=None, endpoint=True
-    ) -> Array:
-        if stop > ndx.iinfo(ndx.uint64).max:
-            raise ValueError("Unsupported linspace arguments")
-        return Array._from_fields(
-            Unsigned96(),
-            upper=ndx.asarray(0, dtype=ndx.uint32),
-            lower=ndx.linspace(start, stop, num, dtype=ndx.uint64, endpoint=endpoint),
-        )
-
     def zeros(self, shape, dtype: CoreType | StructType | None = None, device=None):
         return Array._from_fields(
             Unsigned96(),
@@ -69,9 +58,6 @@ class Unsigned96Impl(OperationsBlock):
 
     def empty(self, shape, dtype=None, device=None) -> Array:
         return ndx.zeros(shape, dtype=Unsigned96(), device=device)
-
-    def empty_like(self, x, dtype=None, device=None) -> Array:
-        return ndx.zeros_like(x, dtype=Unsigned96(), device=device)
 
 
 class Unsigned96(StructType, CastMixin):
@@ -251,5 +237,3 @@ def test_custom_dtype_capable_creation_functions():
 
     x = ndx.eye(3, dtype=Unsigned96())
     np.testing.assert_equal(x.to_numpy(), np.eye(3, dtype=object))
-
-    x = ndx.linspace(0, 1, 10, dtype=Unsigned96())

@@ -4,7 +4,7 @@
 from ._numericimpl import NumericOperationsImpl
 from ._stringimpl import StringOperationsImpl
 from ._boolimpl import BooleanOperationsImpl
-from ._interface import OperationsBlock
+from ._default import OperationsBlock
 
 __all__ = [
     "NumericOperationsImpl",
