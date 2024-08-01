@@ -18,6 +18,10 @@ Changelog
 
 - Fixed various deprecation warnings.
 
+**Bug fixes**
+
+- Fixes bug causing python float scalars to be lost precision when being promoted.
+
 
 0.6.1 (2024-07-12)
 ------------------

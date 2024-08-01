@@ -634,3 +634,11 @@ def test_array_creation_with_invalid_fields():
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
+
+
+@pytest.mark.parametrize("val", [1, 1.0, 1.5, 0.123456789, "a"])
+def test_scalar_promote(val):
+    x = ndx.asarray([val] * 4)
+    actual = (x + val).to_numpy()
+    expected = x.to_numpy() + val
+    np.testing.assert_equal(actual, expected, strict=True)

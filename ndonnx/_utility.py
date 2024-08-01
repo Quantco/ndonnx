@@ -45,7 +45,16 @@ def _promote_with_none(*args: Array | npt.ArrayLike) -> list[Array | None]:
                 signed_integer = True
         elif isinstance(arg, np.ndarray):
             arr_or_none.append(asarray(arg))
-        elif isinstance(arg, (int, float, str, np.generic)):
+        elif isinstance(arg, float):
+            np_dtype = (
+                np.dtype("float32")
+                if np.float32(arg) == np.float64(arg)
+                else np.dtype("float64")
+            )
+            arr = asarray(arg, dtypes.from_numpy_dtype(np_dtype))  # type: ignore
+            arr_or_none.append(arr)
+            scalars.append(arr)
+        elif isinstance(arg, (int, str, np.generic)):
             np_dtype = np.min_scalar_type(arg)
             if np_dtype == np.dtype("float16"):
                 np_dtype = np.dtype("float32")
