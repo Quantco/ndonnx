@@ -12,6 +12,7 @@ import spox.opset.ai.onnx.v19 as op
 import ndonnx as ndx
 import ndonnx.additional as nda
 from ndonnx import _data_types as dtypes
+from ndonnx._utility import promote
 
 from .utils import get_numpy_array_api_namespace, run
 
@@ -636,11 +637,17 @@ def test_promote_nullable():
         assert ndx.promote_nullable(np.int64) == ndx.nint64
 
 
-@pytest.mark.parametrize("val", [1, 1.0, 1.5, 0.123456789, np.float64(0.123456789)])
-def test_scalar_promote(val):
-    x = ndx.asarray([val] * 4)
-    actual = (x + val).to_numpy()
-    expected = np.asarray([val] * 4) + val
-    assert actual.dtype == expected.dtype
-    assert actual.shape == expected.shape
-    np.testing.assert_equal(actual, expected)
+@pytest.mark.parametrize(
+    "val, expected_dtype",
+    [
+        (1, ndx.uint8),
+        (-10, ndx.int8),
+        (1.0, ndx.float32),
+        (1.5, ndx.float32),
+        (0.123456789, ndx.float64),
+        (np.float64(0.123456789), ndx.float64),
+    ],
+)
+def test_scalar_promote(val, expected_dtype):
+    actual_dtype = promote(val)[0].dtype
+    assert actual_dtype == expected_dtype
