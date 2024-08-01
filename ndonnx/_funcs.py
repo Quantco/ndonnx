@@ -456,11 +456,11 @@ def log1p(x):
 
 
 def log2(x):
-    return log(x) / np.log(2)
+    return _unary("log2", x)
 
 
 def log10(x):
-    return log(x) / np.log(10)
+    return _unary("log10", x)
 
 
 def logaddexp(x, y):

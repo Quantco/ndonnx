@@ -199,10 +199,12 @@ class CoreOperationsImpl(OperationsBlock):
         return self.add(self.log(x), ndx.asarray(1, x.dtype))
 
     def log2(self, x):
-        return self.log(x) / np.log(2)
+        out = ndx.log(x)
+        return out / ndx.asarray(np.log(2), dtype=out.dtype)
 
     def log10(self, x):
-        return self.log(x) / np.log(10)
+        out = ndx.log(x)
+        return out / ndx.asarray(np.log(10), dtype=out.dtype)
 
     def logaddexp(self, x, y):
         return self.log(self.exp(x) + self.exp(y))
