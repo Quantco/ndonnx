@@ -34,9 +34,9 @@ def promote(*args: Array | npt.ArrayLike | None) -> list[Array]:
     for arg in args:
         if isinstance(arg, ndx.Array):
             arrays.append(arg)
-        elif isinstance(arg, np.ndarray):
+        elif isinstance(arg, (np.ndarray, np.generic)):
             arrays.append(ndx.asarray(arg))
-        elif isinstance(arg, (float, int, str, np.generic)):
+        elif isinstance(arg, (float, int, str)):
             continue
         else:
             raise TypeError(f"Cannot promote {type(arg)}")
