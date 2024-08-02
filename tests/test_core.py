@@ -657,7 +657,6 @@ def test_promote_nullable():
             0.123456789,
         ),
         ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], "hello"),
-        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], 1),
     ],
 )
 def test_scalar_promote(arrays, scalar):
@@ -667,3 +666,15 @@ def test_scalar_promote(arrays, scalar):
     assert isinstance(updated_scalar, ndx.Array)
     assert updated_scalar.shape == ()
     assert all(array.dtype == updated_scalar.dtype for array in updated_arrays)
+
+
+@pytest.mark.parametrize(
+    "arrays, scalar",
+    [
+        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], 1),
+        ([ndx.asarray([1, 2], dtype=ndx.int32)], "hello"),
+    ],
+)
+def test_promotion_failures(arrays, scalar):
+    with pytest.raises(TypeError, match="Cannot promote"):
+        promote(*arrays, scalar)

@@ -48,7 +48,16 @@ def promote(*args: Array | npt.ArrayLike | None) -> list[Array]:
         raise ValueError("At least one array must be provided for type promotion")
 
     target_dtype = ndx.result_type(*arrays)
-    return [arr.astype(target_dtype) for arr in all_arguments]
+    string_dtypes = (ndx.utf8, ndx.nutf8)
+    out: list[Array] = []
+    for arr in all_arguments:
+        if arr.dtype in string_dtypes and target_dtype not in string_dtypes:
+            raise TypeError("Cannot promote string scalar to numerical type")
+        elif arr.dtype not in string_dtypes and target_dtype in string_dtypes:
+            raise TypeError("Cannot promote non string scalar to string type")
+        out.append(arr.astype(target_dtype))
+
+    return out
 
 
 # We assume that rank will be static, because
