@@ -20,7 +20,7 @@ Changelog
 
 **Bug fixes**
 
-- Fixes bug causing python float scalars to be lost precision when being promoted.
+- Fixes scalar promotion logic to more accurately reflect the Array API standard. Promotion requires at least one array to be present and scalars adopt the dtype of the arrays being promoted with it.
 
 
 0.6.1 (2024-07-12)

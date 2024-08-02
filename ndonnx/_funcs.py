@@ -27,7 +27,7 @@ from ._utility import (
 
 
 def arange(
-    start,
+    start=None,
     stop=None,
     step=1,
     *,
@@ -35,11 +35,13 @@ def arange(
     device=None,
 ):
     step = asarray(step)
+    if start is None:
+        start = asarray(0)
+    else:
+        start = asarray(start)
+
     if stop is None:
         stop = start
-        start = asarray(0)
-    elif start is None:
-        start = asarray(0)
 
     start, stop, step = promote(start, stop, step)
 

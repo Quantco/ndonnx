@@ -14,7 +14,7 @@ from spox import Var
 # FIXME: Remove private import from Spox! Better to just use reshape!
 from spox._internal_op import unsafe_reshape
 
-import ndonnx._data_types as dtypes
+import ndonnx as ndx
 
 if TYPE_CHECKING:
     from ndonnx import Array
@@ -22,74 +22,33 @@ if TYPE_CHECKING:
     from ._corearray import _CoreArray
 
 
-def _promote_with_none(*args: Array | npt.ArrayLike) -> list[Array | None]:
+def promote(*args: Array | npt.ArrayLike | None) -> list[Array]:
     """Promote arguments following numpy's promotion rules.
 
     Constant scalars are converted to `Array` objects.
 
     `None` values are passed through.
     """
-    # FIXME: The import structure is rather FUBAR!
-    from ._array import Array
-    from ._funcs import asarray, astype, result_type
+    arrays: list[Array] = []
+    all_arguments: list[Array] = []
 
-    arr_or_none: list[Array | None] = []
-    scalars: list[Array] = []
-    signed_integer = False
     for arg in args:
-        if arg is None:
-            arr_or_none.append(arg)
-        elif isinstance(arg, Array):
-            arr_or_none.append(arg)
-            if arg.dtype in (dtypes.int8, dtypes.int16, dtypes.int32, dtypes.int64):
-                signed_integer = True
+        if isinstance(arg, ndx.Array):
+            arrays.append(arg)
+            all_arguments.append(arg)
         elif isinstance(arg, np.ndarray):
-            arr_or_none.append(asarray(arg))
-        elif isinstance(arg, float):
-            np_dtype = (
-                np.dtype("float32")
-                if np.float32(arg) == np.float64(arg)
-                else np.dtype("float64")
-            )
-            arr = asarray(arg, dtypes.from_numpy_dtype(np_dtype))  # type: ignore
-            arr_or_none.append(arr)
-            scalars.append(arr)
-        elif isinstance(arg, (int, str, np.generic)):
-            np_dtype = np.min_scalar_type(arg)
-            arr = asarray(arg, dtypes.from_numpy_dtype(np_dtype))
-            arr_or_none.append(arr)
-            scalars.append(arr)
+            arrays.append(ndx.asarray(arg))
+            all_arguments.append(arrays[-1])
+        elif isinstance(arg, (float, int, str, np.generic)):
+            all_arguments.append(ndx.asarray(arg))
         else:
             raise TypeError(f"Cannot promote {type(arg)}")
 
-    for scalar in scalars:
-        eager_value = scalar.to_numpy()
-        if eager_value is None:
-            raise ValueError("Cannot promote `None` value")
-        if signed_integer and eager_value.dtype.kind == "u":
-            # translate dtype to signed version
-            dtype = np.dtype(f"int{eager_value.dtype.itemsize * 8}")
-            if eager_value > np.iinfo(dtype).max:
-                dtype = np.dtype(f"int{eager_value.dtype.itemsize * 16}")
-            scalar._set(scalar.astype(dtypes.from_numpy_dtype(dtype)))
+    if not arrays:
+        raise ValueError("At least one array must be provided for type promotion")
 
-    target_dtype = result_type(*[arr for arr in arr_or_none if arr is not None])
-
-    return [None if arr is None else astype(arr, target_dtype) for arr in arr_or_none]
-
-
-def promote(*args: Array | npt.ArrayLike) -> list[Array]:
-    """Promote arguments following numpy's promotion rules.
-
-    Constant scalars are converted to `Array` objects.
-    """
-    promoted = _promote_with_none(*args)
-    ret = []
-    for el in promoted:
-        if el is None:
-            raise ValueError("Cannot promote `None` value")
-        ret.append(el)
-    return ret
+    target_dtype = ndx.result_type(*arrays)
+    return [arr.astype(target_dtype) for arr in all_arguments]
 
 
 # We assume that rank will be static, because
