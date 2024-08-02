@@ -12,6 +12,7 @@ import spox.opset.ai.onnx.v19 as op
 import ndonnx as ndx
 import ndonnx.additional as nda
 from ndonnx import _data_types as dtypes
+from ndonnx._utility import promote
 
 from .utils import get_numpy_array_api_namespace, run
 
@@ -411,14 +412,14 @@ def test_array_spox_interoperability():
 
 
 def test_creation_arange():
-    a = ndx.arange(10)
-    np.testing.assert_equal(np.arange(10), a.to_numpy())
+    a = ndx.arange(0, stop=10)
+    np.testing.assert_equal(a.to_numpy(), np.arange(stop=10))
 
     b = ndx.arange(1, 10)
-    np.testing.assert_equal(np.arange(1, 10), b.to_numpy())
+    np.testing.assert_equal(b.to_numpy(), np.arange(1, 10))
 
     c = ndx.arange(1, 10, 2)
-    np.testing.assert_equal(np.arange(1, 10, 2), c.to_numpy())
+    np.testing.assert_equal(c.to_numpy(), np.arange(1, 10, 2))
 
     d = ndx.arange(0.0, None, step=-1)
     np.testing.assert_array_equal(
@@ -634,3 +635,46 @@ def test_array_creation_with_invalid_fields():
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
+
+
+# if the precision loss looks concerning, note https://data-apis.org/array-api/latest/API_specification/type_promotion.html#mixing-arrays-with-python-scalars
+@pytest.mark.parametrize(
+    "arrays, scalar",
+    [
+        ([ndx.array(shape=("N",), dtype=ndx.uint8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.uint8)], -1),
+        ([ndx.array(shape=("N",), dtype=ndx.int8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.nint8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.nint8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.float64)], 0.123456789),
+        ([ndx.array(shape=("N",), dtype=ndx.float64)], np.float64(0.123456789)),
+        ([ndx.array(shape=("N",), dtype=ndx.float32)], 0.123456789),
+        (
+            [
+                ndx.array(shape=("N",), dtype=ndx.float32),
+                ndx.asarray([1.5], dtype=ndx.float64),
+            ],
+            0.123456789,
+        ),
+        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], "hello"),
+    ],
+)
+def test_scalar_promote(arrays, scalar):
+    args = arrays + [scalar]
+    *updated_arrays, updated_scalar = promote(*args)
+    assert all(isinstance(array, ndx.Array) for array in updated_arrays)
+    assert isinstance(updated_scalar, ndx.Array)
+    assert updated_scalar.shape == ()
+    assert all(array.dtype == updated_scalar.dtype for array in updated_arrays)
+
+
+@pytest.mark.parametrize(
+    "arrays, scalar",
+    [
+        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], 1),
+        ([ndx.asarray([1, 2], dtype=ndx.int32)], "hello"),
+    ],
+)
+def test_promotion_failures(arrays, scalar):
+    with pytest.raises(TypeError, match="Cannot promote"):
+        promote(*arrays, scalar)
