@@ -187,10 +187,10 @@ class NumericOperationsImpl(OperationsBlock):
         return self.add(self.log(x), ndx.asarray(1, x.dtype))
 
     def log2(self, x):
-        return ndx.log(x) / np.log(2)
+        return ndx.log(x) / float(np.log(2))
 
     def log10(self, x):
-        return ndx.log(x) / np.log(10)
+        return ndx.log(x) / float(np.log(10))
 
     def logaddexp(self, x, y):
         return self.log(self.exp(x) + self.exp(y))
@@ -747,6 +747,7 @@ class NumericOperationsImpl(OperationsBlock):
     def arange(self, start, stop=None, step=None, dtype=None, device=None) -> ndx.Array:
         step = ndx.asarray(step)
         if stop is None:
+            start = ndx.asarray(start)
             stop = start
             start = ndx.asarray(0)
         elif start is None:

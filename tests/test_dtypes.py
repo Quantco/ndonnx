@@ -68,7 +68,7 @@ class Unsigned96Impl(OperationsBlock):
             overflow_amount = (
                 x.lower.astype(ndx.uint64) + y.lower.astype(ndx.uint64)
             ) >> 32
-            will_overflow = overflow_amount > 0
+            will_overflow = (overflow_amount > 0).astype(ndx.uint32)
             # No where implemented on unsigned types.
             lower = ((x.lower + y.lower) * (1 - will_overflow)) + (
                 max_u32 * will_overflow
