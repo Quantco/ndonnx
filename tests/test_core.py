@@ -634,3 +634,39 @@ def test_array_creation_with_invalid_fields():
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
+
+
+@pytest.mark.xfail
+def test_empty_concat_eager():
+    a = ndx.asarray([], ndx.int64)
+    b = ndx.asarray([1, 2, 3], ndx.int64)
+    out = ndx.concat([a, b], axis=0)
+    np.testing.assert_equal(out.to_numpy(), b.to_numpy())
+
+
+def test_empty_concat_lazy_known_shape():
+    a = ndx.array(shape=(0,), dtype=ndx.int64)
+    b = ndx.array(shape=(3,), dtype=ndx.int64)
+    out = ndx.concat([a, b])
+    model = ndx.build({"a": a, "b": b}, {"out": out})
+
+    anp = np.array([], np.int64)
+    bnp = np.array([1, 2, 3], np.int64)
+
+    out = run(model, {"a": anp, "b": bnp})["out"]
+
+    np.testing.assert_equal(out, bnp)
+
+
+def test_empty_concat_lazy_unknown_shape():
+    a = ndx.array(shape=(None,), dtype=ndx.int64)
+    b = ndx.array(shape=(None,), dtype=ndx.int64)
+    out = ndx.concat([a, b])
+    model = ndx.build({"a": a, "b": b}, {"out": out})
+
+    anp = np.array([], np.int64)
+    bnp = np.array([1, 2, 3], np.int64)
+
+    out = run(model, {"a": anp, "b": bnp})["out"]
+
+    np.testing.assert_equal(out, bnp)
