@@ -751,3 +751,25 @@ def test_scalar_promote(arrays, scalar):
 def test_promotion_failures(arrays, scalar):
     with pytest.raises(TypeError, match="Cannot promote"):
         promote(*arrays, scalar)
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (np.asarray([1, 2, 3], dtype=np.int64), 1.12),
+        (1.23, np.asarray([1, 2, 3], dtype=np.int64)),
+        (True, np.asarray([1, 2, 3], dtype=np.int8)),
+        (np.asarray([True, False]), 1.12),
+        (np.asarray([True, False]), 4),
+        (np.asarray([1.23, 2.34]), True),
+        (np.asarray([1.23, 2.34]), 2),
+    ],
+)
+def test_cross_kind_promotions(x, y):
+    np_result = x + y
+    if isinstance(x, np.ndarray):
+        x = ndx.asarray(x)
+    if isinstance(y, np.ndarray):
+        y = ndx.asarray(y)
+    onnx_result = x + y
+    np.testing.assert_equal(onnx_result.to_numpy(), np_result)
