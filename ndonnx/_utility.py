@@ -30,17 +30,14 @@ def promote(*args: Array | npt.ArrayLike | None) -> list[Array]:
     `None` values are passed through.
     """
     arrays: list[Array] = []
-    all_arguments: list[Array] = []
 
     for arg in args:
         if isinstance(arg, ndx.Array):
             arrays.append(arg)
-            all_arguments.append(arg)
-        elif isinstance(arg, np.ndarray):
+        elif isinstance(arg, (np.ndarray, np.generic)):
             arrays.append(ndx.asarray(arg))
-            all_arguments.append(arrays[-1])
-        elif isinstance(arg, (float, int, str, np.generic)):
-            all_arguments.append(ndx.asarray(arg))
+        elif isinstance(arg, (float, int, str)):
+            continue
         else:
             raise TypeError(f"Cannot promote {type(arg)}")
 
@@ -50,12 +47,26 @@ def promote(*args: Array | npt.ArrayLike | None) -> list[Array]:
     target_dtype = ndx.result_type(*arrays)
     string_dtypes = (ndx.utf8, ndx.nutf8)
     out: list[Array] = []
-    for arr in all_arguments:
-        if arr.dtype in string_dtypes and target_dtype not in string_dtypes:
+    for arg in args:
+        # Deal with cross-kind scalar promotions
+        if isinstance(arg, float) and not isinstance(
+            target_dtype, (ndx.Floating, ndx.NullableFloating)
+        ):
+            target_dtype = ndx.result_type(target_dtype, ndx.float64)
+        elif isinstance(arg, bool) and not target_dtype not in (ndx.bool, ndx.nbool):
+            target_dtype = ndx.result_type(target_dtype, ndx.bool)
+        elif isinstance(arg, int) and not isinstance(
+            target_dtype, (ndx.Numerical, ndx.NullableNumerical)
+        ):
+            target_dtype = ndx.result_type(target_dtype, ndx.int64)
+
+        if not isinstance(arg, ndx.Array):
+            arg = ndx.asarray(np.array(arg))
+        if arg.dtype in string_dtypes and target_dtype not in string_dtypes:
             raise TypeError("Cannot promote string scalar to numerical type")
-        elif arr.dtype not in string_dtypes and target_dtype in string_dtypes:
+        elif arg.dtype not in string_dtypes and target_dtype in string_dtypes:
             raise TypeError("Cannot promote non string scalar to string type")
-        out.append(arr.astype(target_dtype))
+        out.append(arg.astype(target_dtype))
 
     return out
 
