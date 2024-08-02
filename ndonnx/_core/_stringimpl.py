@@ -12,12 +12,13 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
 from ._default import OperationsBlock
-from ._utils import binary_op
+from ._utils import binary_op, validate_core
 
 if TYPE_CHECKING:
     from ndonnx import Array
 
 
+@validate_core
 class StringOperationsImpl(OperationsBlock):
     def add(self, x, y) -> Array:
         return binary_op(x, y, opx.string_concat)

@@ -24,6 +24,7 @@ from ._utils import (
     from_corearray,
     split_nulls_and_values,
     unary_op,
+    validate_core,
     variadic_op,
     via_upcast,
 )
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
+@validate_core
 class NumericOperationsImpl(OperationsBlock):
     # elementwise.py
 
@@ -718,34 +720,6 @@ class NumericOperationsImpl(OperationsBlock):
             self.sum(ndx.full_like(x, 1), axis=axis, keepdims=keepdims).astype(dtype)
             - correction
         )
-
-    # additional.py
-    def fill_null(self, x, value):
-        value = ndx.asarray(value)
-
-        if not isinstance(x.dtype, dtypes._NullableCore):
-            raise TypeError("fill_null accepts only nullable arrays")
-
-        if value.dtype != x.values.dtype:
-            value = value.astype(x.values.dtype)
-        return ndx.where(x.null, value, x.values)
-
-    def make_nullable(self, x, null):
-        if null.dtype != dtypes.bool:
-            raise TypeError("null must be a boolean array")
-        if not isinstance(x.dtype, dtypes.CoreType):
-            raise TypeError("'make_nullable' does not accept nullable arrays")
-        return ndx.Array._from_fields(
-            dtypes.into_nullable(x.dtype),
-            values=x.copy(),
-            null=ndx.reshape(null, x.shape),
-        )
-
-    def shape(self, x):
-        current = x
-        while isinstance(current, ndx.Array):
-            current = next(iter(current._fields.values()))
-        return from_corearray(opx.shape(current))
 
     def can_cast(self, from_, to) -> bool:
         if isinstance(from_, dtypes.CoreType) and isinstance(to, ndx.CoreType):

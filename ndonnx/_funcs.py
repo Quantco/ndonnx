@@ -662,8 +662,10 @@ def searchsorted(
 
 def where(condition, x, y):
     condition, x, y = map(asarray, (condition, x, y))
-    if condition.dtype != dtypes.bool:
-        raise TypeError("condition must be a boolean array")
+    if condition.dtype not in (dtypes.bool, dtypes.nbool):
+        raise TypeError(
+            f"condition must be a boolean array, received {condition.dtype}"
+        )
     if (out := x.dtype._ops.where(condition, x, y)) is not NotImplemented:
         return out
     if (out := y.dtype._ops.where(condition, x, y)) is not NotImplemented:

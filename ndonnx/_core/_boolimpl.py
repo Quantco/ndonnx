@@ -14,12 +14,13 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
 from ._default import OperationsBlock
-from ._utils import binary_op, unary_op
+from ._utils import binary_op, unary_op, validate_core
 
 if TYPE_CHECKING:
     from ndonnx import Array
 
 
+@validate_core
 class BooleanOperationsImpl(OperationsBlock):
     def equal(self, x, y) -> Array:
         return binary_op(x, y, opx.equal)

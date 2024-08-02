@@ -35,6 +35,7 @@ Changelog
 **Bug fixes**
 
 - Numerical operations like :func:`sin` now raise :class:`UnsupportedOperationError` when invoked using invalid data types like ``ndx.utf8`` rather than implicitly casting.
+- Fixes bug causing a promotion error when implementing numerical operations like :func:`add` that involve type promotion.
 
 
 0.6.1 (2024-07-12)

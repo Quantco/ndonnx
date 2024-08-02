@@ -581,14 +581,30 @@ class OperationsBlock:
         return NotImplemented
 
     # additional.py
-    def shape(self, x) -> ndx.Array:
-        return NotImplemented
+    def fill_null(self, x, value):
+        value = ndx.asarray(value)
 
-    def fill_null(self, x, value) -> ndx.Array:
-        return NotImplemented
+        if not isinstance(x.dtype, dtypes._NullableCore):
+            raise TypeError("fill_null accepts only nullable arrays")
 
-    def make_nullable(self, x, null) -> ndx.Array:
-        return NotImplemented
+        if value.dtype != x.values.dtype:
+            value = value.astype(x.values.dtype)
+        return ndx.where(x.null, value, x.values)
+
+    def shape(self, x):
+        current = x
+        while isinstance(current, ndx.Array):
+            current = next(iter(current._fields.values()))
+        return from_corearray(opx.shape(current))
+
+    def make_nullable(self, x, null):
+        if null.dtype != dtypes.bool or not isinstance(x.dtype, dtypes.CoreType):
+            return NotImplemented
+        return ndx.Array._from_fields(
+            dtypes.into_nullable(x.dtype),
+            values=x.copy(),
+            null=ndx.reshape(null, x.shape),
+        )
 
     def can_cast(self, from_, to) -> bool:
         return NotImplemented
