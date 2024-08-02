@@ -636,7 +636,7 @@ def test_promote_nullable():
         assert ndx.promote_nullable(np.int64) == ndx.nint64
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="https://github.com/onnx/onnx/issues/6276")
 def test_empty_concat_eager():
     a = ndx.asarray([], ndx.int64)
     b = ndx.asarray([1, 2, 3], ndx.int64)
