@@ -132,9 +132,8 @@ def full_like(
     dtype: dtypes.CoreType | dtypes.StructType | None = None,
     device=None,
 ):
-    dtype = x.dtype if dtype is None else dtype
     if (
-        out := dtype._ops.full_like(x, fill_value, dtype=dtype, device=device)
+        out := x.dtype._ops.full_like(x, fill_value, dtype=dtype, device=device)
     ) is not NotImplemented:
         return out
     raise UnsupportedOperationError(
@@ -168,11 +167,10 @@ def ones(shape, dtype: dtypes.CoreType | dtypes.StructType | None = None, device
 
 
 def ones_like(x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None):
-    dtype = x.dtype if dtype is None else dtype
-    if (out := dtype._ops.ones_like(x, dtype=dtype)) is not NotImplemented:
+    if (out := x.dtype._ops.ones_like(x, dtype=dtype)) is not NotImplemented:
         return out
     raise UnsupportedOperationError(
-        f"Unsupported operand type for ones_like: '{dtype}'"
+        f"Unsupported operand type for ones_like: '{x.dtype}'"
     )
 
 
@@ -200,11 +198,10 @@ def zeros(shape, dtype: dtypes.CoreType | dtypes.StructType | None = None, devic
 def zeros_like(
     x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
 ):
-    dtype = x.dtype if dtype is None else dtype
-    if (out := dtype._ops.zeros_like(x, dtype=dtype)) is not NotImplemented:
+    if (out := x.dtype._ops.zeros_like(x, dtype=dtype)) is not NotImplemented:
         return out
     raise UnsupportedOperationError(
-        f"Unsupported operand type for zeros_like: '{dtype}'"
+        f"Unsupported operand type for zeros_like: '{x.dtype}'"
     )
 
 

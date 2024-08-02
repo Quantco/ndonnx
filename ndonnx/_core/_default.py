@@ -526,10 +526,8 @@ class OperationsBlock:
         ).astype(dtype)
 
     def full_like(self, x, fill_value, dtype=None, device=None) -> ndx.Array:
-        fill_value = ndx.asarray(fill_value)
-        return ndx.broadcast_to(fill_value, ndx.asarray(x).shape).astype(
-            dtype or x.dtype
-        )
+        fill_value = ndx.asarray(fill_value, dtype=dtype or x.dtype)
+        return ndx.broadcast_to(fill_value, ndx.asarray(x).shape)
 
     def ones(
         self,
@@ -542,7 +540,7 @@ class OperationsBlock:
     def ones_like(
         self, x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None
     ):
-        return NotImplemented
+        return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
 
     def zeros(
         self,
@@ -555,7 +553,7 @@ class OperationsBlock:
     def zeros_like(
         self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
     ):
-        return NotImplemented
+        return ndx.zeros(x.shape, dtype=dtype or x.dtype, device=device)
 
     def empty(self, shape, dtype=None, device=None) -> ndx.Array:
         return NotImplemented

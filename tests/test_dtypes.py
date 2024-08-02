@@ -265,3 +265,13 @@ def test_custom_dtype_capable_creation_functions():
 
     x = ndx.eye(3, dtype=Unsigned96())
     np.testing.assert_equal(x.to_numpy(), np.eye(3, dtype=object))
+
+    arr = np.array([22314, 21 << 12, 12], dtype=object)
+    x = ndx.asarray(arr, dtype=Unsigned96())
+    np.testing.assert_equal(
+        ndx.zeros_like(x).to_numpy(), np.zeros_like(arr, dtype=object)
+    )
+
+    np.testing.assert_equal(
+        ndx.ones_like(x, dtype=ndx.int32).to_numpy(), np.ones_like(arr, dtype=np.int32)
+    )

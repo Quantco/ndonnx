@@ -527,8 +527,8 @@ class NumericOperationsImpl(OperationsBlock):
         )
 
     def mean(self, x, *, axis=None, keepdims: bool = False):
-        return self.sum(x, axis=axis, keepdims=keepdims) / self.sum(
-            ndx.full_like(x, 1), axis=axis, keepdims=keepdims
+        return ndx.sum(x, axis=axis, keepdims=keepdims) / ndx.sum(
+            ndx.full_like(x, 1, dtype=x.dtype), axis=axis, keepdims=keepdims
         )
 
     def min(self, x, *, axis=None, keepdims: bool = False):
