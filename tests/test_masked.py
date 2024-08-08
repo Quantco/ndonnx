@@ -207,3 +207,19 @@ def test_eager_mode():
         (a * c).to_numpy(),
         np.ma.masked_array([-12, 42, 36639], mask=[1, 0, 1], dtype=np.int64),
     )
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        np.tril,
+        np.triu,
+    ],
+)
+def test_trilu_masked_input(func):
+    a = np.ma.masked_array(
+        [[1, 2, 3], [4, 5, 6]], mask=[[0, 0, 1], [0, 0, 0]], dtype=np.int64
+    )
+    expected = func(a)
+    actual = getattr(ndx, func.__name__)(ndx.asarray(a)).to_numpy()
+    np.testing.assert_equal(expected, actual)

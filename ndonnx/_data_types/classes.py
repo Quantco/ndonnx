@@ -10,7 +10,12 @@ import numpy as np
 from typing_extensions import Self
 
 import ndonnx as ndx
-from ndonnx._core import CoreOperationsImpl, OperationsBlock
+from ndonnx._core import (
+    BooleanOperationsImpl,
+    NumericOperationsImpl,
+    OperationsBlock,
+    StringOperationsImpl,
+)
 from ndonnx._data_types.schema import Schema
 
 from .conversion import CastError, CastMixin
@@ -23,6 +28,8 @@ if TYPE_CHECKING:
 
 class Numerical(CoreType):
     """Base class for numerical data types."""
+
+    _ops: OperationsBlock = NumericOperationsImpl()
 
 
 class Integral(Numerical):
@@ -128,6 +135,8 @@ class Boolean(CoreType):
     def to_numpy_dtype() -> np.dtype:
         return np.dtype("bool")
 
+    _ops: OperationsBlock = BooleanOperationsImpl()
+
 
 class Utf8(CoreType):
     """UTF-8 encoded string."""
@@ -159,6 +168,8 @@ class Utf8(CoreType):
             raise TypeError(
                 f"Expected data type with kind 'U', got {fields['data'].dtype}"
             )
+
+    _ops: OperationsBlock = StringOperationsImpl()
 
 
 T = TypeVar("T", StructType, CoreType, covariant=True)
@@ -225,11 +236,11 @@ class _NullableCore(Nullable[CoreType], CastMixin):
         else:
             raise CastError(f"Cannot cast from {array.dtype} to {self}")
 
-    _ops: OperationsBlock = CoreOperationsImpl()
-
 
 class NullableNumerical(_NullableCore):
     """Base class for nullable numerical data types."""
+
+    _ops: OperationsBlock = NumericOperationsImpl()
 
 
 class NullableIntegral(NullableNumerical):
@@ -302,10 +313,14 @@ class NBoolean(_NullableCore):
     values = Boolean()
     null = Boolean()
 
+    _ops: OperationsBlock = BooleanOperationsImpl()
+
 
 class NUtf8(_NullableCore):
     values = Utf8()
     null = Boolean()
+
+    _ops: OperationsBlock = StringOperationsImpl()
 
 
 def from_numpy_dtype(np_dtype: np.dtype) -> CoreType:

@@ -66,9 +66,9 @@ def promote(*args: Array | npt.ArrayLike | None) -> list[Array]:
             raise TypeError("Cannot promote string scalar to numerical type")
         elif arg.dtype not in string_dtypes and target_dtype in string_dtypes:
             raise TypeError("Cannot promote non string scalar to string type")
-        out.append(arg.astype(target_dtype))
+        out.append(arg)
 
-    return out
+    return [arr.astype(target_dtype) for arr in out]
 
 
 # We assume that rank will be static, because

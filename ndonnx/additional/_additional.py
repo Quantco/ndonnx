@@ -33,10 +33,9 @@ def shape(x: Array) -> Array:
     out: Array
         Array of shape
     """
-    x = ndx.asarray(x)
     out = x.dtype._ops.shape(x)
     if out is NotImplemented:
-        raise TypeError(f"`shape` not implemented for `{x.dtype}`")
+        raise ndx.UnsupportedOperationError(f"`shape` not implemented for `{x.dtype}`")
     return out
 
 
@@ -110,10 +109,11 @@ def fill_null(x: Array, value: Array | Scalar) -> Array:
         A new Array with the null values filled with the given value.
     """
 
-    x = ndx.asarray(x)
     out = x.dtype._ops.fill_null(x, value)
     if out is NotImplemented:
-        raise TypeError(f"`fill_null` not implemented for `{x.dtype}`")
+        raise ndx.UnsupportedOperationError(
+            f"`fill_null` not implemented for `{x.dtype}`"
+        )
     return out
 
 
@@ -139,8 +139,9 @@ def make_nullable(x: Array, null: Array) -> Array:
     TypeError
         If the data type of ``x`` does not have a nullable counterpart.
     """
-    x = ndx.asarray(x)
     out = x.dtype._ops.make_nullable(x, null)
     if out is NotImplemented:
-        raise TypeError(f"'make_nullable' not implemented for `{x.dtype}`")
+        raise ndx.UnsupportedOperationError(
+            f"'make_nullable' not implemented for `{x.dtype}`"
+        )
     return out
