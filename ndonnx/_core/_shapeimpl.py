@@ -137,10 +137,8 @@ class UniformShapeOperations(OperationsBlock):
         ).astype(dtype)
 
     def full_like(self, x, fill_value, dtype=None, device=None):
-        fill_value = ndx.asarray(fill_value)
-        return ndx.broadcast_to(fill_value, ndx.asarray(x).shape).astype(
-            dtype or x.dtype
-        )
+        fill_value = ndx.asarray(fill_value, dtype=dtype or x.dtype)
+        return ndx.broadcast_to(fill_value, ndx.asarray(x).shape)
 
     def where(self, condition, x, y):
         if x.dtype != y.dtype:
@@ -231,3 +229,9 @@ class UniformShapeOperations(OperationsBlock):
             else:
                 output.null = output.null | condition.null
         return output
+
+    def zeros_like(self, x, dtype=None, device=None):
+        return ndx.zeros(x.shape, dtype=dtype or x.dtype, device=device)
+
+    def ones_like(self, x, dtype=None, device=None):
+        return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)

@@ -399,10 +399,10 @@ class OperationsBlock:
         return NotImplemented
 
     # additional.py
-    def shape(self, x) -> ndx.Array:
+    def fill_null(self, x, value) -> ndx.Array:
         return NotImplemented
 
-    def fill_null(self, x, value) -> ndx.Array:
+    def shape(self, x) -> ndx.Array:
         return NotImplemented
 
     def make_nullable(self, x, null) -> ndx.Array:
