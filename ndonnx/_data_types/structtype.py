@@ -8,7 +8,7 @@ from abc import abstractmethod
 import numpy as np
 import typing_extensions
 
-from ndonnx._core._default import OperationsBlock
+from ndonnx._core._interface import OperationsBlock
 from ndonnx._data_types.coretype import CoreType
 
 from .schema import Schema

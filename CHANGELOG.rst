@@ -26,6 +26,7 @@ Changelog
    - :func:`ndonnx.triu`
    - :func:`ndonnx.linspace`
 - Custom dtypes can now provide implementations for :func:`ndonnx.where`.
+- The :class:`ndonnx._experimental.UniformShapeOperations` now provides implementations of shape operations that are generic across all data types where each constituent field has the same shape (that of the overall array).
 
 **Other changes**
 

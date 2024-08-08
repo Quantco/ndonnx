@@ -18,7 +18,7 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
 
-from ._default import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 from ._utils import (
     binary_op,
     from_corearray,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
-class NumericOperationsImpl(OperationsBlock):
+class NumericOperationsImpl(UniformShapeOperations):
     # elementwise.py
 
     def abs(self, x):
@@ -123,6 +123,9 @@ class NumericOperationsImpl(OperationsBlock):
             return variadic_op([x, y], opx.equal, dtypes.int64, cast_return=False)
         else:
             return binary_op(x, y, opx.equal)
+
+    def not_equal(self, x, y) -> Array:
+        return ndx.logical_not(x == y)
 
     def exp(self, x):
         return unary_op(x, opx.exp, dtypes.float32)
@@ -284,6 +287,9 @@ class NumericOperationsImpl(OperationsBlock):
 
     def matmul(self, x, y):
         return _via_i64_f64(opx.matmul, [x, y])
+
+    def matrix_transpose(self, x) -> ndx.Array:
+        return ndx.permute_dims(x, list(range(x.ndim - 2)) + [x.ndim - 1, x.ndim - 2])
 
     # searching.py
 
@@ -740,12 +746,6 @@ class NumericOperationsImpl(OperationsBlock):
             values=x.copy(),
             null=ndx.reshape(null, x.shape),
         )
-
-    def shape(self, x):
-        current = x
-        while isinstance(current, ndx.Array):
-            current = next(iter(current._fields.values()))
-        return from_corearray(opx.shape(current))
 
     def can_cast(self, from_, to) -> bool:
         if isinstance(from_, dtypes.CoreType) and isinstance(to, ndx.CoreType):

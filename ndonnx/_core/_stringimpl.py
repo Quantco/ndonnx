@@ -11,19 +11,22 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
-from ._default import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op
 
 if TYPE_CHECKING:
     from ndonnx import Array
 
 
-class StringOperationsImpl(OperationsBlock):
+class StringOperationsImpl(UniformShapeOperations):
     def add(self, x, y) -> Array:
         return binary_op(x, y, opx.string_concat)
 
     def equal(self, x, y) -> Array:
         return binary_op(x, y, opx.equal)
+
+    def not_equal(self, x, y) -> ndx.Array:
+        return ndx.logical_not(self.equal(x, y))
 
     def can_cast(self, from_, to) -> bool:
         if isinstance(from_, ndx.CoreType) and isinstance(to, ndx.CoreType):
