@@ -99,7 +99,7 @@ class OperationsBlock:
         return NotImplemented
 
     def isfinite(self, x) -> ndx.Array:
-        return ndx.logical_not(ndx.isinf(x))
+        return NotImplemented
 
     def isinf(self, x) -> ndx.Array:
         return NotImplemented
@@ -174,7 +174,7 @@ class OperationsBlock:
         return NotImplemented
 
     def square(self, x) -> ndx.Array:
-        return ndx.multiply(x, x)
+        return NotImplemented
 
     def sqrt(self, x) -> ndx.Array:
         return NotImplemented
