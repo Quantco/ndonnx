@@ -230,12 +230,8 @@ class UniformShapeOperations(OperationsBlock):
                 output.null = output.null | condition.null
         return output
 
-    def zeros_like(
-        self, x, dtype: ndx.CoreType | dtypes.StructType | None = None, device=None
-    ):
+    def zeros_like(self, x, dtype=None, device=None):
         return ndx.zeros(x.shape, dtype=dtype or x.dtype, device=device)
 
-    def ones_like(
-        self, x, dtype: dtypes.StructType | ndx.CoreType | None = None, device=None
-    ):
+    def ones_like(self, x, dtype=None, device=None):
         return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
