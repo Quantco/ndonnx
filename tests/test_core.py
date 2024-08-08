@@ -643,7 +643,9 @@ def test_promote_nullable():
 @pytest.mark.parametrize("dtype", [ndx.utf8, ndx.nutf8, ndx.bool, ndx.nbool])
 def test_numerical_unary_operations_fail_on_non_numeric_input(operation, dtype):
     a = ndx.array(shape=(3,), dtype=dtype)
-    with pytest.raises(TypeError, match="Unsupported operand type for"):
+    with pytest.raises(
+        ndx.UnsupportedOperationError, match="Unsupported operand type for"
+    ):
         operation(a)
 
 

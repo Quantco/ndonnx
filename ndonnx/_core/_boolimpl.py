@@ -13,7 +13,7 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
-from ._default import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, unary_op, validate_core
 
 if TYPE_CHECKING:
@@ -21,9 +21,12 @@ if TYPE_CHECKING:
 
 
 @validate_core
-class BooleanOperationsImpl(OperationsBlock):
+class BooleanOperationsImpl(UniformShapeOperations):
     def equal(self, x, y) -> Array:
         return binary_op(x, y, opx.equal)
+
+    def not_equal(self, x, y) -> ndx.Array:
+        return self.logical_not(self.equal(x, y))
 
     def bitwise_and(self, x, y) -> Array:
         return self.logical_and(x, y)
@@ -41,19 +44,11 @@ class BooleanOperationsImpl(OperationsBlock):
         # If one of the operands is True and the broadcasted shape can be guaranteed to be the other array's shape,
         # we can return this other array directly.
         x, y = map(ndx.asarray, (x, y))
-        if (
-            x.to_numpy() is not None
-            and x.to_numpy().size == 1
-            and x.ndim <= y.ndim
-            and x.to_numpy().item()
-        ):
+        y_np = y.to_numpy()
+        x_np = x.to_numpy()
+        if x_np is not None and x_np.size == 1 and x.ndim <= y.ndim and x_np.item():
             return y.copy()
-        elif (
-            y.to_numpy() is not None
-            and y.to_numpy().size == 1
-            and y.ndim <= x.ndim
-            and y.to_numpy().item()
-        ):
+        elif y_np is not None and y_np.size == 1 and y.ndim <= x.ndim and y_np.item():
             return x.copy()
         return binary_op(x, y, opx.and_)
 
@@ -64,18 +59,12 @@ class BooleanOperationsImpl(OperationsBlock):
         # If one of the operands is False and the broadcasted shape can be guaranteed to be the other array's shape,
         # we can return this other array directly.
         x, y = map(ndx.asarray, (x, y))
-        if (
-            x.to_numpy() is not None
-            and x.to_numpy().size == 1
-            and x.ndim <= y.ndim
-            and not x.to_numpy().item()
-        ):
+        x_np = x.to_numpy()
+        y_np = y.to_numpy()
+        if x_np is not None and x_np.size == 1 and x.ndim <= y.ndim and not x_np.item():
             return y.copy()
         elif (
-            y.to_numpy() is not None
-            and y.to_numpy().size == 1
-            and y.ndim <= x.ndim
-            and not y.to_numpy().item()
+            y_np is not None and y_np.size == 1 and y.ndim <= x.ndim and not y_np.item()
         ):
             return x.copy()
         return binary_op(x, y, opx.or_)

@@ -4,12 +4,14 @@
 from ._numericimpl import NumericOperationsImpl
 from ._stringimpl import StringOperationsImpl
 from ._boolimpl import BooleanOperationsImpl
-from ._default import OperationsBlock
+from ._interface import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 
 __all__ = [
     "NumericOperationsImpl",
     "StringOperationsImpl",
     "BooleanOperationsImpl",
+    "UniformShapeOperations",
     "OperationsBlock",
     "binary_op",
     "unary_op",

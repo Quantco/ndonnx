@@ -18,7 +18,7 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
 
-from ._default import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 from ._utils import (
     binary_op,
     from_corearray,
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 @validate_core
-class NumericOperationsImpl(OperationsBlock):
+class NumericOperationsImpl(UniformShapeOperations):
     # elementwise.py
 
     def abs(self, x):
@@ -125,6 +125,9 @@ class NumericOperationsImpl(OperationsBlock):
             return variadic_op([x, y], opx.equal, dtypes.int64, cast_return=False)
         else:
             return binary_op(x, y, opx.equal)
+
+    def not_equal(self, x, y) -> Array:
+        return ndx.logical_not(x == y)
 
     def exp(self, x):
         return unary_op(x, opx.exp, dtypes.float32)
@@ -286,6 +289,9 @@ class NumericOperationsImpl(OperationsBlock):
 
     def matmul(self, x, y):
         return _via_i64_f64(opx.matmul, [x, y])
+
+    def matrix_transpose(self, x) -> ndx.Array:
+        return ndx.permute_dims(x, list(range(x.ndim - 2)) + [x.ndim - 1, x.ndim - 2])
 
     # searching.py
 
@@ -719,6 +725,28 @@ class NumericOperationsImpl(OperationsBlock):
         ) / (
             self.sum(ndx.full_like(x, 1), axis=axis, keepdims=keepdims).astype(dtype)
             - correction
+        )
+
+    # additional.py
+    def fill_null(self, x, value):
+        value = ndx.asarray(value)
+
+        if not isinstance(x.dtype, dtypes._NullableCore):
+            raise TypeError("fill_null accepts only nullable arrays")
+
+        if value.dtype != x.values.dtype:
+            value = value.astype(x.values.dtype)
+        return ndx.where(x.null, value, x.values)
+
+    def make_nullable(self, x, null):
+        if null.dtype != dtypes.bool:
+            raise TypeError("null must be a boolean array")
+        if not isinstance(x.dtype, dtypes.CoreType):
+            raise TypeError("'make_nullable' does not accept nullable arrays")
+        return ndx.Array._from_fields(
+            dtypes.into_nullable(x.dtype),
+            values=x.copy(),
+            null=ndx.reshape(null, x.shape),
         )
 
     def can_cast(self, from_, to) -> bool:

@@ -15,10 +15,10 @@ from ndonnx import (
     CastError,
     CoreType,
 )
-from ndonnx._experimental import CastMixin, OperationsBlock, Schema, StructType
+from ndonnx._experimental import CastMixin, Schema, StructType, UniformShapeOperations
 
 
-class Unsigned96Impl(OperationsBlock):
+class Unsigned96Impl(UniformShapeOperations):
     def equal(self, x, y):
         return custom_equal(x, y)
 
@@ -127,7 +127,7 @@ class Unsigned96(StructType, CastMixin):
             Unsigned96(), upper=ndx.asarray(0, dtype=ndx.uint64), lower=array
         )
 
-    _ops: OperationsBlock = Unsigned96Impl()
+    _ops = Unsigned96Impl()
 
 
 def custom_equal(x: Array, y: Array) -> Array:

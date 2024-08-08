@@ -158,7 +158,3 @@ Let's track back and explain how we just implemented this, in English rather tha
 3. Implement ``_schema``, which advertises some metadata about this type like the name, version and source library. This is written into the ONNX ``ModelProto`` for inference utilities and runtimes to optionally leverage.
 4. Implement some optional casting behaviour using the ``CastMixin``. We would like to be able to cast between numerical arrays and ``datetime64`` arrays.
 5. Implement functions that operate on arrays of our new type. Without this, arrays with ``datetime64`` dtype cannot do much. This is where the ``OperationsBlock`` is implemented and assigned to the ``_ops`` field of the data type.
-
-Note that currently, ndonnx will provide default implementations for shape-related operations like ``ndonnx.reshape`` and ``ndonnx.transpose``.
-These default implementations work under the invariant that all fields have the same shape. This default behaviour reflects a common pattern of use but may change in a future release.
-If your data type does not conform to this requirement, make sure to implement shape related operations explicitly in a similar way as ``less_equal`` was implemented above.
