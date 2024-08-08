@@ -24,6 +24,7 @@ from ._utils import (
     from_corearray,
     split_nulls_and_values,
     unary_op,
+    validate_core,
     variadic_op,
     via_upcast,
 )
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
+@validate_core
 class NumericOperationsImpl(UniformShapeOperations):
     # elementwise.py
 
