@@ -39,7 +39,7 @@ Changelog
 - Numerical operations like :func:`sin` now raise :class:`UnsupportedOperationError` when invoked using invalid data types like ``ndx.utf8`` rather than implicitly casting.
 - Fixes bug causing a promotion error when implementing numerical operations like :func:`add` that involve type promotion.
 - Fixes scalar promotion logic to more accurately reflect the Array API standard. Promotion requires at least one array to be present and scalars adopt the dtype of the arrays being promoted with it. `ndx.utf8` and `ndx.nutf8` cannot be promoted with any other dtypes.
-- Fixes failure whern broadcasting nullable data type arrays together in :func:`broadcast_arrays`.
+- Fixes failure when broadcasting nullable data type arrays together in :func:`broadcast_arrays`.
 
 
 0.6.1 (2024-07-12)
