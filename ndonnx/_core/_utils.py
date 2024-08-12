@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import functools
+import itertools
 from typing import TYPE_CHECKING
 
 import ndonnx as ndx
@@ -195,3 +196,16 @@ def from_corearray(
     corearray,
 ):
     return ndx.Array._from_fields(corearray.dtype, data=corearray)
+
+
+def validate_core(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        for arg in itertools.chain(args, kwargs.values()):
+            if isinstance(arg, ndx.Array) and not isinstance(
+                arg.dtype, (dtypes.CoreType, dtypes._NullableCore)
+            ):
+                return NotImplemented
+        return func(*args, **kwargs)
+
+    return wrapper
