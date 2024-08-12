@@ -157,6 +157,7 @@ from ._funcs import (
     all,
     any,
     take,
+    UnsupportedOperationError,
 )
 from ._constants import (
     e,
@@ -327,4 +328,5 @@ __all__ = [
     "CastError",
     "promote_nullable",
     "from_numpy_dtype",
+    "UnsupportedOperationError",
 ]

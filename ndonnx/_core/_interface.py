@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from typing import Literal
 
-import numpy as np
-
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
 
@@ -38,7 +36,7 @@ class OperationsBlock:
         return NotImplemented
 
     def atan2(self, y, x) -> ndx.Array:
-        return ndx.atan(ndx.divide(y, x))
+        return NotImplemented
 
     def atanh(self, x) -> ndx.Array:
         return NotImplemented
@@ -83,13 +81,13 @@ class OperationsBlock:
         return NotImplemented
 
     def expm1(self, x) -> ndx.Array:
-        return ndx.subtract(ndx.exp(x), 1)
+        return NotImplemented
 
     def floor(self, x) -> ndx.Array:
         return NotImplemented
 
     def floor_divide(self, x, y) -> ndx.Array:
-        return ndx.floor(ndx.divide(x, y))
+        return NotImplemented
 
     def greater(self, x, y) -> ndx.Array:
         return NotImplemented
@@ -101,7 +99,7 @@ class OperationsBlock:
         return NotImplemented
 
     def isfinite(self, x) -> ndx.Array:
-        return ndx.logical_not(ndx.isinf(x))
+        return NotImplemented
 
     def isinf(self, x) -> ndx.Array:
         return NotImplemented
@@ -119,16 +117,16 @@ class OperationsBlock:
         return NotImplemented
 
     def log1p(self, x) -> ndx.Array:
-        return ndx.add(ndx.log(x), ndx.asarray(1, x.dtype))
+        return NotImplemented
 
     def log2(self, x) -> ndx.Array:
-        return ndx.log(x) / np.log(2)
+        return NotImplemented
 
     def log10(self, x) -> ndx.Array:
-        return ndx.log(x) / np.log(10)
+        return NotImplemented
 
     def logaddexp(self, x, y) -> ndx.Array:
-        return ndx.log(ndx.exp(x) + ndx.exp(y))
+        return NotImplemented
 
     def logical_and(self, x, y) -> ndx.Array:
         return NotImplemented
@@ -149,7 +147,7 @@ class OperationsBlock:
         return NotImplemented
 
     def not_equal(self, x, y) -> ndx.Array:
-        return ndx.logical_not(ndx.equal(x, y))
+        return NotImplemented
 
     def positive(self, x) -> ndx.Array:
         return NotImplemented
@@ -176,7 +174,7 @@ class OperationsBlock:
         return NotImplemented
 
     def square(self, x) -> ndx.Array:
-        return ndx.multiply(x, x)
+        return NotImplemented
 
     def sqrt(self, x) -> ndx.Array:
         return NotImplemented
@@ -199,7 +197,7 @@ class OperationsBlock:
         return NotImplemented
 
     def matrix_transpose(self, x) -> ndx.Array:
-        return ndx.permute_dims(x, list(range(x.ndim - 2)) + [x.ndim - 1, x.ndim - 2])
+        return NotImplemented
 
     # searching.py
 
@@ -209,7 +207,7 @@ class OperationsBlock:
     def argmin(self, x, axis=None, keepdims=False) -> ndx.Array:
         return NotImplemented
 
-    def nonzero(self, x) -> list[ndx.Array]:
+    def nonzero(self, x) -> tuple[ndx.Array, ...]:
         return NotImplemented
 
     def searchsorted(
@@ -344,12 +342,71 @@ class OperationsBlock:
     def squeeze(self, x, axis) -> ndx.Array:
         return NotImplemented
 
-    # additional.py
-    def shape(self, x) -> ndx.Array:
+    # creation.py
+    def full(self, shape, fill_value, dtype=None, device=None) -> ndx.Array:
         return NotImplemented
 
+    def full_like(self, x, fill_value, dtype=None, device=None) -> ndx.Array:
+        return NotImplemented
+
+    def ones(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        return NotImplemented
+
+    def ones_like(
+        self, x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None
+    ):
+        return NotImplemented
+
+    def zeros(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        return NotImplemented
+
+    def zeros_like(
+        self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
+    ):
+        return NotImplemented
+
+    def empty(self, shape, dtype=None, device=None) -> ndx.Array:
+        return NotImplemented
+
+    def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
+        return NotImplemented
+
+    def arange(self, start, stop=None, step=None, dtype=None, device=None) -> ndx.Array:
+        return NotImplemented
+
+    def eye(self, n_rows, n_cols=None, k=0, dtype=None, device=None) -> ndx.Array:
+        return NotImplemented
+
+    def tril(self, x, k=0) -> ndx.Array:
+        return NotImplemented
+
+    def triu(self, x, k=0) -> ndx.Array:
+        return NotImplemented
+
+    def linspace(
+        self, start, stop, num, *, dtype=None, device=None, endpoint=True
+    ) -> ndx.Array:
+        return NotImplemented
+
+    # additional.py
     def fill_null(self, x, value) -> ndx.Array:
         return NotImplemented
 
+    def shape(self, x) -> ndx.Array:
+        return NotImplemented
+
     def make_nullable(self, x, null) -> ndx.Array:
+        return NotImplemented
+
+    def can_cast(self, from_, to) -> bool:
         return NotImplemented
