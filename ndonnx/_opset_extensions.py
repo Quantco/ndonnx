@@ -600,10 +600,10 @@ def setitem(
 ) -> _CoreArray:
     if get_rank(corearray) == 0 and isinstance(index, tuple):
         return updates
-    elif get_rank(corearray) == 0 and isinstance(index, Var):
+    elif get_rank(corearray) == 0 and isinstance(index, _CoreArray):
         return _CoreArray(
             op.if_(
-                index,
+                index.var,
                 then_branch=lambda: [updates.var],
                 else_branch=lambda: [corearray.var],
             )[0]

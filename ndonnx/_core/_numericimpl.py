@@ -18,6 +18,7 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
 
+from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import (
     binary_op,
@@ -288,7 +289,9 @@ class NumericOperationsImpl(UniformShapeOperations):
     @validate_core
     def sign(self, x):
         (x_values,), (x_null,) = split_nulls_and_values(x)
-        out_values = ndx.where(x_values > 0, 1, ndx.where(x_values < 0, -1, 0))
+        out_values = ndx.where(x_values > 0, 1, ndx.where(x_values < 0, -1, 0)).astype(
+            x_values.dtype
+        )
         if x_null is None:
             return out_values
         else:
@@ -300,7 +303,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def sinh(self, x):
-        return unary_op(x, opx.sinh, dtypes.float64)
+        return via_upcast(opx.sinh, [x], float_dtype=dtypes.float32)
 
     @validate_core
     def square(self, x):
@@ -397,7 +400,9 @@ class NumericOperationsImpl(UniformShapeOperations):
             return (ndx.arange(0, x != 0, dtype=dtypes.int64),)
 
         ret_full_flattened = ndx.reshape(
-            from_corearray(opx.ndindex(opx.shape(x._core())))[x != 0],
+            from_corearray(
+                opx.ndindex(ndx.asarray(x.shape, dtype=dtypes.int64)._core())
+            )[x != 0],
             [-1],
         )
 
@@ -489,7 +494,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         # FIXME: I think we can simply use arange/ones+cumsum or something for the indices
         # maybe: indices = opx.cumsum(ones_like(flattened, dtype=dtypes.i64), axis=ndx.asarray(0))
         indices = opx.squeeze(
-            opx.ndindex(opx.shape(flattened._core())),
+            opx.ndindex(ndx.asarray(flattened.shape, dtype=dtypes.int64)._core()),
             opx.const([1], dtype=dtypes.int64),
         )
 
@@ -529,7 +534,8 @@ class NumericOperationsImpl(UniformShapeOperations):
     def argsort(self, x, *, axis=-1, descending=False, stable=True):
         if axis < 0:
             axis += x.ndim
-        _len = opx.shape(x._core(), start=axis, end=axis + 1)
+
+        _len = ndx.asarray(x.shape[axis : axis + 1], dtype=dtypes.int64)._core()
         return _via_i64_f64(
             lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[1], [x]
         )
@@ -538,7 +544,7 @@ class NumericOperationsImpl(UniformShapeOperations):
     def sort(self, x, *, axis=-1, descending=False, stable=True):
         if axis < 0:
             axis += x.ndim
-        _len = opx.shape(x._core(), start=axis, end=axis + 1)
+        _len = ndx.asarray(x.shape[axis : axis + 1], dtype=dtypes.int64)._core()
         return _via_i64_f64(
             lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[0], [x]
         )
@@ -799,24 +805,11 @@ class NumericOperationsImpl(UniformShapeOperations):
             - correction
         )
 
-    # additional.py
-    @validate_core
-    def fill_null(self, x, value):
-        value = ndx.asarray(value)
-
-        if not isinstance(x.dtype, dtypes._NullableCore):
-            raise TypeError("fill_null accepts only nullable arrays")
-
-        if value.dtype != x.values.dtype:
-            value = value.astype(x.values.dtype)
-        return ndx.where(x.null, value, x.values)
-
     @validate_core
     def make_nullable(self, x, null):
         if null.dtype != dtypes.bool:
-            raise TypeError("null must be a boolean array")
-        if not isinstance(x.dtype, dtypes.CoreType):
-            raise TypeError("'make_nullable' does not accept nullable arrays")
+            raise TypeError("'null' must be a boolean array")
+
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
@@ -953,6 +946,11 @@ class NumericOperationsImpl(UniformShapeOperations):
     @validate_core
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
         return ndx.full_like(x, 0, dtype=dtype)
+
+
+class NullableNumericOperationsImpl(NumericOperationsImpl, NullableOperationsImpl):
+    def make_nullable(self, x, null):
+        return NotImplemented
 
 
 def _via_i64_f64(

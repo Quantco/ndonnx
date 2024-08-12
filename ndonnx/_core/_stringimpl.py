@@ -11,6 +11,7 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
+from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, validate_core
 
@@ -50,7 +51,14 @@ class StringOperationsImpl(UniformShapeOperations):
     def zeros_like(
         self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
     ):
-        return ndx.full_like(x, "", dtype=dtype)
+        if dtype is not None and not isinstance(
+            dtype, (dtypes.CoreType, dtypes._NullableCore)
+        ):
+            raise TypeError("'dtype' must be a CoreType or NullableCoreType")
+        if dtype in (None, dtypes.utf8, dtypes.nutf8):
+            return ndx.full_like(x, "", dtype=dtype)
+        else:
+            return ndx.full_like(x, 0, dtype=dtype)
 
     @validate_core
     def empty(self, shape, dtype=None, device=None) -> ndx.Array:
@@ -59,3 +67,19 @@ class StringOperationsImpl(UniformShapeOperations):
     @validate_core
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
         return ndx.zeros_like(x, dtype=dtype, device=device)
+
+    @validate_core
+    def make_nullable(self, x, null):
+        if null.dtype != dtypes.bool:
+            raise TypeError("'null' must be a boolean array")
+
+        return ndx.Array._from_fields(
+            dtypes.into_nullable(x.dtype),
+            values=x.copy(),
+            null=ndx.reshape(null, x.shape),
+        )
+
+
+class NullableStringOperationsImpl(StringOperationsImpl, NullableOperationsImpl):
+    def make_nullable(self, x, null):
+        return NotImplemented

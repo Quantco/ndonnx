@@ -36,7 +36,11 @@ def arange(
     device=None,
 ):
     if dtype is None:
-        if builtins.all(isinstance(x, int) for x in [start, stop, step]):
+        if builtins.all(
+            isinstance(asarray(x).dtype, dtypes.Integral)
+            for x in [start, stop, step]
+            if x is not None
+        ):
             dtype = dtypes.int64
         else:
             dtype = dtypes.float64
@@ -137,7 +141,7 @@ def full_like(
     ) is not NotImplemented:
         return out
     raise UnsupportedOperationError(
-        f"Unsupported operand type for full_like: '{dtype}'"
+        f"Unsupported operand type for full_like: `{x.dtype}`"
     )
 
 
@@ -562,7 +566,7 @@ def broadcast_arrays(*arrays):
     it = iter(arrays)
 
     def numeric_like(x):
-        if isinstance(x.dtype, dtypes.NullableNumerical):
+        if isinstance(x.dtype, (dtypes.NullableNumerical, dtypes.Numerical)):
             return x
         else:
             return zeros_like(x, dtype=dtypes.int64)
@@ -570,7 +574,7 @@ def broadcast_arrays(*arrays):
     ret = numeric_like(next(it))
     while (x := next(it, None)) is not None:
         ret = ret + numeric_like(x)
-    target_shape = _from_corearray(opx.shape(ret._core()))
+    target_shape = ret.shape
     return [broadcast_to(x, target_shape) for x in arrays]
 
 
@@ -765,7 +769,7 @@ def prod(
     raise UnsupportedOperationError(f"Unsupported operand type for prod: '{x.dtype}'")
 
 
-def clip(x, *, min=None, max=None):
+def clip(x, /, min=None, max=None):
     if (out := x.dtype._ops.clip(x, min=min, max=max)) is not NotImplemented:
         return out
     raise UnsupportedOperationError(f"Unsupported operand type for clip: '{x.dtype}'")

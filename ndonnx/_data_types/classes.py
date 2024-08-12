@@ -12,6 +12,9 @@ from typing_extensions import Self
 import ndonnx as ndx
 from ndonnx._core import (
     BooleanOperationsImpl,
+    NullableBooleanOperationsImpl,
+    NullableNumericOperationsImpl,
+    NullableStringOperationsImpl,
     NumericOperationsImpl,
     OperationsBlock,
     StringOperationsImpl,
@@ -240,7 +243,7 @@ class _NullableCore(Nullable[CoreType], CastMixin):
 class NullableNumerical(_NullableCore):
     """Base class for nullable numerical data types."""
 
-    _ops: OperationsBlock = NumericOperationsImpl()
+    _ops: OperationsBlock = NullableNumericOperationsImpl()
 
 
 class NullableIntegral(NullableNumerical):
@@ -313,14 +316,14 @@ class NBoolean(_NullableCore):
     values = Boolean()
     null = Boolean()
 
-    _ops: OperationsBlock = BooleanOperationsImpl()
+    _ops: OperationsBlock = NullableBooleanOperationsImpl()
 
 
 class NUtf8(_NullableCore):
     values = Utf8()
     null = Boolean()
 
-    _ops: OperationsBlock = StringOperationsImpl()
+    _ops: OperationsBlock = NullableStringOperationsImpl()
 
 
 def from_numpy_dtype(np_dtype: np.dtype) -> CoreType:
