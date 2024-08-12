@@ -24,16 +24,9 @@ jobs:
       - name: Install repository
         run: pixi run postinstall
       - name: Run Array API tests
-        env:
-          ARRAY_API_TESTS_MODULE: ndonnx
-          ARRAY_API_TESTS_VERSION: "2023.12"
-          ARRAY_API_TESTS_SKIP_DTYPES: complex64,complex128
-        run: |
-          pushd api-coverage-tests
-          pixi run pytest --ci --max-examples 2 array_api_tests/ --json-report --json-report-file=api-coverage-tests.json -n auto -vv --skips-file=../skips.txt
-          popd
+        run: pixi run arrayapitests
       - name: Upload Array API tests report
         uses: actions/upload-artifact@v4
         with:
           name: api-coverage-tests
-          path: api-coverage-tests/api-coverage-tests.json
+          path: api-coverage-tests.json
