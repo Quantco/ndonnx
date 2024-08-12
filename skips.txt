@@ -99,5 +99,6 @@ array_api_tests/test_has_names.py::test_has_names[array_attribute-size]
 array_api_tests/test_has_names.py::test_has_names[creation-from_dlpack]
 array_api_tests/test_has_names.py::test_has_names[creation-meshgrid]
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow
+array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
 array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
