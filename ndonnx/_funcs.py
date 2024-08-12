@@ -137,7 +137,7 @@ def full_like(
     ) is not NotImplemented:
         return out
     raise UnsupportedOperationError(
-        f"Unsupported operand type for full_like: '{x.dtype}'"
+        f"Unsupported operand type for full_like: `{x.dtype}`"
     )
 
 
