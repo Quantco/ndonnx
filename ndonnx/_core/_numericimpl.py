@@ -804,6 +804,7 @@ class NumericOperationsImpl(UniformShapeOperations):
     def make_nullable(self, x, null):
         if null.dtype != dtypes.bool:
             raise TypeError("null must be a boolean array")
+
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
@@ -943,7 +944,8 @@ class NumericOperationsImpl(UniformShapeOperations):
 
 
 class NullableNumericOperationsImpl(NumericOperationsImpl, NullableOperationsImpl):
-    pass
+    def make_nullable(self, x, null):
+        return NotImplemented
 
 
 def _via_i64_f64(

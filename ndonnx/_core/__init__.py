@@ -6,14 +6,12 @@ from ._stringimpl import StringOperationsImpl, NullableStringOperationsImpl
 from ._boolimpl import BooleanOperationsImpl, NullableBooleanOperationsImpl
 from ._interface import OperationsBlock
 from ._shapeimpl import UniformShapeOperations
-from ._nullableimpl import NullableOperationsImpl
 
 __all__ = [
     "NumericOperationsImpl",
     "StringOperationsImpl",
     "BooleanOperationsImpl",
     "UniformShapeOperations",
-    "NullableOperationsImpl",
     "NullableNumericOperationsImpl",
     "NullableStringOperationsImpl",
     "NullableBooleanOperationsImpl",

@@ -174,4 +174,5 @@ class BooleanOperationsImpl(UniformShapeOperations):
 
 
 class NullableBooleanOperationsImpl(BooleanOperationsImpl, NullableOperationsImpl):
-    pass
+    def make_nullable(self, x, null):
+        return NotImplemented

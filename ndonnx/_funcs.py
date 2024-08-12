@@ -36,7 +36,11 @@ def arange(
     device=None,
 ):
     if dtype is None:
-        if builtins.all(isinstance(x, int) for x in [start, stop, step]):
+        if builtins.all(
+            isinstance(asarray(x).dtype, dtypes.Integral)
+            for x in [start, stop, step]
+            if x is not None
+        ):
             dtype = dtypes.int64
         else:
             dtype = dtypes.float64

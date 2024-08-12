@@ -14,6 +14,3 @@ class NullableOperationsImpl(OperationsBlock):
         if value.dtype != x.values.dtype:
             value = value.astype(x.values.dtype)
         return ndx.where(x.null, value, x.values)
-
-    def make_nullable(self, x, null):
-        return NotImplemented
