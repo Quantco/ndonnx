@@ -769,7 +769,7 @@ def prod(
     raise UnsupportedOperationError(f"Unsupported operand type for prod: '{x.dtype}'")
 
 
-def clip(x, *, min=None, max=None):
+def clip(x, /, min=None, max=None):
     if (out := x.dtype._ops.clip(x, min=min, max=max)) is not NotImplemented:
         return out
     raise UnsupportedOperationError(f"Unsupported operand type for clip: '{x.dtype}'")

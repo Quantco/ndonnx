@@ -1,6 +1,4 @@
-array_api_tests/test_array_object.py::test_setitem_masking
 array_api_tests/test_creation_functions.py::test_meshgrid
-array_api_tests/test_data_type_functions.py::test_can_cast
 array_api_tests/test_has_names.py::test_has_names[array_attribute-device]
 array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack__]
 array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack_device__]
@@ -103,5 +101,4 @@ array_api_tests/test_has_names.py::test_has_names[creation-meshgrid]
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow
 array_api_tests/test_operators_and_elementwise_functions.py::test_floor_divide
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
-array_api_tests/test_operators_and_elementwise_functions.py::test_sign
 array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
