@@ -1,0 +1,177 @@
+array_api_tests/test_array_object.py::test_setitem_masking
+array_api_tests/test_constants.py::test_newaxis
+array_api_tests/test_creation_functions.py::test_arange
+array_api_tests/test_creation_functions.py::test_asarray_arrays
+array_api_tests/test_creation_functions.py::test_eye
+array_api_tests/test_creation_functions.py::test_meshgrid
+array_api_tests/test_data_type_functions.py::test_can_cast
+array_api_tests/test_data_type_functions.py::test_isdtype
+array_api_tests/test_has_names.py::test_has_names[array_attribute-device]
+array_api_tests/test_has_names.py::test_has_names[array_attribute-size]
+array_api_tests/test_has_names.py::test_has_names[array_method-__complex__]
+array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack__]
+array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack_device__]
+array_api_tests/test_has_names.py::test_has_names[array_method-to_device]
+array_api_tests/test_has_names.py::test_has_names[creation-from_dlpack]
+array_api_tests/test_has_names.py::test_has_names[creation-meshgrid]
+array_api_tests/test_has_names.py::test_has_names[elementwise-conj]
+array_api_tests/test_has_names.py::test_has_names[elementwise-copysign]
+array_api_tests/test_has_names.py::test_has_names[elementwise-hypot]
+array_api_tests/test_has_names.py::test_has_names[elementwise-imag]
+array_api_tests/test_has_names.py::test_has_names[elementwise-maximum]
+array_api_tests/test_has_names.py::test_has_names[elementwise-minimum]
+array_api_tests/test_has_names.py::test_has_names[elementwise-real]
+array_api_tests/test_has_names.py::test_has_names[elementwise-signbit]
+array_api_tests/test_has_names.py::test_has_names[fft-fft]
+array_api_tests/test_has_names.py::test_has_names[fft-fftfreq]
+array_api_tests/test_has_names.py::test_has_names[fft-fftn]
+array_api_tests/test_has_names.py::test_has_names[fft-fftshift]
+array_api_tests/test_has_names.py::test_has_names[fft-hfft]
+array_api_tests/test_has_names.py::test_has_names[fft-ifft]
+array_api_tests/test_has_names.py::test_has_names[fft-ifftn]
+array_api_tests/test_has_names.py::test_has_names[fft-ifftshift]
+array_api_tests/test_has_names.py::test_has_names[fft-ihfft]
+array_api_tests/test_has_names.py::test_has_names[fft-irfft]
+array_api_tests/test_has_names.py::test_has_names[fft-irfftn]
+array_api_tests/test_has_names.py::test_has_names[fft-rfft]
+array_api_tests/test_has_names.py::test_has_names[fft-rfftfreq]
+array_api_tests/test_has_names.py::test_has_names[fft-rfftn]
+array_api_tests/test_has_names.py::test_has_names[info-__array_namespace_info__]
+array_api_tests/test_has_names.py::test_has_names[linalg-cholesky]
+array_api_tests/test_has_names.py::test_has_names[linalg-cross]
+array_api_tests/test_has_names.py::test_has_names[linalg-det]
+array_api_tests/test_has_names.py::test_has_names[linalg-diagonal]
+array_api_tests/test_has_names.py::test_has_names[linalg-eigh]
+array_api_tests/test_has_names.py::test_has_names[linalg-eigvalsh]
+array_api_tests/test_has_names.py::test_has_names[linalg-inv]
+array_api_tests/test_has_names.py::test_has_names[linalg-matmul]
+array_api_tests/test_has_names.py::test_has_names[linalg-matrix_norm]
+array_api_tests/test_has_names.py::test_has_names[linalg-matrix_power]
+array_api_tests/test_has_names.py::test_has_names[linalg-matrix_rank]
+array_api_tests/test_has_names.py::test_has_names[linalg-matrix_transpose]
+array_api_tests/test_has_names.py::test_has_names[linalg-outer]
+array_api_tests/test_has_names.py::test_has_names[linalg-pinv]
+array_api_tests/test_has_names.py::test_has_names[linalg-qr]
+array_api_tests/test_has_names.py::test_has_names[linalg-slogdet]
+array_api_tests/test_has_names.py::test_has_names[linalg-solve]
+array_api_tests/test_has_names.py::test_has_names[linalg-svd]
+array_api_tests/test_has_names.py::test_has_names[linalg-svdvals]
+array_api_tests/test_has_names.py::test_has_names[linalg-tensordot]
+array_api_tests/test_has_names.py::test_has_names[linalg-trace]
+array_api_tests/test_has_names.py::test_has_names[linalg-vecdot]
+array_api_tests/test_has_names.py::test_has_names[linalg-vector_norm]
+array_api_tests/test_has_names.py::test_has_names[linear_algebra-tensordot]
+array_api_tests/test_has_names.py::test_has_names[linear_algebra-vecdot]
+array_api_tests/test_has_names.py::test_has_names[manipulation-moveaxis]
+array_api_tests/test_has_names.py::test_has_names[manipulation-repeat]
+array_api_tests/test_has_names.py::test_has_names[manipulation-tile]
+array_api_tests/test_has_names.py::test_has_names[manipulation-unstack]
+array_api_tests/test_inspection_functions.py::test_array_namespace_info
+array_api_tests/test_inspection_functions.py::test_array_namespace_info_dtypes
+array_api_tests/test_linalg.py::test_matrix_transpose
+array_api_tests/test_linalg.py::test_tensordot
+array_api_tests/test_linalg.py::test_vecdot
+array_api_tests/test_manipulation_functions.py::test_concat
+array_api_tests/test_manipulation_functions.py::test_expand_dims
+array_api_tests/test_manipulation_functions.py::test_moveaxis
+array_api_tests/test_manipulation_functions.py::test_repeat
+array_api_tests/test_manipulation_functions.py::test_roll
+array_api_tests/test_manipulation_functions.py::test_squeeze
+array_api_tests/test_manipulation_functions.py::test_tile
+array_api_tests/test_manipulation_functions.py::test_unstack
+array_api_tests/test_operators_and_elementwise_functions.py::test_acosh
+array_api_tests/test_operators_and_elementwise_functions.py::test_asinh
+array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__irshift__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__rshift__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[bitwise_right_shift(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_clip
+array_api_tests/test_operators_and_elementwise_functions.py::test_conj
+array_api_tests/test_operators_and_elementwise_functions.py::test_copysign
+array_api_tests/test_operators_and_elementwise_functions.py::test_cos
+array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
+array_api_tests/test_operators_and_elementwise_functions.py::test_imag
+array_api_tests/test_operators_and_elementwise_functions.py::test_maximum
+array_api_tests/test_operators_and_elementwise_functions.py::test_minimum
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__ipow__(x, s)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__ipow__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__pow__(x, s)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__pow__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[pow(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_real
+array_api_tests/test_operators_and_elementwise_functions.py::test_sign
+array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
+array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
+array_api_tests/test_operators_and_elementwise_functions.py::test_tan
+array_api_tests/test_searching_functions.py::test_argmax
+array_api_tests/test_searching_functions.py::test_argmin
+array_api_tests/test_searching_functions.py::test_nonzero_zerodim_error
+array_api_tests/test_searching_functions.py::test_searchsorted
+array_api_tests/test_searching_functions.py::test_where
+array_api_tests/test_set_functions.py::test_unique_all
+array_api_tests/test_set_functions.py::test_unique_counts
+array_api_tests/test_set_functions.py::test_unique_inverse
+array_api_tests/test_set_functions.py::test_unique_values
+array_api_tests/test_signatures.py::test_array_method_signature[__complex__]
+array_api_tests/test_signatures.py::test_array_method_signature[__dlpack__]
+array_api_tests/test_signatures.py::test_array_method_signature[__dlpack_device__]
+array_api_tests/test_signatures.py::test_array_method_signature[to_device]
+array_api_tests/test_signatures.py::test_func_signature[__array_namespace_info__]
+array_api_tests/test_signatures.py::test_func_signature[astype]
+array_api_tests/test_signatures.py::test_func_signature[clip]
+array_api_tests/test_signatures.py::test_func_signature[conj]
+array_api_tests/test_signatures.py::test_func_signature[copysign]
+array_api_tests/test_signatures.py::test_func_signature[from_dlpack]
+array_api_tests/test_signatures.py::test_func_signature[hypot]
+array_api_tests/test_signatures.py::test_func_signature[imag]
+array_api_tests/test_signatures.py::test_func_signature[maximum]
+array_api_tests/test_signatures.py::test_func_signature[meshgrid]
+array_api_tests/test_signatures.py::test_func_signature[minimum]
+array_api_tests/test_signatures.py::test_func_signature[moveaxis]
+array_api_tests/test_signatures.py::test_func_signature[real]
+array_api_tests/test_signatures.py::test_func_signature[repeat]
+array_api_tests/test_signatures.py::test_func_signature[signbit]
+array_api_tests/test_signatures.py::test_func_signature[tensordot]
+array_api_tests/test_signatures.py::test_func_signature[tile]
+array_api_tests/test_signatures.py::test_func_signature[unstack]
+array_api_tests/test_signatures.py::test_func_signature[vecdot]
+array_api_tests/test_signatures.py::test_info_func_signature[capabilities]
+array_api_tests/test_signatures.py::test_info_func_signature[default_device]
+array_api_tests/test_signatures.py::test_info_func_signature[default_dtypes]
+array_api_tests/test_signatures.py::test_info_func_signature[devices]
+array_api_tests/test_signatures.py::test_info_func_signature[dtypes]
+array_api_tests/test_sorting_functions.py::test_argsort
+array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i < 0) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i > 0) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i is +0) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i is -0) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[maximum(x1_i is NaN or x2_i is NaN) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[minimum(x1_i is NaN or x2_i is NaN) -> NaN]
+array_api_tests/test_special_cases.py::test_empty_arrays[prod]
+array_api_tests/test_special_cases.py::test_nan_propagation[max]
+array_api_tests/test_special_cases.py::test_nan_propagation[min]
+array_api_tests/test_special_cases.py::test_nan_propagation[prod]
+array_api_tests/test_special_cases.py::test_unary[atanh(x_i > 1) -> NaN]
+array_api_tests/test_special_cases.py::test_unary[expm1(x_i is -0) -> -0]
+array_api_tests/test_special_cases.py::test_unary[isfinite(x_i is NaN) -> False]
+array_api_tests/test_special_cases.py::test_unary[log1p(x_i is +0) -> +0]
+array_api_tests/test_special_cases.py::test_unary[log1p(x_i is -0) -> -0]
+array_api_tests/test_special_cases.py::test_unary[log1p(x_i is -1) -> -infinity]
+array_api_tests/test_special_cases.py::test_unary[sign(x_i is NaN) -> NaN]
+array_api_tests/test_special_cases.py::test_unary[signbit(isfinite(x_i) and x_i < 0) -> True]
+array_api_tests/test_special_cases.py::test_unary[signbit(isfinite(x_i) and x_i > 0) -> False]
+array_api_tests/test_special_cases.py::test_unary[signbit(x_i is +0) -> False]
+array_api_tests/test_special_cases.py::test_unary[signbit(x_i is +NaN) -> False]
+array_api_tests/test_special_cases.py::test_unary[signbit(x_i is +infinity) -> False]
+array_api_tests/test_special_cases.py::test_unary[signbit(x_i is -0) -> True]
+array_api_tests/test_special_cases.py::test_unary[signbit(x_i is -NaN) -> True]
+array_api_tests/test_special_cases.py::test_unary[signbit(x_i is -infinity) -> True]
+array_api_tests/test_special_cases.py::test_unary[sinh(x_i is +0) -> +0]
+array_api_tests/test_special_cases.py::test_unary[sinh(x_i is +infinity) -> +infinity]
+array_api_tests/test_special_cases.py::test_unary[sinh(x_i is -0) -> -0]
+array_api_tests/test_special_cases.py::test_unary[sinh(x_i is -infinity) -> -infinity]
+array_api_tests/test_special_cases.py::test_unary[sinh(x_i is NaN) -> NaN]
+array_api_tests/test_statistical_functions.py::test_cumulative_sum
+array_api_tests/test_statistical_functions.py::test_prod
+array_api_tests/test_statistical_functions.py::test_sum
+array_api_tests/test_utility_functions.py::test_all
