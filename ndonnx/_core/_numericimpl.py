@@ -18,6 +18,7 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
 
+from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import (
     binary_op,
@@ -799,24 +800,10 @@ class NumericOperationsImpl(UniformShapeOperations):
             - correction
         )
 
-    # additional.py
-    @validate_core
-    def fill_null(self, x, value):
-        value = ndx.asarray(value)
-
-        if not isinstance(x.dtype, dtypes._NullableCore):
-            raise TypeError("fill_null accepts only nullable arrays")
-
-        if value.dtype != x.values.dtype:
-            value = value.astype(x.values.dtype)
-        return ndx.where(x.null, value, x.values)
-
     @validate_core
     def make_nullable(self, x, null):
         if null.dtype != dtypes.bool:
             raise TypeError("null must be a boolean array")
-        if not isinstance(x.dtype, dtypes.CoreType):
-            raise TypeError("'make_nullable' does not accept nullable arrays")
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
@@ -953,6 +940,10 @@ class NumericOperationsImpl(UniformShapeOperations):
     @validate_core
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
         return ndx.full_like(x, 0, dtype=dtype)
+
+
+class NullableNumericOperationsImpl(NumericOperationsImpl, NullableOperationsImpl):
+    pass
 
 
 def _via_i64_f64(

@@ -13,6 +13,7 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
+from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, unary_op, validate_core
 
@@ -160,3 +161,17 @@ class BooleanOperationsImpl(UniformShapeOperations):
     @validate_core
     def nonzero(self, x) -> tuple[Array, ...]:
         return ndx.nonzero(x.astype(ndx.int8))
+
+    @validate_core
+    def make_nullable(self, x, null):
+        if null.dtype != dtypes.bool:
+            raise TypeError("null must be a boolean array")
+        return ndx.Array._from_fields(
+            dtypes.into_nullable(x.dtype),
+            values=x.copy(),
+            null=ndx.reshape(null, x.shape),
+        )
+
+
+class NullableBooleanOperationsImpl(BooleanOperationsImpl, NullableOperationsImpl):
+    pass
