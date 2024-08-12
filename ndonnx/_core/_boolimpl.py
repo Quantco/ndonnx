@@ -165,7 +165,7 @@ class BooleanOperationsImpl(UniformShapeOperations):
     @validate_core
     def make_nullable(self, x, null):
         if null.dtype != dtypes.bool:
-            raise TypeError("null must be a boolean array")
+            raise TypeError("'null' must be a boolean array")
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
