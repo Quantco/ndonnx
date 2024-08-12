@@ -3,16 +3,17 @@
    * Update the major if you break the public API
    * Update the minor if you add new functionality
    * Update the patch if you fixed a bug
+
 Changelog
 =========
 
 0.7.0 (unreleased)
 ------------------
 
-**New feature**
+**New features**
 
 - Expose the :func:`ndonnx.isdtype` function.
-- Custom dtypes can now override array creation functions:
+- Custom data types can now override array functions:
    - :func:`ndonnx.zeros`
    - :func:`ndonnx.zeros_like`
    - :func:`ndonnx.ones`
@@ -25,13 +26,13 @@ Changelog
    - :func:`ndonnx.tril`
    - :func:`ndonnx.triu`
    - :func:`ndonnx.linspace`
-- Custom dtypes can now provide implementations for :func:`ndonnx.where`.
+- Custom data types can now provide implementations for :func:`ndonnx.where`.
 - The :class:`ndonnx._experimental.UniformShapeOperations` now provides implementations of shape operations that are generic across all data types where each constituent field has the same shape (that of the overall array).
 
 **Other changes**
 
 - Fixed various deprecation warnings.
-- Invoking a function using arrays with dtypes lacking a corresponding implementation now raise a :class:`UnsupportedOperationError`.
+- Invoking a function using arrays with data types that lack a corresponding implementation now raise a :class:`UnsupportedOperationError`.
 
 **Bug fixes**
 
