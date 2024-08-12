@@ -305,15 +305,15 @@ def result_type(
 
 
 def abs(x):
-    return _unary("abs", x)
+    return _unary(x.dtype._ops.abs, x)
 
 
 def acos(x):
-    return _unary("acos", x)
+    return _unary(x.dtype._ops.acos, x)
 
 
 def acosh(x):
-    return _unary("acosh", x)
+    return _unary(x.dtype._ops.acosh, x)
 
 
 def add(x, y):
@@ -321,15 +321,15 @@ def add(x, y):
 
 
 def asin(x):
-    return _unary("asin", x)
+    return _unary(x.dtype._ops.asin, x)
 
 
 def asinh(x):
-    return _unary("asinh", x)
+    return _unary(x.dtype._ops.asinh, x)
 
 
 def atan(x):
-    return _unary("atan", x)
+    return _unary(x.dtype._ops.atan, x)
 
 
 def atan2(y, x):
@@ -337,7 +337,7 @@ def atan2(y, x):
 
 
 def atanh(x):
-    return _unary("atanh", x)
+    return _unary(x.dtype._ops.atanh, x)
 
 
 def bitwise_and(x, y):
@@ -349,7 +349,7 @@ def bitwise_left_shift(x, y):
 
 
 def bitwise_invert(x):
-    return _unary("bitwise_invert", x)
+    return _unary(x.dtype._ops.bitwise_invert, x)
 
 
 def bitwise_or(x, y):
@@ -365,15 +365,15 @@ def bitwise_xor(x, y):
 
 
 def ceil(x):
-    return _unary("ceil", x)
+    return _unary(x.dtype._ops.ceil, x)
 
 
 def cos(x):
-    return _unary("cos", x)
+    return _unary(x.dtype._ops.cos, x)
 
 
 def cosh(x):
-    return _unary("cosh", x)
+    return _unary(x.dtype._ops.cosh, x)
 
 
 def divide(x, y):
@@ -385,15 +385,15 @@ def equal(x, y):
 
 
 def exp(x):
-    return _unary("exp", x)
+    return _unary(x.dtype._ops.exp, x)
 
 
 def expm1(x):
-    return _unary("expm1", x)
+    return _unary(x.dtype._ops.expm1, x)
 
 
 def floor(x):
-    return _unary("floor", x)
+    return _unary(x.dtype._ops.floor, x)
 
 
 def floor_divide(x, y):
@@ -413,11 +413,11 @@ def isfinite(x):
 
 
 def isinf(x):
-    return _unary("isinf", x)
+    return _unary(x.dtype._ops.isinf, x)
 
 
 def isnan(x):
-    return _unary("isnan", x)
+    return _unary(x.dtype._ops.isnan, x)
 
 
 def less(x, y):
@@ -429,19 +429,19 @@ def less_equal(x, y):
 
 
 def log(x):
-    return _unary("log", x)
+    return _unary(x.dtype._ops.log, x)
 
 
 def log1p(x):
-    return _unary("log1p", x)
+    return _unary(x.dtype._ops.log1p, x)
 
 
 def log2(x):
-    return _unary("log2", x)
+    return _unary(x.dtype._ops.log2, x)
 
 
 def log10(x):
-    return _unary("log10", x)
+    return _unary(x.dtype._ops.log10, x)
 
 
 def logaddexp(x, y):
@@ -453,7 +453,7 @@ def logical_and(x, y):
 
 
 def logical_not(x):
-    return _unary("logical_not", x)
+    return _unary(x.dtype._ops.logical_not, x)
 
 
 def logical_or(x, y):
@@ -469,7 +469,7 @@ def multiply(x, y):
 
 
 def negative(x):
-    return _unary("negative", x)
+    return _unary(x.dtype._ops.negative, x)
 
 
 def not_equal(x, y):
@@ -477,7 +477,7 @@ def not_equal(x, y):
 
 
 def positive(x):
-    return _unary("positive", x)
+    return _unary(x.dtype._ops.positive, x)
 
 
 def pow(x, y):
@@ -489,19 +489,19 @@ def remainder(x, y):
 
 
 def round(x):
-    return _unary("round", x)
+    return _unary(x.dtype._ops.round, x)
 
 
 def sign(x):
-    return _unary("sign", x)
+    return _unary(x.dtype._ops.sign, x)
 
 
 def sin(x):
-    return _unary("sin", x)
+    return _unary(x.dtype._ops.sin, x)
 
 
 def sinh(x):
-    return _unary("sinh", x)
+    return _unary(x.dtype._ops.sinh, x)
 
 
 def square(x):
@@ -509,7 +509,7 @@ def square(x):
 
 
 def sqrt(x):
-    return _unary("sqrt", x)
+    return _unary(x.dtype._ops.sqrt, x)
 
 
 def subtract(x, y):
@@ -517,15 +517,15 @@ def subtract(x, y):
 
 
 def tan(x):
-    return _unary("tan", x)
+    return _unary(x.dtype._ops.tan, x)
 
 
 def tanh(x):
-    return _unary("tanh", x)
+    return _unary(x.dtype._ops.tanh, x)
 
 
 def trunc(x):
-    return _unary("trunc", x)
+    return _unary(x.dtype._ops.trunc, x)
 
 
 # linalg.py
@@ -536,7 +536,7 @@ def matmul(x, y):
 
 
 def matrix_transpose(x):
-    return _unary("matrix_transpose", x)
+    return _unary(x.dtype._ops.matrix_transpose, x)
 
 
 # indexing.py
@@ -642,7 +642,7 @@ def argmin(x, axis=None, keepdims=False):
 
 
 def nonzero(x) -> tuple[Array, ...]:
-    return _unary("nonzero", x)
+    return _unary(x.dtype._ops.nonzero, x)
 
 
 def searchsorted(
@@ -847,12 +847,11 @@ def _binary(func_name, x, y):
     )
 
 
-def _unary(func_name, x):
-    x = asarray(x)
-    if (out := getattr(x.dtype._ops, func_name)(x)) is not NotImplemented:
+def _unary(func, x):
+    if (out := func(x)) is not NotImplemented:
         return out
     raise UnsupportedOperationError(
-        f"Unsupported operand type for {func_name}: '{x.dtype}'"
+        f"Unsupported operand type for {func.__name__}: '{x.dtype}'"
     )
 
 
