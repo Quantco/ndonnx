@@ -238,6 +238,15 @@ def test_trilu_masked_input(func):
             np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64),
             np.ma.masked_array(["a", "bc", "d"], mask=[0, 0, 1], dtype=np.str_),
         ],
+        [
+            np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64),
+            np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64),
+            np.array("a"),
+        ],
+        [
+            np.array([1, 2, 3], dtype=np.int64),
+            np.ma.masked_array(["a", "bc", "d"], mask=[0, 0, 1], dtype=np.str_),
+        ],
     ],
 )
 def test_broadcasting(arrays):
