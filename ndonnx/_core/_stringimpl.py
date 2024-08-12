@@ -51,7 +51,14 @@ class StringOperationsImpl(UniformShapeOperations):
     def zeros_like(
         self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
     ):
-        return ndx.full_like(x, "", dtype=dtype)
+        if dtype is not None and not isinstance(
+            dtype, (dtypes.CoreType, dtypes._NullableCore)
+        ):
+            raise TypeError("'dtype' must be a CoreType or NullableCoreType")
+        if dtype in (None, dtypes.utf8, dtypes.nutf8):
+            return ndx.full_like(x, "", dtype=dtype)
+        else:
+            return ndx.full_like(x, 0, dtype=dtype)
 
     @validate_core
     def empty(self, shape, dtype=None, device=None) -> ndx.Array:

@@ -137,7 +137,7 @@ class UniformShapeOperations(OperationsBlock):
         ).astype(dtype)
 
     def full_like(self, x, fill_value, dtype=None, device=None):
-        fill_value = ndx.asarray(fill_value, dtype=dtype or x.dtype)
+        fill_value = ndx.asarray(fill_value).astype(dtype or x.dtype)
         return ndx.broadcast_to(fill_value, ndx.asarray(x).shape)
 
     def where(self, condition, x, y):
