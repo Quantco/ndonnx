@@ -289,7 +289,9 @@ class NumericOperationsImpl(UniformShapeOperations):
     @validate_core
     def sign(self, x):
         (x_values,), (x_null,) = split_nulls_and_values(x)
-        out_values = ndx.where(x_values > 0, 1, ndx.where(x_values < 0, -1, 0))
+        out_values = ndx.where(x_values > 0, 1, ndx.where(x_values < 0, -1, 0)).astype(
+            x_values.dtype
+        )
         if x_null is None:
             return out_values
         else:
@@ -301,7 +303,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def sinh(self, x):
-        return unary_op(x, opx.sinh, dtypes.float64)
+        return via_upcast(opx.sinh, [x], float_dtype=dtypes.float32)
 
     @validate_core
     def square(self, x):
