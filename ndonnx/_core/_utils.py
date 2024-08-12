@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import functools
-import inspect
 import itertools
 from typing import TYPE_CHECKING
 
@@ -199,14 +198,7 @@ def from_corearray(
     return ndx.Array._from_fields(corearray.dtype, data=corearray)
 
 
-def validate_core(cls):
-    for name, value in cls.__dict__.items():
-        if inspect.isfunction(value):
-            setattr(cls, name, method_validator(value))
-    return cls
-
-
-def method_validator(func):
+def validate_core(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         for arg in itertools.chain(args, kwargs.values()):
