@@ -566,7 +566,7 @@ def broadcast_arrays(*arrays):
     it = iter(arrays)
 
     def numeric_like(x):
-        if isinstance(x.dtype, dtypes.NullableNumerical):
+        if isinstance(x.dtype, (dtypes.NullableNumerical, dtypes.Numerical)):
             return x
         else:
             return zeros_like(x, dtype=dtypes.int64)
@@ -574,7 +574,7 @@ def broadcast_arrays(*arrays):
     ret = numeric_like(next(it))
     while (x := next(it, None)) is not None:
         ret = ret + numeric_like(x)
-    target_shape = _from_corearray(opx.shape(ret._core()))
+    target_shape = ret.shape
     return [broadcast_to(x, target_shape) for x in arrays]
 
 

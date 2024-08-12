@@ -223,3 +223,25 @@ def test_trilu_masked_input(func):
     expected = func(a)
     actual = getattr(ndx, func.__name__)(ndx.asarray(a)).to_numpy()
     np.testing.assert_equal(expected, actual)
+
+
+@pytest.mark.parametrize(
+    "arrays",
+    [
+        [
+            np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64),
+            np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64),
+        ],
+        [],
+        [np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64)],
+        [
+            np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64),
+            np.ma.masked_array(["a", "bc", "d"], mask=[0, 0, 1], dtype=np.str_),
+        ],
+    ],
+)
+def test_broadcasting(arrays):
+    expected = np.broadcast_arrays(*arrays)
+    actual = ndx.broadcast_arrays(*[ndx.asarray(a) for a in arrays])
+    for e, a in zip(expected, actual):
+        np.testing.assert_equal(e, a.to_numpy())
