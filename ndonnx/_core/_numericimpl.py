@@ -398,7 +398,9 @@ class NumericOperationsImpl(UniformShapeOperations):
             return (ndx.arange(0, x != 0, dtype=dtypes.int64),)
 
         ret_full_flattened = ndx.reshape(
-            from_corearray(opx.ndindex(ndx.asarray(x.shape)._core()))[x != 0],
+            from_corearray(
+                opx.ndindex(ndx.asarray(x.shape, dtype=dtypes.int64)._core())
+            )[x != 0],
             [-1],
         )
 
@@ -490,7 +492,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         # FIXME: I think we can simply use arange/ones+cumsum or something for the indices
         # maybe: indices = opx.cumsum(ones_like(flattened, dtype=dtypes.i64), axis=ndx.asarray(0))
         indices = opx.squeeze(
-            opx.ndindex(ndx.asarray(flattened.shape)._core()),
+            opx.ndindex(ndx.asarray(flattened.shape, dtype=dtypes.int64)._core()),
             opx.const([1], dtype=dtypes.int64),
         )
 
