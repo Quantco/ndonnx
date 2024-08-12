@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import builtins
 import functools
+import operator
 import warnings
 from collections import namedtuple
 from collections.abc import Callable, Iterable
@@ -16,100 +18,109 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 from ndonnx._utility import promote
 
-from ._interface import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
+from ._utils import (
+    binary_op,
+    from_corearray,
+    split_nulls_and_values,
+    unary_op,
+    validate_core,
+    variadic_op,
+    via_upcast,
+)
 
 if TYPE_CHECKING:
-    from ndonnx._array import Array
+    from ndonnx import Array
     from ndonnx._corearray import _CoreArray
 
 
-class CoreOperationsImpl(OperationsBlock):
+class NumericOperationsImpl(UniformShapeOperations):
     # elementwise.py
 
+    @validate_core
     def abs(self, x):
-        return _unary_op(x, opx.abs)
+        return unary_op(x, opx.abs)
 
+    @validate_core
     def acos(self, x):
-        return _unary_op(x, opx.acos, dtypes.float32)
+        return unary_op(x, opx.acos, dtypes.float32)
 
+    @validate_core
     def acosh(self, x):
-        return _unary_op(x, opx.acosh, dtypes.float32)
+        return unary_op(x, opx.acosh, dtypes.float32)
 
+    @validate_core
     def add(self, x, y) -> ndx.Array:
-        x, y = promote(x, y)
-        out_dtype = x.dtype
-        if out_dtype in (ndx.nutf8, ndx.utf8):
-            return _binary_op(x, y, opx.string_concat)
         return _via_i64_f64(opx.add, [x, y])
 
+    @validate_core
     def asin(self, x):
-        return _unary_op(x, opx.asin, dtypes.float32)
+        return unary_op(x, opx.asin, dtypes.float32)
 
+    @validate_core
     def asinh(self, x):
-        return _unary_op(x, opx.asinh, dtypes.float32)
+        return unary_op(x, opx.asinh, dtypes.float32)
 
+    @validate_core
     def atan(self, x):
-        return _unary_op(x, opx.atan, dtypes.float32)
+        return unary_op(x, opx.atan, dtypes.float32)
 
+    @validate_core
     def atan2(self, y, x):
         return self.atan(self.divide(y, x))
 
+    @validate_core
     def atanh(self, x):
-        return _unary_op(x, opx.atanh, dtypes.float32)
+        return unary_op(x, opx.atanh, dtypes.float32)
 
+    @validate_core
     def bitwise_and(self, x, y):
-        # FIXME: Bitwise operations like this one should raise a type
-        # error when encountering booleans!
-        x, y = promote(x, y)
-        if x.dtype in (dtypes.bool, dtypes.nbool):
-            return self.logical_and(x, y)
-
-        return _binary_op(x, y, opx.bitwise_and)
+        return binary_op(x, y, opx.bitwise_and)
 
     # TODO: ONNX standard -> not cyclic
+    @validate_core
     def bitwise_left_shift(self, x, y):
-        return _binary_op(
+        return binary_op(
             x, y, lambda a, b: opx.bit_shift(a, b, direction="LEFT"), dtypes.uint64
         )
 
+    @validate_core
     def bitwise_invert(self, x):
-        x = ndx.asarray(x)
-        if x.dtype in (dtypes.bool, dtypes.nbool):
-            return self.logical_not(x)
-        return _unary_op(x, opx.bitwise_not)
+        return unary_op(x, opx.bitwise_not)
 
+    @validate_core
     def bitwise_or(self, x, y):
-        x, y = promote(x, y)
-        if x.dtype in (dtypes.bool, dtypes.nbool):
-            return self.logical_or(x, y)
-        return _binary_op(x, y, opx.bitwise_or)
+        return binary_op(x, y, opx.bitwise_or)
 
     # TODO: ONNX standard -> not cyclic
+    @validate_core
     def bitwise_right_shift(self, x, y):
-        x, y = promote(x, y)
-        return _binary_op(
+        return binary_op(
             x,
             y,
             lambda x, y: opx.bit_shift(x, y, direction="RIGHT"),
             dtypes.uint64,
         )
 
+    @validate_core
     def bitwise_xor(self, x, y):
-        if x.dtype in (dtypes.bool, dtypes.nbool):
-            return self.logical_xor(x, y)
-        return _binary_op(x, y, opx.bitwise_xor)
+        return binary_op(x, y, opx.bitwise_xor)
 
+    @validate_core
     def ceil(self, x):
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return _unary_op(x, opx.ceil, dtypes.float64)
+            return unary_op(x, opx.ceil, dtypes.float64)
         return ndx.asarray(x, copy=False)
 
+    @validate_core
     def cos(self, x):
-        return _unary_op(x, opx.cos, dtypes.float32)
+        return unary_op(x, opx.cos, dtypes.float32)
 
+    @validate_core
     def cosh(self, x):
-        return _unary_op(x, opx.cosh, dtypes.float32)
+        return unary_op(x, opx.cosh, dtypes.float32)
 
+    @validate_core
     def divide(self, x, y):
         x, y = promote(x, y)
         if not isinstance(x.dtype, (dtypes.Numerical, dtypes.NullableNumerical)):
@@ -124,27 +135,36 @@ class CoreOperationsImpl(OperationsBlock):
             if bits > 32 or x.dtype in (dtypes.nuint32, dtypes.uint32)
             else dtypes.float32
         )
-        return _variadic_op([x, y], opx.div, via_dtype=via_dtype, cast_return=False)
+        return variadic_op([x, y], opx.div, via_dtype=via_dtype, cast_return=False)
 
+    @validate_core
     def equal(self, x, y) -> Array:
         x, y = promote(x, y)
         if isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral)):
-            return _variadic_op([x, y], opx.equal, dtypes.int64, cast_return=False)
+            return variadic_op([x, y], opx.equal, dtypes.int64, cast_return=False)
         else:
-            return _binary_op(x, y, opx.equal)
+            return binary_op(x, y, opx.equal)
 
+    @validate_core
+    def not_equal(self, x, y) -> Array:
+        return ndx.logical_not(x == y)
+
+    @validate_core
     def exp(self, x):
-        return _unary_op(x, opx.exp, dtypes.float32)
+        return unary_op(x, opx.exp, dtypes.float32)
 
+    @validate_core
     def expm1(self, x):
         return self.subtract(self.exp(x), 1)
 
+    @validate_core
     def floor(self, x):
         x = ndx.asarray(x)
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return _unary_op(x, opx.floor, dtypes.float64)
+            return unary_op(x, opx.floor, dtypes.float64)
         return x
 
+    @validate_core
     def floor_divide(self, x, y):
         x, y = promote(x, y)
         dtype = x.dtype
@@ -161,107 +181,63 @@ class CoreOperationsImpl(OperationsBlock):
             out = out.astype(dtype)
         return out
 
+    @validate_core
     def greater(self, x, y):
         return _via_i64_f64(opx.greater, [x, y], cast_return=False)
 
+    @validate_core
     def greater_equal(self, x, y):
         return _via_i64_f64(opx.greater_or_equal, [x, y], cast_return=False)
 
+    @validate_core
     def isfinite(self, x):
         return self.logical_not(self.isinf(x))
 
+    @validate_core
     def isinf(self, x):
-        x = ndx.asarray(x)
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return _unary_op(x, opx.isinf)
+            return unary_op(x, opx.isinf)
         return ndx.full(x.shape, fill_value=False)
 
+    @validate_core
     def isnan(self, x):
         if not isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
             return ndx.full_like(x, False, dtype=dtypes.bool)
         else:
-            return _unary_op(x, opx.isnan)
+            return unary_op(x, opx.isnan)
 
+    @validate_core
     def less(self, x, y):
         return _via_i64_f64(opx.less, [x, y], cast_return=False)
 
+    @validate_core
     def less_equal(self, x, y):
-        x, y = ndx.asarray(x), ndx.asarray(y)
-        if ndx.result_type(x, y) in (dtypes.utf8, dtypes.nutf8):
-            return self.less(x, y) | self.equal(x, y)
-        else:
-            return _via_i64_f64(opx.less_or_equal, [x, y], cast_return=False)
+        return _via_i64_f64(opx.less_or_equal, [x, y], cast_return=False)
 
+    @validate_core
     def log(self, x):
-        return _unary_op(x, opx.log, dtypes.float64)
+        return unary_op(x, opx.log, dtypes.float64)
 
+    @validate_core
     def log1p(self, x):
         return self.add(self.log(x), ndx.asarray(1, x.dtype))
 
+    @validate_core
     def log2(self, x):
-        return self.log(x) / np.log(2)
+        return ndx.log(x) / float(np.log(2))
 
+    @validate_core
     def log10(self, x):
-        return self.log(x) / np.log(10)
+        return ndx.log(x) / float(np.log(10))
 
+    @validate_core
     def logaddexp(self, x, y):
         return self.log(self.exp(x) + self.exp(y))
 
-    def logical_and(self, x, y):
-        x, y = promote(x, y)
-        if x.dtype not in (dtypes.bool, dtypes.nbool):
-            raise TypeError(f"Unsupported dtype for logical_and: {x.dtype}")
-
-        # If one of the operands is True and the broadcasted shape can be guaranteed to be the other array's shape,
-        # we can return this other array directly.
-        if (
-            x.to_numpy() is not None
-            and x.to_numpy().size == 1
-            and x.ndim <= y.ndim
-            and x.to_numpy().item()
-        ):
-            return y.copy()
-        elif (
-            y.to_numpy() is not None
-            and y.to_numpy().size == 1
-            and y.ndim <= x.ndim
-            and y.to_numpy().item()
-        ):
-            return x.copy()
-        return _binary_op(x, y, opx.and_)
-
-    def logical_not(self, x):
-        return _unary_op(x, opx.not_)
-
-    def logical_or(self, x, y):
-        x, y = ndx.asarray(x), ndx.asarray(y)
-        dtype = ndx.result_type(x.dtype, y.dtype)
-        if dtype not in (dtypes.bool, dtypes.nbool):
-            raise TypeError(f"Unsupported dtype for logical_or: {dtype}")
-        # If one of the operands is False and the broadcasted shape can be guaranteed to be the other array's shape,
-        # we can return this other array directly.
-        if (
-            x.to_numpy() is not None
-            and x.to_numpy().size == 1
-            and x.ndim <= y.ndim
-            and not x.to_numpy().item()
-        ):
-            return y.copy()
-        elif (
-            y.to_numpy() is not None
-            and y.to_numpy().size == 1
-            and y.ndim <= x.ndim
-            and not y.to_numpy().item()
-        ):
-            return x.copy()
-        return _binary_op(x, y, opx.or_)
-
-    def logical_xor(self, x, y):
-        return _binary_op(x, y, opx.xor)
-
+    @validate_core
     def multiply(self, x, y):
         x, y = promote(x, y)
-        dtype = ndx.result_type(x, y)
+        dtype = x.dtype
         via_dtype: dtypes.CoreType
         if isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
             dtypes.nbool,
@@ -272,63 +248,69 @@ class CoreOperationsImpl(OperationsBlock):
             via_dtype = dtypes.float64
         else:
             raise TypeError(f"Unsupported dtype for multiply: {dtype}")
-        return _binary_op(x, y, opx.mul, via_dtype)
+        return binary_op(x, y, opx.mul, via_dtype)
 
+    @validate_core
     def negative(self, x):
         if isinstance(
             x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)
         ) or x.dtype in (ndx.int16, ndx.nint16):
-            return _unary_op(x, opx.neg, dtypes.int64)
-        return _unary_op(x, opx.neg)
+            return unary_op(x, opx.neg, dtypes.int64)
+        return unary_op(x, opx.neg)
 
+    @validate_core
     def positive(self, x):
         if not isinstance(x.dtype, (dtypes.Numerical, dtypes.NullableNumerical)):
             raise TypeError(f"Unsupported dtype for positive: {x.dtype}")
         return x.copy()
 
+    @validate_core
     def pow(self, x, y):
         x, y = ndx.asarray(x), ndx.asarray(y)
         dtype = ndx.result_type(x, y)
-        if isinstance(dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)) or dtype in (
-            dtypes.int8,
-            dtypes.nint8,
-            dtypes.int16,
-            dtypes.nint16,
-        ):
-            return _binary_op(x, y, opx.pow, dtypes.int64)
+        if isinstance(dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+            return binary_op(x, y, opx.pow, dtypes.int64)
         else:
-            return _binary_op(x, y, opx.pow)
+            return binary_op(x, y, opx.pow)
 
+    @validate_core
     def remainder(self, x, y):
-        return _binary_op(x, y, lambda x, y: opx.mod(x, y, fmod=1))
+        return binary_op(x, y, lambda x, y: opx.mod(x, y, fmod=1))
 
+    @validate_core
     def round(self, x):
         x = ndx.asarray(x)
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return _unary_op(x, opx.round)
+            return unary_op(x, opx.round)
         else:
             return x
 
+    @validate_core
     def sign(self, x):
-        (x_values,), (x_null,) = _split_nulls_and_values(x)
-        out_values = self.where(x_values > 0, 1, self.where(x_values < 0, -1, 0))
+        (x_values,), (x_null,) = split_nulls_and_values(x)
+        out_values = ndx.where(x_values > 0, 1, ndx.where(x_values < 0, -1, 0))
         if x_null is None:
             return out_values
         else:
             return ndx.additional.make_nullable(out_values, x_null)
 
+    @validate_core
     def sin(self, x):
-        return _unary_op(x, opx.sin, dtypes.float64)
+        return unary_op(x, opx.sin, dtypes.float64)
 
+    @validate_core
     def sinh(self, x):
-        return _unary_op(x, opx.sinh, dtypes.float64)
+        return unary_op(x, opx.sinh, dtypes.float64)
 
+    @validate_core
     def square(self, x):
         return self.multiply(x, x)
 
+    @validate_core
     def sqrt(self, x):
-        return _unary_op(x, opx.sqrt, dtypes.float32)
+        return unary_op(x, opx.sqrt, dtypes.float32)
 
+    @validate_core
     def subtract(self, x, y):
         x, y = promote(x, y)
         if isinstance(
@@ -337,39 +319,48 @@ class CoreOperationsImpl(OperationsBlock):
             via_dtype = dtypes.int64
         else:
             via_dtype = None
-        return _binary_op(x, y, opx.sub, via_dtype=via_dtype)
+        return binary_op(x, y, opx.sub, via_dtype=via_dtype)
 
+    @validate_core
     def tan(self, x):
-        return _unary_op(x, opx.tan, dtypes.float32)
+        return unary_op(x, opx.tan, dtypes.float32)
 
+    @validate_core
     def tanh(self, x):
-        return _unary_op(x, opx.tanh, dtypes.float32)
+        return unary_op(x, opx.tanh, dtypes.float32)
 
+    @validate_core
     def trunc(self, x):
         x = ndx.asarray(x)
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return self.where(x < 0, self.ceil(x), self.floor(x))
+            return ndx.where(x < 0, self.ceil(x), self.floor(x))
         return x
 
     # linalg.py
 
+    @validate_core
     def matmul(self, x, y):
         return _via_i64_f64(opx.matmul, [x, y])
 
+    @validate_core
+    def matrix_transpose(self, x) -> ndx.Array:
+        return ndx.permute_dims(x, list(range(x.ndim - 2)) + [x.ndim - 1, x.ndim - 2])
+
     # searching.py
 
+    @validate_core
     def argmax(self, x, axis=None, keepdims=False):
         if axis is None:
             reshaped_x = ndx.reshape(x, [-1])._core()
             if keepdims:
-                return _from_corearray(
+                return from_corearray(
                     opx.reshape(
                         opx.arg_max(reshaped_x, axis=0, keepdims=False),
                         opx.const([1 for x in range(x.ndim)], dtype=dtypes.int64),
                     )
                 )
             else:
-                return _from_corearray(
+                return from_corearray(
                     opx.reshape(
                         opx.arg_max(reshaped_x, axis=0, keepdims=False),
                         opx.const([], dtype=dtypes.int64),
@@ -377,18 +368,19 @@ class CoreOperationsImpl(OperationsBlock):
                 )
         return _via_i64_f64(lambda x: opx.arg_max(x, axis=axis, keepdims=keepdims), [x])
 
+    @validate_core
     def argmin(self, x, axis=None, keepdims=False):
         if axis is None:
             reshaped_x = ndx.reshape(x, [-1])._core()
             if keepdims:
-                return _from_corearray(
+                return from_corearray(
                     opx.reshape(
                         opx.arg_min(reshaped_x, axis=0, keepdims=False),
                         opx.const([1 for x in range(x.ndim)], dtype=dtypes.int64),
                     )
                 )
             else:
-                return _from_corearray(
+                return from_corearray(
                     opx.reshape(
                         opx.arg_min(reshaped_x, axis=0, keepdims=False),
                         opx.const([], dtype=dtypes.int64),
@@ -396,18 +388,22 @@ class CoreOperationsImpl(OperationsBlock):
                 )
         return _via_i64_f64(lambda x: opx.arg_min(x, axis=axis, keepdims=keepdims), [x])
 
-    def nonzero(self, x):
+    @validate_core
+    def nonzero(self, x) -> tuple[Array, ...]:
+        if not isinstance(x.dtype, dtypes.CoreType):
+            return NotImplemented
+
         if x.ndim == 0:
-            return [ndx.arange(0, x != 0, dtype=dtypes.int64)]
+            return (ndx.arange(0, x != 0, dtype=dtypes.int64),)
 
         ret_full_flattened = ndx.reshape(
-            _from_corearray(opx.ndindex(opx.shape(x)))[x != 0],
+            from_corearray(opx.ndindex(opx.shape(x._core())))[x != 0],
             [-1],
         )
 
-        return [
+        return tuple(
             ndx.reshape(
-                _from_corearray(
+                from_corearray(
                     opx.gather_elements(
                         ret_full_flattened._core(),
                         ndx.arange(
@@ -421,8 +417,9 @@ class CoreOperationsImpl(OperationsBlock):
                 [-1],
             )
             for i in range(x.ndim)
-        ]
+        )
 
+    @validate_core
     def searchsorted(
         self,
         x1,
@@ -449,7 +446,7 @@ class CoreOperationsImpl(OperationsBlock):
         counts = unique_x1.counts[unique_x1.inverse_indices]
 
         indices_x1, indices_x2 = map(
-            _from_corearray, opx.get_indices(x1._core(), x2._core(), positions._core())
+            from_corearray, opx.get_indices(x1._core(), x2._core(), positions._core())
         )
 
         how_many = ndx.zeros(ndx.asarray(combined.shape) + 1, dtype=dtypes.int64)
@@ -469,96 +466,8 @@ class CoreOperationsImpl(OperationsBlock):
 
         return ret
 
-    def where(self, condition, x, y):
-        condition, x, y = ndx.asarray(condition), ndx.asarray(x), ndx.asarray(y)
-        if x.dtype != y.dtype:
-            x, y = promote(x, y)
-        if isinstance(condition.dtype, dtypes.Nullable) and not isinstance(
-            x.dtype, (dtypes.Nullable, dtypes.CoreType)
-        ):
-            raise TypeError("where condition is nullable, but both outputs are not")
-        if condition.to_numpy() is not None and condition.dtype == dtypes.bool:
-            if (
-                condition.to_numpy().size == 1
-                and condition.to_numpy().ndim <= x.ndim
-                and condition.to_numpy().item()
-            ):
-                return x.copy()
-            elif (
-                condition.to_numpy().size == 1
-                and condition.to_numpy().ndim <= y.ndim
-                and not condition.to_numpy().item()
-            ):
-                return y.copy()
-        if x.dtype == y.dtype and x.to_numpy() is not None and y.to_numpy() is not None:
-            if isinstance(x.to_numpy(), np.ma.MaskedArray):
-                if np.ma.allequal(x.to_numpy(), y.to_numpy(), fill_value=False):
-                    return ndx.asarray(
-                        np.broadcast_arrays(x.to_numpy(), y.to_numpy())[0]
-                    )
-            else:
-                cond = np.equal(x.to_numpy(), y.to_numpy())
-                if isinstance(x.dtype, ndx.Floating):
-                    cond |= np.isnan(x.to_numpy()) & np.isnan(y.to_numpy())
-                if cond.all():
-                    return ndx.asarray(
-                        np.broadcast_arrays(x.to_numpy(), y.to_numpy())[0]
-                    )
-        condition_values = (
-            condition.values if condition.dtype == ndx.nbool else condition
-        )
-
-        # generic layout operation, work over both arrays with same data type to apply the condition
-        def where_dtype_agnostic(a: ndx.Array, b: ndx.Array) -> ndx.Array:
-            if a.dtype != b.dtype:
-                raise ValueError("The dtype of both arrays must be the same")
-            if a.dtype == dtypes.bool:
-                return ndx.logical_xor(
-                    ndx.logical_and(condition_values, a),
-                    ndx.logical_and(~condition_values, b),
-                )
-            elif a.dtype in (dtypes.int8, dtypes.int16):
-                return _from_corearray(
-                    opx.where(
-                        condition_values._core(),
-                        a.astype(dtypes.int32)._core(),
-                        b.astype(dtypes.int32)._core(),
-                    )
-                ).astype(a.dtype)
-            elif a.dtype in (dtypes.uint16, dtypes.uint32, dtypes.uint64):
-                return _from_corearray(
-                    opx.where(
-                        condition_values._core(),
-                        a.astype(dtypes.int64)._core(),
-                        b.astype(dtypes.int64)._core(),
-                    )
-                ).astype(a.dtype)
-            elif isinstance(a.dtype, dtypes.CoreType):
-                return _from_corearray(
-                    opx.where(
-                        condition_values._core(),
-                        a._core(),
-                        b._core(),
-                    )
-                )
-            else:
-                fields = {}
-                for name in a.dtype._fields():
-                    fields[name] = where_dtype_agnostic(
-                        getattr(a, name), getattr(b, name)
-                    )
-                return ndx.Array._from_fields(a.dtype, **fields)
-
-        output = where_dtype_agnostic(x, y)
-        if condition.dtype == ndx.nbool:
-            # propagate null if present
-            if not isinstance(output.dtype, dtypes.Nullable):
-                output = ndx.additional.make_nullable(output, condition.null)
-            else:
-                output.null = output.null | condition.null
-        return output
-
     # set.py
+    @validate_core
     def unique_all(self, x):
         new_dtype = x.dtype
         if isinstance(x.dtype, dtypes.Integral) or x.dtype in (
@@ -586,10 +495,10 @@ class CoreOperationsImpl(OperationsBlock):
 
         ret = namedtuple("ret", ["values", "indices", "inverse_indices", "counts"])
 
-        values = _from_corearray(ret_opd[0])
-        indices = _from_corearray(indices[ret_opd[1]])
-        inverse_indices = ndx.reshape(_from_corearray(ret_opd[2]), x.shape)
-        counts = _from_corearray(ret_opd[3])
+        values = from_corearray(ret_opd[0])
+        indices = from_corearray(indices[ret_opd[1]])
+        inverse_indices = ndx.reshape(from_corearray(ret_opd[2]), x.shape)
+        counts = from_corearray(ret_opd[3])
 
         return ret(
             values=values,
@@ -598,21 +507,25 @@ class CoreOperationsImpl(OperationsBlock):
             counts=counts,
         )
 
+    @validate_core
     def unique_counts(self, x):
         ret = namedtuple("ret", ["values", "counts"])
         ret_all = self.unique_all(x)
         return ret(values=ret_all.values, counts=ret_all.counts)
 
+    @validate_core
     def unique_inverse(self, x):
         ret = namedtuple("ret", ["values", "inverse_indices"])
         ret_all = self.unique_all(x)
         return ret(values=ret_all.values, inverse_indices=ret_all.inverse_indices)
 
+    @validate_core
     def unique_values(self, x):
         return self.unique_all(x).values
 
     # sorting.py
 
+    @validate_core
     def argsort(self, x, *, axis=-1, descending=False, stable=True):
         if axis < 0:
             axis += x.ndim
@@ -621,6 +534,7 @@ class CoreOperationsImpl(OperationsBlock):
             lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[1], [x]
         )
 
+    @validate_core
     def sort(self, x, *, axis=-1, descending=False, stable=True):
         if axis < 0:
             axis += x.ndim
@@ -630,6 +544,7 @@ class CoreOperationsImpl(OperationsBlock):
         )
 
     # statistical.py
+    @validate_core
     def cumulative_sum(
         self,
         x,
@@ -645,7 +560,7 @@ class CoreOperationsImpl(OperationsBlock):
                 axis = 0
             else:
                 raise ValueError("axis must be specified for multi-dimensional arrays")
-        out = _from_corearray(
+        out = from_corearray(
             opx.cumsum(
                 x._core(), axis=opx.const(axis), exclusive=int(not include_initial)
             )
@@ -654,6 +569,7 @@ class CoreOperationsImpl(OperationsBlock):
             out = out.astype(dtype)
         return out
 
+    @validate_core
     def max(self, x, *, axis=None, keepdims: bool = False):
         if axis is None:
             axes = []
@@ -664,10 +580,10 @@ class CoreOperationsImpl(OperationsBlock):
 
         if isinstance(x.dtype, dtypes.NullableFloating):
             fill_value = dtypes.get_finfo(x.dtype.values).min
-            x = self.where(x.null, fill_value, x.values)
+            x = ndx.where(x.null, fill_value, x.values)
         elif isinstance(x.dtype, dtypes.NullableIntegral):
             fill_value = dtypes.get_iinfo(x.dtype.values).min
-            x = self.where(x.null, fill_value, x.values)
+            x = ndx.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("min is not supported for non-numeric types")
 
@@ -681,11 +597,13 @@ class CoreOperationsImpl(OperationsBlock):
             [x],
         )
 
+    @validate_core
     def mean(self, x, *, axis=None, keepdims: bool = False):
-        return self.sum(x, axis=axis, keepdims=keepdims) / self.sum(
-            ndx.full_like(x, 1), axis=axis, keepdims=keepdims
+        return ndx.sum(x, axis=axis, keepdims=keepdims) / ndx.sum(
+            ndx.full_like(x, 1, dtype=x.dtype), axis=axis, keepdims=keepdims
         )
 
+    @validate_core
     def min(self, x, *, axis=None, keepdims: bool = False):
         if axis is None:
             axes = []
@@ -696,10 +614,10 @@ class CoreOperationsImpl(OperationsBlock):
 
         if isinstance(x.dtype, dtypes.NullableFloating):
             fill_value = dtypes.get_finfo(x.dtype.values).max
-            x = self.where(x.null, fill_value, x.values)
+            x = ndx.where(x.null, fill_value, x.values)
         elif isinstance(x.dtype, dtypes.NullableIntegral):
             fill_value = dtypes.get_iinfo(x.dtype.values).max
-            x = self.where(x.null, fill_value, x.values)
+            x = ndx.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("min is not supported for non-numeric types")
 
@@ -713,6 +631,7 @@ class CoreOperationsImpl(OperationsBlock):
             [x],
         )
 
+    @validate_core
     def prod(
         self,
         x,
@@ -730,14 +649,14 @@ class CoreOperationsImpl(OperationsBlock):
 
         if isinstance(x.dtype, dtypes.NullableNumerical):
             fill_value = ndx.asarray(1, dtype=x.dtype.values)
-            x = self.where(x.null, fill_value, x.values)
+            x = ndx.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("prod is not supported for non-numeric types")
 
         if dtype is not None:
             x = x.astype(dtype)
 
-        out = _via_upcast(
+        out = via_upcast(
             lambda x: opx.reduce_prod(
                 x,
                 opx.const(axes, dtype=dtypes.int64),
@@ -756,6 +675,7 @@ class CoreOperationsImpl(OperationsBlock):
 
         return out
 
+    @validate_core
     def clip(
         self,
         x,
@@ -779,10 +699,10 @@ class CoreOperationsImpl(OperationsBlock):
             if isinstance(x.dtype, dtypes._NullableCore):
                 out_null = x.null
                 x_values = x.values._core()
-                clipped = _from_corearray(opx.clip(x_values, min._core(), max._core()))
+                clipped = from_corearray(opx.clip(x_values, min._core(), max._core()))
                 clipped = Array._from_fields(x.dtype, values=clipped, null=out_null)
             else:
-                clipped = _from_corearray(opx.clip(x._core(), min._core(), max._core()))
+                clipped = from_corearray(opx.clip(x._core(), min._core(), max._core()))
             if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
                 return ndx.where(ndx.isnan(input), np.nan, clipped)
             else:
@@ -797,6 +717,7 @@ class CoreOperationsImpl(OperationsBlock):
             else:
                 return x
 
+    @validate_core
     def std(
         self,
         x,
@@ -808,12 +729,11 @@ class CoreOperationsImpl(OperationsBlock):
         dtype = x.dtype if dtype is None else dtype
         if not isinstance(dtype, dtypes.CoreType):
             raise TypeError("std is not supported for non-core types")
-        return self.sqrt(
-            self.var(
-                x, axis=axis, keepdims=keepdims, correction=correction, dtype=dtype
-            )
+        return ndx.sqrt(
+            ndx.var(x, axis=axis, keepdims=keepdims, correction=correction, dtype=dtype)
         )
 
+    @validate_core
     def sum(
         self,
         x,
@@ -831,7 +751,7 @@ class CoreOperationsImpl(OperationsBlock):
 
         # Fill any nulls with 0
         if isinstance(x.dtype, dtypes.NullableNumerical):
-            x = self.where(x.null, 0, x.values)
+            x = ndx.where(x.null, 0, x.values)
 
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("sum is not supported for non-core types")
@@ -856,6 +776,7 @@ class CoreOperationsImpl(OperationsBlock):
 
         return out
 
+    @validate_core
     def var(
         self,
         x,
@@ -879,6 +800,7 @@ class CoreOperationsImpl(OperationsBlock):
         )
 
     # additional.py
+    @validate_core
     def fill_null(self, x, value):
         value = ndx.asarray(value)
 
@@ -889,6 +811,7 @@ class CoreOperationsImpl(OperationsBlock):
             value = value.astype(x.values.dtype)
         return ndx.where(x.null, value, x.values)
 
+    @validate_core
     def make_nullable(self, x, null):
         if null.dtype != dtypes.bool:
             raise TypeError("null must be a boolean array")
@@ -900,190 +823,136 @@ class CoreOperationsImpl(OperationsBlock):
             null=ndx.reshape(null, x.shape),
         )
 
-    def shape(self, x):
-        current = x
-        while isinstance(current, ndx.Array):
-            current = next(iter(current._fields.values()))
-        return _from_corearray(opx.shape(current))
+    @validate_core
+    def can_cast(self, from_, to) -> bool:
+        if isinstance(from_, dtypes.CoreType) and isinstance(to, ndx.CoreType):
+            return np.can_cast(from_.to_numpy_dtype(), to.to_numpy_dtype())
+        return NotImplemented
 
-
-def _binary_op(
-    x: ndx.Array,
-    y: ndx.Array,
-    op: Callable[[_CoreArray, _CoreArray], _CoreArray],
-    via_dtype: dtypes.CoreType | None = None,
-):
-    return _variadic_op([x, y], op, via_dtype)
-
-
-def _unary_op(
-    x: ndx.Array,
-    op: Callable[[_CoreArray], _CoreArray],
-    via_dtype: dtypes.CoreType | None = None,
-) -> ndx.Array:
-    return _variadic_op([x], op, via_dtype)
-
-
-def _variadic_op(
-    args: list[Array],
-    op: Callable[..., _CoreArray],
-    via_dtype: dtypes.CoreType | None = None,
-    cast_return: bool = True,
-) -> ndx.Array:
-    args = promote(*args)
-    out_dtype = args[0].dtype
-    if not isinstance(out_dtype, (dtypes.CoreType, dtypes._NullableCore)):
-        raise TypeError(
-            f"Expected ndx.Array with CoreType or NullableCoreType, got {args[0].dtype}"
+    @validate_core
+    def all(self, x, *, axis=None, keepdims: bool = False):
+        if isinstance(x.dtype, dtypes._NullableCore):
+            x = ndx.where(x.null, True, x.values)
+        if functools.reduce(operator.mul, x._static_shape, 1) == 0:
+            return ndx.asarray(True, dtype=ndx.bool)
+        return ndx.min(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
+            ndx.bool
         )
-    data, nulls = _split_nulls_and_values(*args)
-    if via_dtype is None:
-        values = _from_corearray(op(*(x._core() for x in data)))
-    else:
-        values = _via_dtype(op, via_dtype, data, cast_return=cast_return)
 
-    if (out_null := functools.reduce(_or_nulls, nulls)) is not None:
-        dtype = dtypes.into_nullable(values.dtype)
-        return ndx.Array._from_fields(dtype, values=values, null=out_null)
-    else:
-        return values
-
-
-def _split_nulls_and_values(*xs: ndx.Array) -> tuple[list[Array], list[Array | None]]:
-    """Helper function that splits a series of ndx.Arrays into their constituent value
-    and null mask components.
-
-    Raises if an unexpected typed array is provided.
-    """
-    data: list[Array] = []
-    nulls: list[Array | None] = []
-    for x in xs:
-        if isinstance(x.dtype, dtypes.Nullable):
-            nulls.append(x.null)
-            data.append(x.values)
-        elif isinstance(x, ndx.Array):
-            nulls.append(None)
-            data.append(x)
-        else:
-            raise TypeError(f"Expected ndx.Array got {x}")
-    return data, nulls
-
-
-def _or_nulls(x: ndx.Array | None, y: ndx.Array | None) -> ndx.Array | None:
-    if x is None:
-        return y
-    if y is None:
-        return x
-    return ndx.logical_or(x, y)
-
-
-def _via_dtype(
-    fn: Callable[..., _CoreArray],
-    dtype: dtypes.CoreType | dtypes.StructType,
-    arrays: list[Array],
-    *,
-    cast_return=True,
-) -> ndx.Array:
-    """Call ``fn`` after casting to ``dtype`` and cast result back to the input dtype.
-
-    The point of this function is to work around quirks / limited type support in the
-    onnxruntime.
-
-    ndx.Arrays are promoted to a common type prior to their first use.
-    """
-    promoted = promote(*arrays)
-    out_dtype = promoted[0].dtype
-
-    if isinstance(out_dtype, dtypes._NullableCore) and out_dtype.values == dtype:
-        dtype = out_dtype
-
-    values, nulls = _split_nulls_and_values(
-        *[ndx.astype(arr, dtype) for arr in promoted]
-    )
-
-    out_value = _from_corearray(fn(*[value._core() for value in values]))
-    out_null = functools.reduce(_or_nulls, nulls)
-
-    if out_null is not None:
-        out_value = ndx.Array._from_fields(
-            dtypes.into_nullable(out_value.dtype), values=out_value, null=out_null
+    @validate_core
+    def any(self, x, *, axis=None, keepdims: bool = False):
+        if isinstance(x.dtype, dtypes._NullableCore):
+            x = ndx.where(x.null, False, x.values)
+        if functools.reduce(operator.mul, x._static_shape, 1) == 0:
+            return ndx.asarray(False, dtype=ndx.bool)
+        return ndx.max(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
+            ndx.bool
         )
-    else:
-        out_value = ndx.Array._from_fields(out_value.dtype, data=out_value._core())
 
-    if cast_return:
-        return ndx.astype(out_value, dtype=out_dtype)
-    else:
-        return out_value
+    @validate_core
+    def arange(self, start, stop=None, step=None, dtype=None, device=None) -> ndx.Array:
+        step = ndx.asarray(step)
+        if stop is None:
+            start = ndx.asarray(start)
+            stop = start
+            start = ndx.asarray(0)
+        elif start is None:
+            start = ndx.asarray(0)
 
+        start, stop, step = promote(start, stop, step)
 
-def _via_upcast(
-    fn: Callable[..., _CoreArray],
-    arrays: list[Array],
-    *,
-    int_dtype: dtypes.Integral | None = None,
-    float_dtype: dtypes.Floating | None = None,
-    uint_dtype: dtypes.Unsigned | None = None,
-    use_unsafe_uint_cast=False,
-    cast_return=True,
-) -> ndx.Array:
-    """Like ``_via_dtype`` but chooses a dtype from the available that doesn't result in
-    loss.
-
-    Raises
-    ------
-    TypeError
-        For non-numerical types and if the type can't be safely casted to
-        any available type.
-    """
-    promoted_values = promote(*arrays)
-
-    dtype = promoted_values[0].dtype
-
-    # For logging
-    available_types = [t for t in [int_dtype, float_dtype, uint_dtype] if t is not None]
-
-    via_dtype: dtypes.CoreType
-    if isinstance(dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
-        if (
-            uint_dtype is not None
-            and ndx.iinfo(dtype).bits <= ndx.iinfo(uint_dtype).bits
+        if not builtins.all(
+            isinstance(x.dtype, ndx.CoreType) for x in (start, stop, step)
         ):
-            via_dtype = uint_dtype
-        elif int_dtype is not None and ndx.iinfo(dtype).bits <= (
-            ndx.iinfo(int_dtype).bits
-            if use_unsafe_uint_cast
-            else ndx.iinfo(int_dtype).bits - 1
-        ):
-            via_dtype = int_dtype
-        else:
-            raise TypeError(
-                f"Can't upcast unsigned type `{dtype}`. Available implementations are for `{*available_types,}`"
+            raise ndx.UnsupportedOperationError(
+                "Cannot perform arange with nullable `start`, `stop` or `step` parameters."
             )
-    elif isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
-        dtypes.nbool,
-        dtypes.bool,
+        return ndx.astype(
+            from_corearray(opx.range(start._core(), stop._core(), step._core())), dtype
+        )
+
+    @validate_core
+    def tril(self, x, k=0) -> ndx.Array:
+        if isinstance(x.dtype, dtypes._NullableCore):
+            # NumPy appears to just ignore the mask so we do the same
+            x = x.values
+        return x._transmute(
+            lambda core: opx.trilu(
+                core, k=ndx.asarray(k, dtype=dtypes.int64)._core(), upper=0
+            )
+        )
+
+    @validate_core
+    def triu(self, x, k=0) -> ndx.Array:
+        if isinstance(x.dtype, dtypes._NullableCore):
+            # NumPy appears to just ignore the mask so we do the same
+            x = x.values
+        return x._transmute(
+            lambda core: opx.trilu(
+                core, k=ndx.asarray(k, dtype=dtypes.int64)._core(), upper=1
+            )
+        )
+
+    @validate_core
+    def eye(self, n_rows, n_cols=None, k=0, dtype=None, device=None) -> ndx.Array:
+        if n_cols is None:
+            n_cols = n_rows
+        n_rows = ndx.asarray(n_rows, dtype=dtypes.int64)
+        n_cols = ndx.asarray(n_cols, dtype=dtypes.int64)
+        n_rows = ndx.reshape(n_rows, [-1])
+        n_cols = ndx.reshape(n_cols, [-1])
+        shape = ndx.concat([n_rows, n_cols])
+        dummy = ndx.zeros(shape, dtype=dtype)
+        return from_corearray(opx.eye_like(dummy._core(), k=k))
+
+    @validate_core
+    def linspace(
+        self, start, stop, num, *, dtype=None, device=None, endpoint=True
+    ) -> ndx.Array:
+        return ndx.asarray(
+            np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype
+        )
+
+    @validate_core
+    def ones(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
     ):
-        if int_dtype is not None and ndx.iinfo(dtype).bits <= ndx.iinfo(int_dtype).bits:
-            via_dtype = int_dtype
-        else:
-            raise TypeError(
-                f"Can't upcast signed type `{dtype}`. Available implementations are for `{*available_types,}`"
-            )
-    elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
-        if (
-            float_dtype is not None
-            and ndx.finfo(dtype).bits <= ndx.finfo(float_dtype).bits
-        ):
-            via_dtype = float_dtype
-        else:
-            raise TypeError(
-                f"Can't upcast float type `{dtype}`. Available implementations are for `{*available_types,}`"
-            )
-    else:
-        raise TypeError(f"Expected numerical data type, found {dtype}")
+        dtype = dtypes.float64 if dtype is None else dtype
+        return ndx.full(shape, 1, dtype=dtype)
 
-    return _variadic_op(arrays, fn, via_dtype, cast_return)
+    @validate_core
+    def ones_like(
+        self, x, dtype: dtypes.StructType | dtypes.CoreType | None = None, device=None
+    ):
+        return ndx.full_like(x, 1, dtype=dtype)
+
+    @validate_core
+    def zeros(
+        self,
+        shape,
+        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        device=None,
+    ):
+        dtype = dtypes.float64 if dtype is None else dtype
+        return ndx.full(shape, 0, dtype=dtype)
+
+    @validate_core
+    def zeros_like(
+        self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
+    ):
+        return ndx.full_like(x, 0, dtype=dtype)
+
+    @validate_core
+    def empty(self, shape, dtype=None, device=None) -> ndx.Array:
+        shape = ndx.asarray(shape, dtype=dtypes.int64)
+        return ndx.full(shape, 0, dtype=dtype)
+
+    @validate_core
+    def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
+        return ndx.full_like(x, 0, dtype=dtype)
 
 
 def _via_i64_f64(
@@ -1094,7 +963,7 @@ def _via_i64_f64(
 
     Raises TypeError if the provided arrays are neither.
     """
-    return _via_upcast(
+    return via_upcast(
         fn,
         arrays,
         int_dtype=dtypes.int64,
@@ -1102,9 +971,3 @@ def _via_i64_f64(
         use_unsafe_uint_cast=True,  # TODO this can cause overflow, we should set it to false and fix all uses
         cast_return=cast_return,
     )
-
-
-def _from_corearray(
-    corearray: _CoreArray,
-) -> ndx.Array:
-    return ndx.Array._from_fields(corearray.dtype, data=corearray)

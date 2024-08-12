@@ -3,20 +3,42 @@
    * Update the major if you break the public API
    * Update the minor if you add new functionality
    * Update the patch if you fixed a bug
+
 Changelog
 =========
 
 0.7.0 (unreleased)
 ------------------
 
-**New feature**
+**New features**
 
 - Expose the :func:`ndonnx.isdtype` function.
-
+- Custom data types can now override array functions:
+   - :func:`ndonnx.zeros`
+   - :func:`ndonnx.zeros_like`
+   - :func:`ndonnx.ones`
+   - :func:`ndonnx.ones_like`
+   - :func:`ndonnx.full`
+   - :func:`ndonnx.full_like`
+   - :func:`ndonnx.arange`
+   - :func:`ndonnx.arange`
+   - :func:`ndonnx.eye`
+   - :func:`ndonnx.tril`
+   - :func:`ndonnx.triu`
+   - :func:`ndonnx.linspace`
+- Custom data types can now provide implementations for :func:`ndonnx.where`.
+- The :class:`ndonnx._experimental.UniformShapeOperations` now provides implementations of shape operations that are generic across all data types where each constituent field has the same shape (that of the overall array).
 
 **Other changes**
 
 - Fixed various deprecation warnings.
+- Invoking a function using arrays with data types that lack a corresponding implementation now raise a :class:`UnsupportedOperationError`.
+
+**Bug fixes**
+
+- Numerical operations like :func:`sin` now raise :class:`UnsupportedOperationError` when invoked using invalid data types like ``ndx.utf8`` rather than implicitly casting.
+- Fixes bug causing a promotion error when implementing numerical operations like :func:`add` that involve type promotion.
+- Fixes scalar promotion logic to more accurately reflect the Array API standard. Promotion requires at least one array to be present and scalars adopt the dtype of the arrays being promoted with it. `ndx.utf8` and `ndx.nutf8` cannot be promoted with any other dtypes.
 
 
 0.6.1 (2024-07-12)

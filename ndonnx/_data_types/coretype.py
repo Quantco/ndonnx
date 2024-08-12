@@ -79,4 +79,4 @@ class CoreType(CastMixin):
         else:
             raise CastError(f"Cannot cast from {array.dtype} to {dtype}")
 
-    _ops: impl.CoreOperationsImpl = impl.CoreOperationsImpl()
+    _ops: impl.OperationsBlock

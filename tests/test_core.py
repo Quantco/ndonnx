@@ -12,6 +12,7 @@ import spox.opset.ai.onnx.v19 as op
 import ndonnx as ndx
 import ndonnx.additional as nda
 from ndonnx import _data_types as dtypes
+from ndonnx._utility import promote
 
 from .utils import get_numpy_array_api_namespace, run
 
@@ -411,14 +412,14 @@ def test_array_spox_interoperability():
 
 
 def test_creation_arange():
-    a = ndx.arange(10)
-    np.testing.assert_equal(np.arange(10), a.to_numpy())
+    a = ndx.arange(0, stop=10)
+    np.testing.assert_equal(a.to_numpy(), np.arange(stop=10))
 
     b = ndx.arange(1, 10)
-    np.testing.assert_equal(np.arange(1, 10), b.to_numpy())
+    np.testing.assert_equal(b.to_numpy(), np.arange(1, 10))
 
     c = ndx.arange(1, 10, 2)
-    np.testing.assert_equal(np.arange(1, 10, 2), c.to_numpy())
+    np.testing.assert_equal(c.to_numpy(), np.arange(1, 10, 2))
 
     d = ndx.arange(0.0, None, step=-1)
     np.testing.assert_array_equal(
@@ -634,3 +635,143 @@ def test_array_creation_with_invalid_fields():
 def test_promote_nullable():
     with pytest.warns(DeprecationWarning):
         assert ndx.promote_nullable(np.int64) == ndx.nint64
+
+
+@pytest.mark.parametrize(
+    "operation", [ndx.sin, ndx.cos, ndx.tan, ndx.sinh, ndx.mean, ndx.sum, ndx.abs]
+)
+@pytest.mark.parametrize("dtype", [ndx.utf8, ndx.nutf8, ndx.bool, ndx.nbool])
+def test_numerical_unary_operations_fail_on_non_numeric_input(operation, dtype):
+    a = ndx.array(shape=(3,), dtype=dtype)
+    with pytest.raises(
+        ndx.UnsupportedOperationError, match="Unsupported operand type for"
+    ):
+        operation(a)
+
+
+def test_string_shape_operations():
+    a = ndx.asarray(["a", "b", "c"])
+    b = ndx.broadcast_to(a, (2, 3))
+    np.testing.assert_array_equal(
+        b.to_numpy(), np.array([["a", "b", "c"], ["a", "b", "c"]])
+    )
+
+    c = ndx.concat([a, a], axis=0)
+    np.testing.assert_array_equal(
+        c.to_numpy(), np.array(["a", "b", "c", "a", "b", "c"])
+    )
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ndx.utf8,
+        ndx.bool,
+    ],
+)
+def test_zeros(dtype):
+    x = ndx.zeros((2, 3), dtype=dtype)
+    np.testing.assert_equal(
+        x.to_numpy(), np.zeros((2, 3), dtype=dtype.to_numpy_dtype())
+    )
+
+
+@pytest.mark.xfail(reason="https://github.com/onnx/onnx/issues/6276")
+def test_empty_concat_eager():
+    a = ndx.asarray([], ndx.int64)
+    b = ndx.asarray([1, 2, 3], ndx.int64)
+    out = ndx.concat([a, b], axis=0)
+    np.testing.assert_equal(out.to_numpy(), b.to_numpy())
+
+
+def test_empty_concat_lazy_known_shape():
+    a = ndx.array(shape=(0,), dtype=ndx.int64)
+    b = ndx.array(shape=(3,), dtype=ndx.int64)
+    out = ndx.concat([a, b])
+    model = ndx.build({"a": a, "b": b}, {"out": out})
+
+    anp = np.array([], np.int64)
+    bnp = np.array([1, 2, 3], np.int64)
+
+    out = run(model, {"a": anp, "b": bnp})["out"]
+
+    np.testing.assert_equal(out, bnp)
+
+
+def test_empty_concat_lazy_unknown_shape():
+    a = ndx.array(shape=(None,), dtype=ndx.int64)
+    b = ndx.array(shape=(None,), dtype=ndx.int64)
+    out = ndx.concat([a, b])
+    model = ndx.build({"a": a, "b": b}, {"out": out})
+
+    anp = np.array([], np.int64)
+    bnp = np.array([1, 2, 3], np.int64)
+
+    out = run(model, {"a": anp, "b": bnp})["out"]
+
+    np.testing.assert_equal(out, bnp)
+
+
+# if the precision loss looks concerning, note https://data-apis.org/array-api/latest/API_specification/type_promotion.html#mixing-arrays-with-python-scalars
+@pytest.mark.parametrize(
+    "arrays, scalar",
+    [
+        ([ndx.array(shape=("N",), dtype=ndx.uint8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.uint8)], -1),
+        ([ndx.array(shape=("N",), dtype=ndx.int8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.nint8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.nint8)], 1),
+        ([ndx.array(shape=("N",), dtype=ndx.float64)], 0.123456789),
+        ([ndx.array(shape=("N",), dtype=ndx.float64)], np.float64(0.123456789)),
+        ([ndx.array(shape=("N",), dtype=ndx.float32)], 0.123456789),
+        (
+            [
+                ndx.array(shape=("N",), dtype=ndx.float32),
+                ndx.asarray([1.5], dtype=ndx.float64),
+            ],
+            0.123456789,
+        ),
+        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], "hello"),
+    ],
+)
+def test_scalar_promote(arrays, scalar):
+    args = arrays + [scalar]
+    *updated_arrays, updated_scalar = promote(*args)
+    assert all(isinstance(array, ndx.Array) for array in updated_arrays)
+    assert isinstance(updated_scalar, ndx.Array)
+    assert updated_scalar.shape == ()
+    assert all(array.dtype == updated_scalar.dtype for array in updated_arrays)
+
+
+@pytest.mark.parametrize(
+    "arrays, scalar",
+    [
+        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], 1),
+        ([ndx.asarray([1, 2], dtype=ndx.int32)], "hello"),
+    ],
+)
+def test_promotion_failures(arrays, scalar):
+    with pytest.raises(TypeError, match="Cannot promote"):
+        promote(*arrays, scalar)
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (np.asarray([1, 2, 3], dtype=np.int64), 1.12),
+        (1.23, np.asarray([1, 2, 3], dtype=np.int64)),
+        (True, np.asarray([1, 2, 3], dtype=np.int8)),
+        (np.asarray([True, False]), 1.12),
+        (np.asarray([True, False]), 4),
+        (np.asarray([1.23, 2.34]), True),
+        (np.asarray([1.23, 2.34]), 2),
+    ],
+)
+def test_cross_kind_promotions(x, y):
+    np_result = x + y
+    if isinstance(x, np.ndarray):
+        x = ndx.asarray(x)
+    if isinstance(y, np.ndarray):
+        y = ndx.asarray(y)
+    onnx_result = x + y
+    np.testing.assert_equal(onnx_result.to_numpy(), np_result)
