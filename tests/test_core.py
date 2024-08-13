@@ -775,3 +775,27 @@ def test_cross_kind_promotions(x, y):
         y = ndx.asarray(y)
     onnx_result = x + y
     np.testing.assert_equal(onnx_result.to_numpy(), np_result)
+
+
+# np.ma.allequal doesn't work correctly with identical objects, so we use a lambda to create distinct objects
+# https://github.com/numpy/numpy/issues/27201
+@pytest.mark.parametrize(
+    "x",
+    [
+        lambda: ndx.asarray([1, 2, 3], dtype=ndx.int64),
+        lambda: ndx.asarray([1.0, 2.0, 3.0], dtype=ndx.float64),
+        lambda: ndx.asarray([1, 2, 3]).astype(ndx.nint64),
+        lambda: ndx.asarray([1.0, 2.0, 3.0]).astype(ndx.nfloat64),
+        lambda: ndx.asarray([]).astype(ndx.nfloat64),
+    ],
+)
+def test_where_constant(x):
+    a = x()
+    b = x()
+    cond = ndx.array(shape=(), dtype=ndx.bool)
+
+    result = ndx.where(cond, a, b)
+
+    expected = x()
+    assert result.dtype == expected.dtype
+    np.testing.assert_equal(result.to_numpy(), expected.to_numpy())
