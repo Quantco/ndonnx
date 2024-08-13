@@ -43,10 +43,11 @@ hypothesis = "*"
 onnxruntime = "*"
 mypy = ">=1.10.0,<1.11"
 ndindex = "*"
+
 [feature.test.tasks]
 test = "pytest"
 test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
-arrayapitests = "ARRAY_API_TESTS_MODULE=ndonnx  ARRAY_API_TESTS_VERSION=2023.12 ARRAY_API_TESTS_SKIP_DTYPES=complex64,complex128 pytest --max-examples 100 api-coverage-tests/array_api_tests/  -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg"
+arrayapitests = "ARRAY_API_TESTS_MODULE=ndonnx  ARRAY_API_TESTS_VERSION=2023.12 ARRAY_API_TESTS_SKIP_DTYPES=complex64,complex128 pytest --max-examples 100 api-coverage-tests/array_api_tests/  -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg --skips-file=skips.txt --xfails-file=xfails.txt"
 
 [feature.lint.dependencies]
 pre-commit = "*"
