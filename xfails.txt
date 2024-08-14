@@ -170,3 +170,4 @@ array_api_tests/test_statistical_functions.py::test_cumulative_sum
 array_api_tests/test_statistical_functions.py::test_prod
 array_api_tests/test_statistical_functions.py::test_sum
 array_api_tests/test_utility_functions.py::test_all
+array_api_tests/test_utility_functions.py::test_any
