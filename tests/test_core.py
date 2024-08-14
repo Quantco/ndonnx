@@ -777,25 +777,33 @@ def test_cross_kind_promotions(x, y):
     np.testing.assert_equal(onnx_result.to_numpy(), np_result)
 
 
-# np.ma.allequal doesn't work correctly with identical objects, so we use a lambda to create distinct objects
-# https://github.com/numpy/numpy/issues/27201
 @pytest.mark.parametrize(
-    "x",
+    "x, y, expected",
     [
-        lambda: ndx.asarray([1, 2, 3], dtype=ndx.int64),
-        lambda: ndx.asarray([1.0, 2.0, 3.0], dtype=ndx.float64),
-        lambda: ndx.asarray([1, 2, 3]).astype(ndx.nint64),
-        lambda: ndx.asarray([1.0, 2.0, 3.0]).astype(ndx.nfloat64),
-        lambda: ndx.asarray([]).astype(ndx.nfloat64),
+        ([0], [], []),
+        ([[0], [0]], [0, 0, 0], [[0, 0, 0], [0, 0, 0]]),
+        ([1, 2, 3],) * 3,
+        ([],) * 3,
     ],
 )
-def test_where_constant(x):
-    a = x()
-    b = x()
+@pytest.mark.parametrize(
+    "x_dtype, y_dtype, expected_dtype",
+    [
+        (ndx.int64,) * 3,
+        (ndx.nint64,) * 3,
+        (ndx.float64,) * 3,
+        (ndx.nfloat64,) * 3,
+        (ndx.int64, ndx.nint64, ndx.nint64),
+        (ndx.float64, ndx.nfloat64, ndx.nfloat64),
+        (ndx.nint64, ndx.float64, ndx.nfloat64),
+    ],
+)
+def test_where_equal_arrays(x, y, expected, x_dtype, y_dtype, expected_dtype):
     cond = ndx.array(shape=(), dtype=ndx.bool)
+    x = ndx.asarray(x).astype(x_dtype)
+    y = ndx.asarray(y).astype(y_dtype)
 
-    result = ndx.where(cond, a, b)
+    result = ndx.where(cond, x, y)
 
-    expected = x()
-    assert result.dtype == expected.dtype
-    np.testing.assert_equal(result.to_numpy(), expected.to_numpy())
+    assert result.dtype == expected_dtype
+    np.testing.assert_equal(result.to_numpy(), expected)
