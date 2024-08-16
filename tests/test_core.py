@@ -775,3 +775,35 @@ def test_cross_kind_promotions(x, y):
         y = ndx.asarray(y)
     onnx_result = x + y
     np.testing.assert_equal(onnx_result.to_numpy(), np_result)
+
+
+@pytest.mark.parametrize(
+    "x, y, expected",
+    [
+        ([0], [], []),
+        ([[0], [0]], [0, 0, 0], [[0, 0, 0], [0, 0, 0]]),
+        ([1, 2, 3],) * 3,
+        ([],) * 3,
+    ],
+)
+@pytest.mark.parametrize(
+    "x_dtype, y_dtype, expected_dtype",
+    [
+        (ndx.int64,) * 3,
+        (ndx.nint64,) * 3,
+        (ndx.float64,) * 3,
+        (ndx.nfloat64,) * 3,
+        (ndx.int64, ndx.nint64, ndx.nint64),
+        (ndx.float64, ndx.nfloat64, ndx.nfloat64),
+        (ndx.nint64, ndx.float64, ndx.nfloat64),
+    ],
+)
+def test_where_equal_arrays(x, y, expected, x_dtype, y_dtype, expected_dtype):
+    cond = ndx.array(shape=(), dtype=ndx.bool)
+    x = ndx.asarray(x).astype(x_dtype)
+    y = ndx.asarray(y).astype(y_dtype)
+
+    result = ndx.where(cond, x, y)
+
+    assert result.dtype == expected_dtype
+    np.testing.assert_equal(result.to_numpy(), expected)

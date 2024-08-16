@@ -166,7 +166,7 @@ class UniformShapeOperations(OperationsBlock):
             if isinstance(x.to_numpy(), np.ma.MaskedArray):
                 if np.ma.allequal(x.to_numpy(), y.to_numpy(), fill_value=False):
                     return ndx.asarray(
-                        np.broadcast_arrays(x.to_numpy(), y.to_numpy())[0]
+                        np.broadcast_arrays(x.to_numpy(), y.to_numpy(), subok=True)[0]
                     )
             else:
                 cond = np.equal(x.to_numpy(), y.to_numpy())
