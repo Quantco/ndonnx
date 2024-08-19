@@ -93,6 +93,9 @@ def test_null_promotion():
         ("a", ndx.utf8, ndx.utf8),
         (np.array("a"), None, ndx.utf8),
         (np.array("a", object), None, ndx.utf8),
+        ([["a"]], None, ndx.utf8),
+        (np.array([["a"]]), None, ndx.utf8),
+        (np.array([["a"]], object), None, ndx.utf8),
     ],
 )
 def test_asarray(array, dtype, expected_dtype):
