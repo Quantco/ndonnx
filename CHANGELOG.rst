@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.7.1 (unreleased)
+------------------
+
+**Bug fixes**
+
+- Fixes parsing numpy arrays of type ``object`` (consisting of strings) as ``utf8``. Previously this worked correctly only for 1d arrays.
+
+
 0.7.0 (2024-08-12)
 ------------------
 

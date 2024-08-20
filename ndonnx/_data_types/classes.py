@@ -150,7 +150,7 @@ class Utf8(CoreType):
 
     def _parse_input(self, data: np.ndarray) -> dict[str, np.ndarray]:
         if data.dtype.kind == "U" or (
-            data.dtype.kind == "O" and all(isinstance(x, str) for x in data)
+            data.dtype.kind == "O" and all(isinstance(x, str) for x in data.flat)
         ):
             return {"data": data.astype(np.str_)}
         else:

@@ -80,16 +80,44 @@ def test_null_promotion():
     np.testing.assert_equal(np.add(inputs["a"], inputs["b"]), actual["c"])
 
 
-def test_asarray():
-    a = ndx.asarray([1, 2, 3], dtype=ndx.int64)
-    assert a.dtype == ndx.int64
+@pytest.mark.parametrize(
+    "array, dtype, expected_dtype",
+    [
+        ([1, 2, 3], ndx.int64, ndx.int64),
+        (np.array([1, 2, 3], np.int64), None, ndx.int64),
+        (1, ndx.int64, ndx.int64),
+        (1, ndx.float64, ndx.float64),
+        (["a", "b"], ndx.utf8, ndx.utf8),
+        (np.array(["a", "b"]), None, ndx.utf8),
+        (np.array(["a", "b"], object), None, ndx.utf8),
+        ("a", ndx.utf8, ndx.utf8),
+        (np.array("a"), None, ndx.utf8),
+        (np.array("a", object), None, ndx.utf8),
+        ([["a"]], None, ndx.utf8),
+        (np.array([["a"]]), None, ndx.utf8),
+        (np.array([["a"]], object), None, ndx.utf8),
+    ],
+)
+def test_asarray(array, dtype, expected_dtype):
+    a = ndx.asarray(array, dtype=dtype)
+    assert a.dtype == expected_dtype
     np.testing.assert_array_equal(
-        np.array([1, 2, 3], np.int64), a.to_numpy(), strict=True
+        np.array(array, expected_dtype.to_numpy_dtype()), a.to_numpy(), strict=True
     )
 
 
-def test_asarray_masked():
-    np_arr = np.ma.masked_array([1, 2, 3], mask=[0, 0, 1])
+@pytest.mark.parametrize(
+    "np_arr",
+    [
+        np.ma.masked_array([1, 2, 3], mask=[0, 0, 1]),
+        np.ma.masked_array(1, mask=0),
+        np.ma.masked_array(["a", "b"], mask=[1, 0]),
+        np.ma.masked_array("a", mask=0),
+        np.ma.masked_array(["a", "b"], mask=[1, 0], dtype=object),
+        np.ma.masked_array("a", mask=0, dtype=object),
+    ],
+)
+def test_asarray_masked(np_arr):
     ndx_arr = ndx.asarray(np_arr)
     assert isinstance(ndx_arr, ndx.Array)
     assert isinstance(ndx_arr.to_numpy(), np.ma.MaskedArray)
