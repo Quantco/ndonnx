@@ -10,7 +10,7 @@ import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, argument
 
 from .data import Data, ascoredata
-from .dtypes import DType
+from .dtypes import DType, as_numpy
 
 StrictShape = tuple[int, ...]
 StandardShape = tuple[int | None, ...]
@@ -21,18 +21,18 @@ class Array:
     _data: Data
 
     @overload
-    def __init__(self, shape: OnnxShape, np_dtype: np.dtype | np.generic): ...
+    def __init__(self, shape: OnnxShape, dtype: DType): ...
 
     @overload
     def __init__(self, value: np.ndarray): ...
 
-    def __init__(self, shape=None, np_dtype=None, value=None, var=None):
+    def __init__(self, shape=None, dtype=None, value=None, var=None):
         # TODO: Validation
         # if value is not None:
         #     np.ma.isMaskedArray(value)
         #     data = NullableCoreData()
-        if shape is not None and np_dtype is not None:
-            var = argument(Tensor(np_dtype, shape))
+        if shape is not None and dtype is not None:
+            var = argument(Tensor(as_numpy(dtype), shape))
             self._data = ascoredata(var)
             return
         raise NotImplementedError
@@ -52,6 +52,7 @@ class Array:
     def __radd__(self, lhs: int | float | Array) -> Array:
         # This is called for instance when doing int + Array
         lhs = asarray(lhs)
+        self._data.promote
         # Beware of the switched ordering
         data = lhs._data + self._data
         return Array._from_data(data)

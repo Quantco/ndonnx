@@ -8,6 +8,8 @@ from functools import reduce
 from types import NotImplementedType
 from typing import overload
 
+import numpy as np
+
 
 class DType(ABC):
     @abstractmethod
@@ -357,3 +359,68 @@ def result_type(first: DType, *others: DType) -> DType:
     if res == NotImplemented:
         raise TypeError("No common type found")
     return res
+
+
+def from_numpy(np_dtype: np.dtype) -> CoreDTypes:
+    if np_dtype == np.int8:
+        return int8
+    if np_dtype == np.int16:
+        return int16
+    if np_dtype == np.int32:
+        return int32
+    if np_dtype == np.int64:
+        return int64
+
+    if np_dtype == np.uint8:
+        return uint8
+    if np_dtype == np.uint16:
+        return uint16
+    if np_dtype == np.uint32:
+        return uint32
+    if np_dtype == np.uint64:
+        return uint64
+
+    if np_dtype == np.float16:
+        return float16
+    if np_dtype == np.float32:
+        return float32
+    if np_dtype == np.float64:
+        return float64
+
+    if np_dtype == np.bool:
+        return bool_
+
+    raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")
+
+
+def as_numpy(dtype: CoreDTypes) -> np.dtype:
+    if dtype == int8:
+        return np.dtype("int8")
+    if dtype == int16:
+        return np.dtype("int16")
+    if dtype == int32:
+        return np.dtype("int32")
+    if dtype == int64:
+        return np.dtype("int64")
+
+    if dtype == uint8:
+        return np.dtype("uint8")
+    if dtype == uint16:
+        return np.dtype("uint16")
+    if dtype == uint32:
+        return np.dtype("uint32")
+    if dtype == uint64:
+        return np.dtype("uint64")
+
+    if dtype == float16:
+        return np.dtype("float16")
+    if dtype == float32:
+        return np.dtype("float32")
+    if dtype == float64:
+        return np.dtype("float64")
+
+    if dtype == bool_:
+        return np.dtype("bool")
+
+    # Should never happen
+    raise ValueError(f"'{dtype}' does not have a corresponding NumPy data type")

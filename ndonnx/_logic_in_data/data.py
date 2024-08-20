@@ -14,7 +14,15 @@ from spox import Var
 from spox._future import operator_overloading
 from typing_extensions import Self
 
-from .dtypes import CoreDTypes, DType, NCoreDTypes, _as_nullable, result_type
+from . import dtypes
+from .dtypes import (
+    CoreDTypes,
+    DType,
+    NCoreDTypes,
+    _as_nullable,
+    from_numpy,
+    result_type,
+)
 
 if TYPE_CHECKING:
     from .array import OnnxShape
@@ -72,8 +80,8 @@ class CoreData(Data):
         # TODO
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def dtype(self) -> CoreDTypes: ...
 
     @property
@@ -160,9 +168,7 @@ class CoreDataBool(CoreData):
 
 
 class Int32Data(CoreDataInteger):
-    from .dtypes import int32
-
-    dtype = int32
+    dtype = dtypes.int32
 
 
 @dataclass
@@ -230,6 +236,10 @@ class NullableCoreData(NullableData):
         return _as_nullable(self.data.dtype)
 
 
+class NInt32Data(NullableCoreData):
+    dtype = dtypes.nint32
+
+
 def _merge_masks(a: CoreData | None, b: CoreData | None) -> CoreData | None:
     if a is None:
         return b
@@ -249,12 +259,12 @@ def ascoredata(var: Var) -> CoreData:
 
 def asncoredata(data: Var, mask: Var) -> NullableCoreData:
     np_dtype = data.unwrap_tensor().dtype
-
-    if np_dtype == np.int32:
-        ...
-        # return Nint32Data(var)
-
-    raise NotImplementedError
+    dtype = from_numpy(np_dtype)
+    try:
+        mapping: dict[CoreDTypes, type[NullableCoreData]] = {dtypes.int32: NInt32Data}
+        return mapping[dtype](ascoredata(data), ascoredata(mask))
+    except KeyError:
+        raise NotImplementedError
 
 
 def is_sequence_of_core_data(seq: Sequence[Data]) -> TypeGuard[Sequence[CoreData]]:
