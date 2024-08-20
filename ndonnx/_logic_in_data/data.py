@@ -14,7 +14,7 @@ from spox import Var
 from spox._future import operator_overloading
 from typing_extensions import Self
 
-from .dtypes import CoreDType, DType, NCoreDType, as_nullable, result_type
+from .dtypes import CoreDTypes, DType, NCoreDTypes, _as_nullable, result_type
 
 if TYPE_CHECKING:
     from .array import OnnxShape
@@ -65,14 +65,16 @@ class Data(ABC):
 class CoreData(Data):
     var: Var
 
+    def __init__(self, var: Var):
+        self.var = var
+
     def __getitem__(self, index) -> Self:
         # TODO
         raise NotImplementedError
 
+    @abstractmethod
     @property
-    def dtype(self) -> CoreDType:
-        # TODO
-        raise NotImplementedError
+    def dtype(self) -> CoreDTypes: ...
 
     @property
     def ndim(self) -> int:
@@ -100,6 +102,9 @@ class CoreData(Data):
         # TODO
         raise NotImplementedError
 
+    def as_core_dtype(self, dtype: CoreDTypes) -> CoreData:
+        raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefine")
+
     def __add__(self, lhs: Data) -> CoreData:
         return NotImplemented
 
@@ -107,8 +112,9 @@ class CoreData(Data):
         """Promote with other `CoreData` objects or return `NotImplemented`."""
         if is_sequence_of_core_data(others):
             res_type = result_type(self.dtype, *[d.dtype for d in others])
-            # TODO: Make this type check!
-            return [self.astype(res_type)] + [d.astype(res_type) for d in others]  # type: ignore
+            return [self.as_core_dtype(res_type)] + [
+                d.as_core_dtype(res_type) for d in others
+            ]
         return NotImplemented
 
     def __or__(self, rhs: Data) -> CoreData:
@@ -154,8 +160,9 @@ class CoreDataBool(CoreData):
 
 
 class Int32Data(CoreDataInteger):
-    def __init__(self, var: Var):
-        self.var = var
+    from .dtypes import int32
+
+    dtype = int32
 
 
 @dataclass
@@ -219,8 +226,8 @@ class NullableCoreData(NullableData):
         raise NotImplementedError
 
     @property
-    def dtype(self) -> NCoreDType:
-        return as_nullable(self.data.dtype)
+    def dtype(self) -> NCoreDTypes:
+        return _as_nullable(self.data.dtype)
 
 
 def _merge_masks(a: CoreData | None, b: CoreData | None) -> CoreData | None:

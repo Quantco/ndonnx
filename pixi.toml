@@ -42,7 +42,7 @@ pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = ">=6.68"
 onnxruntime = "*"
-mypy = ">=1.10.0"
+mypy = ">=1.11.1"
 ndindex = ">=1.8"
 [feature.test.tasks]
 test = "pytest"

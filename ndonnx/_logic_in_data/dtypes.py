@@ -6,46 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import reduce
 from types import NotImplementedType
-
-
-def result_type(*core_dtypes: CoreDType) -> CoreDType:
-    return reduce(_result_type_binary, core_dtypes)
-
-
-def result_type_nullable(
-    *mixed_core_dtypes: CoreDType | NCoreDType,
-) -> CoreDType | NCoreDType:
-    core_dtypes = []
-    contains_nullable = False
-    for dtype in mixed_core_dtypes:
-        if isinstance(dtype, CoreDType):
-            core_dtypes.append(dtype)
-        else:
-            core_dtypes.append(dtype._core_type)
-            contains_nullable = True
-    core_result = reduce(_result_type_binary, core_dtypes)
-
-    if contains_nullable:
-        return as_nullable(core_result)
-    return core_result
-
-
-def as_nullable(dtype: CoreDType) -> NCoreDType:
-    mapping: dict[CoreDType, NCoreDType] = {
-        bool_: nbool,
-        int8: nint8,
-        int16: nint16,
-        int32: nint32,
-        int64: nint64,
-        uint8: nuint8,
-        uint16: nuint16,
-        uint32: nuint32,
-        uint64: nuint64,
-        float16: nfloat16,
-        float32: nfloat32,
-        float64: nfloat64,
-    }
-    return mapping[dtype]
+from typing import overload
 
 
 class DType(ABC):
@@ -56,116 +17,119 @@ class DType(ABC):
         return NotImplemented
 
 
-class CoreDType(DType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(rhs, CoreDType):
-            return _result_type_binary(self, rhs)
+class _CoreDType(DType): ...
 
-        # No implicit promotion for bools and strings
+
+class _NCoreDType(DType): ...
+
+
+class _Number(_CoreDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        if isinstance(self, CoreNumericDTypes) and isinstance(rhs, CoreNumericDTypes):
+            return _result_type_core_numeric(self, rhs)
+
         return NotImplemented
 
 
-class NCoreDType(DType):
-    _core_type: CoreDType
+class Bool(_CoreDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+
+class NBool(_NCoreDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+
+class Int8(_Number): ...
+
+
+class Int16(_Number): ...
+
+
+class Int32(_Number): ...
+
+
+class Int64(_Number): ...
+
+
+class Uint8(_Number): ...
+
+
+class Uint16(_Number): ...
+
+
+class Uint32(_Number): ...
+
+
+class Uint64(_Number): ...
+
+
+class Float16(_Number): ...
+
+
+class Float32(_Number): ...
+
+
+class Float64(_Number): ...
+
+
+class _NNumber(_NCoreDType):
+    _core_type: CoreNumericDTypes
 
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(rhs, CoreDType):
-            core_result = _result_type_binary(self._core_type, rhs)
-        elif isinstance(rhs, NCoreDType):
-            core_result = _result_type_binary(self._core_type, rhs._core_type)
+        if isinstance(self, NCoreNumericDTypes) and isinstance(rhs, CoreNumericDTypes):
+            core_result = _result_type_core_numeric(self._core_type, rhs)
+        elif isinstance(rhs, NCoreNumericDTypes):
+            core_result = _result_type_core_numeric(self._core_type, rhs._core_type)
 
         else:
             # No implicit promotion for bools and strings
             return NotImplemented
 
-        return as_nullable(core_result)
+        return _as_nullable(core_result)
 
     def _rresult_type(self, lhs: DType) -> DType | NotImplementedType:
         # e.g. called after `CoreDType._result_type(self)`
 
-        if isinstance(lhs, CoreDType | NCoreDType):
+        if isinstance(lhs, _CoreDType | _NCoreDType):
             # All core types are cummutative
             return self._result_type(lhs)
 
         return NotImplemented
 
 
-class Bool(CoreDType): ...
+class NInt8(_NNumber): ...
 
 
-class NBool(NCoreDType): ...
+class NInt16(_NNumber): ...
 
 
-class Number(CoreDType): ...
+class NInt32(_NNumber): ...
 
 
-class Int8(Number): ...
+class NInt64(_NNumber): ...
 
 
-class Int16(Number): ...
+class NUint8(_NNumber): ...
 
 
-class Int32(Number): ...
+class NUint16(_NNumber): ...
 
 
-class Int64(Number): ...
+class NUint32(_NNumber): ...
 
 
-class Uint8(Number): ...
+class NUint64(_NNumber): ...
 
 
-class Uint16(Number): ...
+class NFloat16(_NNumber): ...
 
 
-class Uint32(Number): ...
+class NFloat32(_NNumber): ...
 
 
-class Uint64(Number): ...
-
-
-class Float16(Number): ...
-
-
-class Float32(Number): ...
-
-
-class Float64(Number): ...
-
-
-class NNumber(NCoreDType): ...
-
-
-class NInt8(NNumber): ...
-
-
-class NInt16(NNumber): ...
-
-
-class NInt32(NNumber): ...
-
-
-class NInt64(NNumber): ...
-
-
-class NUint8(NNumber): ...
-
-
-class NUint16(NNumber): ...
-
-
-class NUint32(NNumber): ...
-
-
-class NUint64(NNumber): ...
-
-
-class NFloat16(NNumber): ...
-
-
-class NFloat32(NNumber): ...
-
-
-class NFloat64(NNumber): ...
+class NFloat64(_NNumber): ...
 
 
 # Singleton instances
@@ -194,35 +158,47 @@ nfloat16 = NFloat16()
 nfloat32 = NFloat32()
 nfloat64 = NFloat64()
 
+# Union types
+#
+# Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
+CoreNumericDTypes = (
+    Int8
+    | Int16
+    | Int32
+    | Int64
+    | Uint8
+    | Uint16
+    | Uint32
+    | Uint64
+    | Float16
+    | Float32
+    | Float64
+)
 
-def _result_type_binary(a: CoreDType, b: CoreDType) -> CoreDType:
-    # Attempt promotion between known types. The implementation is not
-    # using `isinstance` to avoid subclassing issues.
-    if ret := _signed_signed.get((a, b)):
-        return ret
-    if ret := _unsigned_unsigned.get((a, b)):
-        return ret
-    if ret := _mixed_integers.get((a, b)):
-        return ret
-    if ret := _floating_floating.get((a, b)):
-        return ret
-    if ret := _non_standard.get((a, b)):
-        return ret
-    if a_floating := _int_to_floating.get(a):
-        return _result_type_binary(a_floating, b)
-    if b_floating := _int_to_floating.get(b):
-        return _result_type_binary(a, b_floating)
+CoreDTypes = Bool | CoreNumericDTypes
 
-    # TODO: Do bools and strings
+NCoreNumericDTypes = (
+    NInt8
+    | NInt16
+    | NInt32
+    | NInt64
+    | NUint8
+    | NUint16
+    | NUint32
+    | NUint64
+    | NFloat16
+    | NFloat32
+    | NFloat64
+)
 
-    raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")
+NCoreDTypes = NBool | NCoreNumericDTypes
 
 
 # Promotion tables taken from:
 # https://data-apis.org/array-api/draft/API_specification/type_promotion.html#type-promotion
 # and
 # https://numpy.org/neps/nep-0050-scalar-promotion.html#motivation-and-scope
-_signed_signed: dict[tuple[CoreDType, CoreDType], CoreDType] = {
+_signed_signed: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
     (int8, int8): int8,
     (int16, int8): int16,
     (int32, int8): int32,
@@ -240,7 +216,9 @@ _signed_signed: dict[tuple[CoreDType, CoreDType], CoreDType] = {
     (int32, int64): int64,
     (int64, int64): int64,
 }
-_unsigned_unsigned: dict[tuple[CoreDType, CoreDType], CoreDType] = {
+_unsigned_unsigned: dict[
+    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
+] = {
     (uint8, uint8): uint8,
     (uint16, uint8): uint16,
     (uint32, uint8): uint32,
@@ -258,7 +236,9 @@ _unsigned_unsigned: dict[tuple[CoreDType, CoreDType], CoreDType] = {
     (uint32, uint64): uint64,
     (uint64, uint64): uint64,
 }
-_mixed_integers: dict[tuple[CoreDType, CoreDType], CoreDType] = {
+_mixed_integers: dict[
+    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
+] = {
     (int8, uint8): int16,
     (int16, uint8): int16,
     (int32, uint8): int32,
@@ -274,7 +254,9 @@ _mixed_integers: dict[tuple[CoreDType, CoreDType], CoreDType] = {
     # NOTE: Standard does not define interaction with uint64!
 }
 
-_floating_floating: dict[tuple[CoreDType, CoreDType], CoreDType] = {
+_floating_floating: dict[
+    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
+] = {
     (float32, float32): float32,
     (float32, float64): float64,
     (float64, float32): float64,
@@ -282,7 +264,7 @@ _floating_floating: dict[tuple[CoreDType, CoreDType], CoreDType] = {
 }
 
 # Non-standard interactions
-_non_standard: dict[tuple[CoreDType, CoreDType], CoreDType] = {
+_non_standard: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
     (int8, uint64): float64,
     (int16, uint64): float64,
     (int32, uint64): float64,
@@ -292,7 +274,7 @@ _non_standard: dict[tuple[CoreDType, CoreDType], CoreDType] = {
 # Mixed integers and floating point numbers are not
 # strictly defined, but generally we want to cast the
 # integer to a floating point and then try again.
-_int_to_floating: dict[CoreDType, CoreDType] = {
+_int_to_floating: dict[CoreNumericDTypes, CoreNumericDTypes] = {
     int8: float16,
     uint8: float16,
     int16: float32,
@@ -302,3 +284,76 @@ _int_to_floating: dict[CoreDType, CoreDType] = {
     int64: float64,
     uint64: float64,
 }
+
+
+# Helper functions
+
+
+def _as_nullable(dtype: CoreDTypes) -> NCoreDTypes:
+    mapping: dict[CoreDTypes, NCoreDTypes] = {
+        bool_: nbool,
+        int8: nint8,
+        int16: nint16,
+        int32: nint32,
+        int64: nint64,
+        uint8: nuint8,
+        uint16: nuint16,
+        uint32: nuint32,
+        uint64: nuint64,
+        float16: nfloat16,
+        float32: nfloat32,
+        float64: nfloat64,
+    }
+    return mapping[dtype]
+
+
+def _result_type_core_numeric(
+    a: CoreNumericDTypes, b: CoreNumericDTypes
+) -> CoreNumericDTypes:
+    # Attempt promotion between known types. The implementation is not
+    # using `isinstance` to avoid subclassing issues.
+    if ret := _signed_signed.get((a, b)):
+        return ret
+    if ret := _unsigned_unsigned.get((a, b)):
+        return ret
+    if ret := _mixed_integers.get((a, b)):
+        return ret
+    if ret := _floating_floating.get((a, b)):
+        return ret
+    if ret := _non_standard.get((a, b)):
+        return ret
+    if a_floating := _int_to_floating.get(a):
+        return _result_type_core_numeric(a_floating, b)
+    if b_floating := _int_to_floating.get(b):
+        return _result_type_core_numeric(a, b_floating)
+
+    # TODO: Do bools and strings
+
+    raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")
+
+
+@overload
+def result_type(
+    first: CoreNumericDTypes, *others: CoreNumericDTypes
+) -> CoreNumericDTypes: ...
+
+
+@overload
+def result_type(first: CoreDTypes, *others: CoreDTypes) -> CoreDTypes: ...
+
+
+@overload
+def result_type(first: DType, *others: DType) -> DType: ...
+
+
+def result_type(first: DType, *others: DType) -> DType:
+    def result_binary(a: DType, b: DType) -> DType:
+        res1 = a._result_type(b)
+        if res1 != NotImplemented:
+            return res1
+        return b._rresult_type(a)
+
+    res = reduce(result_binary, others, first)
+    if res == NotImplemented:
+        raise TypeError("No common type found")
+    return res
