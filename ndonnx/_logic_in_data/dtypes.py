@@ -16,6 +16,7 @@ class DType(ABC):
     def _result_type(self, other: DType) -> DType | NotImplementedType: ...
 
     def _rresult_type(self, other: DType) -> DType | NotImplementedType:
+        # Should allow for at least Python scalars in the signature
         return NotImplemented
 
 
@@ -134,6 +135,22 @@ class NFloat32(_NNumber): ...
 class NFloat64(_NNumber): ...
 
 
+class _PyInt(DType):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, CoreDTypes):
+            ...
+            # TODO
+        raise ValueError
+
+
+class _PyFloat(DType):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, CoreDTypes):
+            ...
+            # TODO
+        raise ValueError
+
+
 # Singleton instances
 bool_ = Bool()
 nbool = NBool()
@@ -159,6 +176,8 @@ nuint64 = NUint64()
 nfloat16 = NFloat16()
 nfloat32 = NFloat32()
 nfloat64 = NFloat64()
+_pyint = _PyInt()
+_pyfloat = _PyFloat()
 
 # Union types
 #

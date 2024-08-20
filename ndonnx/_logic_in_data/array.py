@@ -17,6 +17,10 @@ StandardShape = tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
 
 
+def _get_data(val: int | float | Array) -> Data:
+    raise NotImplementedError
+
+
 class Array:
     _data: Data
 
@@ -44,18 +48,19 @@ class Array:
         return inst
 
     def __add__(self, rhs: int | float | Array) -> Array:
-        other = asarray(rhs)
-        data = self._data + other._data
-
-        return Array._from_data(data)
+        rhs_data = _get_data(rhs)
+        data = self._data + rhs_data
+        if data is not NotImplemented:
+            return Array._from_data(data)
+        return NotImplemented
 
     def __radd__(self, lhs: int | float | Array) -> Array:
         # This is called for instance when doing int + Array
-        lhs = asarray(lhs)
-        self._data.promote
-        # Beware of the switched ordering
-        data = lhs._data + self._data
-        return Array._from_data(data)
+        lhs_data = _get_data(lhs)
+        data = lhs_data + self._data
+        if data is not NotImplemented:
+            return Array._from_data(data)
+        return NotImplemented
 
     @property
     def shape(self) -> StandardShape:

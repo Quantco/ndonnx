@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypeGuard
+from typing import TYPE_CHECKING, Any, TypeGuard, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -70,6 +70,51 @@ class Data(ABC):
         return NotImplemented
 
 
+class _PyScalar(Data):
+    value: int | float
+
+    def __init__(self, value: int | float):
+        self.value = value
+
+    def __getitem__(self, index) -> Self:
+        raise NotImplementedError
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def shape(self) -> OnnxShape:
+        return ()
+
+    @classmethod
+    def from_np_schema(cls, schema: dict[str, Any], /) -> Self:
+        if "value" in schema and len(schema) == 1:
+            (val,) = schema.values()
+            return cls(val)
+        raise ValueError("'schema' has unexpected layout")
+
+    def reshape(self, shape: tuple[int, ...]) -> Self:
+        # TODO: Should reshape be moved into a different base class?
+        raise ValueError("Cannot reshape Python scalar.")
+
+    def promote(self, *others: Data) -> Sequence[Data]:
+        # TODO
+        raise NotImplementedError
+
+    def __add__(self, lhs: Data) -> CoreData:
+        return NotImplemented
+
+    def __or__(self, rhs: Data) -> CoreData:
+        return NotImplemented
+
+
+class _PyIntData(_PyScalar): ...
+
+
+class _PyFloatData(_PyScalar): ...
+
+
 class CoreData(Data):
     var: Var
 
@@ -106,7 +151,13 @@ class CoreData(Data):
         var = op.reshape(self.var, op.const(shape))
         return ascoredata(var)
 
-    def promote(self, *others: Data) -> Sequence[CoreData]:
+    @overload
+    def promote(self, *others: CoreData) -> Sequence[CoreData]: ...
+
+    @overload
+    def promote(self, *others: Data) -> Sequence[Data]: ...
+
+    def promote(self, *others: Data) -> Sequence[Data]:
         # TODO
         raise NotImplementedError
 
