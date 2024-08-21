@@ -76,7 +76,9 @@ def assert_array_equal(
     actual: np.ndarray,
     expected: np.ndarray,
 ):
-    np.testing.assert_array_equal(actual, expected, strict=True)
+    np.testing.assert_array_equal(
+        actual, expected, strict=np.__version__.startswith("2")
+    )
     assert isinstance(expected, np.ma.masked_array) ^ (
         not isinstance(actual, np.ma.masked_array)
     )

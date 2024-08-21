@@ -56,7 +56,7 @@ def test_opset_extensions_eager_propagation():
         np.arange(10, 14, dtype=np.int64),
     )
     result = opx.add(a.data, b.data)  # type: ignore
-    assert_array_equal(result.to_numpy(), [10, 12, 14, 16])
+    assert_array_equal(result.to_numpy(), np.asarray([10, 12, 14, 16], dtype=np.int64))
     result = opx.split(opx.concat([a.data, b.data], axis=0), num_outputs=2, axis=0)  # type: ignore
     assert isinstance(result, tuple) and len(result) == 2
     assert_array_equal(result[0].to_numpy(), a.to_numpy())

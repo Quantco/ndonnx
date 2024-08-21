@@ -629,6 +629,7 @@ def test_prod(dtype):
     else:
         input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
     actual = np.prod(input)
+
     assert_array_equal(y.to_numpy(), actual)
 
 
