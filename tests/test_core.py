@@ -794,6 +794,10 @@ def test_promotion_failures(arrays, scalar):
         promote(*arrays, scalar)
 
 
+@pytest.mark.skipif(
+    np.__version__ <= "1",
+    reason="Cross kind scalar promotion not specified in NumPy < 2",
+)
 @pytest.mark.parametrize(
     "x, y",
     [
