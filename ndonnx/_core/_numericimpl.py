@@ -585,10 +585,14 @@ class NumericOperationsImpl(UniformShapeOperations):
             axes = axis  # type: ignore
 
         if isinstance(x.dtype, dtypes.NullableFloating):
-            fill_value = dtypes.get_finfo(x.dtype.values).min
+            fill_value = ndx.asarray(
+                dtypes.get_finfo(x.dtype.values).min, x.dtype.values
+            )
             x = ndx.where(x.null, fill_value, x.values)
         elif isinstance(x.dtype, dtypes.NullableIntegral):
-            fill_value = dtypes.get_iinfo(x.dtype.values).min
+            fill_value = ndx.asarray(
+                dtypes.get_iinfo(x.dtype.values).min, x.dtype.values
+            )
             x = ndx.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("min is not supported for non-numeric types")
@@ -601,6 +605,7 @@ class NumericOperationsImpl(UniformShapeOperations):
                 noop_with_empty_axes=axis is not None,
             ),
             [x],
+            cast_return=True,
         )
 
     @validate_core
@@ -619,10 +624,14 @@ class NumericOperationsImpl(UniformShapeOperations):
             axes = axis  # type: ignore
 
         if isinstance(x.dtype, dtypes.NullableFloating):
-            fill_value = dtypes.get_finfo(x.dtype.values).max
+            fill_value = ndx.asarray(
+                dtypes.get_finfo(x.dtype.values).max, dtype=x.dtype.values
+            )
             x = ndx.where(x.null, fill_value, x.values)
         elif isinstance(x.dtype, dtypes.NullableIntegral):
-            fill_value = dtypes.get_iinfo(x.dtype.values).max
+            fill_value = ndx.asarray(
+                dtypes.get_iinfo(x.dtype.values).max, dtype=x.dtype.values
+            )
             x = ndx.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("min is not supported for non-numeric types")
@@ -635,6 +644,7 @@ class NumericOperationsImpl(UniformShapeOperations):
                 noop_with_empty_axes=axis is not None,
             ),
             [x],
+            cast_return=True,
         )
 
     @validate_core
@@ -653,14 +663,13 @@ class NumericOperationsImpl(UniformShapeOperations):
         else:
             axes = axis  # type: ignore
 
+        x = x.astype(_determine_reduce_op_dtype(x, dtype))
+
         if isinstance(x.dtype, dtypes.NullableNumerical):
             fill_value = ndx.asarray(1, dtype=x.dtype.values)
             x = ndx.where(x.null, fill_value, x.values)
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("prod is not supported for non-numeric types")
-
-        if dtype is not None:
-            x = x.astype(dtype)
 
         out = via_upcast(
             lambda x: opx.reduce_prod(
@@ -672,12 +681,8 @@ class NumericOperationsImpl(UniformShapeOperations):
             [x],
             int_dtype=dtypes.int64,
             float_dtype=dtypes.float32,
+            cast_return=True,
         )
-
-        if isinstance(x.dtype, dtypes.Unsigned):
-            out = out.astype(dtypes.uint64)
-        elif isinstance(x.dtype, dtypes.NullableUnsigned):
-            out = out.astype(dtypes.nuint64)
 
         return out
 
@@ -755,15 +760,14 @@ class NumericOperationsImpl(UniformShapeOperations):
         else:
             axes = axis  # type: ignore
 
+        x = x.astype(_determine_reduce_op_dtype(x, dtype))
+
         # Fill any nulls with 0
         if isinstance(x.dtype, dtypes.NullableNumerical):
-            x = ndx.where(x.null, 0, x.values)
+            x = ndx.where(x.null, ndx.asarray(0, x.values.dtype), x.values)
 
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("sum is not supported for non-core types")
-
-        if dtype is not None:
-            x = x.astype(dtype)
 
         out = _via_i64_f64(
             lambda corearray: opx.reduce_sum(
@@ -773,12 +777,8 @@ class NumericOperationsImpl(UniformShapeOperations):
                 noop_with_empty_axes=axis is not None,
             ),
             [x],
+            cast_return=True,
         )
-
-        if isinstance(x.dtype, dtypes.Unsigned):
-            out = out.astype(dtypes.uint64)
-        elif isinstance(x.dtype, dtypes.NullableUnsigned):
-            out = out.astype(dtypes.nuint64)
 
         return out
 
@@ -969,3 +969,20 @@ def _via_i64_f64(
         use_unsafe_uint_cast=True,  # TODO this can cause overflow, we should set it to false and fix all uses
         cast_return=cast_return,
     )
+
+
+def _determine_reduce_op_dtype(
+    x: Array, dtype: dtypes.CoreType | dtypes.StructType | None
+) -> dtypes.CoreType | dtypes.StructType:
+    if dtype is not None:
+        return dtype
+    elif isinstance(x.dtype, dtypes.Unsigned):
+        return dtypes.uint64
+    elif isinstance(x.dtype, dtypes.NullableUnsigned):
+        return dtypes.nuint64
+    elif isinstance(x.dtype, dtypes.Integral):
+        return dtypes.int64
+    elif isinstance(x.dtype, dtypes.NullableIntegral):
+        return dtypes.nint64
+    else:
+        return x.dtype

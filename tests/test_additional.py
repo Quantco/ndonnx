@@ -9,7 +9,7 @@ import pytest
 import ndonnx as ndx
 import ndonnx.additional as nda
 
-from .utils import run
+from .utils import assert_array_equal, run
 
 
 @pytest.mark.parametrize(
@@ -27,7 +27,7 @@ def test_searchsorted(side):
     a = ndx.asarray(a_val, dtype=ndx.int64)
     b = ndx.asarray(b_val, dtype=ndx.int64)
     c = ndx.searchsorted(a, b, side=side)
-    np.testing.assert_equal(c_val, c.to_numpy())
+    assert_array_equal(c_val, c.to_numpy())
 
 
 @pytest.mark.skip(reason="TODO: onnxruntime")
@@ -49,7 +49,7 @@ def test_searchsorted_nans(side):
 
     model = ndx.build({"a": a, "b": b}, {"c": c})
 
-    np.testing.assert_equal(c_val, run(model, dict(a=a_val, b=b_val))["c"])
+    assert_array_equal(c_val, run(model, dict(a=a_val, b=b_val))["c"])
 
 
 def test_searchsorted_raises():
@@ -75,14 +75,14 @@ def test_static_map():
     b = nda.static_map(a, {1: 2, 2: 3})
 
     model = ndx.build({"a": a}, {"b": b})
-    np.testing.assert_equal([0, 2, 3], run(model, {"a": np.array([0, 1, 2])})["b"])
+    assert_array_equal([0, 2, 3], run(model, {"a": np.array([0, 1, 2])})["b"])
 
     # nans are mapped by static_map
     a = ndx.array(shape=("N",), dtype=ndx.float64)
     b = nda.static_map(a, {1.0: 2, np.nan: 3, 3.0: 42}, default=-1)
 
     model = ndx.build({"a": a}, {"b": b})
-    np.testing.assert_equal(
+    assert_array_equal(
         [-1, -1, 42, 3],
         run(model, {"a": np.array([0.0, 2.0, 3.0, np.nan])})["b"],
     )
@@ -101,7 +101,7 @@ def test_isin():
     b = nda.isin(a, ["foo", "bar", "baz"])
 
     model = ndx.build({"a": a}, {"b": b})
-    np.testing.assert_equal(
+    assert_array_equal(
         [False, True, True, False],
         run(model, dict(a=np.array(["hello", "foo", "baz", "!"])))["b"],
     )
@@ -110,10 +110,10 @@ def test_isin():
     b = nda.isin(a, ["🔴", "🟡", "🟢"])
 
     model = ndx.build({"a": a}, {"b": b})
-    np.testing.assert_equal(
+    assert_array_equal(
         [False, True, False],
         run(model, dict(a=np.array(["🚀", "🔴", "hi🟡"])))["b"],
     )
 
     a = ndx.asarray(["hello", "world"])
-    np.testing.assert_equal([True, False], nda.isin(a, ["hello"]).to_numpy())
+    assert_array_equal([True, False], nda.isin(a, ["hello"]).to_numpy())

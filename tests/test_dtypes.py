@@ -17,6 +17,8 @@ from ndonnx import (
 )
 from ndonnx._experimental import CastMixin, Schema, StructType, UniformShapeOperations
 
+from .utils import assert_array_equal
+
 
 class Unsigned96Impl(UniformShapeOperations):
     def equal(self, x, y):
@@ -176,14 +178,14 @@ def test_custom_dtype_function_dispatch(u96):
     y = ndx.asarray(np.array([22314, 21 << 12, 12], dtype=object), dtype=u96)
     z = ndx.asarray(np.array([223, 21 << 12, 13], dtype=object), dtype=u96)
 
-    np.testing.assert_equal(ndx.equal(x, y).to_numpy(), [True, True, True])
-    np.testing.assert_equal(ndx.equal(x, z).to_numpy(), [False, True, False])
+    assert_array_equal(ndx.equal(x, y).to_numpy(), [True, True, True])
+    assert_array_equal(ndx.equal(x, z).to_numpy(), [False, True, False])
 
     a = ndx.asarray(np.array([10, 0, 100], dtype=object), dtype=u96)
-    np.testing.assert_equal((x + a).to_numpy(), (a + x).to_numpy())
+    assert_array_equal((x + a).to_numpy(), (a + x).to_numpy())
 
     b = ndx.asarray(np.array([10, 2, 100], dtype=np.uint32))
-    np.testing.assert_equal((x + b).to_numpy(), (b + x).to_numpy())
+    assert_array_equal((x + b).to_numpy(), (b + x).to_numpy())
 
 
 def test_error_message_unimplemented_dtype_dispatch(u96):
@@ -227,11 +229,11 @@ def test_custom_dtype_layout_transformations(u96):
     x_value = x.to_numpy()
     expected = x_value.reshape(2, 2)
     actual = ndx.reshape(x, (2, 2)).to_numpy()
-    np.testing.assert_equal(expected, actual)
+    assert_array_equal(expected, actual)
 
     expected = ndx.roll(x, 1).to_numpy()
     actual = np.roll(x.to_numpy(), 1)
-    np.testing.assert_equal(expected, actual)
+    assert_array_equal(expected, actual)
 
 
 def test_custom_dtype_incapable_of_complex_dispatch():
@@ -249,29 +251,27 @@ def test_custom_dtype_incapable_of_complex_dispatch():
 def test_custom_dtype_capable_creation_functions():
     x = ndx.full((2, 2), 0, dtype=Unsigned96())
     assert x.shape == (2, 2)
-    np.testing.assert_equal(x.to_numpy(), np.array([[0, 0], [0, 0]], dtype=object))
+    assert_array_equal(x.to_numpy(), np.array([[0, 0], [0, 0]], dtype=object))
 
     x = ndx.arange(0, 4, 1, dtype=Unsigned96())
-    np.testing.assert_equal(x.to_numpy(), np.array([0, 1, 2, 3], dtype=object))
+    assert_array_equal(x.to_numpy(), np.array([0, 1, 2, 3], dtype=object))
 
     x = ndx.zeros((2, 3, 2), dtype=Unsigned96())
-    np.testing.assert_equal(x.to_numpy(), np.zeros((2, 3, 2), dtype=object))
+    assert_array_equal(x.to_numpy(), np.zeros((2, 3, 2), dtype=object))
 
     x = ndx.ones((2, 3, 2), dtype=Unsigned96())
-    np.testing.assert_equal(x.to_numpy(), np.ones((2, 3, 2), dtype=object))
+    assert_array_equal(x.to_numpy(), np.ones((2, 3, 2), dtype=object))
 
     x = ndx.empty((2, 3, 2), dtype=Unsigned96())
     assert x.shape == (2, 3, 2)
 
     x = ndx.eye(3, dtype=Unsigned96())
-    np.testing.assert_equal(x.to_numpy(), np.eye(3, dtype=object))
+    assert_array_equal(x.to_numpy(), np.eye(3, dtype=object))
 
     arr = np.array([22314, 21 << 12, 12], dtype=object)
     x = ndx.asarray(arr, dtype=Unsigned96())
-    np.testing.assert_equal(
-        ndx.zeros_like(x).to_numpy(), np.zeros_like(arr, dtype=object)
-    )
+    assert_array_equal(ndx.zeros_like(x).to_numpy(), np.zeros_like(arr, dtype=object))
 
-    np.testing.assert_equal(
+    assert_array_equal(
         ndx.ones_like(x, dtype=ndx.int32).to_numpy(), np.ones_like(arr, dtype=np.int32)
     )
