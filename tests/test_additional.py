@@ -87,6 +87,10 @@ def test_static_map():
         run(model, {"a": np.array([0.0, 2.0, 3.0, np.nan])})["b"],
     )
 
+    a = ndx.asarray(["hello", "world", "!"])
+    b = nda.static_map(a, {"hello": "hi", "world": "earth"})
+    np.testing.assert_equal(["hi", "earth", "MISSING"], b.to_numpy())
+
 
 @pytest.mark.skipif(
     sys.platform.startswith("win"),

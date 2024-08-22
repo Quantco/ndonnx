@@ -852,3 +852,53 @@ def test_where_equal_arrays(x, y, expected, x_dtype, y_dtype, expected_dtype):
     assert result.dtype == expected_dtype
     # NumPy simply drops the masked array in `np.where`. We do not want to do the same.
     np.testing.assert_array_equal(result.to_numpy(), expected)
+
+
+@pytest.mark.parametrize(
+    "x, expected_shape",
+    [
+        (ndx.array(shape=(1, 2), dtype=ndx.utf8), (1, 2)),
+        (ndx.array(shape=(1, 2), dtype=ndx.nuint8), (1, 2)),
+        (ndx.array(shape=(1, None, 5), dtype=ndx.nuint8), (1, None, 5)),
+        (ndx.array(shape=("N", "M"), dtype=ndx.float64), (None, None)),
+        (
+            ndx.reshape(
+                ndx.array(shape=(4,), dtype=ndx.utf8),
+                ndx.array(shape=(1,), dtype=ndx.int64),
+            ),
+            (None,),
+        ),
+        (
+            ndx.reshape(ndx.array(shape=(4,), dtype=ndx.utf8), ndx.asarray([2, 2])),
+            (2, 2),
+        ),
+    ],
+)
+def test_lazy_array_shape(x, expected_shape):
+    assert x.shape == expected_shape
+
+
+@pytest.mark.parametrize(
+    "x, shape",
+    [
+        (
+            ndx.array(shape=("N",), dtype=ndx.utf8),
+            ndx.array(shape=("M",), dtype=ndx.int64),
+        ),
+        (
+            ndx.array(shape=("N", 1), dtype=ndx.utf8),
+            ndx.array(shape=("N"), dtype=ndx.int64),
+        ),
+        (
+            ndx.array(shape=(1,), dtype=ndx.utf8),
+            ndx.array(shape=("N"), dtype=ndx.int64),
+        ),
+        (
+            ndx.array(shape=(), dtype=ndx.utf8),
+            ndx.array(shape=("N"), dtype=ndx.int64),
+        ),
+    ],
+)
+def test_dynamic_reshape_has_no_static_shape(x, shape):
+    with pytest.raises(ValueError, match="Could not determine static shape"):
+        ndx.reshape(x, shape).shape

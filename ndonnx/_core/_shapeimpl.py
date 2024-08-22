@@ -8,6 +8,7 @@ import numpy as np
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
+import ndonnx.additional as nda
 
 from ._interface import OperationsBlock
 from ._utils import from_corearray
@@ -23,6 +24,20 @@ class UniformShapeOperations(OperationsBlock):
         while isinstance(current, ndx.Array):
             current = next(iter(current._fields.values()))
         return from_corearray(opx.shape(current))
+
+    def static_shape(self, x) -> tuple[int | None, ...]:
+        current = x
+        while isinstance(current, ndx.Array):
+            current = next(iter(current._fields.values()))
+
+        inferred_shape = current.var.unwrap_tensor().shape
+        if inferred_shape is None:
+            raise ValueError(
+                f"Could not determine static shape for array {x}. Dynamic reshapes cannot be resolved without input values."
+            )
+        return tuple(
+            None if not isinstance(dim, int) else dim for dim in inferred_shape
+        )
 
     def take(self, x, indices, axis=None):
         if axis is None:
@@ -138,7 +153,7 @@ class UniformShapeOperations(OperationsBlock):
 
     def full_like(self, x, fill_value, dtype=None, device=None):
         fill_value = ndx.asarray(fill_value).astype(dtype or x.dtype)
-        return ndx.broadcast_to(fill_value, ndx.asarray(x).shape)
+        return ndx.broadcast_to(fill_value, nda.shape(x))
 
     def where(self, condition, x, y):
         if x.dtype != y.dtype:
