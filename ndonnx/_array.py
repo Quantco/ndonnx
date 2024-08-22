@@ -355,23 +355,31 @@ class Array:
 
     def __int__(self) -> int:
         eager_value = self.to_numpy()
-        if eager_value is not None and eager_value.size == 1:
-            return int(eager_value)
-        else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to an int")
+        if eager_value is None:
+            raise ValueError(
+                f"The lazy Array {self} cannot be converted to a scalar int"
+            )
+        if eager_value.size != 1:
+            raise ValueError(
+                f"Array {self} with more than one element cannot be converted to a scalar int"
+            )
+        return int(eager_value)
 
     def __bool__(self) -> bool:
         eager_value = self.to_numpy()
-        if eager_value is not None and eager_value.size == 1:
-            return bool(self.to_numpy())
-        else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to a bool")
+        if eager_value is None:
+            raise ValueError(f"The truth value of lazy Array {self} is unknown")
+        if eager_value.size != 1:
+            raise ValueError(
+                f"The truth value of Array {self} with more than one element is ambiguous"
+            )
+        return bool(self.to_numpy())
 
     def __len__(self) -> int:
         if isinstance(self.shape[0], int):
             return self.shape[0]
         else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to a length")
+            raise ValueError(f"Cannot determine length of Array {self}")
 
     def __pos__(self):
         return ndx.positive(self)
