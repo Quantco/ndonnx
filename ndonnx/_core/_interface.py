@@ -410,3 +410,6 @@ class OperationsBlock:
 
     def can_cast(self, from_, to) -> bool:
         return NotImplemented
+
+    def static_shape(self, x) -> tuple[int | None, ...]:
+        return NotImplemented
