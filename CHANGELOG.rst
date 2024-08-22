@@ -7,12 +7,16 @@
 Changelog
 =========
 
-0.7.1 (unreleased)
+0.8.0 (unreleased)
 ------------------
 
 **Bug fixes**
 
 - Fixes parsing numpy arrays of type ``object`` (consisting of strings) as ``utf8``. Previously this worked correctly only for 1d arrays.
+
+**Breaking change**
+
+- :meth:`ndonnx.Array.shape` now strictly returns a ``tuple[int | None, ...]``, with unknown dimensions denoted by ``None``. This relies on ONNX shape inference for lazy arrays.
 
 
 0.7.0 (2024-08-12)
