@@ -636,11 +636,35 @@ def test_prod(dtype):
 @pytest.mark.parametrize(
     "dtype",
     [
+        ndx.uint8,
+        ndx.uint16,
+        ndx.uint32,
+        ndx.nuint8,
+        ndx.nuint16,
+        ndx.nuint32,
+    ],
+)
+def test_prod_unsigned(dtype):
+    # We intentionally deviate from the Array API standard and reduce for <= uint32
+    # using uint32 as our default unsigned type due to lack of kernel support for uint64
+    x = ndx.asarray([2, 2]).astype(dtype)
+    y = ndx.prod(x)
+    if isinstance(dtype, ndx.Nullable):
+        input = np.asarray([2, 2], dtype=dtype.values.to_numpy_dtype())
+        input = np.ma.masked_array(input, mask=False)
+    else:
+        input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
+    actual = np.prod(input).astype(np.uint32)
+
+    assert_array_equal(y.to_numpy(), actual)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
         ndx.float64,
         ndx.nfloat64,
         ndx.uint64,
-        ndx.uint32,
-        ndx.uint8,
         ndx.nuint64,
     ],
 )
