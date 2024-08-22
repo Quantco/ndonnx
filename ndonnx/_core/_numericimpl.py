@@ -663,7 +663,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         else:
             axes = axis  # type: ignore
 
-        x = x.astype(_determine_reduce_op_dtype(x, dtype))
+        x = x.astype(_determine_reduce_op_dtype(x, dtype, dtypes.uint32))
 
         if isinstance(x.dtype, dtypes.NullableNumerical):
             fill_value = ndx.asarray(1, dtype=x.dtype.values)
@@ -760,7 +760,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         else:
             axes = axis  # type: ignore
 
-        x = x.astype(_determine_reduce_op_dtype(x, dtype))
+        x = x.astype(_determine_reduce_op_dtype(x, dtype, dtypes.uint64))
 
         # Fill any nulls with 0
         if isinstance(x.dtype, dtypes.NullableNumerical):
@@ -972,14 +972,22 @@ def _via_i64_f64(
 
 
 def _determine_reduce_op_dtype(
-    x: Array, dtype: dtypes.CoreType | dtypes.StructType | None
+    x: Array,
+    dtype: dtypes.CoreType | dtypes.StructType | None,
+    maximum_unsigned_dtype: dtypes.CoreType,
 ) -> dtypes.CoreType | dtypes.StructType:
     if dtype is not None:
         return dtype
     elif isinstance(x.dtype, dtypes.Unsigned):
-        return dtypes.uint64
+        if ndx.iinfo(x.dtype).bits <= ndx.iinfo(maximum_unsigned_dtype).bits:
+            return maximum_unsigned_dtype
+        else:
+            raise TypeError(f"Cannot reduce {x.dtype} to a smaller unsigned dtype")
     elif isinstance(x.dtype, dtypes.NullableUnsigned):
-        return dtypes.nuint64
+        if ndx.iinfo(x.dtype).bits <= ndx.iinfo(maximum_unsigned_dtype).bits:
+            return dtypes.promote_nullable(maximum_unsigned_dtype)
+        else:
+            raise TypeError(f"Cannot reduce {x.dtype} to a smaller unsigned dtype")
     elif isinstance(x.dtype, dtypes.Integral):
         return dtypes.int64
     elif isinstance(x.dtype, dtypes.NullableIntegral):
