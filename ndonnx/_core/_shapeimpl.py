@@ -29,9 +29,14 @@ class UniformShapeOperations(OperationsBlock):
         current = x
         while isinstance(current, ndx.Array):
             current = next(iter(current._fields.values()))
+
+        inferred_shape = current.var.unwrap_tensor().shape
+        if inferred_shape is None:
+            raise ValueError(
+                f"Could not determine static shape for array {x}. Dynamic reshapes cannot be resolved without input values."
+            )
         return tuple(
-            None if not isinstance(dim, int) else dim
-            for dim in current.var.unwrap_tensor().shape
+            None if not isinstance(dim, int) else dim for dim in inferred_shape
         )
 
     def take(self, x, indices, axis=None):

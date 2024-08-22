@@ -14,7 +14,8 @@ from typing_extensions import Self
 
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
-from ndonnx.additional import shape, static_shape
+from ndonnx.additional import shape
+from ndonnx.additional._additional import _static_shape as static_shape
 
 from ._corearray import _CoreArray
 from ._index import ScalarIndexType
@@ -373,7 +374,7 @@ class Array:
             raise ValueError(
                 f"The truth value of Array {self} with more than one element is ambiguous"
             )
-        return bool(self.to_numpy())
+        return bool(eager_value)
 
     def __len__(self) -> int:
         if isinstance(self.shape[0], int):
