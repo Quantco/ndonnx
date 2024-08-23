@@ -506,7 +506,7 @@ class Array:
         out: Array
             Scalar ``Array`` instance whose value is the number of elements in the original array.
         """
-        return ndx.prod(self.shape)
+        return ndx.prod(shape(self))
 
     @property
     def T(self) -> ndx.Array:  # noqa: N802

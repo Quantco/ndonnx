@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.8.1 (unreleased)
+------------------
+
+**Bug fixes**
+
+- Fixes lazy array export ``shape`` calculation in presence of unknown dimensions.
+
+
 0.8.0 (2024-08-22)
 ------------------
 
