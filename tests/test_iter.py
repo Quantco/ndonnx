@@ -7,8 +7,7 @@ import ndonnx as ndx
 
 
 def test_iter_for_loop():
-    n = 5
-    a = ndx.array(shape=(n,), dtype=ndx.int64)
+    a = ndx.array(shape=(5,), dtype=ndx.int64)
 
     for i, el in enumerate(a):  # type: ignore
         if i > n:
@@ -29,6 +28,7 @@ def test_create_iterators(arr):
     it = iter(arr)
     el = next(it)
     assert el.ndim == arr.ndim - 1
+    assert el.shape == arr.shape[1:]
 
 
 def test_0d_not_iterable():
