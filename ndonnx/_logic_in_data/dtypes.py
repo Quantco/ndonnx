@@ -25,7 +25,7 @@ class DType(ABC):
 
     @property
     @abstractmethod
-    def _data_class(self) -> type[data.Data[Self]]: ...
+    def _data_class(self) -> type[data._TypedArray[Self]]: ...
 
 
 class _CoreDType(DType): ...
@@ -272,10 +272,10 @@ class _PyInt(DType):
         raise ValueError
 
     @property
-    def _data_class(self) -> type[data._PyIntData]:
-        from .data import _PyIntData
+    def _data_class(self) -> type[data._ArrayPyInt]:
+        from .data import _ArrayPyInt
 
-        return _PyIntData
+        return _ArrayPyInt
 
 
 class _PyFloat(DType):
@@ -289,10 +289,10 @@ class _PyFloat(DType):
         raise ValueError
 
     @property
-    def _data_class(self) -> type[data._PyFloatData]:
-        from .data import _PyFloatData
+    def _data_class(self) -> type[data._ArrayPyFloat]:
+        from .data import _ArrayPyFloat
 
-        return _PyFloatData
+        return _ArrayPyFloat
 
 
 # Singleton instances
