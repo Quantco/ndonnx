@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.9.0 (unreleased)
+------------------
+
+**Breaking change**
+
+- Iterating over dynamic dimensions of :class:`~ndonnx.Array` is no longer allowed since it commonly lead to infinite loops when used without an explicit break condition.
+
+
 0.8.0 (2024-08-22)
 ------------------
 
