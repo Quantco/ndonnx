@@ -22,6 +22,7 @@ def test_iter_for_loop():
         ndx.asarray([[1], [2]]),
         ndx.array(shape=(2,), dtype=ndx.int64),
         ndx.array(shape=(2, 3), dtype=ndx.int64),
+        ndx.array(shape=(2, "N"), dtype=ndx.int64),
     ],
 )
 def test_create_iterators(arr):
@@ -34,3 +35,8 @@ def test_0d_not_iterable():
     scalar = ndx.array(shape=(), dtype=ndx.int64)
     with pytest.raises(ValueError):
         next(iter(scalar))
+
+
+def test_raises_dynamic_dim():
+    with pytest.raises(ValueError):
+        iter(ndx.array(shape=("N",), dtype=ndx.int64))
