@@ -7,9 +7,11 @@ import ndonnx as ndx
 
 
 def test_iter_for_loop():
-    a = ndx.array(shape=(5,), dtype=ndx.int64)
+    n = 5
+    a = ndx.array(shape=(n,), dtype=ndx.int64)
 
     for i, el in enumerate(a):  # type: ignore
+        assert isinstance(el, ndx.Array)
         if i > n:
             assert False, "Iterated past the number of elements"
 
