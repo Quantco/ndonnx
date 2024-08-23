@@ -9,23 +9,12 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, argument
 
-from .data import _ArrayPyFloat, _ArrayPyInt, _TypedArray, ascoredata
+from ._typed_array import _ArrayPyFloat, _ArrayPyInt, _TypedArray, ascoredata
 from .dtypes import DType, as_numpy
 
 StrictShape = tuple[int, ...]
 StandardShape = tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
-
-
-def _get_data(val: int | float | Array) -> _TypedArray:
-    if isinstance(val, Array):
-        return val._data
-    if isinstance(val, int):
-        return _ArrayPyInt(val)
-    if isinstance(val, float):
-        return _ArrayPyFloat(val)
-
-    raise ValueError
 
 
 class Array:
@@ -97,6 +86,17 @@ def asarray(obj: int | float | bool | str | Array) -> Array:
 #     ret = cond._data._where(*a._data.promote(b._data))
 #     if ret == NotImplemented:
 #         ret
+
+
+def _get_data(val: int | float | Array) -> _TypedArray:
+    if isinstance(val, Array):
+        return val._data
+    if isinstance(val, int):
+        return _ArrayPyInt(val)
+    if isinstance(val, float):
+        return _ArrayPyFloat(val)
+
+    raise ValueError
 
 
 def add(a: Array, b: Array) -> Array:
