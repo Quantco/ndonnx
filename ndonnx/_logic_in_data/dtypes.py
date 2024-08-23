@@ -6,9 +6,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import reduce
 from types import NotImplementedType
-from typing import overload
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
+from typing_extensions import Self
+
+if TYPE_CHECKING:
+    from . import data
 
 
 class DType(ABC):
@@ -18,6 +22,10 @@ class DType(ABC):
     def _rresult_type(self, other: DType) -> DType | NotImplementedType:
         # Should allow for at least Python scalars in the signature
         return NotImplemented
+
+    @property
+    @abstractmethod
+    def _data_class(self) -> type[data.Data[Self]]: ...
 
 
 class _CoreDType(DType): ...
@@ -32,49 +40,6 @@ class _Number(_CoreDType):
             return _result_type_core_numeric(self, rhs)
 
         return NotImplemented
-
-
-class Bool(_CoreDType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-
-class NBool(_NCoreDType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-
-class Int8(_Number): ...
-
-
-class Int16(_Number): ...
-
-
-class Int32(_Number): ...
-
-
-class Int64(_Number): ...
-
-
-class Uint8(_Number): ...
-
-
-class Uint16(_Number): ...
-
-
-class Uint32(_Number): ...
-
-
-class Uint64(_Number): ...
-
-
-class Float16(_Number): ...
-
-
-class Float32(_Number): ...
-
-
-class Float64(_Number): ...
 
 
 class _NNumber(_NCoreDType):
@@ -102,53 +67,232 @@ class _NNumber(_NCoreDType):
         return NotImplemented
 
 
-class NInt8(_NNumber): ...
+class Bool(_CoreDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _data_class(self) -> type[data.BoolData]:
+        from .data import BoolData
+
+        return BoolData
 
 
-class NInt16(_NNumber): ...
+class NBool(_NCoreDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _data_class(self) -> type[data.NBoolData]:
+        from .data import NBoolData
+
+        return NBoolData
 
 
-class NInt32(_NNumber): ...
+class Int8(_Number):
+    @property
+    def _data_class(self) -> type[data.Int8Data]:
+        from .data import Int8Data
+
+        return Int8Data
 
 
-class NInt64(_NNumber): ...
+class Int16(_Number):
+    @property
+    def _data_class(self) -> type[data.Int16Data]:
+        from .data import Int16Data
+
+        return Int16Data
 
 
-class NUint8(_NNumber): ...
+class Int32(_Number):
+    @property
+    def _data_class(self) -> type[data.Int32Data]:
+        from .data import Int32Data
+
+        return Int32Data
 
 
-class NUint16(_NNumber): ...
+class Int64(_Number):
+    @property
+    def _data_class(self) -> type[data.Int64Data]:
+        from .data import Int64Data
+
+        return Int64Data
 
 
-class NUint32(_NNumber): ...
+class Uint8(_Number):
+    @property
+    def _data_class(self) -> type[data.Uint8Data]:
+        from .data import Uint8Data
+
+        return Uint8Data
 
 
-class NUint64(_NNumber): ...
+class Uint16(_Number):
+    @property
+    def _data_class(self) -> type[data.Uint16Data]:
+        from .data import Uint16Data
+
+        return Uint16Data
 
 
-class NFloat16(_NNumber): ...
+class Uint32(_Number):
+    @property
+    def _data_class(self) -> type[data.Uint32Data]:
+        from .data import Uint32Data
+
+        return Uint32Data
 
 
-class NFloat32(_NNumber): ...
+class Uint64(_Number):
+    @property
+    def _data_class(self) -> type[data.Uint64Data]:
+        from .data import Uint64Data
+
+        return Uint64Data
 
 
-class NFloat64(_NNumber): ...
+class Float16(_Number):
+    @property
+    def _data_class(self) -> type[data.Float16Data]:
+        from .data import Float16Data
+
+        return Float16Data
+
+
+class Float32(_Number):
+    @property
+    def _data_class(self) -> type[data.Float32Data]:
+        from .data import Float32Data
+
+        return Float32Data
+
+
+class Float64(_Number):
+    @property
+    def _data_class(self) -> type[data.Float64Data]:
+        from .data import Float64Data
+
+        return Float64Data
+
+
+class NInt8(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NInt8Data]:
+        from .data import NInt8Data
+
+        return NInt8Data
+
+
+class NInt16(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NInt16Data]:
+        from .data import NInt16Data
+
+        return NInt16Data
+
+
+class NInt32(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NInt32Data]:
+        from .data import NInt32Data
+
+        return NInt32Data
+
+
+class NInt64(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NInt64Data]:
+        from .data import NInt64Data
+
+        return NInt64Data
+
+
+class NUint8(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NUint8Data]:
+        from .data import NUint8Data
+
+        return NUint8Data
+
+
+class NUint16(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NUint16Data]:
+        from .data import NUint16Data
+
+        return NUint16Data
+
+
+class NUint32(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NUint32Data]:
+        from .data import NUint32Data
+
+        return NUint32Data
+
+
+class NUint64(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NUint64Data]:
+        from .data import NUint64Data
+
+        return NUint64Data
+
+
+class NFloat16(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NFloat16Data]:
+        from .data import NFloat16Data
+
+        return NFloat16Data
+
+
+class NFloat32(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NFloat32Data]:
+        from .data import NFloat32Data
+
+        return NFloat32Data
+
+
+class NFloat64(_NNumber):
+    @property
+    def _data_class(self) -> type[data.NFloat64Data]:
+        from .data import NFloat64Data
+
+        return NFloat64Data
 
 
 class _PyInt(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, CoreDTypes):
-            ...
-            # TODO
+        if isinstance(other, CoreNumericDTypes):
+            return other
         raise ValueError
+
+    @property
+    def _data_class(self) -> type[data._PyIntData]:
+        from .data import _PyIntData
+
+        return _PyIntData
 
 
 class _PyFloat(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, CoreDTypes):
-            ...
-            # TODO
+        if isinstance(other, CoreIntegerDTypes):
+            return float64
+        if isinstance(other, NCoreIntegerDTypes):
+            return nfloat64
+        if isinstance(other, CoreFloatingDTypes | NCoreFloatingDTypes):
+            return other
         raise ValueError
+
+    @property
+    def _data_class(self) -> type[data._PyFloatData]:
+        from .data import _PyFloatData
+
+        return _PyFloatData
 
 
 # Singleton instances
@@ -182,35 +326,22 @@ _pyfloat = _PyFloat()
 # Union types
 #
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
-CoreNumericDTypes = (
-    Int8
-    | Int16
-    | Int32
-    | Int64
-    | Uint8
-    | Uint16
-    | Uint32
-    | Uint64
-    | Float16
-    | Float32
-    | Float64
-)
+
+CoreFloatingDTypes = Float16 | Float32 | Float64
+
+
+CoreIntegerDTypes = Int8 | Int16 | Int32 | Int64 | Uint8 | Uint16 | Uint32 | Uint64
+
+CoreNumericDTypes = CoreFloatingDTypes | CoreIntegerDTypes
 
 CoreDTypes = Bool | CoreNumericDTypes
 
-NCoreNumericDTypes = (
-    NInt8
-    | NInt16
-    | NInt32
-    | NInt64
-    | NUint8
-    | NUint16
-    | NUint32
-    | NUint64
-    | NFloat16
-    | NFloat32
-    | NFloat64
+NCoreIntegerDTypes = (
+    NInt8 | NInt16 | NInt32 | NInt64 | NUint8 | NUint16 | NUint32 | NUint64
 )
+NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
+
+NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 
 NCoreDTypes = NBool | NCoreNumericDTypes
 

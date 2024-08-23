@@ -9,7 +9,7 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, argument
 
-from .data import Data, ascoredata
+from .data import Data, _PyFloatData, _PyIntData, ascoredata
 from .dtypes import DType, as_numpy
 
 StrictShape = tuple[int, ...]
@@ -18,7 +18,14 @@ OnnxShape = tuple[int | str | None, ...]
 
 
 def _get_data(val: int | float | Array) -> Data:
-    raise NotImplementedError
+    if isinstance(val, Array):
+        return val._data
+    if isinstance(val, int):
+        return _PyIntData(val)
+    if isinstance(val, float):
+        return _PyFloatData(val)
+
+    raise ValueError
 
 
 class Array:
@@ -46,6 +53,9 @@ class Array:
         inst = cls.__new__(cls)
         inst._data = data
         return inst
+
+    def astype(self, dtype: DType):
+        return self._data.astype(dtype)
 
     def __add__(self, rhs: int | float | Array) -> Array:
         rhs_data = _get_data(rhs)
