@@ -60,19 +60,21 @@ def asarray(
     device=None,
 ) -> Array:
     if not isinstance(x, Array):
-        arr = np.asanyarray(
+        eager_value = np.asanyarray(
             x,
             dtype=(
                 dtype.to_numpy_dtype() if isinstance(dtype, dtypes.CoreType) else None
             ),
         )
         if dtype is None:
-            dtype = dtypes.from_numpy_dtype(arr.dtype)
-            if isinstance(arr, np.ma.masked_array):
+            dtype = dtypes.from_numpy_dtype(eager_value.dtype)
+            if isinstance(eager_value, np.ma.masked_array):
                 dtype = dtypes.into_nullable(dtype)
 
-        ret = Array._construct(
-            shape=arr.shape, dtype=dtype, eager_values=dtype._parse_input(arr)
+        ret = dtype._ops.make_array(
+            shape=eager_value.shape,
+            dtype=dtype,
+            eager_value=eager_value,
         )
     else:
         ret = x.copy() if copy is True else x

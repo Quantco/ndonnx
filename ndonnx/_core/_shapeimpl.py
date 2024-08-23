@@ -99,7 +99,7 @@ class UniformShapeOperations(OperationsBlock):
         if not isinstance(shift, Sequence):
             shift = [shift]
 
-        old_shape = x.shape
+        old_shape = nda.shape(x)
 
         if axis is None:
             x = ndx.reshape(x, [-1])
@@ -250,3 +250,33 @@ class UniformShapeOperations(OperationsBlock):
 
     def ones_like(self, x, dtype=None, device=None):
         return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
+
+    def make_array(self, shape, dtype, eager_value=None):
+        fields = {}
+
+        eager_values = None if eager_value is None else dtype._parse_input(eager_value)
+        for name, field_dtype in dtype._fields().items():
+            fields[name] = field_dtype._ops.make_array(
+                shape,
+                field_dtype,
+                field_dtype._assemble_output(eager_values[name])
+                if eager_values is not None
+                else None,
+            )
+        return ndx.Array._from_fields(
+            dtype,
+            **fields,
+        )
+
+    def getitem(self, x, index):
+        if isinstance(index, ndx.Array) and not (
+            isinstance(index.dtype, dtypes.Integral) or index.dtype == dtypes.bool
+        ):
+            raise TypeError(
+                f"Index must be an integral or boolean 'Array', not `{index.dtype}`"
+            )
+
+        if isinstance(index, ndx.Array):
+            index = index._core()
+
+        return x._transmute(lambda corearray: corearray[index])

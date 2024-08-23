@@ -15,6 +15,7 @@ from typing_extensions import Self
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
 from ndonnx.additional import shape
+from ndonnx.additional._additional import _getitem as getitem
 from ndonnx.additional._additional import _static_shape as static_shape
 
 from ._corearray import _CoreArray
@@ -47,7 +48,7 @@ def array(
     out : Array
         The new array. This represents an ONNX model input.
     """
-    return Array._construct(shape=shape, dtype=dtype)
+    return dtype._ops.make_array(shape, dtype)
 
 
 def from_spox_var(
@@ -143,17 +144,7 @@ class Array:
         return ndx.astype(self, to)
 
     def __getitem__(self, index: IndexType) -> Array:
-        if isinstance(index, Array) and not (
-            isinstance(index.dtype, dtypes.Integral) or index.dtype == dtypes.bool
-        ):
-            raise TypeError(
-                f"Index must be an integral or boolean 'Array', not `{index.dtype}`"
-            )
-
-        if isinstance(index, Array):
-            index = index._core()
-
-        return self._transmute(lambda corearray: corearray[index])
+        return getitem(self, index)
 
     def __setitem__(
         self, index: IndexType | Self, updates: int | bool | float | Array

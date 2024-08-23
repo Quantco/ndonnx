@@ -13,6 +13,7 @@ from ndonnx import _opset_extensions as opx
 
 if TYPE_CHECKING:
     from ndonnx import Array
+    from ndonnx._array import IndexType
 
 Scalar = TypeVar("Scalar", int, float, str)
 
@@ -143,6 +144,15 @@ def make_nullable(x: Array, null: Array) -> Array:
     if out is NotImplemented:
         raise ndx.UnsupportedOperationError(
             f"'make_nullable' not implemented for `{x.dtype}`"
+        )
+    return out
+
+
+def _getitem(x: Array, index: IndexType) -> ndx.Array:
+    out = x.dtype._ops.getitem(x, index)
+    if out is NotImplemented:
+        raise ndx.UnsupportedOperationError(
+            f"`getitem` not implemented for `{x.dtype}`"
         )
     return out
 

@@ -3,10 +3,15 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+import numpy as np
 
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
+
+if TYPE_CHECKING:
+    from ndonnx._array import IndexType
 
 
 class OperationsBlock:
@@ -412,4 +417,19 @@ class OperationsBlock:
         return NotImplemented
 
     def static_shape(self, x) -> tuple[int | None, ...]:
+        return NotImplemented
+
+    def make_array(
+        self,
+        shape: tuple[int | None | str, ...],
+        dtype: dtypes.CoreType | dtypes.StructType,
+        eager_value: np.ndarray | None = None,
+    ) -> ndx.Array:
+        return NotImplemented
+
+    def getitem(
+        self,
+        x: ndx.Array,
+        index: IndexType,
+    ) -> ndx.Array:
         return NotImplemented

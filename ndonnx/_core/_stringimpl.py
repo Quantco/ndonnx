@@ -11,6 +11,8 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
+from ._coreimpl import CoreOperationsImpl
+from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, validate_core
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     from ndonnx import Array
 
 
-class StringOperationsImpl(UniformShapeOperations):
+class _StringOperationsImpl(OperationsBlock):
     @validate_core
     def add(self, x, y) -> Array:
         return binary_op(x, y, opx.string_concat)
@@ -68,18 +70,12 @@ class StringOperationsImpl(UniformShapeOperations):
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
         return ndx.zeros_like(x, dtype=dtype, device=device)
 
-    @validate_core
-    def make_nullable(self, x, null):
-        if null.dtype != dtypes.bool:
-            raise TypeError("'null' must be a boolean array")
 
-        return ndx.Array._from_fields(
-            dtypes.into_nullable(x.dtype),
-            values=x.copy(),
-            null=ndx.reshape(null, x.shape),
-        )
+class StringOperationsImpl(
+    CoreOperationsImpl, _StringOperationsImpl, UniformShapeOperations
+): ...
 
 
-class NullableStringOperationsImpl(StringOperationsImpl, NullableOperationsImpl):
-    def make_nullable(self, x, null):
-        return NotImplemented
+class NullableStringOperationsImpl(
+    NullableOperationsImpl, _StringOperationsImpl, UniformShapeOperations
+): ...

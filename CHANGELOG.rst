@@ -7,6 +7,15 @@
 Changelog
 =========
 
+0.9.0 (unreleased)
+------------------
+
+**New features**
+
+- User defined data types can now define how arrays with that dtype are constructed by implementing the :func:`make_array` function.
+- User defined data types can now define how they are indexed (via `__getitem__`) by implementing the :func:`getitem` function.
+
+
 0.8.0 (2024-08-22)
 ------------------
 
