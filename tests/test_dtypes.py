@@ -199,8 +199,7 @@ class List(StructType):
 
         cur_items_idx = 0
         for idx in np.ndindex(x.shape):
-            endpoints[idx][0] = cur_items_idx
-            endpoints[idx][1] = cur_items_idx + len(x[idx])
+            endpoints[idx, :] = [cur_items_idx, cur_items_idx + len(x[idx])]
             for elem in x[idx]:
                 items[cur_items_idx] = elem
                 cur_items_idx += 1

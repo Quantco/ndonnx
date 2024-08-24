@@ -7,6 +7,7 @@
 Changelog
 =========
 
+
 0.9.0 (unreleased)
 ------------------
 
@@ -14,6 +15,14 @@ Changelog
 
 - User defined data types can now define how arrays with that dtype are constructed by implementing the :func:`make_array` function.
 - User defined data types can now define how they are indexed (via `__getitem__`) by implementing the :func:`getitem` function.
+
+**Bug fixes**
+
+- Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.
+
+**Breaking change**
+
+- Iterating over dynamic dimensions of :class:`~ndonnx.Array` is no longer allowed since it commonly lead to infinite loops when used without an explicit break condition.
 
 
 0.8.0 (2024-08-22)

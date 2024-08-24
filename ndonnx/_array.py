@@ -48,7 +48,11 @@ def array(
     out : Array
         The new array. This represents an ONNX model input.
     """
-    return dtype._ops.make_array(shape, dtype)
+    if (out := dtype._ops.make_array(shape, dtype)) is not NotImplemented:
+        return out
+    raise ndx.UnsupportedOperationError(
+        f"No implementation of `make_array` for {dtype}"
+    )
 
 
 def from_spox_var(
@@ -109,6 +113,17 @@ class Array:
             return field
         else:
             raise AttributeError(f"Field {name} not found")
+
+    def __iter__(self):
+        try:
+            n, *_ = self.shape
+        except IndexError:
+            raise ValueError("iteration over 0-d array")
+        if isinstance(n, int):
+            return (self[i, ...] for i in range(n))
+        raise ValueError(
+            "iteration requires dimension of static length, but dimension 0 is dynamic."
+        )
 
     def _set(self, other: Array) -> Array:
         self.dtype = other.dtype
@@ -497,7 +512,7 @@ class Array:
         out: Array
             Scalar ``Array`` instance whose value is the number of elements in the original array.
         """
-        return ndx.prod(self.shape)
+        return ndx.prod(shape(self))
 
     @property
     def T(self) -> ndx.Array:  # noqa: N802
