@@ -7,12 +7,17 @@
 Changelog
 =========
 
-0.8.1 (unreleased)
+
+0.9.0 (unreleased)
 ------------------
 
 **Bug fixes**
 
 - Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.
+
+**Breaking change**
+
+- Iterating over dynamic dimensions of :class:`~ndonnx.Array` is no longer allowed since it commonly lead to infinite loops when used without an explicit break condition.
 
 
 0.8.0 (2024-08-22)

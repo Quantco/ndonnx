@@ -109,6 +109,17 @@ class Array:
         else:
             raise AttributeError(f"Field {name} not found")
 
+    def __iter__(self):
+        try:
+            n, *_ = self.shape
+        except IndexError:
+            raise ValueError("iteration over 0-d array")
+        if isinstance(n, int):
+            return (self[i, ...] for i in range(n))
+        raise ValueError(
+            "iteration requires dimension of static length, but dimension 0 is dynamic."
+        )
+
     def _set(self, other: Array) -> Array:
         self.dtype = other.dtype
         self._fields = other._fields
