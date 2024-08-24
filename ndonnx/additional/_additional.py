@@ -145,3 +145,24 @@ def make_nullable(x: Array, null: Array) -> Array:
             f"'make_nullable' not implemented for `{x.dtype}`"
         )
     return out
+
+
+def _static_shape(x: Array) -> tuple[int | None, ...]:
+    """Return shape of the array as a tuple. Typical implementations will make use of
+    ONNX shape inference, with `None` entries denoting unknown or symbolic dimensions.
+
+    Parameters
+    ----------
+    x: Array
+        Array to get static shape of
+
+    Returns
+    -------
+    out: tuple[int | None, ...]
+    """
+    out = x.dtype._ops.static_shape(x)
+    if out is NotImplemented:
+        raise ndx.UnsupportedOperationError(
+            f"`static_shape` not implemented for `{x.dtype}`"
+        )
+    return out

@@ -7,6 +7,26 @@
 Changelog
 =========
 
+0.9.0 (unreleased)
+------------------
+
+**Breaking change**
+
+- Iterating over dynamic dimensions of :class:`~ndonnx.Array` is no longer allowed since it commonly lead to infinite loops when used without an explicit break condition.
+
+
+0.8.0 (2024-08-22)
+------------------
+
+**Bug fixes**
+
+- Fixes parsing numpy arrays of type ``object`` (consisting of strings) as ``utf8``. Previously this worked correctly only for 1d arrays.
+
+**Breaking change**
+
+- :meth:`ndonnx.Array.shape` now strictly returns a ``tuple[int | None, ...]``, with unknown dimensions denoted by ``None``. This relies on ONNX shape inference for lazy arrays.
+
+
 0.7.0 (2024-08-12)
 ------------------
 

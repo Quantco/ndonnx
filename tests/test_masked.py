@@ -10,7 +10,7 @@ import pytest
 import ndonnx as ndx
 import ndonnx.additional as nda
 
-from .utils import get_numpy_array_api_namespace, run
+from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def testfill_null():
@@ -19,12 +19,12 @@ def testfill_null():
 
     model = ndx.build({"a": a}, {"b": b})
 
-    expected_b = np.ma.masked_array([1, 2, 0], mask=[0, 0, 0], dtype=np.int64)
-    np.testing.assert_equal(
-        expected_b,
+    expected_b = np.array([1, 2, 0], dtype=np.int64)
+    assert_array_equal(
         run(
             model, {"a": np.ma.masked_array([1, 2, -1], mask=[0, 0, 1], dtype=np.int64)}
         )["b"],
+        expected_b,
     )
 
 
@@ -48,7 +48,7 @@ def test_arithmetic_none_propagation(fn_name):
     ret_c = run(model, {"a": a_val, "b": b_val})["c"]
     expected_c = np_fn(a_val, b_val)
 
-    assert np.ma.allclose(expected_c, ret_c, masked_equal=True)
+    assert_array_equal(ret_c, expected_c)
 
 
 @pytest.mark.parametrize(
@@ -74,7 +74,7 @@ def test_reduce_ops_none_filling(fn_name, default_value):
     ret_b = run(model, {"a": inp_a})["b"]
     expected_b = np_fn(np.ma.filled(inp_a, default_value))
 
-    np.testing.assert_almost_equal(expected_b, ret_b)
+    assert_array_equal(ret_b, expected_b)
 
 
 @pytest.mark.parametrize(
@@ -167,11 +167,9 @@ def test_masked_setitem():
 
 def test_asarray_masked():
     a = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1])) + 1
-
-    assert np.ma.allclose(
-        np.ma.masked_array([1, 2, 3], mask=[0, 0, 1]) + 1,
+    assert_array_equal(
         a.to_numpy(),
-        masked_equal=True,
+        np.ma.masked_array([2, 3, 4], mask=[0, 0, 1]),
     )
 
 
@@ -186,7 +184,7 @@ def test_opset_extensions():
     shape = opx.shape(a.data)  # type: ignore
     # opset_extensions is an internal package that only deals with the internal state (lazy Spox Var and any eager values)
     assert isinstance(shape, _CoreArray)
-    np.testing.assert_equal(shape.to_numpy(), np.array([3], dtype=np.int64))
+    assert_array_equal(shape.to_numpy(), np.array([3], dtype=np.int64))
 
 
 def test_eager_mode():
@@ -195,15 +193,15 @@ def test_eager_mode():
     c = ndx.asarray(
         np.ma.masked_array([-12, 21, 12213], mask=[1, 0, 0], dtype=np.int64)
     )
-    np.testing.assert_equal(
+    assert_array_equal(
         (a + b).to_numpy(),
         np.ma.masked_array([2, 4, 6], mask=[0, 0, 1], dtype=np.int64),
     )
-    np.testing.assert_equal(
+    assert_array_equal(
         (a - b).to_numpy(),
         np.ma.masked_array([0, 0, 0], mask=[0, 0, 1], dtype=np.int64),
     )
-    np.testing.assert_equal(
+    assert_array_equal(
         (a * c).to_numpy(),
         np.ma.masked_array([-12, 42, 36639], mask=[1, 0, 1], dtype=np.int64),
     )
@@ -221,8 +219,8 @@ def test_trilu_masked_input(func):
         [[1, 2, 3], [4, 5, 6]], mask=[[0, 0, 1], [0, 0, 0]], dtype=np.int64
     )
     expected = func(a)
-    actual = getattr(ndx, func.__name__)(ndx.asarray(a)).to_numpy()
-    np.testing.assert_equal(expected, actual)
+    actual = getattr(ndx, func.__name__)(ndx.asarray(a))
+    assert_array_equal(actual.to_numpy(), expected)
 
 
 @pytest.mark.parametrize(
@@ -253,4 +251,6 @@ def test_broadcasting(arrays):
     expected = np.broadcast_arrays(*arrays)
     actual = ndx.broadcast_arrays(*[ndx.asarray(a) for a in arrays])
     for e, a in zip(expected, actual):
-        np.testing.assert_equal(e, a.to_numpy())
+        # NumPy simply drops the masked array.
+        # We do not want to do the same quite intentionally.
+        np.testing.assert_equal(a.to_numpy(), e)
