@@ -12,7 +12,7 @@ Changelog
 
 **Bug fixes**
 
-- Fixes lazy array export ``shape`` calculation in presence of unknown dimensions.
+- Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.
 
 
 0.8.0 (2024-08-22)
