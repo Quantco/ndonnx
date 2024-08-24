@@ -12,6 +12,7 @@ import numpy as np
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
+import ndonnx.additional as nda
 
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
@@ -169,7 +170,7 @@ class BooleanOperationsImpl(UniformShapeOperations):
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
-            null=ndx.reshape(null, x.shape),
+            null=ndx.reshape(null, nda.shape(x)),
         )
 
 

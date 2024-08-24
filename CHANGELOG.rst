@@ -7,8 +7,13 @@
 Changelog
 =========
 
+
 0.9.0 (unreleased)
 ------------------
+
+**Bug fixes**
+
+- Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.
 
 **Breaking change**
 

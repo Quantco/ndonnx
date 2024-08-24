@@ -16,6 +16,7 @@ import numpy as np
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
+import ndonnx.additional as nda
 from ndonnx._utility import promote
 
 from ._nullableimpl import NullableOperationsImpl
@@ -198,7 +199,7 @@ class NumericOperationsImpl(UniformShapeOperations):
     def isinf(self, x):
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
             return unary_op(x, opx.isinf)
-        return ndx.full(x.shape, fill_value=False)
+        return ndx.full(nda.shape(x), fill_value=False)
 
     @validate_core
     def isnan(self, x):
@@ -400,9 +401,7 @@ class NumericOperationsImpl(UniformShapeOperations):
             return (ndx.arange(0, x != 0, dtype=dtypes.int64),)
 
         ret_full_flattened = ndx.reshape(
-            from_corearray(
-                opx.ndindex(ndx.asarray(x.shape, dtype=dtypes.int64)._core())
-            )[x != 0],
+            from_corearray(opx.ndindex(nda.shape(x)._core()))[x != 0],
             [-1],
         )
 
@@ -413,7 +412,7 @@ class NumericOperationsImpl(UniformShapeOperations):
                         ret_full_flattened._core(),
                         ndx.arange(
                             i,
-                            ret_full_flattened.shape[0],
+                            nda.shape(ret_full_flattened)[0],
                             x.ndim,
                             dtype=dtypes.int64,
                         )._core(),
@@ -454,20 +453,21 @@ class NumericOperationsImpl(UniformShapeOperations):
             from_corearray, opx.get_indices(x1._core(), x2._core(), positions._core())
         )
 
-        how_many = ndx.zeros(ndx.asarray(combined.shape) + 1, dtype=dtypes.int64)
+        combined_shape = nda.shape(combined)
+        how_many = ndx.zeros(combined_shape + 1, dtype=dtypes.int64)
         how_many[
-            ndx.where(indices_x1 + 1 <= combined.shape[0], indices_x1 + 1, indices_x1)
+            ndx.where(indices_x1 + 1 <= combined_shape[0], indices_x1 + 1, indices_x1)
         ] = counts
         how_many = ndx.cumulative_sum(how_many, include_initial=True)
 
-        ret = ndx.zeros(x2.shape, dtype=dtypes.int64)
+        ret = ndx.zeros(nda.shape(x2), dtype=dtypes.int64)
 
         if side == "left":
             ret = how_many[indices_x2]
-            ret[nan_mask] = ndx.asarray(x1.shape, dtype=dtypes.int64) - 1
+            ret[nan_mask] = nda.shape(x1) - 1
         else:
             ret = how_many[indices_x2 + 1]
-            ret[nan_mask] = ndx.asarray(x1.shape, dtype=dtypes.int64)
+            ret[nan_mask] = nda.shape(x1)
 
         return ret
 
@@ -494,7 +494,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         # FIXME: I think we can simply use arange/ones+cumsum or something for the indices
         # maybe: indices = opx.cumsum(ones_like(flattened, dtype=dtypes.i64), axis=ndx.asarray(0))
         indices = opx.squeeze(
-            opx.ndindex(ndx.asarray(flattened.shape, dtype=dtypes.int64)._core()),
+            opx.ndindex(nda.shape(flattened)._core()),
             opx.const([1], dtype=dtypes.int64),
         )
 
@@ -502,7 +502,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
         values = from_corearray(ret_opd[0])
         indices = from_corearray(indices[ret_opd[1]])
-        inverse_indices = ndx.reshape(from_corearray(ret_opd[2]), x.shape)
+        inverse_indices = ndx.reshape(from_corearray(ret_opd[2]), nda.shape(x))
         counts = from_corearray(ret_opd[3])
 
         return ret(
@@ -535,7 +535,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         if axis < 0:
             axis += x.ndim
 
-        _len = ndx.asarray(x.shape[axis : axis + 1], dtype=dtypes.int64)._core()
+        _len = ndx.asarray(nda.shape(x)[axis : axis + 1], dtype=dtypes.int64)._core()
         return _via_i64_f64(
             lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[1], [x]
         )
@@ -544,7 +544,7 @@ class NumericOperationsImpl(UniformShapeOperations):
     def sort(self, x, *, axis=-1, descending=False, stable=True):
         if axis < 0:
             axis += x.ndim
-        _len = ndx.asarray(x.shape[axis : axis + 1], dtype=dtypes.int64)._core()
+        _len = ndx.asarray(nda.shape(x)[axis : axis + 1], dtype=dtypes.int64)._core()
         return _via_i64_f64(
             lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[0], [x]
         )
@@ -813,7 +813,7 @@ class NumericOperationsImpl(UniformShapeOperations):
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
-            null=ndx.reshape(null, x.shape),
+            null=ndx.reshape(null, nda.shape(x)),
         )
 
     @validate_core

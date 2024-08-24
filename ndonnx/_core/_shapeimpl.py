@@ -99,7 +99,7 @@ class UniformShapeOperations(OperationsBlock):
         if not isinstance(shift, Sequence):
             shift = [shift]
 
-        old_shape = x.shape
+        old_shape = nda.shape(x)
 
         if axis is None:
             x = ndx.reshape(x, [-1])
@@ -112,9 +112,7 @@ class UniformShapeOperations(OperationsBlock):
             raise ValueError("shift and axis must have the same length")
 
         for sh, ax in zip(shift, axis):
-            len_single = opx.gather(
-                ndx.asarray(x.shape, dtype=dtypes.int64)._core(), opx.const(ax)
-            )
+            len_single = opx.gather(nda.shape(x)._core(), opx.const(ax))
             shift_single = opx.add(opx.const(-sh, dtype=dtypes.int64), len_single)
             # Find the needed element index and then gather from it
             range = opx.cast(
@@ -246,7 +244,7 @@ class UniformShapeOperations(OperationsBlock):
         return output
 
     def zeros_like(self, x, dtype=None, device=None):
-        return ndx.zeros(x.shape, dtype=dtype or x.dtype, device=device)
+        return ndx.zeros(nda.shape(x), dtype=dtype or x.dtype, device=device)
 
     def ones_like(self, x, dtype=None, device=None):
-        return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
+        return ndx.ones(nda.shape(x), dtype=dtype or x.dtype, device=device)

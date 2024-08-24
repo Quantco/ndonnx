@@ -13,6 +13,7 @@ import numpy.typing as npt
 import ndonnx._data_types as dtypes
 from ndonnx._data_types import CastError, CastMixin, CoreType, _NullableCore
 from ndonnx._data_types.structtype import StructType
+from ndonnx.additional import shape
 
 from . import _opset_extensions as opx
 from ._array import Array, _from_corearray
@@ -574,7 +575,7 @@ def broadcast_arrays(*arrays):
     ret = numeric_like(next(it))
     while (x := next(it, None)) is not None:
         ret = ret + numeric_like(x)
-    target_shape = ret.shape
+    target_shape = shape(ret)
     return [broadcast_to(x, target_shape) for x in arrays]
 
 
