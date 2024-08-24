@@ -11,7 +11,7 @@ jobs:
     # Run if the commit message contains 'run array-api tests' or if the job is triggered on schedule
     name: Array API test
     timeout-minutes: 90
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8core
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
