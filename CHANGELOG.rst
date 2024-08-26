@@ -13,8 +13,8 @@ Changelog
 
 **New features**
 
-- User defined data types can now define how arrays with that dtype are constructed by implementing the :func:`make_array` function.
-- User defined data types can now define how they are indexed (via `__getitem__`) by implementing the :func:`getitem` function.
+- User defined data types can now define how arrays with that dtype are constructed by implementing the ``make_array`` function.
+- User defined data types can now define how they are indexed (via ``__getitem__``) by implementing the ``getitem`` function.
 
 **Bug fixes**
 

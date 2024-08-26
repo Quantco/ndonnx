@@ -152,7 +152,7 @@ def _getitem(x: Array, index: IndexType) -> ndx.Array:
     out = x.dtype._ops.getitem(x, index)
     if out is NotImplemented:
         raise ndx.UnsupportedOperationError(
-            f"`getitem` not implemented for `{x.dtype}`"
+            f"'getitem' not implemented for `{x.dtype}`"
         )
     return out
 
