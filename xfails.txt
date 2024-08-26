@@ -1,5 +1,4 @@
 array_api_tests/test_constants.py::test_newaxis
-array_api_tests/test_creation_functions.py::test_asarray_arrays
 array_api_tests/test_creation_functions.py::test_eye
 array_api_tests/test_creation_functions.py::test_meshgrid
 array_api_tests/test_data_type_functions.py::test_can_cast
@@ -69,8 +68,6 @@ array_api_tests/test_inspection_functions.py::test_array_namespace_info_dtypes
 array_api_tests/test_linalg.py::test_matrix_transpose
 array_api_tests/test_linalg.py::test_tensordot
 array_api_tests/test_linalg.py::test_vecdot
-array_api_tests/test_manipulation_functions.py::test_concat
-array_api_tests/test_manipulation_functions.py::test_expand_dims
 array_api_tests/test_manipulation_functions.py::test_moveaxis
 array_api_tests/test_manipulation_functions.py::test_repeat
 array_api_tests/test_manipulation_functions.py::test_squeeze
@@ -79,9 +76,6 @@ array_api_tests/test_manipulation_functions.py::test_unstack
 array_api_tests/test_operators_and_elementwise_functions.py::test_acosh
 array_api_tests/test_operators_and_elementwise_functions.py::test_asinh
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
-array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__irshift__(x1, x2)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__rshift__(x1, x2)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[bitwise_right_shift(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_clip
 array_api_tests/test_operators_and_elementwise_functions.py::test_conj
 array_api_tests/test_operators_and_elementwise_functions.py::test_copysign
@@ -91,13 +85,11 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_imag
 array_api_tests/test_operators_and_elementwise_functions.py::test_maximum
 array_api_tests/test_operators_and_elementwise_functions.py::test_minimum
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__ipow__(x, s)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__ipow__(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__pow__(x, s)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__pow__(x1, x2)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_pow[pow(x1, x2)]
 array_api_tests/test_operators_and_elementwise_functions.py::test_real
 array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
 array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
+array_api_tests/test_operators_and_elementwise_functions.py::test_sqrt
 array_api_tests/test_operators_and_elementwise_functions.py::test_tan
 array_api_tests/test_searching_functions.py::test_argmax
 array_api_tests/test_searching_functions.py::test_argmin
@@ -165,9 +157,5 @@ array_api_tests/test_special_cases.py::test_unary[sinh(x_i is +infinity) -> +inf
 array_api_tests/test_special_cases.py::test_unary[sinh(x_i is -0) -> -0]
 array_api_tests/test_special_cases.py::test_unary[sinh(x_i is -infinity) -> -infinity]
 array_api_tests/test_special_cases.py::test_unary[sinh(x_i is NaN) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[sqrt(x_i < 0) -> NaN]
 array_api_tests/test_statistical_functions.py::test_cumulative_sum
 array_api_tests/test_statistical_functions.py::test_prod
-array_api_tests/test_statistical_functions.py::test_sum
-array_api_tests/test_utility_functions.py::test_all
-array_api_tests/test_utility_functions.py::test_any
