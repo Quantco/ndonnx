@@ -14,6 +14,7 @@ Changelog
 **Bug fixes**
 
 - Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.
+- Fixes :func:`~ndonnx.cumulative_sum` to correctly apply the ``include_initial`` parameter and workaround missing ORT kernels for unsigned integral types.
 
 **Breaking change**
 

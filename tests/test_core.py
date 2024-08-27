@@ -926,3 +926,41 @@ def test_lazy_array_shape(x, expected_shape):
 def test_dynamic_reshape_has_no_static_shape(x, shape):
     with pytest.raises(ValueError, match="Could not determine static shape"):
         ndx.reshape(x, shape).shape
+
+
+@pytest.mark.skipif(
+    not np.__version__.startswith("2"), reason="NumPy >= 2 used for test assertions"
+)
+@pytest.mark.parametrize("include_initial", [True, False])
+@pytest.mark.parametrize(
+    "dtype",
+    [ndx.int32, ndx.int64, ndx.float32, ndx.float64, ndx.uint8, ndx.uint16, ndx.uint32],
+)
+@pytest.mark.parametrize(
+    "array, axis",
+    [
+        ([1, 2, 3], None),
+        ([1, 2, 3], 0),
+        ([[1, 2], [3, 4]], 0),
+        ([[1, 2], [3, 4]], 1),
+        ([[1, 2, 50], [3, 4, 5]], 1),
+        ([[[[1]]], [[[3]]]], 0),
+        ([[[[1]]], [[[3]]]], 1),
+    ],
+)
+def test_cumulative_sum(array, axis, include_initial, dtype):
+    a = ndx.asarray(array, dtype=dtype)
+    assert_array_equal(
+        ndx.cumulative_sum(a, include_initial=include_initial, axis=axis).to_numpy(),
+        np.cumulative_sum(
+            np.asarray(array, a.dtype.to_numpy_dtype()),
+            include_initial=include_initial,
+            axis=axis,
+        ),
+    )
+
+
+def test_no_unsafe_cumulative_sum_cast():
+    with pytest.raises(ValueError, match="Cannot perform `cumulative_sum`"):
+        a = ndx.asarray([1, 2, 3], ndx.uint64)
+        ndx.cumulative_sum(a)
