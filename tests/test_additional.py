@@ -117,3 +117,29 @@ def test_isin():
 
     a = ndx.asarray(["hello", "world"])
     assert_array_equal([True, False], nda.isin(a, ["hello"]).to_numpy())
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ndx.int64,
+        ndx.utf8,
+        ndx.bool,
+    ],
+)
+@pytest.mark.parametrize(
+    "mask",
+    [
+        [True, False, True],
+        True,
+        False,
+        [True],
+    ],
+)
+def test_make_nullable(dtype, mask):
+    a = ndx.asarray([1, 2, 3], dtype=dtype)
+    m = ndx.asarray(mask)
+
+    result = nda.make_nullable(a, m)
+    expected = np.ma.masked_array([1, 2, 3], mask, dtype.to_numpy_dtype())
+    assert_array_equal(result.to_numpy(), expected)
