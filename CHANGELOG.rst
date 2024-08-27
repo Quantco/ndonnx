@@ -14,6 +14,7 @@ Changelog
 **Bug fixes**
 
 - Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.
+- :func:`ndonnx.additional.make_nullable` applies broadcasting to the provided null array (instead of reshape like it did previously). This allows writing ``make_nullable(x, False)`` to turn an array into nullable.
 
 **Breaking change**
 
