@@ -18,7 +18,7 @@ from ..dtypes import (
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
-    from ._core_types import _ArrayCoreType
+    from .core import _ArrayCoreType
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)

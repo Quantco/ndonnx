@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from ._typed_array import _TypedArray
+from .typed_array import _TypedArray
 
-from ._core_types import (
+from .core import (
     Float16Data,
     Float32Data,
     Float64Data,
@@ -18,7 +18,7 @@ from ._core_types import (
     Uint32Data,
     Uint8Data,
 )
-from ._array_ma import (
+from .masked import (
     NFloat16Data,
     NFloat32Data,
     NFloat64Data,
@@ -35,7 +35,7 @@ from ._array_ma import (
     asncoredata,
 )
 
-from ._py_scalars import _ArrayPyInt, _ArrayPyFloat
+from .py_scalars import _ArrayPyInt, _ArrayPyFloat
 
 
 __all__ = [

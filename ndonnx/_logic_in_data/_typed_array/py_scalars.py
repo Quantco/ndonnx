@@ -10,8 +10,8 @@ from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import DType
-from ._core_types import _ArrayCoreNum, _ArrayCoreType
-from ._typed_array import DTYPE, _TypedArray
+from .core import _ArrayCoreNum, _ArrayCoreType
+from .typed_array import DTYPE, _TypedArray
 
 if TYPE_CHECKING:
     from ..array import OnnxShape

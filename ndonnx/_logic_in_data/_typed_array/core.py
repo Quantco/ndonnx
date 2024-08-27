@@ -17,7 +17,7 @@ from ..dtypes import (
     DType,
     result_type,
 )
-from ._typed_array import _TypedArray
+from .typed_array import _TypedArray
 
 if TYPE_CHECKING:
     from ..array import OnnxShape

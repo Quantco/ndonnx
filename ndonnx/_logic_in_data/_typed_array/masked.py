@@ -15,8 +15,8 @@ from ..dtypes import (
     CoreDTypes,
     DType,
 )
-from ._core_types import Int8Data, _ArrayCoreType, ascoredata
-from ._typed_array import _TypedArray
+from .core import Int8Data, _ArrayCoreType, ascoredata
+from .typed_array import _TypedArray
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
