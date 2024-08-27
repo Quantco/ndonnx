@@ -44,6 +44,11 @@ class _ArrayMaCoreType(_ArrayMa[DTYPE]):
         # TODO
         raise NotImplementedError
 
+    @classmethod
+    def as_argument(cls, shape: OnnxShape):
+        # TODO
+        raise NotImplementedError
+
     def __add__(self, other: _TypedArray) -> _ArrayMaCoreType:
         if not isinstance(other, (_ArrayCoreType, _ArrayMaCoreType)):
             return NotImplemented

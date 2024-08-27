@@ -7,10 +7,9 @@ from typing import overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
-from spox import Tensor, argument
 
 from ._typed_array import _ArrayPyFloat, _ArrayPyInt, _TypedArray, ascoredata
-from .dtypes import DType, as_numpy
+from .dtypes import DType
 
 StrictShape = tuple[int, ...]
 StandardShape = tuple[int | None, ...]
@@ -18,6 +17,9 @@ OnnxShape = tuple[int | str | None, ...]
 
 
 class Array:
+    """User-facing objects that makes no assumption about any data type related
+    logic."""
+
     _data: _TypedArray
 
     @overload
@@ -31,9 +33,8 @@ class Array:
         # if value is not None:
         #     np.ma.isMaskedArray(value)
         #     data = NullableCoreData()
-        if shape is not None and dtype is not None:
-            var = argument(Tensor(as_numpy(dtype), shape))
-            self._data = ascoredata(var)
+        if isinstance(shape, tuple) and isinstance(dtype, DType):
+            self._data = dtype._data_class.as_argument(shape)
             return
         raise NotImplementedError
 
@@ -47,7 +48,7 @@ class Array:
         return self._data.astype(dtype)
 
     def __add__(self, rhs: int | float | Array) -> Array:
-        rhs_data = _get_data(rhs)
+        rhs_data = _as_typed_array(rhs)
         data = self._data + rhs_data
         if data is not NotImplemented:
             return Array._from_data(data)
@@ -55,7 +56,7 @@ class Array:
 
     def __radd__(self, lhs: int | float | Array) -> Array:
         # This is called for instance when doing int + Array
-        lhs_data = _get_data(lhs)
+        lhs_data = _as_typed_array(lhs)
         data = lhs_data + self._data
         if data is not NotImplemented:
             return Array._from_data(data)
@@ -88,7 +89,7 @@ def asarray(obj: int | float | bool | str | Array) -> Array:
 #         ret
 
 
-def _get_data(val: int | float | Array) -> _TypedArray:
+def _as_typed_array(val: int | float | Array) -> _TypedArray:
     if isinstance(val, Array):
         return val._data
     if isinstance(val, int):

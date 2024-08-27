@@ -61,7 +61,7 @@ class _NNumber(_NCoreDType):
         # e.g. called after `CoreDType._result_type(self)`
 
         if isinstance(lhs, _CoreDType | _NCoreDType):
-            # All core types are cummutative
+            # All core types are commutative
             return self._result_type(lhs)
 
         return NotImplemented
@@ -328,7 +328,6 @@ _pyfloat = _PyFloat()
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
 
 CoreFloatingDTypes = Float16 | Float32 | Float64
-
 
 CoreIntegerDTypes = Int8 | Int16 | Int32 | Int64 | Uint8 | Uint16 | Uint32 | Uint64
 

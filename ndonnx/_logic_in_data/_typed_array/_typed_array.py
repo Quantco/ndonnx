@@ -6,38 +6,56 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 import numpy as np
 from typing_extensions import Self
 
+from .. import dtypes
 from ..dtypes import (
     DType,
 )
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
+    from ._core_types import _ArrayCoreType
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
 
 
 class _TypedArray(ABC, Generic[DTYPE]):
+    dtype: DTYPE
+
     @abstractmethod
     def __init__(self): ...
 
     @classmethod
     @abstractmethod
     def from_data(cls, data: _TypedArray):
-        """Create an instances from a different data object."""
+        """Create an instances from a different data object.
+
+        Raises
+        ------
+        ValueError:
+            If the conversion from `data` is known to be invalid.
+
+        Note
+        ----
+        See `_TypedArray._astype`.
+        """
         ...
+
+    @classmethod
+    @abstractmethod
+    def as_argument(cls, shape: OnnxShape): ...
 
     @abstractmethod
     def __getitem__(self, index) -> Self: ...
 
-    @property
-    @abstractmethod
-    def dtype(self) -> DTYPE: ...
+    # @property
+    # @abstractmethod
+    # def dtype(self) -> DTYPE: ...
 
     @property
     @abstractmethod
@@ -57,6 +75,12 @@ class _TypedArray(ABC, Generic[DTYPE]):
     def to_numpy(self) -> np.ndarray:
         raise TypeError(f"Cannot convert '{self.__class__}' to NumPy array.")
 
+    @overload
+    def astype(self, dtype: dtypes.CoreDTypes) -> _ArrayCoreType: ...
+
+    @overload
+    def astype(self, dtype: DType) -> _TypedArray: ...
+
     def astype(self, dtype: DType) -> _TypedArray:
         """Convert `self` to the data type associated with `dtype`."""
         res = self._astype(dtype)
@@ -69,6 +93,12 @@ class _TypedArray(ABC, Generic[DTYPE]):
 
     @abstractmethod
     def _astype(self, dtype: DType) -> _TypedArray | NotImplementedType:
+        """Reflective sibling method for `Self.from_data` which must thus not call the
+        latter.
+
+        Used this function to implement the conversion from a custom type into a built-
+        in one.
+        """
         return NotImplemented
 
     def __add__(self, other: _TypedArray) -> _TypedArray:

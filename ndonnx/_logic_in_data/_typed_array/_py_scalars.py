@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 from typing_extensions import Self
 
 from .. import dtypes
@@ -17,6 +18,13 @@ if TYPE_CHECKING:
 
 
 class _ArrayPyScalar(_TypedArray[DTYPE]):
+    """Array representing a Python scalar.
+
+    This implementation is written as if it were a "custom" typed array which knows
+    about other (nullable) core types. Those core types are oblivious of this typed
+    array though. Thus, this implementation may serve as a blue print for custom types.
+    """
+
     value: int | float
 
     def __init__(self, value: int | float):
@@ -24,11 +32,17 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
 
     @classmethod
     def from_data(cls, data: _TypedArray):
-        # TODO
+        # This class should only be created when Python scalars
+        # interact with Array objects. As such it should only ever be
+        # instantiated using the `__int__` method.
+        raise ValueError(f"`{cls}` cannot be created from `{type(data)}`")
+
+    @classmethod
+    def as_argument(cls, shape: OnnxShape):
         raise NotImplementedError
 
     def __getitem__(self, index) -> Self:
-        raise NotImplementedError
+        raise IndexError(f"`{type(self)}` cannot be indexed")
 
     @property
     def ndim(self) -> int:
@@ -46,7 +60,6 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         raise ValueError("'schema' has unexpected layout")
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
-        # TODO: Should reshape be moved into a different base class?
         raise ValueError("cannot reshape Python scalar")
 
     def promote(self, *others: _TypedArray) -> Sequence[_TypedArray]:
@@ -55,9 +68,9 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
 
     def _promote(self, other: _ArrayCoreType) -> tuple[_ArrayCoreType, _ArrayCoreType]:
         result_type = self.dtype._result_type(other.dtype)
-
-        self.astype(result_type)
-        raise NotImplementedError
+        if not isinstance(result_type, dtypes.CoreDTypes):
+            raise ValueError
+        return self.astype(result_type), other.astype(result_type)
 
     def __add__(self, rhs: _TypedArray) -> _ArrayCoreType:
         if isinstance(rhs, _ArrayCoreNum):
@@ -69,7 +82,13 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         return NotImplemented
 
     def _astype(self, dtype: DType) -> _TypedArray:
-        # TODO
+        # We implement this class under the assumption that the other
+        # built-in typed arrays do not know about it. Thus, we define
+        # the mapping from this class into those classes here.
+        if isinstance(dtype, dtypes.CoreNumericDTypes):
+            return dtype._data_class.from_np_schema(
+                {"var": np.array(self.value, dtypes.as_numpy(dtype))}
+            )
         raise NotImplementedError
 
 

@@ -37,8 +37,17 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
 
     @classmethod
     def from_data(cls, data: _TypedArray):
-        # TODO
+        if isinstance(data, _ArrayCoreType):
+            var = op.cast(data.var, to=dtypes.as_numpy(cls.dtype))
+            return cls(var)
         raise NotImplementedError
+
+    @classmethod
+    def as_argument(cls, shape: OnnxShape):
+        from spox import Tensor, argument
+
+        var = argument(Tensor(dtypes.as_numpy(cls.dtype), shape))
+        return cls(var)
 
     def __getitem__(self, index) -> Self:
         # TODO
@@ -95,16 +104,17 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         return NotImplemented
 
     def _astype(self, dtype: DType) -> _TypedArray:
-        # TODO
-        raise NotImplementedError
+        return NotImplemented
 
 
 class _ArrayCoreNum(_ArrayCoreType[CORE_DTYPES]):
     def __add__(self, rhs: _TypedArray) -> _ArrayCoreType:
         if isinstance(rhs, _ArrayCoreNum):
             # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
-            a, b = self.promote(self, rhs)
-            var = op.add(a.var, b.var)
+            if type(self) != type(rhs):
+                a, b = self.promote(self, rhs)
+                return a + b
+            var = op.add(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented
 
@@ -189,10 +199,24 @@ class Float64Data(_ArrayCoreFloating[dtypes.Float64]):
 def ascoredata(var: Var) -> _ArrayCoreType:
     np_dtype = var.unwrap_tensor().dtype
 
-    if np_dtype == np.int32:
-        return Int32Data(var)
-
-    raise NotImplementedError
+    mapping: dict[np.dtype, _ArrayCoreType] = {
+        np.dtype("bool"): BoolData(var),
+        np.dtype("int8"): Int8Data(var),
+        np.dtype("int16"): Int16Data(var),
+        np.dtype("int32"): Int32Data(var),
+        np.dtype("int64"): Int64Data(var),
+        np.dtype("uint8"): Uint8Data(var),
+        np.dtype("uint16"): Uint16Data(var),
+        np.dtype("uint32"): Uint32Data(var),
+        np.dtype("uint64"): Uint64Data(var),
+        np.dtype("float16"): Float16Data(var),
+        np.dtype("float32"): Float32Data(var),
+        np.dtype("float64"): Float64Data(var),
+    }
+    try:
+        return mapping[np_dtype]
+    except KeyError:
+        raise NotImplementedError
 
 
 def is_sequence_of_core_data(
