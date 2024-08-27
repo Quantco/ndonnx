@@ -40,7 +40,7 @@ class _ArrayMaCoreType(_ArrayMa[DTYPE]):
     data: _ArrayCoreType  # Specialization of data from `Data` to `_ArrayCoreType`
 
     @classmethod
-    def from_data(cls, data: _TypedArray):
+    def from_typed_array(cls, tyarr: _TypedArray):
         # TODO
         raise NotImplementedError
 

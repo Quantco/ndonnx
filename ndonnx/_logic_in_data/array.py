@@ -34,7 +34,7 @@ class Array:
         #     np.ma.isMaskedArray(value)
         #     data = NullableCoreData()
         if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._data = dtype._data_class.as_argument(shape)
+            self._data = dtype._tyarr_class.as_argument(shape)
             return
         raise NotImplementedError
 

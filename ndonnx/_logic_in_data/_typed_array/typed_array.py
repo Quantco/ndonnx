@@ -32,13 +32,13 @@ class _TypedArray(ABC, Generic[DTYPE]):
 
     @classmethod
     @abstractmethod
-    def from_data(cls, data: _TypedArray):
-        """Create an instances from a different data object.
+    def from_typed_array(cls, tyarr: _TypedArray):
+        """Create an instances from another ``_TypedArray`` object.
 
         Raises
         ------
         ValueError:
-            If the conversion from `data` is known to be invalid.
+            If the conversion from `tyarr` is known to be invalid.
 
         Note
         ----
@@ -82,11 +82,11 @@ class _TypedArray(ABC, Generic[DTYPE]):
     def astype(self, dtype: DType) -> _TypedArray: ...
 
     def astype(self, dtype: DType) -> _TypedArray:
-        """Convert `self` to the data type associated with `dtype`."""
+        """Convert `self` to the `_TypedArray` associated with `dtype`."""
         res = self._astype(dtype)
         if res == NotImplemented:
             # `type(self._data)` does not know about the target `dtype`
-            res = dtype._data_class.from_data(self)
+            res = dtype._tyarr_class.from_typed_array(self)
         if res != NotImplemented:
             return res
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")

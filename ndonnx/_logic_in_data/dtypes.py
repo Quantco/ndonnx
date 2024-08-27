@@ -25,7 +25,7 @@ class DType(ABC):
 
     @property
     @abstractmethod
-    def _data_class(self) -> type[_typed_array._TypedArray[Self]]: ...
+    def _tyarr_class(self) -> type[_typed_array._TypedArray[Self]]: ...
 
 
 class _CoreDType(DType): ...
@@ -72,7 +72,7 @@ class Bool(_CoreDType):
         return NotImplemented
 
     @property
-    def _data_class(self) -> type[_typed_array.BoolData]:
+    def _tyarr_class(self) -> type[_typed_array.BoolData]:
         from ._typed_array import BoolData
 
         return BoolData
@@ -83,7 +83,7 @@ class NBool(_NCoreDType):
         return NotImplemented
 
     @property
-    def _data_class(self) -> type[_typed_array.NBoolData]:
+    def _tyarr_class(self) -> type[_typed_array.NBoolData]:
         from ._typed_array import NBoolData
 
         return NBoolData
@@ -91,7 +91,7 @@ class NBool(_NCoreDType):
 
 class Int8(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Int8Data]:
+    def _tyarr_class(self) -> type[_typed_array.Int8Data]:
         from ._typed_array import Int8Data
 
         return Int8Data
@@ -99,7 +99,7 @@ class Int8(_Number):
 
 class Int16(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Int16Data]:
+    def _tyarr_class(self) -> type[_typed_array.Int16Data]:
         from ._typed_array import Int16Data
 
         return Int16Data
@@ -107,7 +107,7 @@ class Int16(_Number):
 
 class Int32(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Int32Data]:
+    def _tyarr_class(self) -> type[_typed_array.Int32Data]:
         from ._typed_array import Int32Data
 
         return Int32Data
@@ -115,7 +115,7 @@ class Int32(_Number):
 
 class Int64(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Int64Data]:
+    def _tyarr_class(self) -> type[_typed_array.Int64Data]:
         from ._typed_array import Int64Data
 
         return Int64Data
@@ -123,7 +123,7 @@ class Int64(_Number):
 
 class Uint8(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Uint8Data]:
+    def _tyarr_class(self) -> type[_typed_array.Uint8Data]:
         from ._typed_array import Uint8Data
 
         return Uint8Data
@@ -131,7 +131,7 @@ class Uint8(_Number):
 
 class Uint16(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Uint16Data]:
+    def _tyarr_class(self) -> type[_typed_array.Uint16Data]:
         from ._typed_array import Uint16Data
 
         return Uint16Data
@@ -139,7 +139,7 @@ class Uint16(_Number):
 
 class Uint32(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Uint32Data]:
+    def _tyarr_class(self) -> type[_typed_array.Uint32Data]:
         from ._typed_array import Uint32Data
 
         return Uint32Data
@@ -147,7 +147,7 @@ class Uint32(_Number):
 
 class Uint64(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Uint64Data]:
+    def _tyarr_class(self) -> type[_typed_array.Uint64Data]:
         from ._typed_array import Uint64Data
 
         return Uint64Data
@@ -155,7 +155,7 @@ class Uint64(_Number):
 
 class Float16(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Float16Data]:
+    def _tyarr_class(self) -> type[_typed_array.Float16Data]:
         from ._typed_array import Float16Data
 
         return Float16Data
@@ -163,7 +163,7 @@ class Float16(_Number):
 
 class Float32(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Float32Data]:
+    def _tyarr_class(self) -> type[_typed_array.Float32Data]:
         from ._typed_array import Float32Data
 
         return Float32Data
@@ -171,7 +171,7 @@ class Float32(_Number):
 
 class Float64(_Number):
     @property
-    def _data_class(self) -> type[_typed_array.Float64Data]:
+    def _tyarr_class(self) -> type[_typed_array.Float64Data]:
         from ._typed_array import Float64Data
 
         return Float64Data
@@ -179,7 +179,7 @@ class Float64(_Number):
 
 class NInt8(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NInt8Data]:
+    def _tyarr_class(self) -> type[_typed_array.NInt8Data]:
         from ._typed_array import NInt8Data
 
         return NInt8Data
@@ -187,7 +187,7 @@ class NInt8(_NNumber):
 
 class NInt16(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NInt16Data]:
+    def _tyarr_class(self) -> type[_typed_array.NInt16Data]:
         from ._typed_array import NInt16Data
 
         return NInt16Data
@@ -195,7 +195,7 @@ class NInt16(_NNumber):
 
 class NInt32(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NInt32Data]:
+    def _tyarr_class(self) -> type[_typed_array.NInt32Data]:
         from ._typed_array import NInt32Data
 
         return NInt32Data
@@ -203,7 +203,7 @@ class NInt32(_NNumber):
 
 class NInt64(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NInt64Data]:
+    def _tyarr_class(self) -> type[_typed_array.NInt64Data]:
         from ._typed_array import NInt64Data
 
         return NInt64Data
@@ -211,7 +211,7 @@ class NInt64(_NNumber):
 
 class NUint8(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NUint8Data]:
+    def _tyarr_class(self) -> type[_typed_array.NUint8Data]:
         from ._typed_array import NUint8Data
 
         return NUint8Data
@@ -219,7 +219,7 @@ class NUint8(_NNumber):
 
 class NUint16(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NUint16Data]:
+    def _tyarr_class(self) -> type[_typed_array.NUint16Data]:
         from ._typed_array import NUint16Data
 
         return NUint16Data
@@ -227,7 +227,7 @@ class NUint16(_NNumber):
 
 class NUint32(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NUint32Data]:
+    def _tyarr_class(self) -> type[_typed_array.NUint32Data]:
         from ._typed_array import NUint32Data
 
         return NUint32Data
@@ -235,7 +235,7 @@ class NUint32(_NNumber):
 
 class NUint64(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NUint64Data]:
+    def _tyarr_class(self) -> type[_typed_array.NUint64Data]:
         from ._typed_array import NUint64Data
 
         return NUint64Data
@@ -243,7 +243,7 @@ class NUint64(_NNumber):
 
 class NFloat16(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NFloat16Data]:
+    def _tyarr_class(self) -> type[_typed_array.NFloat16Data]:
         from ._typed_array import NFloat16Data
 
         return NFloat16Data
@@ -251,7 +251,7 @@ class NFloat16(_NNumber):
 
 class NFloat32(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NFloat32Data]:
+    def _tyarr_class(self) -> type[_typed_array.NFloat32Data]:
         from ._typed_array import NFloat32Data
 
         return NFloat32Data
@@ -259,7 +259,7 @@ class NFloat32(_NNumber):
 
 class NFloat64(_NNumber):
     @property
-    def _data_class(self) -> type[_typed_array.NFloat64Data]:
+    def _tyarr_class(self) -> type[_typed_array.NFloat64Data]:
         from ._typed_array import NFloat64Data
 
         return NFloat64Data
@@ -272,7 +272,7 @@ class _PyInt(DType):
         raise ValueError
 
     @property
-    def _data_class(self) -> type[_typed_array._ArrayPyInt]:
+    def _tyarr_class(self) -> type[_typed_array._ArrayPyInt]:
         from ._typed_array import _ArrayPyInt
 
         return _ArrayPyInt
@@ -289,7 +289,7 @@ class _PyFloat(DType):
         raise ValueError
 
     @property
-    def _data_class(self) -> type[_typed_array._ArrayPyFloat]:
+    def _tyarr_class(self) -> type[_typed_array._ArrayPyFloat]:
         from ._typed_array import _ArrayPyFloat
 
         return _ArrayPyFloat

@@ -36,9 +36,9 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         self.var = var
 
     @classmethod
-    def from_data(cls, data: _TypedArray):
-        if isinstance(data, _ArrayCoreType):
-            var = op.cast(data.var, to=dtypes.as_numpy(cls.dtype))
+    def from_typed_array(cls, tyarr: _TypedArray):
+        if isinstance(tyarr, _ArrayCoreType):
+            var = op.cast(tyarr.var, to=dtypes.as_numpy(cls.dtype))
             return cls(var)
         raise NotImplementedError
 

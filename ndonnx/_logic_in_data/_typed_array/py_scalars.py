@@ -31,11 +31,11 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         self.value = value
 
     @classmethod
-    def from_data(cls, data: _TypedArray):
+    def from_typed_array(cls, tyarr: _TypedArray):
         # This class should only be created when Python scalars
         # interact with Array objects. As such it should only ever be
         # instantiated using the `__int__` method.
-        raise ValueError(f"`{cls}` cannot be created from `{type(data)}`")
+        raise ValueError(f"`{cls}` cannot be created from `{type(tyarr)}`")
 
     @classmethod
     def as_argument(cls, shape: OnnxShape):
@@ -86,7 +86,7 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         # built-in typed arrays do not know about it. Thus, we define
         # the mapping from this class into those classes here.
         if isinstance(dtype, dtypes.CoreNumericDTypes):
-            return dtype._data_class.from_np_schema(
+            return dtype._tyarr_class.from_np_schema(
                 {"var": np.array(self.value, dtypes.as_numpy(dtype))}
             )
         raise NotImplementedError
