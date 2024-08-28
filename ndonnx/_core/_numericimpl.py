@@ -460,7 +460,7 @@ class _NumericOperationsImpl(OperationsBlock):
         how_many[
             ndx.where(indices_x1 + 1 <= combined_shape[0], indices_x1 + 1, indices_x1)
         ] = counts
-        how_many = ndx.cumulative_sum(how_many, include_initial=True)
+        how_many = ndx.cumulative_sum(how_many, include_initial=False, axis=None)
 
         ret = ndx.zeros(nda.shape(x2), dtype=dtypes.int64)
 
@@ -568,13 +568,45 @@ class _NumericOperationsImpl(OperationsBlock):
                 axis = 0
             else:
                 raise ValueError("axis must be specified for multi-dimensional arrays")
+
+        if dtype is None:
+            if isinstance(x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+                if ndx.iinfo(x.dtype).bits < 64:
+                    out = x.astype(dtypes.int64)
+                else:
+                    raise ndx.UnsupportedOperationError(
+                        f"Cannot perform `cumulative_sum` using {x.dtype}"
+                    )
+            else:
+                out = x.astype(_determine_reduce_op_dtype(x, dtype, dtypes.int64))
+        else:
+            out = out.astype(dtype)
+
         out = from_corearray(
             opx.cumsum(
-                x._core(), axis=opx.const(axis), exclusive=int(not include_initial)
+                out._core(),
+                axis=opx.const(axis),
+                exclusive=0,
             )
         )
-        if dtype is not None:
-            out = out.astype(dtype)
+
+        if isinstance(x.dtype, dtypes.Unsigned):
+            out = out.astype(ndx.uint64)
+        elif isinstance(x.dtype, dtypes.NullableUnsigned):
+            out = out.astype(ndx.nuint64)
+
+        # Exclude axis and create zeros of that shape
+        if include_initial:
+            out_shape = nda.shape(out)
+            out_shape[axis] = 1
+            out = ndx.concat(
+                [
+                    ndx.zeros(out_shape, dtype=out.dtype),
+                    out,
+                ],
+                axis=axis,
+            )
+
         return out
 
     @validate_core
