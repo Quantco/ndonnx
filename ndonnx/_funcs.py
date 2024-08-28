@@ -580,7 +580,11 @@ def broadcast_arrays(*arrays):
 
 
 def broadcast_to(x, shape):
-    return x.dtype._ops.broadcast_to(x, shape)
+    if (out := x.dtype._ops.broadcast_to(x, shape)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for broadcast_to: '{x.dtype}'"
+    )
 
 
 # TODO: onnxruntime doesn't work for 2 empty arrays of integer type
@@ -599,27 +603,47 @@ def concat(arrays, /, *, axis: int | None = 0):
 
 
 def expand_dims(x, axis=0):
-    return x.dtype._ops.expand_dims(x, axis)
+    if (out := x.dtype._ops.expand_dims(x, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for expand_dims: '{x.dtype}'"
+    )
 
 
 def flip(x, axis=None):
-    return x.dtype._ops.flip(x, axis=axis)
+    if (out := x.dtype._ops.flip(x, axis=axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for flip: '{x.dtype}'")
 
 
 def permute_dims(x, axes):
-    return x.dtype._ops.permute_dims(x, axes)
+    if (out := x.dtype._ops.permute_dims(x, axes)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for permute_dims: '{x.dtype}'"
+    )
 
 
 def reshape(x, shape, *, copy=None):
-    return x.dtype._ops.reshape(x, shape, copy=copy)
+    if (out := x.dtype._ops.reshape(x, shape, copy=copy)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for reshape: '{x.dtype}'"
+    )
 
 
 def roll(x, shift, axis=None):
-    return x.dtype._ops.roll(x, shift, axis)
+    if (out := x.dtype._ops.roll(x, shift, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for roll: '{x.dtype}'")
 
 
 def squeeze(x, axis):
-    return x.dtype._ops.squeeze(x, axis)
+    if (out := x.dtype._ops.squeeze(x, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for squeeze: '{x.dtype}'"
+    )
 
 
 def stack(arrays, axis=0):
