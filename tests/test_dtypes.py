@@ -390,3 +390,27 @@ def test_create_dtype_mismatched_shape_fields_lazy():
     out = x[1:2, 0, ...]
 
     ndx.build({"x": x}, {"out": out})
+
+
+def test_recursive_construction():
+    class MyNInt64(StructType):
+        def _fields(self) -> dict[str, StructType | CoreType]:
+            return {"x": ndx.nint64}
+
+        def _parse_input(self, x: np.ndarray) -> dict:
+            return {"x": ndx.nint64._parse_input(x)}
+
+        def _assemble_output(self, fields: dict[str, np.ndarray]) -> np.ndarray:
+            return fields["x"]
+
+        def copy(self) -> Self:
+            return self
+
+        def _schema(self) -> Schema:
+            return Schema(type_name="my_nint64", author="me")
+
+        _ops = UniformShapeOperations()
+
+    my_nint64 = MyNInt64()
+    a = ndx.asarray(np.ma.masked_array([1, 2, 3], [1, 0, 1], np.int64), my_nint64)
+    assert_array_equal(a.to_numpy(), np.ma.masked_array([1, 2, 3], [1, 0, 1], np.int64))

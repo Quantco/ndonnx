@@ -263,16 +263,18 @@ class UniformShapeOperations(OperationsBlock):
         if isinstance(dtype, dtypes.CoreType):
             return NotImplemented
 
-        fields = {}
+        fields: dict[str, ndx.Array] = {}
 
         eager_values = None if eager_value is None else dtype._parse_input(eager_value)
         for name, field_dtype in dtype._fields().items():
+            if eager_values is None:
+                field_value = None
+            else:
+                field_value = _assemble_output_recurse(field_dtype, eager_values[name])
             fields[name] = field_dtype._ops.make_array(
                 shape,
                 field_dtype,
-                field_dtype._assemble_output(eager_values[name])
-                if eager_values is not None
-                else None,
+                field_value,
             )
         return ndx.Array._from_fields(
             dtype,
@@ -291,3 +293,14 @@ class UniformShapeOperations(OperationsBlock):
             index = index._core()
 
         return x._transmute(lambda corearray: corearray[index])
+
+
+def _assemble_output_recurse(dtype: "Dtype", values: dict) -> np.ndarray:
+    if isinstance(dtype, dtypes.CoreType):
+        return dtype._assemble_output(values)
+    else:
+        fields = {
+            name: _assemble_output_recurse(field_dtype, values[name])
+            for name, field_dtype in dtype._fields().items()
+        }
+        return dtype._assemble_output(fields)
