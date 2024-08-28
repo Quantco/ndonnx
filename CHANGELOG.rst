@@ -11,6 +11,10 @@ Changelog
 0.9.0 (unreleased)
 ------------------
 
+**New feature**
+
+- :class:`ndonnx.NullableCore` is now public, encapsulating nullable variants of `CoreType`s exported by ndonnx.
+
 **Bug fixes**
 
 - Various operations that depend on the array's shape have been updated to work correctly with lazy arrays.

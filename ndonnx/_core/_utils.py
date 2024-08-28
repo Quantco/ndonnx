@@ -38,7 +38,7 @@ def variadic_op(
 ):
     args = promote(*args)
     out_dtype = args[0].dtype
-    if not isinstance(out_dtype, (dtypes.CoreType, dtypes._NullableCore)):
+    if not isinstance(out_dtype, (dtypes.CoreType, dtypes.NullableCore)):
         raise TypeError(
             f"Expected ndx.Array with CoreType or NullableCoreType, got {args[0].dtype}"
         )
@@ -100,7 +100,7 @@ def _via_dtype(
     promoted = promote(*arrays)
     out_dtype = promoted[0].dtype
 
-    if isinstance(out_dtype, dtypes._NullableCore) and out_dtype.values == dtype:
+    if isinstance(out_dtype, dtypes.NullableCore) and out_dtype.values == dtype:
         dtype = out_dtype
 
     values, nulls = split_nulls_and_values(
@@ -203,7 +203,7 @@ def validate_core(func):
     def wrapper(*args, **kwargs):
         for arg in itertools.chain(args, kwargs.values()):
             if isinstance(arg, ndx.Array) and not isinstance(
-                arg.dtype, (dtypes.CoreType, dtypes._NullableCore)
+                arg.dtype, (dtypes.CoreType, dtypes.NullableCore)
             ):
                 return NotImplemented
         return func(*args, **kwargs)
