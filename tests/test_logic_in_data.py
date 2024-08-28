@@ -22,10 +22,3 @@ def test_radd_pyscalar(scalar, dtype, res_dtype):
     assert res.dtype == res_dtype
     assert res._data.shape == shape
     assert res.shape == (None,)
-
-
-def test_py_scalar():
-    shape = ("N",)
-    a = Array(shape, dtypes._pyint)
-    a.astype(dtypes.int64)
-    a.astype(dtypes.nint64)

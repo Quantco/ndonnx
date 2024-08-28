@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
-from spox import Var
+from spox import Tensor, Var, argument
 from typing_extensions import Self
 
 from .. import dtypes
@@ -44,8 +44,6 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
 
     @classmethod
     def as_argument(cls, shape: OnnxShape):
-        from spox import Tensor, argument
-
         var = argument(Tensor(dtypes.as_numpy(cls.dtype), shape))
         return cls(var)
 

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -11,7 +10,9 @@ from typing_extensions import Self
 from .. import dtypes
 from ..dtypes import DType
 from .core import _ArrayCoreNum, _ArrayCoreType
+from .masked import _ArrayMaCoreType  # TODO: there should be num-subclass
 from .typed_array import DTYPE, _TypedArray
+from .utils import promote
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
@@ -39,7 +40,7 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
 
     @classmethod
     def as_argument(cls, shape: OnnxShape):
-        raise NotImplementedError
+        raise ValueError(f"`{cls}` cannot be an argument to a graph")
 
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
@@ -62,20 +63,13 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
-    def promote(self, *others: _TypedArray) -> Sequence[_TypedArray]:
-        # TODO
-        raise NotImplementedError
-
-    def _promote(self, other: _ArrayCoreType) -> tuple[_ArrayCoreType, _ArrayCoreType]:
-        result_type = self.dtype._result_type(other.dtype)
-        if not isinstance(result_type, dtypes.CoreDTypes):
-            raise ValueError
-        return self.astype(result_type), other.astype(result_type)
-
-    def __add__(self, rhs: _TypedArray) -> _ArrayCoreType:
-        if isinstance(rhs, _ArrayCoreNum):
-            lhs, rhs = self._promote(rhs)
+    def __add__(self, rhs: _TypedArray[DType]) -> _TypedArray[DType]:
+        if isinstance(rhs, _ArrayCoreNum | _ArrayMaCoreType):
+            lhs, rhs = promote(self, rhs)
             return lhs + rhs
+
+        # We only know about the other (nullable) built-in types &
+        # these scalars should never interact with themselves.
         return NotImplemented
 
     def __or__(self, rhs: _TypedArray) -> _ArrayCoreType:
