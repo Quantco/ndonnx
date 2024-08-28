@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -12,6 +13,10 @@ import ndonnx.additional as nda
 
 from ._interface import OperationsBlock
 from ._utils import from_corearray
+
+if TYPE_CHECKING:
+    from ndonnx._array import Array, IndexType
+    from ndonnx._data_types import Dtype
 
 
 class UniformShapeOperations(OperationsBlock):
@@ -249,7 +254,15 @@ class UniformShapeOperations(OperationsBlock):
     def ones_like(self, x, dtype=None, device=None):
         return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
 
-    def make_array(self, shape, dtype, eager_value=None):
+    def make_array(
+        self,
+        shape: tuple[int | None | str, ...],
+        dtype: "Dtype",
+        eager_value: np.ndarray | None = None,
+    ) -> "Array":
+        if isinstance(dtype, dtypes.CoreType):
+            return NotImplemented
+
         fields = {}
 
         eager_values = None if eager_value is None else dtype._parse_input(eager_value)
@@ -266,7 +279,7 @@ class UniformShapeOperations(OperationsBlock):
             **fields,
         )
 
-    def getitem(self, x, index):
+    def getitem(self, x: "Array", index: "IndexType") -> "Array":
         if isinstance(index, ndx.Array) and not (
             isinstance(index.dtype, dtypes.Integral) or index.dtype == dtypes.bool
         ):

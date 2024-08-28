@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 from ndonnx._utility import deprecated
-
+from typing import Union
 from .aliases import (
     bool,
     float32,
@@ -99,6 +99,9 @@ def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
         raise ValueError(f"Cannot promote {dtype} to nullable")
 
 
+Dtype = Union[CoreType, StructType]
+
+
 @deprecated(
     "Function 'ndonnx.promote_nullable' will be deprecated in ndonnx 0.7. "
     "To create nullable array, use 'ndonnx.additional.make_nullable' instead."
@@ -151,4 +154,5 @@ __all__ = [
     "Schema",
     "CastMixin",
     "CastError",
+    "Dtype",
 ]

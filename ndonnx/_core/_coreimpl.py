@@ -1,6 +1,9 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+from typing import TYPE_CHECKING
+
+import numpy as np
 from spox import Tensor, argument
 
 import ndonnx as ndx
@@ -11,9 +14,20 @@ from ndonnx._corearray import _CoreArray
 from ._interface import OperationsBlock
 from ._utils import validate_core
 
+if TYPE_CHECKING:
+    from ndonnx._array import Array
+    from ndonnx._data_types import Dtype
+
 
 class CoreOperationsImpl(OperationsBlock):
-    def make_array(self, shape, dtype, eager_value=None):
+    def make_array(
+        self,
+        shape: tuple[int | None | str, ...],
+        dtype: "Dtype",
+        eager_value: np.ndarray | None = None,
+    ) -> "Array":
+        if not isinstance(dtype, dtypes.CoreType):
+            return NotImplemented
         return ndx.Array._from_fields(
             dtype,
             data=_CoreArray(
@@ -24,7 +38,7 @@ class CoreOperationsImpl(OperationsBlock):
         )
 
     @validate_core
-    def make_nullable(self, x, null):
+    def make_nullable(self, x: "Array", null: "Array") -> "Array":
         if null.dtype != ndx.bool:
             raise TypeError("'null' must be a boolean array")
 
