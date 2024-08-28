@@ -77,7 +77,7 @@ class StringOperationsImpl(UniformShapeOperations):
         return ndx.Array._from_fields(
             dtypes.into_nullable(x.dtype),
             values=x.copy(),
-            null=ndx.reshape(null, nda.shape(x)),
+            null=ndx.broadcast_to(null, nda.shape(x)),
         )
 
 

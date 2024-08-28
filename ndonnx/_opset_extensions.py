@@ -707,24 +707,31 @@ def reshape_like(x: _CoreArray, y: _CoreArray) -> _CoreArray:
 def static_map(
     input: _CoreArray, mapping: Mapping[KeyType, ValueType], default: ValueType | None
 ) -> _CoreArray:
-    keys = np.array(tuple(mapping.keys()))
-    if keys.dtype == np.int32:
-        keys = keys.astype(np.int64)
-    values = np.array(tuple(mapping.values()))
+    keys = np.asarray(tuple(mapping.keys()))
+    values = np.asarray(tuple(mapping.values()))
+    if isinstance(input.dtype, dtypes.Integral):
+        input = input.astype(dtypes.int64)
+        # Should only be a relevant path in Windows NumPy 1.x
+        if keys.dtype != np.dtype("int64") and keys.dtype.kind == "i":
+            keys = keys.astype(input.dtype.to_numpy_dtype())
+    elif isinstance(input.dtype, dtypes.Floating):
+        input = input.astype(dtypes.float64)
+
     value_dtype = values.dtype
     if default is None:
         if value_dtype.kind == "U" or (
             value_dtype.kind == "O" and all(isinstance(x, str) for x in values.flat)
         ):
-            default_tensor = np.array(["MISSING"])
+            default_tensor = np.asarray(["MISSING"])
         else:
-            default_tensor = np.array([0], dtype=value_dtype)
+            default_tensor = np.asarray([0], dtype=value_dtype)
+    elif value_dtype.kind == "U":
+        default_tensor = np.asarray([default], dtype=np.str_)
     else:
-        default_tensor = np.array([default], dtype=value_dtype)
-
-    if keys.dtype == np.float64 and isinstance(input.dtype, dtypes.Integral):
+        default_tensor = np.asarray([default], dtype=value_dtype)
+    if keys.dtype.kind == "f" and isinstance(input.dtype, dtypes.Integral):
         input = cast(input, dtypes.from_numpy_dtype(keys.dtype))
-    elif keys.dtype == np.int64 and isinstance(input.dtype, dtypes.Floating):
+    elif keys.dtype.kind == "i" and isinstance(input.dtype, dtypes.Floating):
         keys = keys.astype(input.dtype.to_numpy_dtype())
     return _CoreArray(
         ml.label_encoder(

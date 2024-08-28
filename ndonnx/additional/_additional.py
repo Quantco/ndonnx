@@ -88,7 +88,9 @@ def static_map(
         A new Array with the values mapped according to the mapping.
     """
     if not isinstance(x.dtype, ndx.CoreType):
-        raise TypeError("static_map accepts only non-nullable arrays")
+        raise ndx.UnsupportedOperationError(
+            "'static_map' accepts only non-nullable arrays"
+        )
     data = opx.static_map(x._core(), mapping, default)
     return ndx.Array._from_fields(data.dtype, data=data)
 
