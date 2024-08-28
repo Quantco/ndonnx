@@ -586,7 +586,7 @@ def broadcast_to(x, shape):
 # TODO: onnxruntime doesn't work for 2 empty arrays of integer type
 # TODO: what is the appropriate strategy to dispatch? (iterate over the inputs and keep trying is reasonable but it can
 # change the outcome based on order if poorly implemented)
-def concat(arrays, axis=0):
+def concat(arrays, /, *, axis: int | None = 0):
     if axis is None:
         arrays = [reshape(x, [-1]) for x in arrays]
         axis = 0

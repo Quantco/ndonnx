@@ -961,6 +961,8 @@ def test_cumulative_sum(array, axis, include_initial, dtype):
 
 
 def test_no_unsafe_cumulative_sum_cast():
-    with pytest.raises(ValueError, match="Cannot perform `cumulative_sum`"):
+    with pytest.raises(
+        ndx.UnsupportedOperationError, match="Cannot perform `cumulative_sum`"
+    ):
         a = ndx.asarray([1, 2, 3], ndx.uint64)
         ndx.cumulative_sum(a)

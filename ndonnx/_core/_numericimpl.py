@@ -572,7 +572,9 @@ class NumericOperationsImpl(UniformShapeOperations):
                 if ndx.iinfo(x.dtype).bits < 64:
                     out = x.astype(dtypes.int64)
                 else:
-                    raise ValueError(f"Cannot perform `cumulative_sum` using {x.dtype}")
+                    raise ndx.UnsupportedOperationError(
+                        f"Cannot perform `cumulative_sum` using {x.dtype}"
+                    )
             else:
                 out = x.astype(_determine_reduce_op_dtype(x, dtype, dtypes.int64))
         else:
