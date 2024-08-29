@@ -16,7 +16,6 @@ import ndonnx._opset_extensions as opx
 from ._coreimpl import CoreOperationsImpl
 from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
-from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, unary_op, validate_core
 
 if TYPE_CHECKING:
@@ -165,11 +164,7 @@ class _BooleanOperationsImpl(OperationsBlock):
         return ndx.nonzero(x.astype(ndx.int8))
 
 
-class BooleanOperationsImpl(
-    CoreOperationsImpl, _BooleanOperationsImpl, UniformShapeOperations
-): ...
+class BooleanOperationsImpl(CoreOperationsImpl, _BooleanOperationsImpl): ...
 
 
-class NullableBooleanOperationsImpl(
-    NullableOperationsImpl, _BooleanOperationsImpl, UniformShapeOperations
-): ...
+class NullableBooleanOperationsImpl(NullableOperationsImpl, _BooleanOperationsImpl): ...

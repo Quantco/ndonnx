@@ -95,6 +95,11 @@ class Unsigned96Impl(UniformShapeOperations):
             return x + y.astype(Unsigned96())
         return NotImplemented
 
+    def where(self, condition, x, y):
+        x = x.astype(Unsigned96())
+        y = y.astype(Unsigned96())
+        return super().where(condition, x, y)
+
 
 class Unsigned96(StructType, CastMixin):
     def _fields(self) -> dict[str, StructType | CoreType]:
@@ -371,6 +376,21 @@ def test_custom_dtype_capable_creation_functions():
     assert_array_equal(
         ndx.ones_like(x, dtype=ndx.int32).to_numpy(), np.ones_like(arr, dtype=np.int32)
     )
+
+
+def test_custom_where(u96):
+    x = ndx.asarray([1, 2, 3], u96)
+    y = ndx.asarray([4, 5, 6], ndx.uint32)
+    cond = ndx.asarray([True, False, True])
+
+    result1 = ndx.where(cond, x, y)
+    assert_array_equal(result1, ndx.asarray([1, 5, 3], u96))
+
+    result2 = ndx.where(cond, y, x)
+    assert_array_equal(result2, ndx.asarray([4, 2, 6], u96))
+
+    result3 = ndx.where(cond, x, ndx.asarray(0, ndx.uint32))
+    assert_array_equal(result3, ndx.asarray([1, 0, 3], u96))
 
 
 def test_create_dtype_mismatched_shape_fields_eager():

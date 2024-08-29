@@ -162,9 +162,7 @@ class UniformShapeOperations(OperationsBlock):
 
     def where(self, condition, x, y):
         if x.dtype != y.dtype:
-            target_dtype = ndx.result_type(x, y)
-            x = ndx.astype(x, target_dtype)
-            y = ndx.astype(y, target_dtype)
+            return NotImplemented
         if isinstance(condition.dtype, dtypes.Nullable) and not isinstance(
             x.dtype, (dtypes.Nullable, dtypes.CoreType)
         ):
