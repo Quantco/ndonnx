@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Union
 
 import ndonnx as ndx
 
-from ._interface import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 from ._utils import validate_core
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     Dtype = Union[CoreType, StructType]
 
 
-class NullableOperationsImpl(OperationsBlock):
+class NullableOperationsImpl(UniformShapeOperations):
     @validate_core
     def fill_null(self, x: Array, value) -> Array:
         value = ndx.asarray(value)

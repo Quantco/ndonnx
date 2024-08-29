@@ -20,8 +20,8 @@ import ndonnx.additional as nda
 from ndonnx._utility import promote
 
 from ._coreimpl import CoreOperationsImpl
+from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
-from ._shapeimpl import UniformShapeOperations
 from ._utils import (
     binary_op,
     from_corearray,
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
-class _NumericOperationsImpl(UniformShapeOperations):
+class _NumericOperationsImpl(OperationsBlock):
     # elementwise.py
 
     @validate_core

@@ -14,15 +14,15 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
 from ._coreimpl import CoreOperationsImpl
+from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
-from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, unary_op, validate_core
 
 if TYPE_CHECKING:
     from ndonnx import Array
 
 
-class _BooleanOperationsImpl(UniformShapeOperations):
+class _BooleanOperationsImpl(OperationsBlock):
     @validate_core
     def equal(self, x, y) -> Array:
         return binary_op(x, y, opx.equal)
