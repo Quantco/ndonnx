@@ -263,7 +263,9 @@ class UniformShapeOperations(OperationsBlock):
         eager_value: np.ndarray | None = None,
     ) -> Array:
         if isinstance(dtype, dtypes.CoreType):
-            return NotImplemented
+            return dtype._ops.make_array(
+                shape=shape, dtype=dtype, eager_value=eager_value
+            )
 
         fields: dict[str, ndx.Array] = {}
 
