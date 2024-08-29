@@ -578,7 +578,7 @@ class _NumericOperationsImpl(OperationsBlock):
                 f"Unsupported dtype parameter for cumulative_sum {dtype} due to missing kernel support"
             )
         else:
-            out = x.astype(_determine_reduce_op_dtype(x, None, dtypes.int64))
+            out = x.astype(_determine_reduce_op_dtype(x, None, dtypes.uint64))
 
         out = from_corearray(
             opx.cumsum(
