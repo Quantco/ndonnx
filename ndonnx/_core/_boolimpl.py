@@ -101,7 +101,7 @@ class _BooleanOperationsImpl(OperationsBlock):
 
     @validate_core
     def all(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, True, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(True, dtype=ndx.bool)
@@ -111,7 +111,7 @@ class _BooleanOperationsImpl(OperationsBlock):
 
     @validate_core
     def any(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, False, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(False, dtype=ndx.bool)

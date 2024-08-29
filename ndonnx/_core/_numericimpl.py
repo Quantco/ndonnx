@@ -741,7 +741,7 @@ class _NumericOperationsImpl(OperationsBlock):
             and isinstance(x.dtype, dtypes.Numerical)
         ):
             x, min, max = promote(x, min, max)
-            if isinstance(x.dtype, dtypes._NullableCore):
+            if isinstance(x.dtype, dtypes.NullableCore):
                 out_null = x.null
                 x_values = x.values._core()
                 clipped = from_corearray(opx.clip(x_values, min._core(), max._core()))
@@ -847,7 +847,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def all(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, True, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(True, dtype=ndx.bool)
@@ -857,7 +857,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def any(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, False, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(False, dtype=ndx.bool)
@@ -889,7 +889,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def tril(self, x, k=0) -> ndx.Array:
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             # NumPy appears to just ignore the mask so we do the same
             x = x.values
         return x._transmute(
@@ -900,7 +900,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def triu(self, x, k=0) -> ndx.Array:
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             # NumPy appears to just ignore the mask so we do the same
             x = x.values
         return x._transmute(
