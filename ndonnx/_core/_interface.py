@@ -12,6 +12,7 @@ import ndonnx._data_types as dtypes
 
 if TYPE_CHECKING:
     from ndonnx._array import IndexType
+    from ndonnx._data_types import Dtype
 
 
 class OperationsBlock:
@@ -256,7 +257,7 @@ class OperationsBlock:
         x,
         *,
         axis: int | None = None,
-        dtype: ndx.CoreType | dtypes.StructType | None = None,
+        dtype: Dtype | None = None,
         include_initial: bool = False,
     ):
         return NotImplemented
@@ -275,7 +276,7 @@ class OperationsBlock:
         x,
         *,
         axis=None,
-        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        dtype: Dtype | None = None,
         keepdims: bool = False,
     ) -> ndx.Array:
         return NotImplemented
@@ -298,7 +299,7 @@ class OperationsBlock:
         x,
         *,
         axis=None,
-        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        dtype: Dtype | None = None,
         keepdims: bool = False,
     ) -> ndx.Array:
         return NotImplemented
@@ -310,7 +311,7 @@ class OperationsBlock:
         axis=None,
         keepdims: bool = False,
         correction=0.0,
-        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        dtype: Dtype | None = None,
     ) -> ndx.Array:
         return NotImplemented
 
@@ -357,7 +358,7 @@ class OperationsBlock:
     def ones(
         self,
         shape,
-        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        dtype: Dtype | None = None,
         device=None,
     ):
         return NotImplemented
@@ -370,14 +371,12 @@ class OperationsBlock:
     def zeros(
         self,
         shape,
-        dtype: dtypes.CoreType | dtypes.StructType | None = None,
+        dtype: Dtype | None = None,
         device=None,
     ):
         return NotImplemented
 
-    def zeros_like(
-        self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
-    ):
+    def zeros_like(self, x, dtype: Dtype | None = None, device=None):
         return NotImplemented
 
     def empty(self, shape, dtype=None, device=None) -> ndx.Array:
@@ -422,7 +421,7 @@ class OperationsBlock:
     def make_array(
         self,
         shape: tuple[int | None | str, ...],
-        dtype: dtypes.CoreType | dtypes.StructType,
+        dtype: Dtype,
         eager_value: np.ndarray | None = None,
     ) -> ndx.Array:
         return NotImplemented

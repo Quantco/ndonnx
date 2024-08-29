@@ -1,5 +1,7 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Union
 
 import ndonnx as ndx
@@ -16,12 +18,12 @@ if TYPE_CHECKING:
 
 class NullableOperationsImpl(OperationsBlock):
     @validate_core
-    def fill_null(self, x: "Array", value) -> "Array":
+    def fill_null(self, x: Array, value) -> Array:
         value = ndx.asarray(value)
         if value.dtype != x.values.dtype:
             value = value.astype(x.values.dtype)
         return ndx.where(x.null, value, x.values)
 
     @validate_core
-    def make_nullable(self, x: "Array", null: "Array") -> "Array":
+    def make_nullable(self, x: Array, null: Array) -> Array:
         return NotImplemented

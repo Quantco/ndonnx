@@ -1,6 +1,8 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
@@ -257,9 +259,9 @@ class UniformShapeOperations(OperationsBlock):
     def make_array(
         self,
         shape: tuple[int | None | str, ...],
-        dtype: "Dtype",
+        dtype: Dtype,
         eager_value: np.ndarray | None = None,
-    ) -> "Array":
+    ) -> Array:
         if isinstance(dtype, dtypes.CoreType):
             return NotImplemented
 
@@ -281,7 +283,7 @@ class UniformShapeOperations(OperationsBlock):
             **fields,
         )
 
-    def getitem(self, x: "Array", index: "IndexType") -> "Array":
+    def getitem(self, x: Array, index: IndexType) -> Array:
         if isinstance(index, ndx.Array) and not (
             isinstance(index.dtype, dtypes.Integral) or index.dtype == dtypes.bool
         ):
@@ -295,7 +297,7 @@ class UniformShapeOperations(OperationsBlock):
         return x._transmute(lambda corearray: corearray[index])
 
 
-def _assemble_output_recurse(dtype: "Dtype", values: dict) -> np.ndarray:
+def _assemble_output_recurse(dtype: Dtype, values: dict) -> np.ndarray:
     if isinstance(dtype, dtypes.CoreType):
         return dtype._assemble_output(values)
     else:

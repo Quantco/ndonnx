@@ -1,5 +1,6 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
@@ -23,9 +24,9 @@ class CoreOperationsImpl(OperationsBlock):
     def make_array(
         self,
         shape: tuple[int | None | str, ...],
-        dtype: "Dtype",
+        dtype: Dtype,
         eager_value: np.ndarray | None = None,
-    ) -> "Array":
+    ) -> Array:
         if not isinstance(dtype, dtypes.CoreType):
             return NotImplemented
         return ndx.Array._from_fields(
@@ -38,7 +39,7 @@ class CoreOperationsImpl(OperationsBlock):
         )
 
     @validate_core
-    def make_nullable(self, x: "Array", null: "Array") -> "Array":
+    def make_nullable(self, x: Array, null: Array) -> Array:
         if null.dtype != ndx.bool:
             raise TypeError("'null' must be a boolean array")
 
