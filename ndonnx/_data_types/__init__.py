@@ -40,7 +40,7 @@ from .classes import (
     NullableUnsigned,
     Numerical,
     Unsigned,
-    _NullableCore,
+    NullableCore,
     from_numpy_dtype,
     get_finfo,
     get_iinfo,
@@ -51,7 +51,7 @@ from .schema import Schema
 from .structtype import StructType
 
 
-def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
+def into_nullable(dtype: StructType | CoreType) -> NullableCore:
     """Return nullable counterpart, if present.
 
     Parameters
@@ -61,7 +61,7 @@ def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
 
     Returns
     -------
-    out : _NullableCore
+    out : NullableCore
         The nullable counterpart of the input type.
 
     Raises
@@ -93,7 +93,7 @@ def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
         return nuint64
     elif dtype == utf8:
         return nutf8
-    elif isinstance(dtype, _NullableCore):
+    elif isinstance(dtype, NullableCore):
         return dtype
     else:
         raise ValueError(f"Cannot promote {dtype} to nullable")
@@ -103,14 +103,14 @@ def into_nullable(dtype: StructType | CoreType) -> _NullableCore:
     "Function 'ndonnx.promote_nullable' will be deprecated in ndonnx 0.7. "
     "To create nullable array, use 'ndonnx.additional.make_nullable' instead."
 )
-def promote_nullable(dtype: StructType | CoreType) -> _NullableCore:
+def promote_nullable(dtype: StructType | CoreType) -> NullableCore:
     return into_nullable(dtype)
 
 
 __all__ = [
     "CoreType",
     "StructType",
-    "_NullableCore",
+    "NullableCore",
     "NullableFloating",
     "NullableIntegral",
     "NullableUnsigned",

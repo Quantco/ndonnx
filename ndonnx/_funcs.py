@@ -11,7 +11,7 @@ import numpy as np
 import numpy.typing as npt
 
 import ndonnx._data_types as dtypes
-from ndonnx._data_types import CastError, CastMixin, CoreType, _NullableCore
+from ndonnx._data_types import CastError, CastMixin, CoreType, NullableCore
 from ndonnx._data_types.structtype import StructType
 from ndonnx.additional import shape
 
@@ -291,7 +291,7 @@ def result_type(
     np_dtypes = []
     for dtype in observed_dtypes:
         if isinstance(dtype, dtypes.StructType):
-            if isinstance(dtype, _NullableCore):
+            if isinstance(dtype, NullableCore):
                 nullable = True
                 np_dtypes.append(dtype.values.to_numpy_dtype())
             else:

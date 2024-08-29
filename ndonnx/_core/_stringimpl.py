@@ -53,7 +53,7 @@ class StringOperationsImpl(UniformShapeOperations):
         self, x, dtype: dtypes.CoreType | dtypes.StructType | None = None, device=None
     ):
         if dtype is not None and not isinstance(
-            dtype, (dtypes.CoreType, dtypes._NullableCore)
+            dtype, (dtypes.CoreType, dtypes.NullableCore)
         ):
             raise TypeError("'dtype' must be a CoreType or NullableCoreType")
         if dtype in (None, dtypes.utf8, dtypes.nutf8):
