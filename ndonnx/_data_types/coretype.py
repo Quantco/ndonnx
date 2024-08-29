@@ -69,7 +69,11 @@ class CoreType(CastMixin):
 
     def _cast_from(self, array: Array) -> Array:
         if isinstance(array.dtype, CoreType):
-            return ndx.Array._from_fields(self, data=opx.cast(array._core(), to=self))
+            return (
+                ndx.Array._from_fields(self, data=opx.cast(array._core(), to=self))
+                if array.dtype != self
+                else array.copy()
+            )
         else:
             raise CastError(f"Cannot cast from {array.dtype} to {self}")
 

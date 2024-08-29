@@ -568,18 +568,17 @@ class _NumericOperationsImpl(OperationsBlock):
             else:
                 raise ValueError("axis must be specified for multi-dimensional arrays")
 
-        if dtype is None:
-            if isinstance(x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
-                if ndx.iinfo(x.dtype).bits < 64:
-                    out = x.astype(dtypes.int64)
-                else:
-                    raise ndx.UnsupportedOperationError(
-                        f"Cannot perform `cumulative_sum` using {x.dtype}"
-                    )
+        if isinstance(x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+            if ndx.iinfo(x.dtype).bits < 64:
+                out = x.astype(dtypes.int64)
             else:
-                out = x.astype(_determine_reduce_op_dtype(x, dtype, dtypes.int64))
+                return NotImplemented
+        elif dtype == dtypes.uint64 or dtype == dtypes.nuint64:
+            raise ndx.UnsupportedOperationError(
+                f"Unsupported dtype parameter for cumulative_sum {dtype} due to missing kernel support"
+            )
         else:
-            out = out.astype(dtype)
+            out = x.astype(_determine_reduce_op_dtype(x, None, dtypes.int64))
 
         out = from_corearray(
             opx.cumsum(
@@ -589,10 +588,13 @@ class _NumericOperationsImpl(OperationsBlock):
             )
         )
 
-        if isinstance(x.dtype, dtypes.Unsigned):
-            out = out.astype(ndx.uint64)
-        elif isinstance(x.dtype, dtypes.NullableUnsigned):
-            out = out.astype(ndx.nuint64)
+        if dtype is None:
+            if isinstance(x.dtype, dtypes.Unsigned):
+                out = out.astype(ndx.uint64)
+            elif isinstance(x.dtype, dtypes.NullableUnsigned):
+                out = out.astype(ndx.nuint64)
+        else:
+            out = out.astype(dtype)
 
         # Exclude axis and create zeros of that shape
         if include_initial:
