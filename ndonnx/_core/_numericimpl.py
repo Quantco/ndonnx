@@ -20,7 +20,6 @@ import ndonnx.additional as nda
 from ndonnx._utility import promote
 
 from ._coreimpl import CoreOperationsImpl
-from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import (
@@ -38,7 +37,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
-class _NumericOperationsImpl(OperationsBlock):
+class _NumericOperationsImpl(UniformShapeOperations):
     # elementwise.py
 
     @validate_core
@@ -971,14 +970,10 @@ class _NumericOperationsImpl(OperationsBlock):
         return ndx.full_like(x, 0, dtype=dtype)
 
 
-class NumericOperationsImpl(
-    CoreOperationsImpl, _NumericOperationsImpl, UniformShapeOperations
-): ...
+class NumericOperationsImpl(CoreOperationsImpl, _NumericOperationsImpl): ...
 
 
-class NullableNumericOperationsImpl(
-    NullableOperationsImpl, _NumericOperationsImpl, UniformShapeOperations
-): ...
+class NullableNumericOperationsImpl(NullableOperationsImpl, _NumericOperationsImpl): ...
 
 
 def _via_i64_f64(

@@ -12,7 +12,6 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
 from ._coreimpl import CoreOperationsImpl
-from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, validate_core
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
     from ndonnx import Array
 
 
-class _StringOperationsImpl(OperationsBlock):
+class _StringOperationsImpl(UniformShapeOperations):
     @validate_core
     def add(self, x, y) -> Array:
         return binary_op(x, y, opx.string_concat)
@@ -71,11 +70,7 @@ class _StringOperationsImpl(OperationsBlock):
         return ndx.zeros_like(x, dtype=dtype, device=device)
 
 
-class StringOperationsImpl(
-    CoreOperationsImpl, _StringOperationsImpl, UniformShapeOperations
-): ...
+class StringOperationsImpl(CoreOperationsImpl, _StringOperationsImpl): ...
 
 
-class NullableStringOperationsImpl(
-    NullableOperationsImpl, _StringOperationsImpl, UniformShapeOperations
-): ...
+class NullableStringOperationsImpl(NullableOperationsImpl, _StringOperationsImpl): ...

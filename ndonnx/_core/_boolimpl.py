@@ -14,7 +14,6 @@ import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
 from ._coreimpl import CoreOperationsImpl
-from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, unary_op, validate_core
@@ -23,7 +22,7 @@ if TYPE_CHECKING:
     from ndonnx import Array
 
 
-class _BooleanOperationsImpl(OperationsBlock):
+class _BooleanOperationsImpl(UniformShapeOperations):
     @validate_core
     def equal(self, x, y) -> Array:
         return binary_op(x, y, opx.equal)
@@ -165,11 +164,7 @@ class _BooleanOperationsImpl(OperationsBlock):
         return ndx.nonzero(x.astype(ndx.int8))
 
 
-class BooleanOperationsImpl(
-    CoreOperationsImpl, _BooleanOperationsImpl, UniformShapeOperations
-): ...
+class BooleanOperationsImpl(CoreOperationsImpl, _BooleanOperationsImpl): ...
 
 
-class NullableBooleanOperationsImpl(
-    NullableOperationsImpl, _BooleanOperationsImpl, UniformShapeOperations
-): ...
+class NullableBooleanOperationsImpl(NullableOperationsImpl, _BooleanOperationsImpl): ...
