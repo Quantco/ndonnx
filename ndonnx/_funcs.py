@@ -11,7 +11,7 @@ import numpy as np
 import numpy.typing as npt
 
 import ndonnx._data_types as dtypes
-from ndonnx._data_types import CastError, CastMixin, CoreType, _NullableCore
+from ndonnx._data_types import CastError, CastMixin, CoreType, NullableCore
 from ndonnx._data_types.structtype import StructType
 from ndonnx.additional import shape
 
@@ -61,20 +61,26 @@ def asarray(
     device=None,
 ) -> Array:
     if not isinstance(x, Array):
-        arr = np.asanyarray(
+        eager_value = np.asanyarray(
             x,
             dtype=(
                 dtype.to_numpy_dtype() if isinstance(dtype, dtypes.CoreType) else None
             ),
         )
         if dtype is None:
-            dtype = dtypes.from_numpy_dtype(arr.dtype)
-            if isinstance(arr, np.ma.masked_array):
+            dtype = dtypes.from_numpy_dtype(eager_value.dtype)
+            if isinstance(eager_value, np.ma.masked_array):
                 dtype = dtypes.into_nullable(dtype)
 
-        ret = Array._construct(
-            shape=arr.shape, dtype=dtype, eager_values=dtype._parse_input(arr)
+        ret = dtype._ops.make_array(
+            shape=eager_value.shape,
+            dtype=dtype,
+            eager_value=eager_value,
         )
+        if ret is NotImplemented:
+            raise UnsupportedOperationError(
+                f"Unsupported operand type for asarray: '{dtype}'"
+            )
     else:
         ret = x.copy() if copy is True else x
 
@@ -291,7 +297,7 @@ def result_type(
     np_dtypes = []
     for dtype in observed_dtypes:
         if isinstance(dtype, dtypes.StructType):
-            if isinstance(dtype, _NullableCore):
+            if isinstance(dtype, NullableCore):
                 nullable = True
                 np_dtypes.append(dtype.values.to_numpy_dtype())
             else:
@@ -580,7 +586,11 @@ def broadcast_arrays(*arrays):
 
 
 def broadcast_to(x, shape):
-    return x.dtype._ops.broadcast_to(x, shape)
+    if (out := x.dtype._ops.broadcast_to(x, shape)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for broadcast_to: '{x.dtype}'"
+    )
 
 
 # TODO: onnxruntime doesn't work for 2 empty arrays of integer type
@@ -599,27 +609,47 @@ def concat(arrays, /, *, axis: int | None = 0):
 
 
 def expand_dims(x, axis=0):
-    return x.dtype._ops.expand_dims(x, axis)
+    if (out := x.dtype._ops.expand_dims(x, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for expand_dims: '{x.dtype}'"
+    )
 
 
 def flip(x, axis=None):
-    return x.dtype._ops.flip(x, axis=axis)
+    if (out := x.dtype._ops.flip(x, axis=axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for flip: '{x.dtype}'")
 
 
 def permute_dims(x, axes):
-    return x.dtype._ops.permute_dims(x, axes)
+    if (out := x.dtype._ops.permute_dims(x, axes)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for permute_dims: '{x.dtype}'"
+    )
 
 
 def reshape(x, shape, *, copy=None):
-    return x.dtype._ops.reshape(x, shape, copy=copy)
+    if (out := x.dtype._ops.reshape(x, shape, copy=copy)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for reshape: '{x.dtype}'"
+    )
 
 
 def roll(x, shift, axis=None):
-    return x.dtype._ops.roll(x, shift, axis)
+    if (out := x.dtype._ops.roll(x, shift, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for roll: '{x.dtype}'")
 
 
 def squeeze(x, axis):
-    return x.dtype._ops.squeeze(x, axis)
+    if (out := x.dtype._ops.squeeze(x, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for squeeze: '{x.dtype}'"
+    )
 
 
 def stack(arrays, axis=0):

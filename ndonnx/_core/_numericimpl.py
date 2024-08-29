@@ -19,6 +19,8 @@ import ndonnx._opset_extensions as opx
 import ndonnx.additional as nda
 from ndonnx._utility import promote
 
+from ._coreimpl import CoreOperationsImpl
+from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import (
@@ -36,7 +38,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
-class NumericOperationsImpl(UniformShapeOperations):
+class _NumericOperationsImpl(OperationsBlock):
     # elementwise.py
 
     @validate_core
@@ -739,7 +741,7 @@ class NumericOperationsImpl(UniformShapeOperations):
             and isinstance(x.dtype, dtypes.Numerical)
         ):
             x, min, max = promote(x, min, max)
-            if isinstance(x.dtype, dtypes._NullableCore):
+            if isinstance(x.dtype, dtypes.NullableCore):
                 out_null = x.null
                 x_values = x.values._core()
                 clipped = from_corearray(opx.clip(x_values, min._core(), max._core()))
@@ -838,17 +840,6 @@ class NumericOperationsImpl(UniformShapeOperations):
         )
 
     @validate_core
-    def make_nullable(self, x, null):
-        if null.dtype != dtypes.bool:
-            raise TypeError("'null' must be a boolean array")
-
-        return ndx.Array._from_fields(
-            dtypes.into_nullable(x.dtype),
-            values=x.copy(),
-            null=ndx.broadcast_to(null, nda.shape(x)),
-        )
-
-    @validate_core
     def can_cast(self, from_, to) -> bool:
         if isinstance(from_, dtypes.CoreType) and isinstance(to, ndx.CoreType):
             return np.can_cast(from_.to_numpy_dtype(), to.to_numpy_dtype())
@@ -856,7 +847,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def all(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, True, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(True, dtype=ndx.bool)
@@ -866,7 +857,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def any(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, False, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(False, dtype=ndx.bool)
@@ -898,7 +889,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def tril(self, x, k=0) -> ndx.Array:
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             # NumPy appears to just ignore the mask so we do the same
             x = x.values
         return x._transmute(
@@ -909,7 +900,7 @@ class NumericOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def triu(self, x, k=0) -> ndx.Array:
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             # NumPy appears to just ignore the mask so we do the same
             x = x.values
         return x._transmute(
@@ -988,9 +979,14 @@ class NumericOperationsImpl(UniformShapeOperations):
         return super().where(condition, x, y)
 
 
-class NullableNumericOperationsImpl(NumericOperationsImpl, NullableOperationsImpl):
-    def make_nullable(self, x, null):
-        return NotImplemented
+class NumericOperationsImpl(
+    CoreOperationsImpl, _NumericOperationsImpl, UniformShapeOperations
+): ...
+
+
+class NullableNumericOperationsImpl(
+    NullableOperationsImpl, _NumericOperationsImpl, UniformShapeOperations
+): ...
 
 
 def _via_i64_f64(
