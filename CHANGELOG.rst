@@ -11,8 +11,10 @@ Changelog
 0.9.0 (unreleased)
 ------------------
 
-**New feature**
+**New features**
 
+- User defined data types can now define how arrays with that dtype are constructed by implementing the ``make_array`` function.
+- User defined data types can now define how they are indexed (via ``__getitem__``) by implementing the ``getitem`` function.
 - :class:`ndonnx.NullableCore` is now public, encapsulating nullable variants of `CoreType`s exported by ndonnx.
 
 **Bug fixes**

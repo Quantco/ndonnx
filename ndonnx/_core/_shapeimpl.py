@@ -1,7 +1,10 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -12,6 +15,10 @@ import ndonnx.additional as nda
 
 from ._interface import OperationsBlock
 from ._utils import from_corearray
+
+if TYPE_CHECKING:
+    from ndonnx._array import Array, IndexType
+    from ndonnx._data_types import Dtype
 
 
 class UniformShapeOperations(OperationsBlock):
@@ -247,4 +254,55 @@ class UniformShapeOperations(OperationsBlock):
         return ndx.zeros(nda.shape(x), dtype=dtype or x.dtype, device=device)
 
     def ones_like(self, x, dtype=None, device=None):
-        return ndx.ones(nda.shape(x), dtype=dtype or x.dtype, device=device)
+        return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
+
+    def make_array(
+        self,
+        shape: tuple[int | None | str, ...],
+        dtype: Dtype,
+        eager_value: np.ndarray | None = None,
+    ) -> Array:
+        if isinstance(dtype, dtypes.CoreType):
+            return NotImplemented
+
+        fields: dict[str, ndx.Array] = {}
+
+        eager_values = None if eager_value is None else dtype._parse_input(eager_value)
+        for name, field_dtype in dtype._fields().items():
+            if eager_values is None:
+                field_value = None
+            else:
+                field_value = _assemble_output_recurse(field_dtype, eager_values[name])
+            fields[name] = field_dtype._ops.make_array(
+                shape,
+                field_dtype,
+                field_value,
+            )
+        return ndx.Array._from_fields(
+            dtype,
+            **fields,
+        )
+
+    def getitem(self, x: Array, index: IndexType) -> Array:
+        if isinstance(index, ndx.Array) and not (
+            isinstance(index.dtype, dtypes.Integral) or index.dtype == dtypes.bool
+        ):
+            raise TypeError(
+                f"Index must be an integral or boolean 'Array', not `{index.dtype}`"
+            )
+
+        if isinstance(index, ndx.Array):
+            index = index._core()
+
+        return x._transmute(lambda corearray: corearray[index])
+
+
+def _assemble_output_recurse(dtype: Dtype, values: dict) -> np.ndarray:
+    if isinstance(dtype, dtypes.CoreType):
+        return dtype._assemble_output(values)
+    else:
+        fields = {
+            name: _assemble_output_recurse(field_dtype, values[name])
+            for name, field_dtype in dtype._fields().items()
+        }
+        return dtype._assemble_output(fields)

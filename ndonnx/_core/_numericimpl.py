@@ -19,6 +19,8 @@ import ndonnx._opset_extensions as opx
 import ndonnx.additional as nda
 from ndonnx._utility import promote
 
+from ._coreimpl import CoreOperationsImpl
+from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
 from ._shapeimpl import UniformShapeOperations
 from ._utils import (
@@ -36,7 +38,7 @@ if TYPE_CHECKING:
     from ndonnx._corearray import _CoreArray
 
 
-class NumericOperationsImpl(UniformShapeOperations):
+class _NumericOperationsImpl(OperationsBlock):
     # elementwise.py
 
     @validate_core
@@ -838,17 +840,6 @@ class NumericOperationsImpl(UniformShapeOperations):
         )
 
     @validate_core
-    def make_nullable(self, x, null):
-        if null.dtype != dtypes.bool:
-            raise TypeError("'null' must be a boolean array")
-
-        return ndx.Array._from_fields(
-            dtypes.into_nullable(x.dtype),
-            values=x.copy(),
-            null=ndx.broadcast_to(null, nda.shape(x)),
-        )
-
-    @validate_core
     def can_cast(self, from_, to) -> bool:
         if isinstance(from_, dtypes.CoreType) and isinstance(to, ndx.CoreType):
             return np.can_cast(from_.to_numpy_dtype(), to.to_numpy_dtype())
@@ -980,9 +971,14 @@ class NumericOperationsImpl(UniformShapeOperations):
         return ndx.full_like(x, 0, dtype=dtype)
 
 
-class NullableNumericOperationsImpl(NumericOperationsImpl, NullableOperationsImpl):
-    def make_nullable(self, x, null):
-        return NotImplemented
+class NumericOperationsImpl(
+    CoreOperationsImpl, _NumericOperationsImpl, UniformShapeOperations
+): ...
+
+
+class NullableNumericOperationsImpl(
+    NullableOperationsImpl, _NumericOperationsImpl, UniformShapeOperations
+): ...
 
 
 def _via_i64_f64(
