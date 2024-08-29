@@ -15,7 +15,12 @@ from ndonnx import (
     CastError,
     CoreType,
 )
-from ndonnx._experimental import CastMixin, Schema, StructType, UniformShapeOperations
+from ndonnx._experimental import (
+    CastMixin,
+    Schema,
+    StructType,
+    UniformShapeOperations,
+)
 
 from .utils import assert_array_equal
 
