@@ -27,3 +27,11 @@ class NullableOperationsImpl(OperationsBlock):
     @validate_core
     def make_nullable(self, x: Array, null: Array) -> Array:
         return NotImplemented
+
+    @validate_core
+    def where(self, condition, x, y):
+        if x.dtype != y.dtype:
+            target_dtype = ndx.result_type(x, y)
+            x = ndx.astype(x, target_dtype)
+            y = ndx.astype(y, target_dtype)
+        return super().where(condition, x, y)

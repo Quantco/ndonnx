@@ -70,14 +70,6 @@ class _StringOperationsImpl(OperationsBlock):
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
         return ndx.zeros_like(x, dtype=dtype, device=device)
 
-    @validate_core
-    def where(self, condition, x, y):
-        if x.dtype != y.dtype:
-            target_dtype = ndx.result_type(x, y)
-            x = ndx.astype(x, target_dtype)
-            y = ndx.astype(y, target_dtype)
-        return super().where(condition, x, y)
-
 
 class StringOperationsImpl(
     CoreOperationsImpl, _StringOperationsImpl, UniformShapeOperations

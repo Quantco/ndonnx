@@ -970,14 +970,6 @@ class _NumericOperationsImpl(OperationsBlock):
     def empty_like(self, x, dtype=None, device=None) -> ndx.Array:
         return ndx.full_like(x, 0, dtype=dtype)
 
-    @validate_core
-    def where(self, condition, x, y):
-        if x.dtype != y.dtype:
-            target_dtype = ndx.result_type(x, y)
-            x = ndx.astype(x, target_dtype)
-            y = ndx.astype(y, target_dtype)
-        return super().where(condition, x, y)
-
 
 class NumericOperationsImpl(
     CoreOperationsImpl, _NumericOperationsImpl, UniformShapeOperations

@@ -164,14 +164,6 @@ class _BooleanOperationsImpl(OperationsBlock):
     def nonzero(self, x) -> tuple[Array, ...]:
         return ndx.nonzero(x.astype(ndx.int8))
 
-    @validate_core
-    def where(self, condition, x, y):
-        if x.dtype != y.dtype:
-            target_dtype = ndx.result_type(x, y)
-            x = ndx.astype(x, target_dtype)
-            y = ndx.astype(y, target_dtype)
-        return super().where(condition, x, y)
-
 
 class BooleanOperationsImpl(
     CoreOperationsImpl, _BooleanOperationsImpl, UniformShapeOperations
