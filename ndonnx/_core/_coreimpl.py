@@ -12,7 +12,7 @@ import ndonnx._data_types as dtypes
 import ndonnx.additional as nda
 from ndonnx._corearray import _CoreArray
 
-from ._interface import OperationsBlock
+from ._shapeimpl import UniformShapeOperations
 from ._utils import validate_core
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from ndonnx._data_types import Dtype
 
 
-class CoreOperationsImpl(OperationsBlock):
+class CoreOperationsImpl(UniformShapeOperations):
     def make_array(
         self,
         shape: tuple[int | None | str, ...],
@@ -48,3 +48,11 @@ class CoreOperationsImpl(OperationsBlock):
             values=x.copy(),
             null=ndx.broadcast_to(null, nda.shape(x)),
         )
+
+    @validate_core
+    def where(self, condition, x, y):
+        if x.dtype != y.dtype:
+            target_dtype = ndx.result_type(x, y)
+            x = ndx.astype(x, target_dtype)
+            y = ndx.astype(y, target_dtype)
+        return super().where(condition, x, y)
