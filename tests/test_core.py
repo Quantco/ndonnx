@@ -933,13 +933,14 @@ def test_dynamic_reshape_has_no_static_shape(x, shape):
 )
 @pytest.mark.parametrize("include_initial", [True, False])
 @pytest.mark.parametrize(
-    "dtype",
+    "array_dtype",
     [ndx.int32, ndx.int64, ndx.float32, ndx.float64, ndx.uint8, ndx.uint16, ndx.uint32],
 )
 @pytest.mark.parametrize(
     "array, axis",
     [
         ([1, 2, 3], None),
+        ([100, 100], None),
         ([1, 2, 3], 0),
         ([[1, 2], [3, 4]], 0),
         ([[1, 2], [3, 4]], 1),
@@ -948,21 +949,36 @@ def test_dynamic_reshape_has_no_static_shape(x, shape):
         ([[[[1]]], [[[3]]]], 1),
     ],
 )
-def test_cumulative_sum(array, axis, include_initial, dtype):
-    a = ndx.asarray(array, dtype=dtype)
+@pytest.mark.parametrize(
+    "cumsum_dtype",
+    [None, ndx.int32, ndx.float32, ndx.float64, ndx.uint8, ndx.int8],
+)
+def test_cumulative_sum(array, axis, include_initial, array_dtype, cumsum_dtype):
+    a = ndx.asarray(array, dtype=array_dtype)
     assert_array_equal(
-        ndx.cumulative_sum(a, include_initial=include_initial, axis=axis).to_numpy(),
+        ndx.cumulative_sum(
+            a, include_initial=include_initial, axis=axis, dtype=cumsum_dtype
+        ).to_numpy(),
         np.cumulative_sum(
             np.asarray(array, a.dtype.to_numpy_dtype()),
             include_initial=include_initial,
             axis=axis,
+            dtype=cumsum_dtype.to_numpy_dtype() if cumsum_dtype is not None else None,
         ),
     )
 
 
 def test_no_unsafe_cumulative_sum_cast():
     with pytest.raises(
-        ndx.UnsupportedOperationError, match="Cannot perform `cumulative_sum`"
+        ndx.UnsupportedOperationError,
+        match="Unsupported operand type for cumulative_sum",
     ):
         a = ndx.asarray([1, 2, 3], ndx.uint64)
         ndx.cumulative_sum(a)
+
+    with pytest.raises(
+        ndx.UnsupportedOperationError,
+        match="Unsupported dtype parameter for cumulative_sum",
+    ):
+        a = ndx.asarray([1, 2, 3], ndx.int32)
+        ndx.cumulative_sum(a, dtype=ndx.uint64)
