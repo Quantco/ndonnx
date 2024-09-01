@@ -21,7 +21,7 @@ from .typed_array import _TypedArray
 from .utils import promote
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
+    from ..array import Index, OnnxShape
 
 
 CORE_DTYPES = TypeVar("CORE_DTYPES", bound=CoreDTypes)
@@ -50,8 +50,16 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         var = argument(Tensor(dtypes.as_numpy(cls.dtype), shape))
         return cls(var)
 
-    def __getitem__(self, index) -> Self:
-        # TODO
+    def __getitem__(self, index: Index) -> Self:
+        if isinstance(index, int):
+            var = op.slice(
+                self.var,
+                starts=op.const([index]),
+                ends=op.const([index + 1]),
+                axes=op.const([0]),
+            )
+            var = op.squeeze(var, axes=op.const(0))
+            return type(self)(var)
         raise NotImplementedError
 
     @property

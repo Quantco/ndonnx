@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import operator as std_ops
 from collections.abc import Callable
-from types import NotImplementedType
+from types import EllipsisType, NotImplementedType
 from typing import overload
 
 import numpy as np
@@ -19,6 +19,9 @@ from .dtypes import DType
 StrictShape = tuple[int, ...]
 StandardShape = tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
+
+ScalarIndex = int | bool | slice | EllipsisType | None
+Index = ScalarIndex | tuple[ScalarIndex, ...]
 
 
 class Array:
@@ -84,6 +87,10 @@ class Array:
             If no propagated value is available.
         """
         return self._data.to_numpy()
+
+    def __getitem__(self, index: Index) -> Array:
+        data = self._data[index]
+        return type(self)._from_data(data)
 
     # __r*__ are needed for interacting with Python scalars
     # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to

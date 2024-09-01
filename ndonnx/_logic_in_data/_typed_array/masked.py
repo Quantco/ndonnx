@@ -17,7 +17,7 @@ from .core import BoolData, Int8Data, _ArrayCoreType, ascoredata
 from .typed_array import _TypedArray
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
+    from ..array import Index, OnnxShape
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -95,14 +95,16 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
         mask = schema["mask"]
         return asncoredata(ascoredata(op.const(data)), BoolData(op.const(mask)))
 
-    def __getitem__(self, index) -> Self:
-        # TODO
-        raise NotImplementedError
+    def __getitem__(self, index: Index) -> Self:
+        new_data = self.data[index]
+        new_mask = self.mask[index] if self.mask is not None else None
+
+        return type(self)(data=new_data, mask=new_mask)
 
     def _astype(self, dtype: DType) -> _TypedArray:
         # Implemented under the assumption that we know about core, but not py_scalars
         if isinstance(dtype, dtypes.CoreDTypes):
-            # Not clear what the behavior should be if we have a mask
+            # TODO: Not clear what the behavior should be if we have a mask
             raise NotImplementedError
         elif isinstance(dtype, dtypes.NCoreDTypes):
             new_data = self.data.astype(dtype._unmasked_dtype)

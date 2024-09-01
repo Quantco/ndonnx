@@ -68,3 +68,9 @@ def test_value_prop():
 
     with pytest.raises(ValueError, match="no propagated value available"):
         Array(("N",), dtypes.int32).unwrap_numpy()
+
+
+def test__getitem__():
+    arr = Array(("N", "M"), dtypes.nint32)
+    assert arr[0]._data.shape == ("M",)
+    assert arr[0].shape == (None,)
