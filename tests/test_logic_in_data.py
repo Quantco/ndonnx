@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from ndonnx._logic_in_data import Array, dtypes
+from ndonnx._logic_in_data.array import where
 
 
 @pytest.mark.parametrize(
@@ -74,3 +75,16 @@ def test__getitem__():
     arr = Array(("N", "M"), dtypes.nint32)
     assert arr[0]._data.shape == ("M",)
     assert arr[0].shape == (None,)
+
+
+def test_where():
+    shape = ("N", "M")
+    cond = Array(shape, dtypes.bool_)
+    x = Array(shape, dtypes.int16)
+    y = Array(shape, dtypes.int32)
+
+    res = where(cond, x, y)
+
+    assert res.dtype == dtypes.int32
+    assert res._data.shape == shape
+    assert res.shape == (None, None)

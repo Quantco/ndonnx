@@ -111,6 +111,10 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
 
+    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray:
+        # TODO
+        raise NotImplementedError
+
 
 class NBoolData(_ArrayMaCoreType[dtypes.NBool]):
     dtype = dtypes.nbool

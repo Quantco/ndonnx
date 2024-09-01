@@ -116,14 +116,21 @@ def asarray(obj: int | float | bool | str | Array) -> Array:
     return Array._from_data(data)
 
 
-# def where(cond: Array, a: Array, b: Array) -> Array:
-#     from .dtypes import bool_, nbool
+def where(cond: Array, a: Array, b: Array) -> Array:
+    from ._typed_array import BoolData
+    from .dtypes import bool_, nbool
 
-#     if cond.dtype not in [bool_, nbool]:
-#         raise ValueError
-#     ret = cond._data._where(*a._data.promote(b._data))
-#     if ret == NotImplemented:
-#         ret
+    if cond.dtype not in [bool_, nbool]:
+        raise ValueError
+
+    # TODO: NBoolData
+    if not isinstance(cond._data, BoolData):
+        raise ValueError(
+            f"condition must be of a boolean data type; found `{cond.dtype}`"
+        )
+
+    data = a._data.where(cond._data, b._data)
+    return Array._from_data(data)
 
 
 def add(a: Array, b: Array) -> Array:

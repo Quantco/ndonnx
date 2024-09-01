@@ -17,7 +17,7 @@ from ..dtypes import (
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
-    from .core import _ArrayCoreType
+    from .core import BoolData, _ArrayCoreType
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -95,6 +95,9 @@ class _TypedArray(ABC, Generic[DTYPE]):
         in one.
         """
         return NotImplemented
+
+    @abstractmethod
+    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray: ...
 
     def __add__(self, other: _TypedArray) -> _TypedArray:
         return NotImplemented

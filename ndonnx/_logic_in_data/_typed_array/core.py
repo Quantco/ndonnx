@@ -95,6 +95,14 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
     def _astype(self, dtype: DType) -> _TypedArray:
         return NotImplemented
 
+    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray:
+        if isinstance(y, _ArrayCoreType):
+            x, y = promote(self, y)
+            var = op.where(cond.var, x.var, y.var)
+            return type(x)(var)
+
+        return NotImplemented
+
 
 class _ArrayCoreNum(_ArrayCoreType[CORE_DTYPES]):
     def __add__(self, rhs: _TypedArray) -> _TypedArray:

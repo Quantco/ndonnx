@@ -16,6 +16,7 @@ from .utils import promote
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
+    from .core import BoolData
 
 
 class _ArrayPyScalar(_TypedArray[DTYPE]):
@@ -87,6 +88,9 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         if isinstance(dtype, dtypes.NCoreNumericDTypes):
             unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
             return asncoredata(unmasked_typed_arr, None)
+        raise NotImplementedError
+
+    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray:
         raise NotImplementedError
 
 
