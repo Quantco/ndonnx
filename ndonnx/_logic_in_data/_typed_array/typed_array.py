@@ -68,7 +68,7 @@ class _TypedArray(ABC, Generic[DTYPE]):
         return len(self.shape)
 
     def to_numpy(self) -> np.ndarray:
-        raise TypeError(f"Cannot convert '{self.__class__}' to NumPy array.")
+        raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
 
     @overload
     def astype(self, dtype: dtypes.CoreDTypes) -> _ArrayCoreType: ...

@@ -31,16 +31,30 @@ class Array:
     def __init__(self, shape: OnnxShape, dtype: DType): ...
 
     @overload
-    def __init__(self, value: np.ndarray): ...
+    def __init__(self, value: np.ndarray | float | int | bool): ...
 
     def __init__(self, shape=None, dtype=None, value=None, var=None):
         # TODO: Validation
-        # if value is not None:
-        #     np.ma.isMaskedArray(value)
-        #     data = NullableCoreData()
+        (is_shape, is_dtype, is_value, is_var) = (
+            item is not None for item in [shape, dtype, value, var]
+        )
+        if not (
+            (True, True, False, False) == (is_shape, is_dtype, is_value, is_var)
+            or (False, False, True, False) == (is_shape, is_dtype, is_value, is_var)
+            or (False, False, False, True) == (is_shape, is_dtype, is_value, is_var)
+        ):
+            raise ValueError("Invalid arguments.")
+
         if isinstance(shape, tuple) and isinstance(dtype, DType):
             self._data = dtype._tyarr_class.as_argument(shape)
             return
+        if isinstance(value, np.ndarray):
+            raise NotImplementedError
+        if isinstance(value, int | float):
+            ty_arr = astypedarray(value, use_py_scalars=False, dtype=dtype)
+            self._data = ty_arr
+            return
+
         raise NotImplementedError
 
     @classmethod
@@ -60,6 +74,16 @@ class Array:
 
     def astype(self, dtype: DType):
         return self._data.astype(dtype)
+
+    def unwrap_numpy(self) -> np.ndarray:
+        """Return the propagated value as a NumPy array if available.
+
+        Raises
+        ------
+        ValueError:
+            If no propagated value is available.
+        """
+        return self._data.to_numpy()
 
     # __r*__ are needed for interacting with Python scalars
     # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to

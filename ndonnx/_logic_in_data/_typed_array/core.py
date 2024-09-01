@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
 
+import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, Var, argument
 from typing_extensions import Self
@@ -66,6 +67,15 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
             (var,) = schema.values()
             return ascoredata(op.const(var))
         raise ValueError("'schema' has unexpected layout")
+
+    def to_numpy(self) -> np.ndarray:
+        if self.var._value is not None:
+            np_arr = np.asarray(self.var._value.value)
+            if np_arr.dtype != dtypes.as_numpy(self.dtype):
+                # Should not happen
+                raise ValueError("unexpected value data type")
+            return np_arr
+        raise ValueError("no propagated value available")
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
         var = op.reshape(self.var, op.const(shape))

@@ -1,6 +1,7 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
 import pytest
 
 from ndonnx._logic_in_data import Array, dtypes
@@ -59,3 +60,11 @@ def test_core_or(dtype1, dtype2, res_dtype):
     assert res.dtype == res_dtype
     assert res._data.shape == shape
     assert res.shape == (None,)
+
+
+def test_value_prop():
+    arr = Array(value=1)
+    np.testing.assert_allclose((arr + arr).unwrap_numpy(), np.array(2))
+
+    with pytest.raises(ValueError, match="no propagated value available"):
+        Array(("N",), dtypes.int32).unwrap_numpy()
