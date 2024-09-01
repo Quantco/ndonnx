@@ -31,7 +31,8 @@ class DType(ABC):
 class _CoreDType(DType): ...
 
 
-class _NCoreDType(DType): ...
+class _NCoreDType(DType):
+    _unmasked_dtype: _CoreDType
 
 
 class _Number(_CoreDType):
@@ -55,7 +56,7 @@ class _NNumber(_NCoreDType):
             # No implicit promotion for bools and strings
             return NotImplemented
 
-        return _as_nullable(core_result)
+        return as_nullable(core_result)
 
     def _rresult_type(self, lhs: DType) -> DType | NotImplementedType:
         # e.g. called after `CoreDType._result_type(self)`
@@ -76,17 +77,6 @@ class Bool(_CoreDType):
         from ._typed_array import BoolData
 
         return BoolData
-
-
-class NBool(_NCoreDType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NBoolData]:
-        from ._typed_array import NBoolData
-
-        return NBoolData
 
 
 class Int8(_Number):
@@ -177,94 +167,6 @@ class Float64(_Number):
         return Float64Data
 
 
-class NInt8(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NInt8Data]:
-        from ._typed_array import NInt8Data
-
-        return NInt8Data
-
-
-class NInt16(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NInt16Data]:
-        from ._typed_array import NInt16Data
-
-        return NInt16Data
-
-
-class NInt32(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NInt32Data]:
-        from ._typed_array import NInt32Data
-
-        return NInt32Data
-
-
-class NInt64(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NInt64Data]:
-        from ._typed_array import NInt64Data
-
-        return NInt64Data
-
-
-class NUint8(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NUint8Data]:
-        from ._typed_array import NUint8Data
-
-        return NUint8Data
-
-
-class NUint16(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NUint16Data]:
-        from ._typed_array import NUint16Data
-
-        return NUint16Data
-
-
-class NUint32(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NUint32Data]:
-        from ._typed_array import NUint32Data
-
-        return NUint32Data
-
-
-class NUint64(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NUint64Data]:
-        from ._typed_array import NUint64Data
-
-        return NUint64Data
-
-
-class NFloat16(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NFloat16Data]:
-        from ._typed_array import NFloat16Data
-
-        return NFloat16Data
-
-
-class NFloat32(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NFloat32Data]:
-        from ._typed_array import NFloat32Data
-
-        return NFloat32Data
-
-
-class NFloat64(_NNumber):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.NFloat64Data]:
-        from ._typed_array import NFloat64Data
-
-        return NFloat64Data
-
-
 class _PyInt(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, CoreNumericDTypes):
@@ -295,33 +197,167 @@ class _PyFloat(DType):
         return _ArrayPyFloat
 
 
-# Singleton instances
+# Non-nullable Singleton instances
 bool_ = Bool()
-nbool = NBool()
-int8 = Int8()
+
+float16 = Float16()
+float32 = Float32()
+float64 = Float64()
+
 int16 = Int16()
 int32 = Int32()
 int64 = Int64()
+int8 = Int8()
+
 uint8 = Uint8()
 uint16 = Uint16()
 uint32 = Uint32()
 uint64 = Uint64()
-float16 = Float16()
-float32 = Float32()
-float64 = Float64()
+
+# scalar singleton instances
+_pyint = _PyInt()
+_pyfloat = _PyFloat()
+
+
+class NBool(_NCoreDType):
+    _unmasked_dtype = bool_
+
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NBoolData]:
+        from ._typed_array import NBoolData
+
+        return NBoolData
+
+
+class NInt8(_NNumber):
+    _unmasked_dtype = int8
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NInt8Data]:
+        from ._typed_array import NInt8Data
+
+        return NInt8Data
+
+
+class NInt16(_NNumber):
+    _unmasked_dtype = int16
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NInt16Data]:
+        from ._typed_array import NInt16Data
+
+        return NInt16Data
+
+
+class NInt32(_NNumber):
+    _unmasked_dtype = int32
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NInt32Data]:
+        from ._typed_array import NInt32Data
+
+        return NInt32Data
+
+
+class NInt64(_NNumber):
+    _unmasked_dtype = int64
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NInt64Data]:
+        from ._typed_array import NInt64Data
+
+        return NInt64Data
+
+
+class NUint8(_NNumber):
+    _unmasked_dtype = uint8
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NUint8Data]:
+        from ._typed_array import NUint8Data
+
+        return NUint8Data
+
+
+class NUint16(_NNumber):
+    _unmasked_dtype = uint16
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NUint16Data]:
+        from ._typed_array import NUint16Data
+
+        return NUint16Data
+
+
+class NUint32(_NNumber):
+    _unmasked_dtype = uint32
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NUint32Data]:
+        from ._typed_array import NUint32Data
+
+        return NUint32Data
+
+
+class NUint64(_NNumber):
+    _unmasked_dtype = uint64
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NUint64Data]:
+        from ._typed_array import NUint64Data
+
+        return NUint64Data
+
+
+class NFloat16(_NNumber):
+    _unmasked_dtype = float16
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NFloat16Data]:
+        from ._typed_array import NFloat16Data
+
+        return NFloat16Data
+
+
+class NFloat32(_NNumber):
+    _unmasked_dtype = float32
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NFloat32Data]:
+        from ._typed_array import NFloat32Data
+
+        return NFloat32Data
+
+
+class NFloat64(_NNumber):
+    _unmasked_dtype = float64
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.NFloat64Data]:
+        from ._typed_array import NFloat64Data
+
+        return NFloat64Data
+
+
+# Non-nullable Singleton instances
+nbool = NBool()
+
+nfloat16 = NFloat16()
+nfloat32 = NFloat32()
+nfloat64 = NFloat64()
+
 nint8 = NInt8()
 nint16 = NInt16()
 nint32 = NInt32()
 nint64 = NInt64()
+
 nuint8 = NUint8()
 nuint16 = NUint16()
 nuint32 = NUint32()
 nuint64 = NUint64()
-nfloat16 = NFloat16()
-nfloat32 = NFloat32()
-nfloat64 = NFloat64()
-_pyint = _PyInt()
-_pyfloat = _PyFloat()
 
 # Union types
 #
@@ -439,23 +475,28 @@ _int_to_floating: dict[CoreNumericDTypes, CoreNumericDTypes] = {
 
 # Helper functions
 
+_core_to_nullable_core: dict[CoreDTypes, NCoreDTypes] = {
+    bool_: nbool,
+    int8: nint8,
+    int16: nint16,
+    int32: nint32,
+    int64: nint64,
+    uint8: nuint8,
+    uint16: nuint16,
+    uint32: nuint32,
+    uint64: nuint64,
+    float16: nfloat16,
+    float32: nfloat32,
+    float64: nfloat64,
+}
 
-def _as_nullable(dtype: CoreDTypes) -> NCoreDTypes:
-    mapping: dict[CoreDTypes, NCoreDTypes] = {
-        bool_: nbool,
-        int8: nint8,
-        int16: nint16,
-        int32: nint32,
-        int64: nint64,
-        uint8: nuint8,
-        uint16: nuint16,
-        uint32: nuint32,
-        uint64: nuint64,
-        float16: nfloat16,
-        float32: nfloat32,
-        float64: nfloat64,
-    }
-    return mapping[dtype]
+
+def as_nullable(dtype: CoreDTypes) -> NCoreDTypes:
+    return _core_to_nullable_core[dtype]
+
+
+def as_non_nullable(dtype: NCoreDTypes) -> CoreDTypes:
+    return {v: k for k, v in _core_to_nullable_core.items()}[dtype]
 
 
 def _result_type_core_numeric(
@@ -573,3 +614,7 @@ def as_numpy(dtype: CoreDTypes) -> np.dtype:
 
     # Should never happen
     raise ValueError(f"'{dtype}' does not have a corresponding NumPy data type")
+
+
+default_int = int64
+default_float = float64

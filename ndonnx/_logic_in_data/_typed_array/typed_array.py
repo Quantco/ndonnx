@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
@@ -53,14 +52,6 @@ class _TypedArray(ABC, Generic[DTYPE]):
     @abstractmethod
     def __getitem__(self, index) -> Self: ...
 
-    # @property
-    # @abstractmethod
-    # def dtype(self) -> DTYPE: ...
-
-    @property
-    @abstractmethod
-    def ndim(self) -> int: ...
-
     @property
     @abstractmethod
     def shape(self) -> OnnxShape: ...
@@ -71,6 +62,10 @@ class _TypedArray(ABC, Generic[DTYPE]):
 
     @abstractmethod
     def reshape(self, shape: tuple[int, ...]) -> Self: ...
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
 
     def to_numpy(self) -> np.ndarray:
         raise TypeError(f"Cannot convert '{self.__class__}' to NumPy array.")
@@ -105,7 +100,4 @@ class _TypedArray(ABC, Generic[DTYPE]):
         return NotImplemented
 
     def __or__(self, rhs: _TypedArray) -> _TypedArray:
-        return NotImplemented
-
-    def promote(self, *others: _TypedArray) -> Sequence[_TypedArray]:
         return NotImplemented

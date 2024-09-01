@@ -3,12 +3,17 @@
 
 from __future__ import annotations
 
+import operator as std_ops
+from collections.abc import Callable
+from types import NotImplementedType
 from typing import overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
+from spox import Var
 
-from ._typed_array import _ArrayPyFloat, _ArrayPyInt, _TypedArray, ascoredata
+from ._typed_array import _TypedArray, ascoredata
+from ._typed_array.funcs import astypedarray
 from .dtypes import DType
 
 StrictShape = tuple[int, ...]
@@ -44,24 +49,6 @@ class Array:
         inst._data = data
         return inst
 
-    def astype(self, dtype: DType):
-        return self._data.astype(dtype)
-
-    def __add__(self, rhs: int | float | Array) -> Array:
-        rhs_data = _as_typed_array(rhs)
-        data = self._data + rhs_data
-        if data is not NotImplemented:
-            return Array._from_data(data)
-        return NotImplemented
-
-    def __radd__(self, lhs: int | float | Array) -> Array:
-        # This is called for instance when doing int + Array
-        lhs_data = _as_typed_array(lhs)
-        data = lhs_data + self._data
-        if data is not NotImplemented:
-            return Array._from_data(data)
-        return NotImplemented
-
     @property
     def shape(self) -> StandardShape:
         shape = self._data.shape
@@ -70,6 +57,25 @@ class Array:
     @property
     def dtype(self) -> DType:
         return self._data.dtype
+
+    def astype(self, dtype: DType):
+        return self._data.astype(dtype)
+
+    # __r*__ are needed for interacting with Python scalars
+    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to
+    # dispatch between different `_TypedArray` subclasses.
+
+    def __add__(self, rhs: int | float | Array) -> Array:
+        return _apply_op(self, rhs, std_ops.add)
+
+    def __radd__(self, lhs: int | float | Array) -> Array:
+        return _apply_op(lhs, self, std_ops.add)
+
+    def __or__(self, rhs: int | float | Array) -> Array:
+        return _apply_op(self, rhs, std_ops.or_)
+
+    def __ror__(self, lhs: int | float | Array) -> Array:
+        return _apply_op(lhs, self, std_ops.or_)
 
 
 def asarray(obj: int | float | bool | str | Array) -> Array:
@@ -89,16 +95,45 @@ def asarray(obj: int | float | bool | str | Array) -> Array:
 #         ret
 
 
-def _as_typed_array(val: int | float | Array) -> _TypedArray:
-    if isinstance(val, Array):
-        return val._data
-    if isinstance(val, int):
-        return _ArrayPyInt(val)
-    if isinstance(val, float):
-        return _ArrayPyFloat(val)
-
-    raise ValueError
-
-
 def add(a: Array, b: Array) -> Array:
     return a + b
+
+
+def _as_array(
+    val: int | float | Array | Var | np.ndarray, use_py_scalars=False
+) -> Array:
+    if isinstance(val, Array):
+        return val
+    ty_arr = astypedarray(val, use_py_scalars=use_py_scalars)
+    return Array._from_data(ty_arr)
+
+
+@overload
+def _apply_op(
+    lhs: Array,
+    rhs: int | float | Array,
+    op: Callable[[_TypedArray, _TypedArray], _TypedArray],
+) -> Array | NotImplementedType: ...
+
+
+@overload
+def _apply_op(
+    lhs: int | float | Array,
+    rhs: Array,
+    op: Callable[[_TypedArray, _TypedArray], _TypedArray],
+) -> Array | NotImplementedType: ...
+
+
+def _apply_op(
+    lhs: int | float | Array,
+    rhs: int | float | Array,
+    op: Callable[[_TypedArray, _TypedArray], _TypedArray],
+) -> Array | NotImplementedType:
+    lhs = _as_array(lhs, use_py_scalars=True)
+    rhs = _as_array(rhs, use_py_scalars=True)
+    data = op(lhs._data, rhs._data)
+    if data is not NotImplemented:
+        return Array._from_data(data)
+
+    breakpoint()
+    return NotImplemented

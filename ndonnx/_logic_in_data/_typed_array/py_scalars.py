@@ -76,13 +76,17 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         return NotImplemented
 
     def _astype(self, dtype: DType) -> _TypedArray:
+        from .masked import asncoredata
+
         # We implement this class under the assumption that the other
         # built-in typed arrays do not know about it. Thus, we define
-        # the mapping from this class into those classes here.
+        # the mapping from this class into those classes **here**.
         if isinstance(dtype, dtypes.CoreNumericDTypes):
-            return dtype._tyarr_class.from_np_schema(
-                {"var": np.array(self.value, dtypes.as_numpy(dtype))}
-            )
+            np_arr = np.array(self.value, dtypes.as_numpy(dtype))
+            return dtype._tyarr_class.from_np_schema({"var": np_arr})
+        if isinstance(dtype, dtypes.NCoreNumericDTypes):
+            unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
+            return asncoredata(unmasked_typed_arr, None)
         raise NotImplementedError
 
 

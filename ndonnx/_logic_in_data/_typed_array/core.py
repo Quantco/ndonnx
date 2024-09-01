@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
 
-import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, Var, argument
 from typing_extensions import Self
@@ -15,9 +14,10 @@ from .. import dtypes
 from ..dtypes import (
     CoreDTypes,
     DType,
-    result_type,
+    from_numpy,
 )
 from .typed_array import _TypedArray
+from .utils import promote
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
@@ -33,6 +33,8 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
     var: Var
 
     def __init__(self, var: Var):
+        if from_numpy(var.unwrap_tensor().dtype) != self.dtype:
+            raise ValueError(f"data type of 'var' is incompatible with `{type(self)}`")
         self.var = var
 
     @classmethod
@@ -52,10 +54,6 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         raise NotImplementedError
 
     @property
-    def ndim(self) -> int:
-        return len(self.shape)
-
-    @property
     def shape(self) -> OnnxShape:
         shape = self.var.unwrap_tensor().shape
         if shape is None:
@@ -69,48 +67,23 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
             return ascoredata(op.const(var))
         raise ValueError("'schema' has unexpected layout")
 
-    def reshape(self, shape: tuple[int, ...]) -> _ArrayCoreType:
+    def reshape(self, shape: tuple[int, ...]) -> Self:
         var = op.reshape(self.var, op.const(shape))
-        return ascoredata(var)
-
-    @overload
-    def promote(self, *others: _ArrayCoreType) -> Sequence[_ArrayCoreType]: ...
-
-    @overload
-    def promote(self, *others: _TypedArray) -> Sequence[_TypedArray]: ...
-
-    def promote(self, *others: _TypedArray) -> Sequence[_TypedArray]:
-        # TODO
-        raise NotImplementedError
+        return type(self)(var)
 
     def as_core_dtype(self, dtype: CoreDTypes) -> _ArrayCoreType:
-        raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefine")
-
-    def __add__(self, lhs: _TypedArray) -> _ArrayCoreType:
-        return NotImplemented
-
-    def _promote(self, *others: _TypedArray) -> list[_ArrayCoreType]:
-        """Promote with other `_ArrayCoreType` objects or return `NotImplemented`."""
-        if is_sequence_of_core_data(others):
-            res_type = result_type(self.dtype, *[d.dtype for d in others])
-            return [self.as_core_dtype(res_type)] + [
-                d.as_core_dtype(res_type) for d in others
-            ]
-        return NotImplemented
-
-    def __or__(self, rhs: _TypedArray) -> _ArrayCoreType:
-        return NotImplemented
+        raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def _astype(self, dtype: DType) -> _TypedArray:
         return NotImplemented
 
 
 class _ArrayCoreNum(_ArrayCoreType[CORE_DTYPES]):
-    def __add__(self, rhs: _TypedArray) -> _ArrayCoreType:
+    def __add__(self, rhs: _TypedArray) -> _TypedArray:
         if isinstance(rhs, _ArrayCoreNum):
             # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
             if type(self) != type(rhs):
-                a, b = self.promote(self, rhs)
+                a, b = promote(self, rhs)
                 return a + b
             var = op.add(self.var, rhs.var)
             return ascoredata(var)
@@ -118,15 +91,14 @@ class _ArrayCoreNum(_ArrayCoreType[CORE_DTYPES]):
 
 
 class _ArrayCoreInteger(_ArrayCoreNum[CORE_DTYPES]):
-    def __or__(self, rhs: _TypedArray) -> _ArrayCoreType:
+    def __or__(self, rhs: _TypedArray) -> _TypedArray:
         if isinstance(rhs, _ArrayCoreType):
-            lhs: _ArrayCoreType = self
-            if lhs.dtype != rhs.dtype:
-                lhs, rhs = lhs.promote(rhs)
-                return lhs.__or__(rhs)
+            if self.dtype != rhs.dtype:
+                a, b = promote(self, rhs)
+                return a | b
 
             # Data is core & integer
-            var = op.bitwise_or(lhs.var, rhs.var)
+            var = op.bitwise_or(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented
 
@@ -137,15 +109,16 @@ class _ArrayCoreFloating(_ArrayCoreNum[CORE_DTYPES]): ...
 class BoolData(_ArrayCoreType[dtypes.Bool]):
     dtype = dtypes.bool_
 
-    def __or__(self, rhs: _TypedArray) -> _ArrayCoreType:
+    def __or__(self, rhs: _TypedArray) -> _TypedArray:
+        from .utils import promote
+
         if isinstance(rhs, _ArrayCoreType):
-            lhs: _ArrayCoreType = self
-            if lhs.dtype != rhs.dtype:
-                lhs, rhs = lhs.promote(rhs)
-                return lhs.__or__(rhs)
+            if self.dtype != rhs.dtype:
+                a, b = promote(self, rhs)
+                return a | b
 
             # Data is core & bool
-            var = op.or_(lhs.var, rhs.var)
+            var = op.or_(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented
 
@@ -195,26 +168,9 @@ class Float64Data(_ArrayCoreFloating[dtypes.Float64]):
 
 
 def ascoredata(var: Var) -> _ArrayCoreType:
-    np_dtype = var.unwrap_tensor().dtype
+    dtype = from_numpy(var.unwrap_tensor().dtype)
 
-    mapping: dict[np.dtype, _ArrayCoreType] = {
-        np.dtype("bool"): BoolData(var),
-        np.dtype("int8"): Int8Data(var),
-        np.dtype("int16"): Int16Data(var),
-        np.dtype("int32"): Int32Data(var),
-        np.dtype("int64"): Int64Data(var),
-        np.dtype("uint8"): Uint8Data(var),
-        np.dtype("uint16"): Uint16Data(var),
-        np.dtype("uint32"): Uint32Data(var),
-        np.dtype("uint64"): Uint64Data(var),
-        np.dtype("float16"): Float16Data(var),
-        np.dtype("float32"): Float32Data(var),
-        np.dtype("float64"): Float64Data(var),
-    }
-    try:
-        return mapping[np_dtype]
-    except KeyError:
-        raise NotImplementedError
+    return dtype._tyarr_class(var)
 
 
 def is_sequence_of_core_data(
