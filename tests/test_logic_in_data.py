@@ -77,14 +77,22 @@ def test__getitem__():
     assert arr[0].shape == (None,)
 
 
-def test_where():
+@pytest.mark.parametrize(
+    "x_ty, y_ty, res_ty",
+    [
+        (dtypes.int16, dtypes.int32, dtypes.int32),
+        (dtypes.nint16, dtypes.int32, dtypes.nint32),
+        (dtypes.int32, dtypes.nint16, dtypes.nint32),
+    ],
+)
+def test_where(x_ty, y_ty, res_ty):
     shape = ("N", "M")
     cond = Array(shape, dtypes.bool_)
-    x = Array(shape, dtypes.int16)
-    y = Array(shape, dtypes.int32)
+    x = Array(shape, x_ty)
+    y = Array(shape, y_ty)
 
     res = where(cond, x, y)
 
-    assert res.dtype == dtypes.int32
+    assert res.dtype == res_ty
     assert res._data.shape == shape
     assert res.shape == (None, None)

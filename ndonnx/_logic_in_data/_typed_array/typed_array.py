@@ -96,10 +96,23 @@ class _TypedArray(ABC, Generic[DTYPE]):
         """
         return NotImplemented
 
-    @abstractmethod
-    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray: ...
+    def _where(
+        self, cond: BoolData, y: _TypedArray
+    ) -> _TypedArray | NotImplementedType:
+        return NotImplemented
+
+    def _rwhere(
+        self, cond: BoolData, y: _TypedArray
+    ) -> _TypedArray | NotImplementedType:
+        return NotImplemented
 
     def __add__(self, other: _TypedArray) -> _TypedArray:
+        return NotImplemented
+
+    def __and__(self, rhs: _TypedArray) -> _TypedArray:
+        return NotImplemented
+
+    def __invert__(self) -> _TypedArray:
         return NotImplemented
 
     def __or__(self, rhs: _TypedArray) -> _TypedArray:

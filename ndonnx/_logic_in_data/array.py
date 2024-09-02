@@ -62,6 +62,8 @@ class Array:
 
     @classmethod
     def _from_data(cls, data: _TypedArray) -> Array:
+        if not isinstance(data, _TypedArray):
+            raise TypeError(f"expected '_TypedArray', found `{type(data)}`")
         inst = cls.__new__(cls)
         inst._data = data
         return inst
@@ -117,19 +119,9 @@ def asarray(obj: int | float | bool | str | Array) -> Array:
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:
-    from ._typed_array import BoolData
-    from .dtypes import bool_, nbool
+    from ._typed_array.funcs import typed_where
 
-    if cond.dtype not in [bool_, nbool]:
-        raise ValueError
-
-    # TODO: NBoolData
-    if not isinstance(cond._data, BoolData):
-        raise ValueError(
-            f"condition must be of a boolean data type; found `{cond.dtype}`"
-        )
-
-    data = a._data.where(cond._data, b._data)
+    data = typed_where(cond._data, a._data, b._data)
     return Array._from_data(data)
 
 

@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from types import NotImplementedType
 from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
 
 import numpy as np
@@ -95,7 +96,9 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
     def _astype(self, dtype: DType) -> _TypedArray:
         return NotImplemented
 
-    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray:
+    def _where(
+        self, cond: BoolData, y: _TypedArray
+    ) -> _TypedArray | NotImplementedType:
         if isinstance(y, _ArrayCoreType):
             x, y = promote(self, y)
             var = op.where(cond.var, x.var, y.var)
@@ -136,17 +139,28 @@ class BoolData(_ArrayCoreType[dtypes.Bool]):
     dtype = dtypes.bool_
 
     def __or__(self, rhs: _TypedArray) -> _TypedArray:
-        from .utils import promote
+        if self.dtype != rhs.dtype:
+            a, b = promote(self, rhs)
+            return a | b
 
-        if isinstance(rhs, _ArrayCoreType):
-            if self.dtype != rhs.dtype:
-                a, b = promote(self, rhs)
-                return a | b
-
-            # Data is core & bool
+        if isinstance(rhs, BoolData):
             var = op.or_(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented
+
+    def __and__(self, rhs: _TypedArray) -> _TypedArray:
+        if self.dtype != rhs.dtype:
+            a, b = promote(self, rhs)
+            return a & b
+
+        if isinstance(rhs, BoolData):
+            var = op.and_(self.var, rhs.var)
+            return ascoredata(var)
+        return NotImplemented
+
+    def __invert__(self) -> BoolData:
+        var = op.not_(self.var)
+        return type(self)(var)
 
 
 class Int8Data(_ArrayCoreInteger[dtypes.Int8]):
@@ -203,3 +217,21 @@ def is_sequence_of_core_data(
     seq: Sequence[_TypedArray],
 ) -> TypeGuard[Sequence[_ArrayCoreType]]:
     return all(isinstance(d, _ArrayCoreType) for d in seq)
+
+
+def _promote_and_apply_op(
+    lhs: _ArrayCoreType,
+    rhs: _TypedArray,
+    arr_op: Callable[[_ArrayCoreType, _ArrayCoreType], _ArrayCoreType],
+    spox_op: Callable[[Var, Var], Var],
+) -> _ArrayCoreType:
+    """Promote and apply an operation by passing it through to the data member."""
+    if isinstance(rhs, _ArrayCoreType):
+        if lhs.dtype != rhs.dtype:
+            a, b = promote(lhs, rhs)
+            return arr_op(a, b)
+
+        # Data is core & integer
+        var = spox_op(lhs.var, rhs.var)
+        return ascoredata(var)
+    return NotImplemented

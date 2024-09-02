@@ -9,6 +9,23 @@ from .py_scalars import _ArrayPyFloat, _ArrayPyInt
 from .typed_array import _TypedArray
 
 
+def typed_where(cond: _TypedArray, x: _TypedArray, y: _TypedArray) -> _TypedArray:
+    from .core import BoolData
+
+    # TODO: Masked condition
+    if not isinstance(cond, BoolData):
+        raise TypeError("'cond' must be a boolean data type.")
+
+    ret = x._where(cond, y)
+    if ret == NotImplemented:
+        ret = y._rwhere(cond, x)
+        if ret == NotImplemented:
+            raise TypeError(
+                f"Unsuppoerted operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
+            )
+    return ret
+
+
 def astypedarray(
     val: int | float | np.ndarray | _TypedArray | Var,
     dtype: None | DType = None,

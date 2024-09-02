@@ -6,6 +6,7 @@ from __future__ import annotations
 import operator
 from collections.abc import Callable
 from dataclasses import dataclass
+from types import NotImplementedType
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import spox.opset.ai.onnx.v21 as op
@@ -111,9 +112,40 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
 
-    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray:
-        # TODO
-        raise NotImplementedError
+    def _where(
+        self, cond: BoolData, y: _TypedArray
+    ) -> _TypedArray | NotImplementedType:
+        if isinstance(y, _ArrayCoreType):
+            return self._where(cond, asncoredata(y, None))
+        if isinstance(y, _ArrayMaCoreType):
+            x_ = unmask_core(self)
+            y_ = unmask_core(y)
+            new_data = x_._where(cond, y_)
+            if self.mask is not None and y.mask is not None:
+                new_mask = cond & self.mask | ~cond & y.mask
+            elif self.mask is not None:
+                new_mask = cond & self.mask
+            elif y.mask is not None:
+                new_mask = ~cond & y.mask
+            else:
+                new_mask = None
+
+            if new_mask is not None and not isinstance(new_mask, BoolData):
+                # Should never happen. Might be worth while adding
+                # overloads to the BoolData dunder methods to
+                # propagate the types more precisely.
+                raise TypeError(f"expected boolean mask, found `{new_mask.dtype}`")
+
+            return asncoredata(new_data, new_mask)
+
+        return NotImplemented
+
+    def _rwhere(
+        self, cond: BoolData, x: _TypedArray
+    ) -> _TypedArray | NotImplementedType:
+        if isinstance(x, _ArrayCoreType):
+            return asncoredata(x, None)._where(cond, self)
+        return NotImplemented
 
 
 class NBoolData(_ArrayMaCoreType[dtypes.NBool]):
@@ -229,10 +261,10 @@ def _apply_op(
 ) -> _ArrayMaCoreType:
     """Apply an operation by passing it through to the data member."""
     if isinstance(rhs, _ArrayCoreType):
-        data = lhs.data + rhs
+        data = op(lhs.data, rhs)
         mask = lhs.mask
     elif isinstance(rhs, _ArrayMaCoreType):
-        data = lhs.data + rhs.data
+        data = op(lhs.data, rhs.data)
         mask = _merge_masks(lhs.mask, rhs.mask)
     else:
         return NotImplemented
