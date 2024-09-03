@@ -160,3 +160,5 @@ array_api_tests/test_statistical_functions.py::test_cumulative_sum
 array_api_tests/test_statistical_functions.py::test_prod
 array_api_tests/test_special_cases.py::test_unary[acos(x_i > 1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[asin(x_i > 1) -> NaN]
+array_api_tests/test_special_cases.py::test_unary[acosh(x_i < 1) -> NaN]
+array_api_tests/test_special_cases.py::test_unary[asinh(x_i < 1) -> NaN]
