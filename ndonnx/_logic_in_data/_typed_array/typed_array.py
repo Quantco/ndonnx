@@ -17,13 +17,13 @@ from ..dtypes import (
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
-    from .core import BoolData, _ArrayCoreType
+    from .core import TyArray, TyArrayBool
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
 
 
-class _TypedArray(ABC, Generic[DTYPE]):
+class TyArrayBase(ABC, Generic[DTYPE]):
     dtype: DTYPE
 
     @abstractmethod
@@ -31,7 +31,7 @@ class _TypedArray(ABC, Generic[DTYPE]):
 
     @classmethod
     @abstractmethod
-    def from_typed_array(cls, tyarr: _TypedArray):
+    def from_typed_array(cls, tyarr: TyArrayBase):
         """Create an instances from another ``_TypedArray`` object.
 
         Raises
@@ -71,12 +71,12 @@ class _TypedArray(ABC, Generic[DTYPE]):
         raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
 
     @overload
-    def astype(self, dtype: dtypes.CoreDTypes) -> _ArrayCoreType: ...
+    def astype(self, dtype: dtypes.CoreDTypes) -> TyArray: ...
 
     @overload
-    def astype(self, dtype: DType) -> _TypedArray: ...
+    def astype(self, dtype: DType) -> TyArrayBase: ...
 
-    def astype(self, dtype: DType) -> _TypedArray:
+    def astype(self, dtype: DType) -> TyArrayBase:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
         res = self._astype(dtype)
         if res == NotImplemented:
@@ -87,7 +87,7 @@ class _TypedArray(ABC, Generic[DTYPE]):
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
     @abstractmethod
-    def _astype(self, dtype: DType) -> _TypedArray | NotImplementedType:
+    def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
         """Reflective sibling method for `Self.from_data` which must thus not call the
         latter.
 
@@ -97,23 +97,23 @@ class _TypedArray(ABC, Generic[DTYPE]):
         return NotImplemented
 
     def _where(
-        self, cond: BoolData, y: _TypedArray
-    ) -> _TypedArray | NotImplementedType:
+        self, cond: TyArrayBool, y: TyArrayBase
+    ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
     def _rwhere(
-        self, cond: BoolData, y: _TypedArray
-    ) -> _TypedArray | NotImplementedType:
+        self, cond: TyArrayBool, y: TyArrayBase
+    ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
-    def __add__(self, other: _TypedArray) -> _TypedArray:
+    def __add__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 
-    def __and__(self, rhs: _TypedArray) -> _TypedArray:
+    def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 
-    def __invert__(self) -> _TypedArray:
+    def __invert__(self) -> TyArrayBase:
         return NotImplemented
 
-    def __or__(self, rhs: _TypedArray) -> _TypedArray:
+    def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return NotImplemented

@@ -6,14 +6,14 @@ from spox import Var
 
 from ..dtypes import DType, default_float, default_int, from_numpy
 from .py_scalars import _ArrayPyFloat, _ArrayPyInt
-from .typed_array import _TypedArray
+from .typed_array import TyArrayBase
 
 
-def typed_where(cond: _TypedArray, x: _TypedArray, y: _TypedArray) -> _TypedArray:
-    from .core import BoolData
+def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
+    from .core import TyArrayBool
 
     # TODO: Masked condition
-    if not isinstance(cond, BoolData):
+    if not isinstance(cond, TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 
     ret = x._where(cond, y)
@@ -27,15 +27,15 @@ def typed_where(cond: _TypedArray, x: _TypedArray, y: _TypedArray) -> _TypedArra
 
 
 def astypedarray(
-    val: int | float | np.ndarray | _TypedArray | Var,
+    val: int | float | np.ndarray | TyArrayBase | Var,
     dtype: None | DType = None,
     use_py_scalars=False,
-) -> _TypedArray:
+) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array."""
-    if isinstance(val, _TypedArray):
+    if isinstance(val, TyArrayBase):
         return val
 
-    arr: _TypedArray
+    arr: TyArrayBase
     if isinstance(val, int):
         arr = _ArrayPyInt(val)
         arr = arr if use_py_scalars else arr.astype(default_int)

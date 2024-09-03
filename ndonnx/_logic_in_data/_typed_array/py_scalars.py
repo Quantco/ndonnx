@@ -9,17 +9,17 @@ from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import DType
-from .core import _ArrayCoreNum, _ArrayCoreType
-from .masked import _ArrayMaCoreType  # TODO: there should be num-subclass
-from .typed_array import DTYPE, _TypedArray
+from .core import TyArray, TyArrayNumber
+from .masked import TyMaArray  # TODO: there should be num-subclass
+from .typed_array import DTYPE, TyArrayBase
 from .utils import promote
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
-    from .core import BoolData
+    from .core import TyArrayBool
 
 
-class _ArrayPyScalar(_TypedArray[DTYPE]):
+class _ArrayPyScalar(TyArrayBase[DTYPE]):
     """Array representing a Python scalar.
 
     This implementation is written as if it were a "custom" typed array which knows
@@ -33,7 +33,7 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         self.value = value
 
     @classmethod
-    def from_typed_array(cls, tyarr: _TypedArray):
+    def from_typed_array(cls, tyarr: TyArrayBase):
         # This class should only be created when Python scalars
         # interact with Array objects. As such it should only ever be
         # instantiated using the `__int__` method.
@@ -64,8 +64,8 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
-    def __add__(self, rhs: _TypedArray[DType]) -> _TypedArray[DType]:
-        if isinstance(rhs, _ArrayCoreNum | _ArrayMaCoreType):
+    def __add__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+        if isinstance(rhs, TyArrayNumber | TyMaArray):
             lhs, rhs = promote(self, rhs)
             return lhs + rhs
 
@@ -73,10 +73,10 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
         # these scalars should never interact with themselves.
         return NotImplemented
 
-    def __or__(self, rhs: _TypedArray) -> _ArrayCoreType:
+    def __or__(self, rhs: TyArrayBase) -> TyArray:
         return NotImplemented
 
-    def _astype(self, dtype: DType) -> _TypedArray:
+    def _astype(self, dtype: DType) -> TyArrayBase:
         from .masked import asncoredata
 
         # We implement this class under the assumption that the other
@@ -90,7 +90,7 @@ class _ArrayPyScalar(_TypedArray[DTYPE]):
             return asncoredata(unmasked_typed_arr, None)
         raise NotImplementedError
 
-    def where(self, cond: BoolData, y: _TypedArray) -> _TypedArray:
+    def where(self, cond: TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
 
 

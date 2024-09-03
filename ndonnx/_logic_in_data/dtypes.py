@@ -25,7 +25,7 @@ class DType(ABC):
 
     @property
     @abstractmethod
-    def _tyarr_class(self) -> type[_typed_array._TypedArray[Self]]: ...
+    def _tyarr_class(self) -> type[_typed_array.TyArrayBase[Self]]: ...
 
 
 class _CoreDType(DType): ...
@@ -73,74 +73,74 @@ class Bool(_CoreDType):
         return NotImplemented
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.BoolData]:
-        from ._typed_array import BoolData
+    def _tyarr_class(self) -> type[_typed_array.TyArrayBool]:
+        from ._typed_array import TyArrayBool
 
-        return BoolData
+        return TyArrayBool
 
 
 class Int8(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Int8Data]:
-        from ._typed_array import Int8Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayInt8]:
+        from ._typed_array import TyArrayInt8
 
-        return Int8Data
+        return TyArrayInt8
 
 
 class Int16(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Int16Data]:
-        from ._typed_array import Int16Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayInt16]:
+        from ._typed_array import TyArrayInt16
 
-        return Int16Data
+        return TyArrayInt16
 
 
 class Int32(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Int32Data]:
-        from ._typed_array import Int32Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayInt32]:
+        from ._typed_array import TyArrayInt32
 
-        return Int32Data
+        return TyArrayInt32
 
 
 class Int64(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Int64Data]:
-        from ._typed_array import Int64Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayInt64]:
+        from ._typed_array import TyArrayInt64
 
-        return Int64Data
+        return TyArrayInt64
 
 
 class Uint8(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Uint8Data]:
-        from ._typed_array import Uint8Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayUint8]:
+        from ._typed_array import TyArrayUint8
 
-        return Uint8Data
+        return TyArrayUint8
 
 
 class Uint16(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Uint16Data]:
-        from ._typed_array import Uint16Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayUint16]:
+        from ._typed_array import TyArrayUint16
 
-        return Uint16Data
+        return TyArrayUint16
 
 
 class Uint32(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Uint32Data]:
-        from ._typed_array import Uint32Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayUint32]:
+        from ._typed_array import TyArrayUint32
 
-        return Uint32Data
+        return TyArrayUint32
 
 
 class Uint64(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Uint64Data]:
-        from ._typed_array import Uint64Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayUint64]:
+        from ._typed_array import TyArrayUint64
 
-        return Uint64Data
+        return TyArrayUint64
 
 
 class Float16(_Number):
@@ -226,120 +226,120 @@ class NBool(_NCoreDType):
         return NotImplemented
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NBoolData]:
-        from ._typed_array import NBoolData
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayBool]:
+        from ._typed_array import TyMaArrayBool
 
-        return NBoolData
+        return TyMaArrayBool
 
 
 class NInt8(_NNumber):
     _unmasked_dtype = int8
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NInt8Data]:
-        from ._typed_array import NInt8Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt8]:
+        from ._typed_array import TyMaArrayInt8
 
-        return NInt8Data
+        return TyMaArrayInt8
 
 
 class NInt16(_NNumber):
     _unmasked_dtype = int16
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NInt16Data]:
-        from ._typed_array import NInt16Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt16]:
+        from ._typed_array import TyMaArrayInt16
 
-        return NInt16Data
+        return TyMaArrayInt16
 
 
 class NInt32(_NNumber):
     _unmasked_dtype = int32
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NInt32Data]:
-        from ._typed_array import NInt32Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt32]:
+        from ._typed_array import TyMaArrayInt32
 
-        return NInt32Data
+        return TyMaArrayInt32
 
 
 class NInt64(_NNumber):
     _unmasked_dtype = int64
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NInt64Data]:
-        from ._typed_array import NInt64Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt64]:
+        from ._typed_array import TyMaArrayInt64
 
-        return NInt64Data
+        return TyMaArrayInt64
 
 
 class NUint8(_NNumber):
     _unmasked_dtype = uint8
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NUint8Data]:
-        from ._typed_array import NUint8Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint8]:
+        from ._typed_array import TyMaArrayUint8
 
-        return NUint8Data
+        return TyMaArrayUint8
 
 
 class NUint16(_NNumber):
     _unmasked_dtype = uint16
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NUint16Data]:
-        from ._typed_array import NUint16Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint16]:
+        from ._typed_array import TyMaArrayUint16
 
-        return NUint16Data
+        return TyMaArrayUint16
 
 
 class NUint32(_NNumber):
     _unmasked_dtype = uint32
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NUint32Data]:
-        from ._typed_array import NUint32Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint32]:
+        from ._typed_array import TyMaArrayUint32
 
-        return NUint32Data
+        return TyMaArrayUint32
 
 
 class NUint64(_NNumber):
     _unmasked_dtype = uint64
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NUint64Data]:
-        from ._typed_array import NUint64Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint64]:
+        from ._typed_array import TyMaArrayUint64
 
-        return NUint64Data
+        return TyMaArrayUint64
 
 
 class NFloat16(_NNumber):
     _unmasked_dtype = float16
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NFloat16Data]:
-        from ._typed_array import NFloat16Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayFloat16]:
+        from ._typed_array import TyMaArrayFloat16
 
-        return NFloat16Data
+        return TyMaArrayFloat16
 
 
 class NFloat32(_NNumber):
     _unmasked_dtype = float32
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NFloat32Data]:
-        from ._typed_array import NFloat32Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayFloat32]:
+        from ._typed_array import TyMaArrayFloat32
 
-        return NFloat32Data
+        return TyMaArrayFloat32
 
 
 class NFloat64(_NNumber):
     _unmasked_dtype = float64
 
     @property
-    def _tyarr_class(self) -> type[_typed_array.NFloat64Data]:
-        from ._typed_array import NFloat64Data
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayFloat64]:
+        from ._typed_array import TyMaArrayFloat64
 
-        return NFloat64Data
+        return TyMaArrayFloat64
 
 
 # Non-nullable Singleton instances

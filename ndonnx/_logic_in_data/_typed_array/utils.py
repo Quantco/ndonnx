@@ -8,23 +8,21 @@ from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from ..dtypes import DType
-    from .core import _ArrayCoreType
-    from .typed_array import _TypedArray
+    from .core import TyArray
+    from .typed_array import TyArrayBase
+
+
+@overload
+def promote(lhs: TyArray, *others: TyArray) -> tuple[TyArray, ...]: ...
 
 
 @overload
 def promote(
-    lhs: _ArrayCoreType, *others: _ArrayCoreType
-) -> tuple[_ArrayCoreType, ...]: ...
+    lhs: TyArrayBase, *others: TyArrayBase
+) -> tuple[TyArrayBase[DType], ...]: ...
 
 
-@overload
-def promote(
-    lhs: _TypedArray, *others: _TypedArray
-) -> tuple[_TypedArray[DType], ...]: ...
-
-
-def promote(lhs: _TypedArray, *others: _TypedArray) -> tuple[_TypedArray[DType], ...]:
+def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase[DType], ...]:
     acc: DType = lhs.dtype
     for other in others:
         updated = acc._result_type(other.dtype)

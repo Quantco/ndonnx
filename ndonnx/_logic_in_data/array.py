@@ -12,7 +12,7 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
-from ._typed_array import _TypedArray, ascoredata
+from ._typed_array import TyArrayBase, ascoredata
 from ._typed_array.funcs import astypedarray
 from .dtypes import DType
 
@@ -28,7 +28,7 @@ class Array:
     """User-facing objects that makes no assumption about any data type related
     logic."""
 
-    _data: _TypedArray
+    _data: TyArrayBase
 
     @overload
     def __init__(self, shape: OnnxShape, dtype: DType): ...
@@ -61,8 +61,8 @@ class Array:
         raise NotImplementedError
 
     @classmethod
-    def _from_data(cls, data: _TypedArray) -> Array:
-        if not isinstance(data, _TypedArray):
+    def _from_data(cls, data: TyArrayBase) -> Array:
+        if not isinstance(data, TyArrayBase):
             raise TypeError(f"expected '_TypedArray', found `{type(data)}`")
         inst = cls.__new__(cls)
         inst._data = data
@@ -142,7 +142,7 @@ def _as_array(
 def _apply_op(
     lhs: Array,
     rhs: int | float | Array,
-    op: Callable[[_TypedArray, _TypedArray], _TypedArray],
+    op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
 ) -> Array | NotImplementedType: ...
 
 
@@ -150,14 +150,14 @@ def _apply_op(
 def _apply_op(
     lhs: int | float | Array,
     rhs: Array,
-    op: Callable[[_TypedArray, _TypedArray], _TypedArray],
+    op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
 ) -> Array | NotImplementedType: ...
 
 
 def _apply_op(
     lhs: int | float | Array,
     rhs: int | float | Array,
-    op: Callable[[_TypedArray, _TypedArray], _TypedArray],
+    op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
 ) -> Array | NotImplementedType:
     lhs = _as_array(lhs, use_py_scalars=True)
     rhs = _as_array(rhs, use_py_scalars=True)

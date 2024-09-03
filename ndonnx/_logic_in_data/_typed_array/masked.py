@@ -14,8 +14,8 @@ from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import CoreDTypes, DType, NCoreDTypes, as_non_nullable
-from .core import BoolData, Int8Data, _ArrayCoreType, ascoredata
-from .typed_array import _TypedArray
+from .core import TyArray, TyArrayBool, ascoredata
+from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
     from ..array import Index, OnnxShape
@@ -30,15 +30,15 @@ ALL_NUM_DTYPES = TypeVar(
 
 
 @dataclass
-class _ArrayMa(_TypedArray[DTYPE]):
+class TyMaArrayBase(TyArrayBase[DTYPE]):
     """Typed masked array object."""
 
-    data: _TypedArray
-    mask: BoolData | None
+    data: TyArrayBase
+    mask: TyArrayBool | None
 
 
 @dataclass
-class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
+class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
     """Masked version of core types.
 
     The (subclasses) of this class are implemented such that they only
@@ -46,13 +46,13 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
     """
 
     # Specialization of data from `Data` to `_ArrayCoreType`
-    data: _ArrayCoreType
+    data: TyArray
 
     @classmethod
-    def from_typed_array(cls, tyarr: _TypedArray):
-        if isinstance(tyarr, _ArrayCoreType):
+    def from_typed_array(cls, tyarr: TyArrayBase):
+        if isinstance(tyarr, TyArray):
             return asncoredata(tyarr, mask=None)
-        if isinstance(tyarr, _ArrayMaCoreType):
+        if isinstance(tyarr, TyMaArray):
             new_data = tyarr.data.astype(cls.dtype._unmasked_dtype)
             return cls(new_data, mask=tyarr.mask)
 
@@ -61,18 +61,18 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
     @classmethod
     def as_argument(cls, shape: OnnxShape):
         data = as_non_nullable(cls.dtype)._tyarr_class.as_argument(shape)
-        mask = BoolData.as_argument(shape)
+        mask = TyArrayBool.as_argument(shape)
         return cls(data, mask)
 
-    def __add__(self, other: _TypedArray) -> _ArrayMaCoreType:
+    def __add__(self, other: TyArrayBase) -> TyMaArray:
         return _apply_op(self, other, operator.add)
 
-    def __radd__(self, lhs: _TypedArray) -> _ArrayMaCoreType:
+    def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
         # This is for instance called if we do _ArrayCoreType +
         # _ArrayMaCoreType. We know how to convert from
         # _ArrayCoreType into _ArrayMaCoreType and this is the
         # place to do so.
-        if isinstance(lhs, _ArrayCoreType):
+        if isinstance(lhs, TyArray):
             return asncoredata(lhs, None) + self
 
         return NotImplemented
@@ -90,11 +90,11 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
         return type(self)(data, mask)
 
     @classmethod
-    def from_np_schema(cls, schema: dict[str, Any], /) -> _ArrayMaCoreType:
+    def from_np_schema(cls, schema: dict[str, Any], /) -> TyMaArray:
         assert len(schema) == 2
         data = schema["data"]
         mask = schema["mask"]
-        return asncoredata(ascoredata(op.const(data)), BoolData(op.const(mask)))
+        return asncoredata(ascoredata(op.const(data)), TyArrayBool(op.const(mask)))
 
     def __getitem__(self, index: Index) -> Self:
         new_data = self.data[index]
@@ -102,7 +102,7 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
 
         return type(self)(data=new_data, mask=new_mask)
 
-    def _astype(self, dtype: DType) -> _TypedArray:
+    def _astype(self, dtype: DType) -> TyArrayBase:
         # Implemented under the assumption that we know about core, but not py_scalars
         if isinstance(dtype, dtypes.CoreDTypes):
             # TODO: Not clear what the behavior should be if we have a mask
@@ -113,11 +113,11 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
         return NotImplemented
 
     def _where(
-        self, cond: BoolData, y: _TypedArray
-    ) -> _TypedArray | NotImplementedType:
-        if isinstance(y, _ArrayCoreType):
+        self, cond: TyArrayBool, y: TyArrayBase
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(y, TyArray):
             return self._where(cond, asncoredata(y, None))
-        if isinstance(y, _ArrayMaCoreType):
+        if isinstance(y, TyMaArray):
             x_ = unmask_core(self)
             y_ = unmask_core(y)
             new_data = x_._where(cond, y_)
@@ -130,7 +130,7 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
             else:
                 new_mask = None
 
-            if new_mask is not None and not isinstance(new_mask, BoolData):
+            if new_mask is not None and not isinstance(new_mask, TyArrayBool):
                 # Should never happen. Might be worth while adding
                 # overloads to the BoolData dunder methods to
                 # propagate the types more precisely.
@@ -141,129 +141,123 @@ class _ArrayMaCoreType(_ArrayMa[NCORE_DTYPES]):
         return NotImplemented
 
     def _rwhere(
-        self, cond: BoolData, x: _TypedArray
-    ) -> _TypedArray | NotImplementedType:
-        if isinstance(x, _ArrayCoreType):
+        self, cond: TyArrayBool, x: TyArrayBase
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(x, TyArray):
             return asncoredata(x, None)._where(cond, self)
         return NotImplemented
 
 
-class NBoolData(_ArrayMaCoreType[dtypes.NBool]):
+class TyMaArrayBool(TyMaArray[dtypes.NBool]):
     dtype = dtypes.nbool
 
 
-class NInt8Data(_ArrayMaCoreType[dtypes.NInt8]):
+class TyMaArrayInt8(TyMaArray[dtypes.NInt8]):
     dtype = dtypes.nint8
 
 
-class NInt16Data(_ArrayMaCoreType[dtypes.NInt16]):
+class TyMaArrayInt16(TyMaArray[dtypes.NInt16]):
     dtype = dtypes.nint16
 
 
-class NInt32Data(_ArrayMaCoreType[dtypes.NInt32]):
+class TyMaArrayInt32(TyMaArray[dtypes.NInt32]):
     dtype = dtypes.nint32
 
 
-class NInt64Data(_ArrayMaCoreType[dtypes.NInt64]):
+class TyMaArrayInt64(TyMaArray[dtypes.NInt64]):
     dtype = dtypes.nint64
 
 
-class NUint8Data(_ArrayMaCoreType[dtypes.NUint8]):
+class TyMaArrayUint8(TyMaArray[dtypes.NUint8]):
     dtype = dtypes.nuint8
 
 
-class NUint16Data(_ArrayMaCoreType[dtypes.NUint16]):
+class TyMaArrayUint16(TyMaArray[dtypes.NUint16]):
     dtype = dtypes.nuint16
 
 
-class NUint32Data(_ArrayMaCoreType[dtypes.NUint32]):
+class TyMaArrayUint32(TyMaArray[dtypes.NUint32]):
     dtype = dtypes.nuint32
 
 
-class NUint64Data(_ArrayMaCoreType[dtypes.NUint64]):
+class TyMaArrayUint64(TyMaArray[dtypes.NUint64]):
     dtype = dtypes.nuint64
 
 
-class NFloat16Data(_ArrayMaCoreType[dtypes.NFloat16]):
+class TyMaArrayFloat16(TyMaArray[dtypes.NFloat16]):
     dtype = dtypes.nfloat16
 
 
-class NFloat32Data(_ArrayMaCoreType[dtypes.NFloat32]):
+class TyMaArrayFloat32(TyMaArray[dtypes.NFloat32]):
     dtype = dtypes.nfloat32
 
 
-class NFloat64Data(_ArrayMaCoreType[dtypes.NFloat64]):
+class TyMaArrayFloat64(TyMaArray[dtypes.NFloat64]):
     dtype = dtypes.nfloat64
 
 
-def _merge_masks(a: BoolData | None, b: BoolData | None) -> BoolData | None:
+def _merge_masks(a: TyArrayBool | None, b: TyArrayBool | None) -> TyArrayBool | None:
     if a is None:
         return b
     if b is None:
         return a
     out = a | b
-    if isinstance(out, BoolData):
+    if isinstance(out, TyArrayBool):
         return out
     # Should never happen
     raise TypeError("Unexpected array type")
 
 
-def asncoredata(core_array: _TypedArray, mask: BoolData | None) -> _ArrayMaCoreType:
+def asncoredata(core_array: TyArrayBase, mask: TyArrayBool | None) -> TyMaArray:
     from . import core
 
-    if isinstance(core_array, core.Int8Data):
-        return NInt8Data(core_array, mask)
-    if isinstance(core_array, core.Int16Data):
-        return NInt16Data(core_array, mask)
-    if isinstance(core_array, core.Int32Data):
-        return NInt32Data(core_array, mask)
-    if isinstance(core_array, core.Int64Data):
-        return NInt64Data(core_array, mask)
+    if isinstance(core_array, core.TyArrayInt8):
+        return TyMaArrayInt8(core_array, mask)
+    if isinstance(core_array, core.TyArrayInt16):
+        return TyMaArrayInt16(core_array, mask)
+    if isinstance(core_array, core.TyArrayInt32):
+        return TyMaArrayInt32(core_array, mask)
+    if isinstance(core_array, core.TyArrayInt64):
+        return TyMaArrayInt64(core_array, mask)
 
-    if isinstance(core_array, core.Uint8Data):
-        return NUint8Data(core_array, mask)
-    if isinstance(core_array, core.Uint16Data):
-        return NUint16Data(core_array, mask)
-    if isinstance(core_array, core.Uint32Data):
-        return NUint32Data(core_array, mask)
-    if isinstance(core_array, core.Uint64Data):
-        return NUint64Data(core_array, mask)
+    if isinstance(core_array, core.TyArrayUint8):
+        return TyMaArrayUint8(core_array, mask)
+    if isinstance(core_array, core.TyArrayUint16):
+        return TyMaArrayUint16(core_array, mask)
+    if isinstance(core_array, core.TyArrayUint32):
+        return TyMaArrayUint32(core_array, mask)
+    if isinstance(core_array, core.TyArrayUint64):
+        return TyMaArrayUint64(core_array, mask)
 
     if isinstance(core_array, core.Float16Data):
-        return NFloat16Data(core_array, mask)
+        return TyMaArrayFloat16(core_array, mask)
     if isinstance(core_array, core.Float32Data):
-        return NFloat32Data(core_array, mask)
+        return TyMaArrayFloat32(core_array, mask)
     if isinstance(core_array, core.Float64Data):
-        return NFloat64Data(core_array, mask)
+        return TyMaArrayFloat64(core_array, mask)
 
-    if isinstance(core_array, core.BoolData):
-        return NBoolData(core_array, mask)
+    if isinstance(core_array, core.TyArrayBool):
+        return TyMaArrayBool(core_array, mask)
 
     raise TypeError("expected '_ArrayCoreType' found `{type(core_array)}`")
 
 
-def core_to_ncore(core: _ArrayCoreType) -> _ArrayMaCoreType:
-    if isinstance(core, Int8Data):
-        return NInt8Data(data=core, mask=None)
-    raise ValueError
-
-
-def unmask_core(arr: _ArrayCoreType | _ArrayMaCoreType) -> _ArrayCoreType:
-    if isinstance(arr, _ArrayCoreType):
+def unmask_core(arr: TyArray | TyMaArray) -> TyArray:
+    if isinstance(arr, TyArray):
         return arr
     return arr.data
 
 
 def _apply_op(
-    lhs: _ArrayMaCoreType,
-    rhs: _TypedArray,
-    op: Callable[[_ArrayCoreType, _ArrayCoreType], _ArrayCoreType],
-) -> _ArrayMaCoreType:
+    lhs: TyMaArray,
+    rhs: TyArrayBase,
+    op: Callable[[TyArray, TyArray], TyArray],
+) -> TyMaArray:
     """Apply an operation by passing it through to the data member."""
-    if isinstance(rhs, _ArrayCoreType):
+    if isinstance(rhs, TyArray):
         data = op(lhs.data, rhs)
         mask = lhs.mask
-    elif isinstance(rhs, _ArrayMaCoreType):
+    elif isinstance(rhs, TyMaArray):
         data = op(lhs.data, rhs.data)
         mask = _merge_masks(lhs.mask, rhs.mask)
     else:

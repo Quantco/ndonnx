@@ -18,7 +18,7 @@ from ..dtypes import (
     DType,
     from_numpy,
 )
-from .typed_array import _TypedArray
+from .typed_array import TyArrayBase
 from .utils import promote
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ ALL_NUM_DTYPES = TypeVar(
 )
 
 
-class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
+class TyArray(TyArrayBase[CORE_DTYPES]):
     var: Var
 
     def __init__(self, var: Var):
@@ -40,8 +40,8 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         self.var = var
 
     @classmethod
-    def from_typed_array(cls, tyarr: _TypedArray):
-        if isinstance(tyarr, _ArrayCoreType):
+    def from_typed_array(cls, tyarr: TyArrayBase):
+        if isinstance(tyarr, TyArray):
             var = op.cast(tyarr.var, to=dtypes.as_numpy(cls.dtype))
             return cls(var)
         raise NotImplementedError
@@ -71,7 +71,7 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         return shape
 
     @classmethod
-    def from_np_schema(cls, schema: dict[str, Any], /) -> _ArrayCoreType:
+    def from_np_schema(cls, schema: dict[str, Any], /) -> TyArray:
         if "var" in schema and len(schema) == 1:
             (var,) = schema.values()
             return ascoredata(op.const(var))
@@ -90,16 +90,16 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         var = op.reshape(self.var, op.const(shape))
         return type(self)(var)
 
-    def as_core_dtype(self, dtype: CoreDTypes) -> _ArrayCoreType:
+    def as_core_dtype(self, dtype: CoreDTypes) -> TyArray:
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
-    def _astype(self, dtype: DType) -> _TypedArray:
+    def _astype(self, dtype: DType) -> TyArrayBase:
         return NotImplemented
 
     def _where(
-        self, cond: BoolData, y: _TypedArray
-    ) -> _TypedArray | NotImplementedType:
-        if isinstance(y, _ArrayCoreType):
+        self, cond: TyArrayBool, y: TyArrayBase
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(y, TyArray):
             x, y = promote(self, y)
             var = op.where(cond.var, x.var, y.var)
             return type(x)(var)
@@ -107,9 +107,9 @@ class _ArrayCoreType(_TypedArray[CORE_DTYPES]):
         return NotImplemented
 
 
-class _ArrayCoreNum(_ArrayCoreType[CORE_DTYPES]):
-    def __add__(self, rhs: _TypedArray) -> _TypedArray:
-        if isinstance(rhs, _ArrayCoreNum):
+class TyArrayNumber(TyArray[CORE_DTYPES]):
+    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
+        if isinstance(rhs, TyArrayNumber):
             # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
             if type(self) != type(rhs):
                 a, b = promote(self, rhs)
@@ -119,9 +119,9 @@ class _ArrayCoreNum(_ArrayCoreType[CORE_DTYPES]):
         return NotImplemented
 
 
-class _ArrayCoreInteger(_ArrayCoreNum[CORE_DTYPES]):
-    def __or__(self, rhs: _TypedArray) -> _TypedArray:
-        if isinstance(rhs, _ArrayCoreType):
+class TyArrayInteger(TyArrayNumber[CORE_DTYPES]):
+    def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
+        if isinstance(rhs, TyArray):
             if self.dtype != rhs.dtype:
                 a, b = promote(self, rhs)
                 return a | b
@@ -132,101 +132,101 @@ class _ArrayCoreInteger(_ArrayCoreNum[CORE_DTYPES]):
         return NotImplemented
 
 
-class _ArrayCoreFloating(_ArrayCoreNum[CORE_DTYPES]): ...
+class TyArrayFloating(TyArrayNumber[CORE_DTYPES]): ...
 
 
-class BoolData(_ArrayCoreType[dtypes.Bool]):
+class TyArrayBool(TyArray[dtypes.Bool]):
     dtype = dtypes.bool_
 
-    def __or__(self, rhs: _TypedArray) -> _TypedArray:
+    def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         if self.dtype != rhs.dtype:
             a, b = promote(self, rhs)
             return a | b
 
-        if isinstance(rhs, BoolData):
+        if isinstance(rhs, TyArrayBool):
             var = op.or_(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented
 
-    def __and__(self, rhs: _TypedArray) -> _TypedArray:
+    def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
         if self.dtype != rhs.dtype:
             a, b = promote(self, rhs)
             return a & b
 
-        if isinstance(rhs, BoolData):
+        if isinstance(rhs, TyArrayBool):
             var = op.and_(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented
 
-    def __invert__(self) -> BoolData:
+    def __invert__(self) -> TyArrayBool:
         var = op.not_(self.var)
         return type(self)(var)
 
 
-class Int8Data(_ArrayCoreInteger[dtypes.Int8]):
+class TyArrayInt8(TyArrayInteger[dtypes.Int8]):
     dtype = dtypes.int8
 
 
-class Int16Data(_ArrayCoreInteger[dtypes.Int16]):
+class TyArrayInt16(TyArrayInteger[dtypes.Int16]):
     dtype = dtypes.int16
 
 
-class Int32Data(_ArrayCoreInteger[dtypes.Int32]):
+class TyArrayInt32(TyArrayInteger[dtypes.Int32]):
     dtype = dtypes.int32
 
 
-class Int64Data(_ArrayCoreInteger[dtypes.Int64]):
+class TyArrayInt64(TyArrayInteger[dtypes.Int64]):
     dtype = dtypes.int64
 
 
-class Uint8Data(_ArrayCoreInteger[dtypes.Uint8]):
+class TyArrayUint8(TyArrayInteger[dtypes.Uint8]):
     dtype = dtypes.uint8
 
 
-class Uint16Data(_ArrayCoreInteger[dtypes.Uint16]):
+class TyArrayUint16(TyArrayInteger[dtypes.Uint16]):
     dtype = dtypes.uint16
 
 
-class Uint32Data(_ArrayCoreInteger[dtypes.Uint32]):
+class TyArrayUint32(TyArrayInteger[dtypes.Uint32]):
     dtype = dtypes.uint32
 
 
-class Uint64Data(_ArrayCoreInteger[dtypes.Uint64]):
+class TyArrayUint64(TyArrayInteger[dtypes.Uint64]):
     dtype = dtypes.uint64
 
 
-class Float16Data(_ArrayCoreFloating[dtypes.Float16]):
+class Float16Data(TyArrayFloating[dtypes.Float16]):
     dtype = dtypes.float16
 
 
-class Float32Data(_ArrayCoreFloating[dtypes.Float32]):
+class Float32Data(TyArrayFloating[dtypes.Float32]):
     dtype = dtypes.float32
 
 
-class Float64Data(_ArrayCoreFloating[dtypes.Float64]):
+class Float64Data(TyArrayFloating[dtypes.Float64]):
     dtype = dtypes.float64
 
 
-def ascoredata(var: Var) -> _ArrayCoreType:
+def ascoredata(var: Var) -> TyArray:
     dtype = from_numpy(var.unwrap_tensor().dtype)
 
     return dtype._tyarr_class(var)
 
 
 def is_sequence_of_core_data(
-    seq: Sequence[_TypedArray],
-) -> TypeGuard[Sequence[_ArrayCoreType]]:
-    return all(isinstance(d, _ArrayCoreType) for d in seq)
+    seq: Sequence[TyArrayBase],
+) -> TypeGuard[Sequence[TyArray]]:
+    return all(isinstance(d, TyArray) for d in seq)
 
 
 def _promote_and_apply_op(
-    lhs: _ArrayCoreType,
-    rhs: _TypedArray,
-    arr_op: Callable[[_ArrayCoreType, _ArrayCoreType], _ArrayCoreType],
+    lhs: TyArray,
+    rhs: TyArrayBase,
+    arr_op: Callable[[TyArray, TyArray], TyArray],
     spox_op: Callable[[Var, Var], Var],
-) -> _ArrayCoreType:
+) -> TyArray:
     """Promote and apply an operation by passing it through to the data member."""
-    if isinstance(rhs, _ArrayCoreType):
+    if isinstance(rhs, TyArray):
         if lhs.dtype != rhs.dtype:
             a, b = promote(lhs, rhs)
             return arr_op(a, b)
