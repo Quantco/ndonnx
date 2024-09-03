@@ -13,6 +13,7 @@ from ndonnx import _opset_extensions as opx
 
 if TYPE_CHECKING:
     from ndonnx import Array
+    from ndonnx._array import IndexType
 
 Scalar = TypeVar("Scalar", int, float, str)
 
@@ -88,7 +89,9 @@ def static_map(
         A new Array with the values mapped according to the mapping.
     """
     if not isinstance(x.dtype, ndx.CoreType):
-        raise TypeError("static_map accepts only non-nullable arrays")
+        raise ndx.UnsupportedOperationError(
+            "'static_map' accepts only non-nullable arrays"
+        )
     data = opx.static_map(x._core(), mapping, default)
     return ndx.Array._from_fields(data.dtype, data=data)
 
@@ -143,6 +146,15 @@ def make_nullable(x: Array, null: Array) -> Array:
     if out is NotImplemented:
         raise ndx.UnsupportedOperationError(
             f"'make_nullable' not implemented for `{x.dtype}`"
+        )
+    return out
+
+
+def _getitem(x: Array, index: IndexType) -> ndx.Array:
+    out = x.dtype._ops.getitem(x, index)
+    if out is NotImplemented:
+        raise ndx.UnsupportedOperationError(
+            f"'getitem' not implemented for `{x.dtype}`"
         )
     return out
 

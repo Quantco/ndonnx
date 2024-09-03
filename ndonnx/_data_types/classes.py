@@ -189,7 +189,7 @@ class Nullable(StructType, Generic[T]):
         }
 
 
-class _NullableCore(Nullable[CoreType], CastMixin):
+class NullableCore(Nullable[CoreType], CastMixin):
     def copy(self) -> Self:
         return self
 
@@ -213,7 +213,7 @@ class _NullableCore(Nullable[CoreType], CastMixin):
         return Schema(type_name=type(self).__name__, author="ndonnx")
 
     def _cast_to(self, array: Array, dtype: CoreType | StructType) -> Array:
-        if isinstance(dtype, _NullableCore):
+        if isinstance(dtype, NullableCore):
             return ndx.Array._from_fields(
                 dtype,
                 values=self.values._cast_to(array.values, dtype.values),
@@ -230,7 +230,7 @@ class _NullableCore(Nullable[CoreType], CastMixin):
                 values=self.values._cast_from(array),
                 null=ndx.zeros_like(array, dtype=Boolean()),
             )
-        elif isinstance(array.dtype, _NullableCore):
+        elif isinstance(array.dtype, NullableCore):
             return ndx.Array._from_fields(
                 self,
                 values=self.values._cast_from(array.values),
@@ -240,7 +240,7 @@ class _NullableCore(Nullable[CoreType], CastMixin):
             raise CastError(f"Cannot cast from {array.dtype} to {self}")
 
 
-class NullableNumerical(_NullableCore):
+class NullableNumerical(NullableCore):
     """Base class for nullable numerical data types."""
 
     _ops: OperationsBlock = NullableNumericOperationsImpl()
@@ -312,14 +312,14 @@ class NFloat64(NullableFloating):
     null = Boolean()
 
 
-class NBoolean(_NullableCore):
+class NBoolean(NullableCore):
     values = Boolean()
     null = Boolean()
 
     _ops: OperationsBlock = NullableBooleanOperationsImpl()
 
 
-class NUtf8(_NullableCore):
+class NUtf8(NullableCore):
     values = Utf8()
     null = Boolean()
 
@@ -405,18 +405,18 @@ class Finfo:
         )
 
 
-def get_finfo(dtype: _NullableCore | CoreType) -> Finfo:
+def get_finfo(dtype: NullableCore | CoreType) -> Finfo:
     try:
-        if isinstance(dtype, _NullableCore):
+        if isinstance(dtype, NullableCore):
             dtype = dtype.values
         return Finfo._from_dtype(dtype)
     except KeyError:
         raise TypeError(f"'{dtype}' is not a floating point data type.")
 
 
-def get_iinfo(dtype: _NullableCore | CoreType) -> Iinfo:
+def get_iinfo(dtype: NullableCore | CoreType) -> Iinfo:
     try:
-        if isinstance(dtype, _NullableCore):
+        if isinstance(dtype, NullableCore):
             dtype = dtype.values
         return Iinfo._from_dtype(dtype)
     except KeyError:

@@ -13,15 +13,16 @@ import ndonnx as ndx
 import ndonnx._data_types as dtypes
 import ndonnx._opset_extensions as opx
 
+from ._coreimpl import CoreOperationsImpl
+from ._interface import OperationsBlock
 from ._nullableimpl import NullableOperationsImpl
-from ._shapeimpl import UniformShapeOperations
 from ._utils import binary_op, unary_op, validate_core
 
 if TYPE_CHECKING:
     from ndonnx import Array
 
 
-class BooleanOperationsImpl(UniformShapeOperations):
+class _BooleanOperationsImpl(OperationsBlock):
     @validate_core
     def equal(self, x, y) -> Array:
         return binary_op(x, y, opx.equal)
@@ -99,7 +100,7 @@ class BooleanOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def all(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, True, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(True, dtype=ndx.bool)
@@ -109,7 +110,7 @@ class BooleanOperationsImpl(UniformShapeOperations):
 
     @validate_core
     def any(self, x, *, axis=None, keepdims: bool = False):
-        if isinstance(x.dtype, dtypes._NullableCore):
+        if isinstance(x.dtype, dtypes.NullableCore):
             x = ndx.where(x.null, False, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(False, dtype=ndx.bool)
@@ -162,17 +163,8 @@ class BooleanOperationsImpl(UniformShapeOperations):
     def nonzero(self, x) -> tuple[Array, ...]:
         return ndx.nonzero(x.astype(ndx.int8))
 
-    @validate_core
-    def make_nullable(self, x, null):
-        if null.dtype != dtypes.bool:
-            raise TypeError("'null' must be a boolean array")
-        return ndx.Array._from_fields(
-            dtypes.into_nullable(x.dtype),
-            values=x.copy(),
-            null=ndx.reshape(null, x.shape),
-        )
+
+class BooleanOperationsImpl(CoreOperationsImpl, _BooleanOperationsImpl): ...
 
 
-class NullableBooleanOperationsImpl(BooleanOperationsImpl, NullableOperationsImpl):
-    def make_nullable(self, x, null):
-        return NotImplemented
+class NullableBooleanOperationsImpl(NullableOperationsImpl, _BooleanOperationsImpl): ...

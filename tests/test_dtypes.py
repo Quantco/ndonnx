@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import functools
 import re
 
 import numpy as np
@@ -10,12 +11,19 @@ import pytest
 from typing_extensions import Self
 
 import ndonnx as ndx
+import ndonnx.additional as nda
 from ndonnx import (
     Array,
     CastError,
     CoreType,
 )
-from ndonnx._experimental import CastMixin, Schema, StructType, UniformShapeOperations
+from ndonnx._experimental import (
+    CastMixin,
+    OperationsBlock,
+    Schema,
+    StructType,
+    UniformShapeOperations,
+)
 
 from .utils import assert_array_equal
 
@@ -87,6 +95,11 @@ class Unsigned96Impl(UniformShapeOperations):
             return x + y.astype(Unsigned96())
         return NotImplemented
 
+    def where(self, condition, x, y):
+        x = x.astype(Unsigned96())
+        y = y.astype(Unsigned96())
+        return super().where(condition, x, y)
+
 
 class Unsigned96(StructType, CastMixin):
     def _fields(self) -> dict[str, StructType | CoreType]:
@@ -130,6 +143,94 @@ class Unsigned96(StructType, CastMixin):
         )
 
     _ops = Unsigned96Impl()
+
+
+class ListImpl(OperationsBlock):
+    def make_array(
+        self,
+        shape: tuple[int | str | None, ...],
+        dtype: CoreType | StructType,
+        eager_value: np.ndarray | None = None,
+    ) -> Array:
+        if eager_value is None:
+            return Array._from_fields(
+                dtype,
+                endpoints=ndx.array(shape=shape + (2,), dtype=ndx.int64),
+                items=ndx.array(shape=(None,), dtype=ndx.utf8),
+            )
+        else:
+            fields = dtype._parse_input(eager_value)
+            return Array._from_fields(
+                dtype, **{name: ndx.asarray(field) for name, field in fields.items()}
+            )
+
+    def getitem(
+        self,
+        x: Array,
+        index,
+    ) -> Array:
+        if isinstance(index, int):
+            index = slice(index, index + 1), ...
+
+        return Array._from_fields(
+            dtype=x.dtype,
+            endpoints=x.endpoints[index],
+            items=x.items.copy(),
+        )
+
+    def shape(self, x) -> Array:
+        return nda.shape(x.endpoints)[:-1]
+
+    def static_shape(self, x) -> tuple[int | None, ...]:
+        return x.endpoints.shape[:-1]
+
+
+class List(StructType):
+    # The fields here have different shapes
+    def _fields(self) -> dict[str, StructType | CoreType]:
+        return {
+            "endpoints": ndx.int64,
+            "items": ndx.utf8,
+        }
+
+    def _parse_input(self, x: np.ndarray) -> dict:
+        assert x.dtype == object
+        assert all(isinstance(x, list) for x in x.flat)
+
+        endpoints = np.empty(x.shape + (2,), dtype=np.int64)
+        items = np.empty(
+            functools.reduce(lambda acc, elem: acc + len(elem), x.flat, 0), dtype=object
+        )
+
+        cur_items_idx = 0
+        for idx in np.ndindex(x.shape):
+            endpoints[idx, :] = [cur_items_idx, cur_items_idx + len(x[idx])]
+            for elem in x[idx]:
+                items[cur_items_idx] = elem
+                cur_items_idx += 1
+
+        return {
+            "endpoints": endpoints,
+            "items": items.astype(np.str_),
+        }
+
+    def _assemble_output(self, fields: dict[str, np.ndarray]) -> np.ndarray:
+        endpoints = fields["endpoints"]
+        items = fields["items"]
+
+        out = np.empty(endpoints.shape[:-1], dtype=object)
+        for idx in np.ndindex(endpoints.shape[:-1]):
+            start, end = endpoints[idx]
+            out[idx] = items[start:end].tolist()
+        return out
+
+    def copy(self) -> Self:
+        return self
+
+    def _schema(self) -> Schema:
+        return Schema(type_name="List", author="value from data!")
+
+    _ops = ListImpl()
 
 
 def custom_equal(x: Array, y: Array) -> Array:
@@ -275,3 +376,61 @@ def test_custom_dtype_capable_creation_functions():
     assert_array_equal(
         ndx.ones_like(x, dtype=ndx.int32).to_numpy(), np.ones_like(arr, dtype=np.int32)
     )
+
+
+def test_custom_where(u96):
+    x = ndx.asarray([1, 2, 3], u96)
+    y = ndx.asarray([4, 5, 6], ndx.uint32)
+    cond = ndx.asarray([True, False, True])
+
+    result1 = ndx.where(cond, x, y)
+    assert_array_equal(result1, ndx.asarray([1, 5, 3], u96))
+
+    result2 = ndx.where(cond, y, x)
+    assert_array_equal(result2, ndx.asarray([4, 2, 6], u96))
+
+    result3 = ndx.where(cond, x, ndx.asarray(0, ndx.uint32))
+    assert_array_equal(result3, ndx.asarray([1, 0, 3], u96))
+
+
+def test_create_dtype_mismatched_shape_fields_eager():
+    array = np.empty(shape=(2,), dtype=object)
+    array[0] = ["a", "bcd", "e"]
+    array[1] = ["f", "gh"]
+    x = ndx.asarray(array, dtype=List())
+    assert_array_equal(x.to_numpy(), array)
+    assert x[0].to_numpy().item() == ["a", "bcd", "e"]
+    assert_array_equal(nda.shape(x).to_numpy(), np.array([2], dtype=np.int64))
+    assert x.shape == (2,)
+
+
+def test_create_dtype_mismatched_shape_fields_lazy():
+    x = ndx.array(shape=("N", "M", 2), dtype=List())
+    assert x.shape == (None, None, 2)
+    out = x[1:2, 0, ...]
+
+    ndx.build({"x": x}, {"out": out})
+
+
+def test_recursive_construction():
+    class MyNInt64(StructType):
+        def _fields(self) -> dict[str, StructType | CoreType]:
+            return {"x": ndx.nint64}
+
+        def _parse_input(self, x: np.ndarray) -> dict:
+            return {"x": ndx.nint64._parse_input(x)}
+
+        def _assemble_output(self, fields: dict[str, np.ndarray]) -> np.ndarray:
+            return fields["x"]
+
+        def copy(self) -> Self:
+            return self
+
+        def _schema(self) -> Schema:
+            return Schema(type_name="my_nint64", author="me")
+
+        _ops = UniformShapeOperations()
+
+    my_nint64 = MyNInt64()
+    a = ndx.asarray(np.ma.masked_array([1, 2, 3], [1, 0, 1], np.int64), my_nint64)
+    assert_array_equal(a.to_numpy(), np.ma.masked_array([1, 2, 3], [1, 0, 1], np.int64))
