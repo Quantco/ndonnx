@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
+import spox.opset.ai.onnx.v21 as op
 from typing_extensions import Self
 
 from .. import dtypes
@@ -54,13 +55,6 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
     def shape(self) -> OnnxShape:
         return ()
 
-    @classmethod
-    def from_np_schema(cls, schema: dict[str, Any], /) -> Self:
-        if "value" in schema and len(schema) == 1:
-            (val,) = schema.values()
-            return cls(val)
-        raise ValueError("'schema' has unexpected layout")
-
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
@@ -84,7 +78,7 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         # the mapping from this class into those classes **here**.
         if isinstance(dtype, dtypes.CoreNumericDTypes):
             np_arr = np.array(self.value, dtypes.as_numpy(dtype))
-            return dtype._tyarr_class.from_np_schema({"var": np_arr})
+            return dtype._tyarr_class(op.const(np_arr))
         if isinstance(dtype, dtypes.NCoreNumericDTypes):
             unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
             return asncoredata(unmasked_typed_arr, None)

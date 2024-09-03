@@ -7,14 +7,13 @@ import operator
 from collections.abc import Callable
 from dataclasses import dataclass
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
-import spox.opset.ai.onnx.v21 as op
 from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import CoreDTypes, DType, NCoreDTypes, as_non_nullable
-from .core import TyArray, TyArrayBool, ascoredata
+from .core import TyArray, TyArrayBool
 from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
@@ -82,13 +81,6 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
         data = self.data.reshape(shape)
         mask = self.mask.reshape(shape) if self.mask is not None else None
         return type(self)(data, mask)
-
-    @classmethod
-    def from_np_schema(cls, schema: dict[str, Any], /) -> TyMaArray:
-        assert len(schema) == 2
-        data = schema["data"]
-        mask = schema["mask"]
-        return asncoredata(ascoredata(op.const(data)), TyArrayBool(op.const(mask)))
 
     def __getitem__(self, index: Index) -> Self:
         new_data = self.data[index]

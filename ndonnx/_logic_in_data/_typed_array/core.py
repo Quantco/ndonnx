@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
+from typing import TYPE_CHECKING, TypeGuard, TypeVar
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -69,13 +69,6 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
         if shape is None:
             raise ValueError("Missing shape information")
         return shape
-
-    @classmethod
-    def from_np_schema(cls, schema: dict[str, Any], /) -> TyArray:
-        if "var" in schema and len(schema) == 1:
-            (var,) = schema.values()
-            return ascoredata(op.const(var))
-        raise ValueError("'schema' has unexpected layout")
 
     def to_numpy(self) -> np.ndarray:
         if self.var._value is not None:

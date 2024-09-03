@@ -5,6 +5,7 @@ from __future__ import annotations
 from .typed_array import TyArrayBase
 
 from .core import (
+    ascoredata,
     Float16Data,
     Float32Data,
     Float64Data,
@@ -31,7 +32,6 @@ from .masked import (
     TyMaArrayUint16,
     TyMaArrayUint32,
     TyMaArrayUint64,
-    ascoredata,
     asncoredata,
 )
 

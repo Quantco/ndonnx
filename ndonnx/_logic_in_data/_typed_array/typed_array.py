@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
 from typing_extensions import Self
@@ -16,7 +16,7 @@ from ..dtypes import (
 )
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
+    from ..array import Index, OnnxShape
     from .core import TyArray, TyArrayBool
 
 
@@ -34,10 +34,12 @@ class TyArrayBase(ABC, Generic[DTYPE]):
     def from_typed_array(cls, tyarr: TyArrayBase):
         """Create an instances from another ``_TypedArray`` object.
 
+        Returns `NotImplemented` if the conversion is not defined.
+
         Raises
         ------
         ValueError:
-            If the conversion from `tyarr` is known to be invalid.
+            If the conversion from `tyarr` is *known* to be invalid.
 
         Note
         ----
@@ -50,15 +52,11 @@ class TyArrayBase(ABC, Generic[DTYPE]):
     def as_argument(cls, shape: OnnxShape): ...
 
     @abstractmethod
-    def __getitem__(self, index) -> Self: ...
+    def __getitem__(self, index: Index) -> Self: ...
 
     @property
     @abstractmethod
     def shape(self) -> OnnxShape: ...
-
-    @classmethod
-    @abstractmethod
-    def from_np_schema(cls, schema: dict[str, Any], /) -> Self: ...
 
     @abstractmethod
     def reshape(self, shape: tuple[int, ...]) -> Self: ...

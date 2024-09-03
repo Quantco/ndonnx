@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import numpy as np
+import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
 from ..dtypes import DType, default_float, default_int, from_numpy
@@ -50,7 +51,7 @@ def astypedarray(
     elif isinstance(val, np.ndarray):
         dtype = from_numpy(val.dtype)
         # TODO: Having `{"var": np_array}` looks awkward...
-        arr = dtype._tyarr_class.from_np_schema({"var": val})
+        arr = dtype._tyarr_class(op.const(val))
     else:
         raise ValueError
 
