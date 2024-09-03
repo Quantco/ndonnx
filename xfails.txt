@@ -4,7 +4,6 @@ array_api_tests/test_creation_functions.py::test_meshgrid
 array_api_tests/test_data_type_functions.py::test_can_cast
 array_api_tests/test_data_type_functions.py::test_isdtype
 array_api_tests/test_has_names.py::test_has_names[array_attribute-device]
-array_api_tests/test_has_names.py::test_has_names[array_attribute-size]
 array_api_tests/test_has_names.py::test_has_names[array_method-__complex__]
 array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack__]
 array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack_device__]
