@@ -10,7 +10,7 @@ from typing_extensions import Self
 from .. import dtypes
 from ..dtypes import DType
 from .core import TyArray, TyArrayNumber
-from .masked import TyMaArray  # TODO: there should be num-subclass
+from .masked import TyMaArrayNumber
 from .typed_array import DTYPE, TyArrayBase
 from .utils import promote
 
@@ -65,7 +65,7 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         raise ValueError("cannot reshape Python scalar")
 
     def __add__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        if isinstance(rhs, TyArrayNumber | TyMaArray):
+        if isinstance(rhs, TyArrayNumber | TyMaArrayNumber):
             lhs, rhs = promote(self, rhs)
             return lhs + rhs
 

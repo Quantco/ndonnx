@@ -37,7 +37,6 @@ class Array:
     def __init__(self, value: np.ndarray | float | int | bool): ...
 
     def __init__(self, shape=None, dtype=None, value=None, var=None):
-        # TODO: Validation
         (is_shape, is_dtype, is_value, is_var) = (
             item is not None for item in [shape, dtype, value, var]
         )

@@ -24,6 +24,13 @@ if TYPE_CHECKING:
 DTYPE = TypeVar("DTYPE", bound=DType)
 CORE_DTYPES = TypeVar("CORE_DTYPES", bound=CoreDTypes)
 NCORE_DTYPES = TypeVar("NCORE_DTYPES", bound=NCoreDTypes)
+
+NCORE_NUMERIC_DTYPES = TypeVar("NCORE_NUMERIC_DTYPES", bound=dtypes.NCoreNumericDTypes)
+NCORE_FLOATING_DTYPES = TypeVar(
+    "NCORE_FLOATING_DTYPES", bound=dtypes.NCoreFloatingDTypes
+)
+NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound=dtypes.NCoreIntegerDTypes)
+
 ALL_NUM_DTYPES = TypeVar(
     "ALL_NUM_DTYPES", bound=dtypes.CoreNumericDTypes | dtypes.NCoreNumericDTypes
 )
@@ -63,19 +70,6 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
         data = as_non_nullable(cls.dtype)._tyarr_class.as_argument(shape)
         mask = TyArrayBool.as_argument(shape)
         return cls(data, mask)
-
-    def __add__(self, other: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, other, operator.add)
-
-    def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
-        # This is for instance called if we do _ArrayCoreType +
-        # _ArrayMaCoreType. We know how to convert from
-        # _ArrayCoreType into _ArrayMaCoreType and this is the
-        # place to do so.
-        if isinstance(lhs, TyArray):
-            return asncoredata(lhs, None) + self
-
-        return NotImplemented
 
     @property
     def shape(self) -> OnnxShape:
@@ -147,52 +141,80 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
             return asncoredata(x, None)._where(cond, self)
         return NotImplemented
 
+    # Dunder implementations
+    #
+    # We don't differentiate between the different subclasses since we
+    # always just pass through to the underlying non-masked typed. We
+    # will get an error from there if appropriate.
+
+    def __add__(self, other: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, other, operator.add)
+
+    def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
+        # This is for instance called if we do _ArrayCoreType +
+        # _ArrayMaCoreType. We know how to convert from
+        # _ArrayCoreType into _ArrayMaCoreType and this is the
+        # place to do so.
+        if isinstance(lhs, TyArray):
+            return asncoredata(lhs, None) + self
+
+        return NotImplemented
+
+
+class TyMaArrayNumber(TyMaArray[NCORE_NUMERIC_DTYPES]): ...
+
+
+class TyMaArrayInteger(TyMaArrayNumber[NCORE_INTEGER_DTYPES]): ...
+
+
+class TyMaArrayFloating(TyMaArrayNumber[NCORE_FLOATING_DTYPES]): ...
+
 
 class TyMaArrayBool(TyMaArray[dtypes.NBool]):
     dtype = dtypes.nbool
 
 
-class TyMaArrayInt8(TyMaArray[dtypes.NInt8]):
+class TyMaArrayInt8(TyMaArrayInteger[dtypes.NInt8]):
     dtype = dtypes.nint8
 
 
-class TyMaArrayInt16(TyMaArray[dtypes.NInt16]):
+class TyMaArrayInt16(TyMaArrayInteger[dtypes.NInt16]):
     dtype = dtypes.nint16
 
 
-class TyMaArrayInt32(TyMaArray[dtypes.NInt32]):
+class TyMaArrayInt32(TyMaArrayInteger[dtypes.NInt32]):
     dtype = dtypes.nint32
 
 
-class TyMaArrayInt64(TyMaArray[dtypes.NInt64]):
+class TyMaArrayInt64(TyMaArrayInteger[dtypes.NInt64]):
     dtype = dtypes.nint64
 
 
-class TyMaArrayUint8(TyMaArray[dtypes.NUint8]):
+class TyMaArrayUint8(TyMaArrayInteger[dtypes.NUint8]):
     dtype = dtypes.nuint8
 
 
-class TyMaArrayUint16(TyMaArray[dtypes.NUint16]):
+class TyMaArrayUint16(TyMaArrayInteger[dtypes.NUint16]):
     dtype = dtypes.nuint16
 
 
-class TyMaArrayUint32(TyMaArray[dtypes.NUint32]):
+class TyMaArrayUint32(TyMaArrayInteger[dtypes.NUint32]):
     dtype = dtypes.nuint32
 
 
-class TyMaArrayUint64(TyMaArray[dtypes.NUint64]):
+class TyMaArrayUint64(TyMaArrayInteger[dtypes.NUint64]):
     dtype = dtypes.nuint64
 
 
-class TyMaArrayFloat16(TyMaArray[dtypes.NFloat16]):
+class TyMaArrayFloat16(TyMaArrayFloating[dtypes.NFloat16]):
     dtype = dtypes.nfloat16
 
 
-class TyMaArrayFloat32(TyMaArray[dtypes.NFloat32]):
+class TyMaArrayFloat32(TyMaArrayFloating[dtypes.NFloat32]):
     dtype = dtypes.nfloat32
 
 
-class TyMaArrayFloat64(TyMaArray[dtypes.NFloat64]):
+class TyMaArrayFloat64(TyMaArrayFloating[dtypes.NFloat64]):
     dtype = dtypes.nfloat64
 
 
