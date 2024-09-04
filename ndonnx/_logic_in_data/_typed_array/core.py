@@ -47,9 +47,11 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
         raise NotImplementedError
 
     @classmethod
-    def as_argument(cls, shape: OnnxShape):
-        var = argument(Tensor(dtypes.as_numpy(cls.dtype), shape))
-        return cls(var)
+    def as_argument(cls, shape: OnnxShape, dtype: DType):
+        if isinstance(dtype, CoreDTypes):
+            var = argument(Tensor(dtypes.as_numpy(dtype), shape))
+            return cls(var)
+        raise ValueError("unexpected 'dtype' `{dtype}`")
 
     def __getitem__(self, index: Index) -> Self:
         if isinstance(index, int):
@@ -107,6 +109,16 @@ class TyArrayNumber(TyArray[CORE_DTYPES]):
             if type(self) != type(rhs):
                 a, b = promote(self, rhs)
                 return a + b
+            var = op.add(self.var, rhs.var)
+            return ascoredata(var)
+        return NotImplemented
+
+    def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
+        if isinstance(rhs, TyArrayNumber):
+            # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
+            if type(self) != type(rhs):
+                a, b = promote(self, rhs)
+                return a - b
             var = op.add(self.var, rhs.var)
             return ascoredata(var)
         return NotImplemented

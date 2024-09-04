@@ -49,7 +49,13 @@ class TyArrayBase(ABC, Generic[DTYPE]):
 
     @classmethod
     @abstractmethod
-    def as_argument(cls, shape: OnnxShape): ...
+    def as_argument(cls, shape: OnnxShape, dtype: DType):
+        """Create an argument array.
+
+        The 'dtype' parameter is needed since data types, such as categorical ones, may
+        carry state not encapsulated in the typed array.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def __getitem__(self, index: Index) -> Self: ...
@@ -86,8 +92,8 @@ class TyArrayBase(ABC, Generic[DTYPE]):
 
     @abstractmethod
     def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
-        """Reflective sibling method for `Self.from_data` which must thus not call the
-        latter.
+        """Reflective sibling method for `Self.from_typed_array` which must thus not
+        call the latter.
 
         Used this function to implement the conversion from a custom type into a built-
         in one.
@@ -114,4 +120,7 @@ class TyArrayBase(ABC, Generic[DTYPE]):
         return NotImplemented
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return NotImplemented
+
+    def __sub__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented

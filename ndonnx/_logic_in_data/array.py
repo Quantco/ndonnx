@@ -48,7 +48,7 @@ class Array:
             raise ValueError("Invalid arguments.")
 
         if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._data = dtype._tyarr_class.as_argument(shape)
+            self._data = dtype._tyarr_class.as_argument(shape, dtype)
             return
         if isinstance(value, np.ndarray):
             raise NotImplementedError
@@ -102,6 +102,12 @@ class Array:
 
     def __radd__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.add)
+
+    def __sub__(self, rhs: int | float | Array) -> Array:
+        return _apply_op(self, rhs, std_ops.sub)
+
+    def __rsub__(self, lhs: int | float | Array) -> Array:
+        return _apply_op(lhs, self, std_ops.sub)
 
     def __or__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.or_)

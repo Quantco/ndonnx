@@ -27,7 +27,7 @@ def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase[DType],
     for other in others:
         updated = acc._result_type(other.dtype)
         if isinstance(updated, NotImplementedType):
-            updated = other.dtype._rresult_type(acc)
+            updated = other.dtype._result_type(acc)
         if isinstance(updated, NotImplementedType):
             raise TypeError("Failed to promote into common data type.")
         acc = updated

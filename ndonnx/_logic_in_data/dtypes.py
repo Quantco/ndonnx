@@ -20,12 +20,24 @@ class DType(ABC):
     def _result_type(self, other: DType) -> DType | NotImplementedType: ...
 
     def _rresult_type(self, other: DType) -> DType | NotImplementedType:
+        # TODO: Remove; not needed. We just call _result_type on the `other` type directly in `promote`
         # Should allow for at least Python scalars in the signature
         return NotImplemented
 
     @property
     @abstractmethod
     def _tyarr_class(self) -> type[_typed_array.TyArrayBase[Self]]: ...
+
+    def __eq__(self, other) -> bool:
+        if type(self) is not type(other):
+            return False
+        return (self.__dict__ == other.__dict__) and (self.__slots__ == other.__slots__)
+
+    def __hash__(self) -> int:
+        return hash((tuple(sorted(self.__dict__.items())), self.__slots__))
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__
 
 
 class _CoreDType(DType): ...
@@ -169,7 +181,7 @@ class Float64(_Number):
 
 class _PyInt(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, CoreNumericDTypes):
+        if isinstance(other, CoreNumericDTypes | NCoreNumericDTypes):
             return other
         raise ValueError
 

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from ndonnx._logic_in_data import Array, dtypes
+from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
 from ndonnx._logic_in_data.array import where
 
 
@@ -19,9 +20,16 @@ from ndonnx._logic_in_data.array import where
         (1.0, dtypes.nint32, dtypes.nfloat64),
     ],
 )
-def test_radd_pyscalar(scalar, dtype, res_dtype):
+def test_add_pyscalar(scalar, dtype, res_dtype):
     shape = ("N",)
     res = scalar + Array(shape, dtype)
+
+    assert res.dtype == res_dtype
+    assert res._data.shape == shape
+    assert res.shape == (None,)
+
+    # Same check for scalar on rhs
+    res = Array(shape, dtype) + scalar
 
     assert res.dtype == res_dtype
     assert res._data.shape == shape
@@ -96,3 +104,14 @@ def test_where(x_ty, y_ty, res_ty):
     assert res.dtype == res_ty
     assert res._data.shape == shape
     assert res.shape == (None, None)
+
+
+def test_datetime():
+    arr = Array(("N",), DateTime("s"))
+    one_s_td = (arr + 1) - arr
+    assert one_s_td.dtype == TimeDelta("s")
+
+    ten_s_td = one_s_td * 10
+
+    res = arr + ten_s_td
+    assert res.dtype == DateTime("s")

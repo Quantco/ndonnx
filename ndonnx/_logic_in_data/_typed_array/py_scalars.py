@@ -25,7 +25,7 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
 
     This implementation is written as if it were a "custom" typed array which knows
     about other (nullable) core types. Those core types are oblivious of this typed
-    array though. Thus, this implementation may serve as a blue print for custom types.
+    array, though. Thus, this implementation may serve as a blue print for custom types.
     """
 
     value: int | float
@@ -41,7 +41,7 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         raise ValueError(f"`{cls}` cannot be created from `{type(tyarr)}`")
 
     @classmethod
-    def as_argument(cls, shape: OnnxShape):
+    def as_argument(cls, shape: OnnxShape, dtype: DType):
         raise ValueError(f"`{cls}` cannot be an argument to a graph")
 
     def __getitem__(self, index) -> Self:
@@ -61,6 +61,15 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
     def __add__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
         if isinstance(rhs, TyArrayNumber | TyMaArrayNumber):
             lhs, rhs = promote(self, rhs)
+            return lhs + rhs
+
+        # We only know about the other (nullable) built-in types &
+        # these scalars should never interact with themselves.
+        return NotImplemented
+
+    def __radd__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+        if isinstance(lhs, TyArrayNumber | TyMaArrayNumber):
+            lhs, rhs = promote(lhs, self)
             return lhs + rhs
 
         # We only know about the other (nullable) built-in types &
