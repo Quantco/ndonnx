@@ -19,11 +19,6 @@ class DType(ABC):
     @abstractmethod
     def _result_type(self, other: DType) -> DType | NotImplementedType: ...
 
-    def _rresult_type(self, other: DType) -> DType | NotImplementedType:
-        # TODO: Remove; not needed. We just call _result_type on the `other` type directly in `promote`
-        # Should allow for at least Python scalars in the signature
-        return NotImplemented
-
     @property
     @abstractmethod
     def _tyarr_class(self) -> type[_typed_array.TyArrayBase[Self]]: ...
@@ -69,15 +64,6 @@ class _NNumber(_NCoreDType):
             return NotImplemented
 
         return as_nullable(core_result)
-
-    def _rresult_type(self, lhs: DType) -> DType | NotImplementedType:
-        # e.g. called after `CoreDType._result_type(self)`
-
-        if isinstance(lhs, _CoreDType | _NCoreDType):
-            # All core types are commutative
-            return self._result_type(lhs)
-
-        return NotImplemented
 
 
 class Bool(_CoreDType):
@@ -555,7 +541,7 @@ def result_type(first: DType, *others: DType) -> DType:
         res1 = a._result_type(b)
         if res1 != NotImplemented:
             return res1
-        return b._rresult_type(a)
+        return b._result_type(a)
 
     res = reduce(result_binary, others, first)
     if res == NotImplemented:
