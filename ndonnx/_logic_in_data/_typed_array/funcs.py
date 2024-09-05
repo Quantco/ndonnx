@@ -50,7 +50,6 @@ def astypedarray(
         raise NotImplementedError
     elif isinstance(val, np.ndarray):
         dtype = from_numpy(val.dtype)
-        # TODO: Having `{"var": np_array}` looks awkward...
         arr = dtype._tyarr_class(op.const(val))
     else:
         raise ValueError

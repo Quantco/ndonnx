@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from types import NotImplementedType
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -12,8 +13,8 @@ from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import DType
-from .core import TyArray, TyArrayNumber
-from .masked import TyMaArray, TyMaArrayNumber
+from .core import TyArray, TyArrayInteger
+from .masked import TyMaArray
 from .typed_array import DTYPE, TyArrayBase
 from .utils import promote, safe_cast
 
@@ -54,21 +55,24 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         raise ValueError("cannot reshape Python scalar")
 
     def __add__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        return _promote_and_apply_op(self, rhs, operator.add)
+        return _promote_and_apply_op(self, rhs, operator.add, True)
 
     def __radd__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        return _promote_and_apply_op(lhs, self, operator.add)
+        return _promote_and_apply_op(self, lhs, operator.add, False)
 
     def __mul__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        return _promote_and_apply_op(self, rhs, operator.mul)
+        return _promote_and_apply_op(self, rhs, operator.mul, True)
 
     def __rmul__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        return _promote_and_apply_op(lhs, self, operator.mul)
+        return _promote_and_apply_op(self, lhs, operator.mul, False)
 
-    def __or__(self, rhs: TyArrayBase) -> TyArray:
-        return NotImplemented
+    def __sub__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+        return _promote_and_apply_op(self, rhs, operator.sub, True)
 
-    def _astype(self, dtype: DType) -> TyArrayBase:
+    def __rsub__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+        return _promote_and_apply_op(self, lhs, operator.sub, False)
+
+    def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
         from .masked import asncoredata
 
         # We implement this class under the assumption that the other
@@ -80,10 +84,10 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         if isinstance(dtype, dtypes.NCoreNumericDTypes):
             unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
             return asncoredata(unmasked_typed_arr, None)
-        raise NotImplementedError
+        return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:
-        return _promote_and_apply_op(self, other, operator.eq)
+        return _promote_and_apply_op(self, other, operator.eq, True)
 
     def where(self, cond: TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
@@ -92,21 +96,24 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
 class _ArrayPyInt(_ArrayPyScalar[dtypes._PyInt]):
     dtype = dtypes._pyint
 
+    def __or__(self, rhs) -> TyArray | TyMaArray:
+        if isinstance(rhs, TyArrayInteger):
+            return _promote_and_apply_op(self, rhs, operator.or_, True)
+        return NotImplemented
+
 
 class _ArrayPyFloat(_ArrayPyScalar[dtypes._PyFloat]):
     dtype = dtypes._pyfloat
 
 
 def _promote_and_apply_op(
-    lhs: TyArrayBase | _ArrayPyScalar,
-    rhs: TyArrayBase | _ArrayPyScalar,
-    arr_op: Callable[[TyArray, TyArray], TyArray],
-) -> TyArrayNumber | TyMaArrayNumber:
-    # Must be xor for the two unions
-    if isinstance(rhs, _ArrayPyScalar) != isinstance(lhs, _ArrayPyScalar):
-        lhs, rhs = promote(lhs, rhs)
+    this: _ArrayPyScalar, other, arr_op: Callable[[Any, Any], Any], forward: bool
+) -> TyArray | TyMaArray | NotImplementedType:
+    if isinstance(other, TyArray | TyMaArray):
+        this, other = promote(this, other)
         # I am not sure how to annotate `safe_cast` such that it can handle union types.
-        return safe_cast(TyArray | TyMaArray, arr_op(lhs, rhs))  # type: ignore
+        res = arr_op(this, other) if forward else arr_op(other, this)
+        return safe_cast(TyArray | TyMaArray, res)  # type: ignore
 
     # We only know about the other (nullable) built-in types &
     # these scalars should never interact with themselves.

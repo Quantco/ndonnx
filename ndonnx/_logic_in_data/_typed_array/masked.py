@@ -85,6 +85,7 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
         # Implemented under the assumption that we know about core, but not py_scalars
         if isinstance(dtype, dtypes.CoreDTypes):
             # TODO: Not clear what the behavior should be if we have a mask
+            # TODO: There is currently no way to get the mask through the public `Array` class!
             raise NotImplementedError
         elif isinstance(dtype, dtypes.NCoreDTypes):
             new_data = self.data.astype(dtype._unmasked_dtype)
@@ -132,18 +133,23 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
     # always just pass through to the underlying non-masked typed. We
     # will get an error from there if appropriate.
 
-    def __add__(self, other: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, other, operator.add)
+    def __add__(self, rhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, rhs, operator.add, True)
 
     def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
-        # This is for instance called if we do _ArrayCoreType +
-        # _ArrayMaCoreType. We know how to convert from
-        # _ArrayCoreType into _ArrayMaCoreType and this is the
-        # place to do so.
-        if isinstance(lhs, TyArray):
-            return asncoredata(lhs, None) + self
+        return _apply_op(self, lhs, operator.add, False)
 
-        return NotImplemented
+    def __sub__(self, rhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, rhs, operator.sub, True)
+
+    def __rsub__(self, lhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, lhs, operator.sub, False)
+
+    def __mul__(self, rhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, rhs, operator.mul, True)
+
+    def __rmul__(self, lhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, lhs, operator.mul, False)
 
     def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
         raise NotImplementedError()
@@ -260,17 +266,18 @@ def unmask_core(arr: TyArray | TyMaArray) -> TyArray:
 
 
 def _apply_op(
-    lhs: TyMaArray,
-    rhs: TyArrayBase,
+    this: TyMaArray,
+    other: TyArrayBase,
     op: Callable[[TyArray, TyArray], TyArray],
+    forward: bool,
 ) -> TyMaArray:
     """Apply an operation by passing it through to the data member."""
-    if isinstance(rhs, TyArray):
-        data = op(lhs.data, rhs)
-        mask = lhs.mask
-    elif isinstance(rhs, TyMaArray):
-        data = op(lhs.data, rhs.data)
-        mask = _merge_masks(lhs.mask, rhs.mask)
+    if isinstance(other, TyArray):
+        data = op(this.data, other) if forward else op(other, this.data)
+        mask = this.mask
+    elif isinstance(other, TyMaArray):
+        data = op(this.data, other.data) if forward else op(other.data, this.data)
+        mask = _merge_masks(this.mask, other.mask)
     else:
         return NotImplemented
 

@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, TypeVar, overload
 if TYPE_CHECKING:
     from ..dtypes import DType
     from .core import TyArray
+    from .masked import TyMaArray
+    from .py_scalars import _ArrayPyScalar
     from .typed_array import TyArrayBase
 
 T = TypeVar("T")
@@ -16,6 +18,19 @@ T = TypeVar("T")
 
 @overload
 def promote(lhs: TyArray, *others: TyArray) -> tuple[TyArray, ...]: ...
+
+
+@overload
+def promote(
+    lhs: TyArray | _ArrayPyScalar, *others: TyArray | _ArrayPyScalar
+) -> tuple[TyArray, ...]: ...
+
+
+@overload
+def promote(
+    lhs: TyArray | TyMaArray | _ArrayPyScalar,
+    *others: TyArray | TyMaArray | _ArrayPyScalar,
+) -> tuple[TyArray | TyMaArray, ...]: ...
 
 
 @overload

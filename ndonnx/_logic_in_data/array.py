@@ -62,7 +62,7 @@ class Array:
     @classmethod
     def _from_data(cls, data: TyArrayBase) -> Array:
         if not isinstance(data, TyArrayBase):
-            raise TypeError(f"expected '_TypedArray', found `{type(data)}`")
+            raise TypeError(f"expected '_TypedArrayBase', found `{type(data)}`")
         inst = cls.__new__(cls)
         inst._data = data
         return inst
@@ -76,8 +76,9 @@ class Array:
     def dtype(self) -> DType:
         return self._data.dtype
 
-    def astype(self, dtype: DType):
-        return self._data.astype(dtype)
+    def astype(self, dtype: DType) -> Array:
+        new_data = self._data.astype(dtype)
+        return Array._from_data(new_data)
 
     def unwrap_numpy(self) -> np.ndarray:
         """Return the propagated value as a NumPy array if available.

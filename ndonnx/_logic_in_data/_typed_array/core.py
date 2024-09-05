@@ -86,7 +86,7 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
         return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:
-        return _promote_and_apply_op(self, other, operator.eq, op.equal)
+        return _promote_and_apply_op(self, other, operator.eq, op.equal, True)
 
     def _where(
         self, cond: TyArrayBool, y: TyArrayBase
@@ -101,18 +101,27 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
 
 class TyArrayNumber(TyArray[CORE_DTYPES]):
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.add, op.add)
+        return _promote_and_apply_op(self, rhs, operator.add, op.add, True)
+
+    def __radd__(self, lhs) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.add, op.add, False)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.mul, op.mul)
+        return _promote_and_apply_op(self, rhs, operator.mul, op.mul, True)
+
+    def __rmul__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.mul, op.mul, False)
 
     def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.sub, op.sub)
+        return _promote_and_apply_op(self, rhs, operator.sub, op.sub, True)
+
+    def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.sub, op.sub, False)
 
 
 class TyArrayInteger(TyArrayNumber[CORE_DTYPES]):
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or)
+        return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
 
 
 class TyArrayFloating(TyArrayNumber[CORE_DTYPES]): ...
@@ -122,10 +131,10 @@ class TyArrayBool(TyArray[dtypes.Bool]):
     dtype = dtypes.bool_
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.or_, op.or_)
+        return _promote_and_apply_op(self, rhs, operator.or_, op.or_, True)
 
     def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.and_, op.and_)
+        return _promote_and_apply_op(self, rhs, operator.and_, op.and_, True)
 
     def __invert__(self) -> TyArrayBool:
         var = op.not_(self.var)
@@ -189,18 +198,19 @@ def is_sequence_of_core_data(
 
 
 def _promote_and_apply_op(
-    lhs: TyArray,
-    rhs: TyArrayBase,
+    this: TyArray,
+    other: TyArrayBase,
     arr_op: Callable[[TyArray, TyArray], TyArray],
     spox_op: Callable[[Var, Var], Var],
+    forward: bool,
 ) -> TyArray:
     """Promote and apply an operation by passing it through to the data member."""
-    if isinstance(rhs, TyArray):
-        if lhs.dtype != rhs.dtype:
-            a, b = promote(lhs, rhs)
-            return arr_op(a, b)
+    if isinstance(other, TyArray):
+        if this.dtype != other.dtype:
+            a, b = promote(this, other)
+            return arr_op(a, b) if forward else arr_op(b, a)
 
         # Data is core & integer
-        var = spox_op(lhs.var, rhs.var)
+        var = spox_op(this.var, other.var) if forward else spox_op(other.var, this.var)
         return ascoredata(var)
     return NotImplemented

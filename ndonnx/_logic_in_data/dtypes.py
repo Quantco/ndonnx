@@ -219,7 +219,7 @@ class _PyInt(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, CoreNumericDTypes | NCoreNumericDTypes):
             return other
-        raise ValueError
+        return NotImplemented
 
     @property
     def _tyarr_class(self) -> type[_typed_array._ArrayPyInt]:

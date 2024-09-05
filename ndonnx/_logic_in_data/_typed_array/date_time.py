@@ -4,11 +4,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, TypeVar, cast
+import operator
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 import numpy as np
 
-from ..dtypes import CoreIntegerDTypes, DType, bool_, int64
+from ..dtypes import CoreIntegerDTypes, DType, _PyInt, bool_, int64
 from .core import TyArrayBool, TyArrayInt64, TyArrayInteger
 from .funcs import astypedarray, typed_where
 from .py_scalars import _ArrayPyInt
@@ -33,8 +35,9 @@ class DateTime(DType):
         self.unit = unit
 
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        # TODO
-        raise NotImplementedError
+        if isinstance(other, _PyInt):
+            return self
+        return NotImplemented
 
     @property
     def _tyarr_class(self) -> type[TyArrayDateTime]:
@@ -44,9 +47,12 @@ class DateTime(DType):
         if isinstance(arr, TyArrayInteger):
             data = safe_cast(TyArrayInt64, arr.astype(int64))
             is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
-            return TyArrayDateTime(is_nat=is_nat, data=data, unit=self.unit)
-
-        raise NotImplementedError
+        elif isinstance(arr, _ArrayPyInt):
+            data = safe_cast(TyArrayInt64, arr.astype(int64))
+            is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
+        else:
+            raise NotImplementedError
+        return TyArrayDateTime(is_nat=is_nat, data=data, unit=self.unit)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
@@ -144,11 +150,23 @@ class TyArrayTimeDelta(TimeBaseArray[TimeDelta]):
             return data
         return NotImplemented
 
+    def __add__(self, rhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, rhs, operator.add, True)
+
+    def __radd__(self, lhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, lhs, operator.add, False)
+
     def __mul__(self, rhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
-        if isinstance(rhs, _ArrayPyInt):
-            data = cast(TyArrayInt64, (self.data * rhs))
-            return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
-        raise NotImplementedError
+        return _apply_op(self, rhs, operator.mul, True)
+
+    def __rmul__(self, lhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, lhs, operator.mul, False)
+
+    def __sub__(self, rhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, rhs, operator.sub, True)
+
+    def __rsub__(self, lhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, lhs, operator.sub, False)
 
 
 class TyArrayDateTime(TimeBaseArray[DateTime]):
@@ -202,10 +220,13 @@ class TyArrayDateTime(TimeBaseArray[DateTime]):
         return NotImplemented
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
-        rhs_data: _ArrayPyInt | TyArrayInt64
-        if isinstance(rhs, _ArrayPyInt):
+        if isinstance(rhs, _ArrayPyInt | TyArrayInt64):
             rhs_data = rhs
         elif isinstance(rhs, TyArrayTimeDelta):
+            if self.dtype.unit != rhs.dtype.unit:
+                raise ValueError(
+                    "inter-operation between time units is not implemented"
+                )
             rhs_data = rhs.data
         else:
             raise NotImplementedError
@@ -213,14 +234,48 @@ class TyArrayDateTime(TimeBaseArray[DateTime]):
         data = cast(TyArrayInt64, (self.data + rhs_data))
         return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
 
-    def __sub__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
-        if isinstance(rhs, _ArrayPyInt):
-            data = safe_cast(TyArrayInt64, self.data - rhs)
+    # TODO: Fix too strict type hints on all dunder methods
+    def __radd__(self, lhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+        return self.__add__(lhs)
+
+    def _sub(self, other, forward: bool):
+        op = operator.sub
+        if isinstance(other, _ArrayPyInt):
+            data_ = op(self.data, other) if forward else op(other, self.data)
+            data = safe_cast(TyArrayInt64, data_)
             return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
-        if isinstance(rhs, TyArrayDateTime):
-            if self.dtype.unit != rhs.dtype.unit:
+
+        if isinstance(other, TyArrayDateTime):
+            if self.dtype.unit != other.dtype.unit:
                 raise NotImplementedError
-            data = safe_cast(TyArrayInt64, self.data - rhs.data)
-            is_nat = safe_cast(TyArrayBool, self.is_nat | rhs.is_nat)
+            data_ = op(self.data, other.data) if forward else op(other.data, self.data)
+            data = safe_cast(TyArrayInt64, data_)
+            is_nat = safe_cast(TyArrayBool, self.is_nat | other.is_nat)
             return TyArrayTimeDelta(is_nat=is_nat, data=data, unit=self.dtype.unit)
         raise NotImplementedError
+
+    def __sub__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+        return self._sub(rhs, True)
+
+    def __rsub__(self, lhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+        return self._sub(lhs, False)
+
+
+def _apply_op(
+    this: TyArrayTimeDelta,
+    other,
+    op: Callable[[Any, Any], Any],
+    forward: bool,
+):
+    if isinstance(other, _ArrayPyInt | TyArrayInt64):
+        other_data = other
+    elif isinstance(other, TyArrayTimeDelta):
+        if this.dtype.unit != other.dtype.unit:
+            raise ValueError("inter-operation between time units is not implemented")
+        other_data = other.data
+    else:
+        raise NotImplementedError
+
+    data_ = op(this.data, other_data)
+    data = cast(TyArrayInt64, data_)
+    return type(this)(is_nat=this.is_nat, data=data, unit=this.dtype.unit)
