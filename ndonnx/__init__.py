@@ -14,6 +14,7 @@ from ._data_types import (
     Floating,
     Integral,
     Nullable,
+    NullableCore,
     NullableFloating,
     NullableIntegral,
     NullableNumerical,
@@ -157,6 +158,7 @@ from ._funcs import (
     all,
     any,
     take,
+    UnsupportedOperationError,
 )
 from ._constants import (
     e,
@@ -322,9 +324,11 @@ __all__ = [
     "Floating",
     "NullableIntegral",
     "Nullable",
+    "NullableCore",
     "Integral",
     "CoreType",
     "CastError",
     "promote_nullable",
     "from_numpy_dtype",
+    "UnsupportedOperationError",
 ]

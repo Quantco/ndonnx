@@ -10,10 +10,12 @@ import spox.opset.ai.onnx.v20 as op
 import ndonnx as ndx
 from ndonnx._propagation import eager_propagate
 
+from .utils import assert_array_equal
+
 
 def test_add():
     candidate = ndx.asarray([1]) + 1
-    np.testing.assert_array_equal(candidate.to_numpy(), np.array([2]), strict=True)
+    assert_array_equal(candidate.to_numpy(), np.array([2]))
 
 
 def indexing_model(mode: Literal["lazy", "constant"]):
@@ -262,4 +264,4 @@ def test_eager_propagation_nested_parameters():
     expected_y = np.asarray([False, True, False])
 
     np.testing.assert_allclose(x.to_numpy(), expected_x)
-    np.testing.assert_array_equal(y.to_numpy(), expected_y)
+    assert_array_equal(y.to_numpy(), expected_y)

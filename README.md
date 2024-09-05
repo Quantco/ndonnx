@@ -97,9 +97,9 @@ Array API compatibility is tracked in `api-coverage-tests`. Missing coverage is 
 
 Summary(1119 total):
 
-- 898 passed
-- 210 failed
-- 11 deselected
+- 961 passed
+- 107 failed
+- 51 deselected
 
 Run the tests with:
 

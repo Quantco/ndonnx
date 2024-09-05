@@ -15,6 +15,8 @@ from typing_extensions import Self
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
 from ndonnx.additional import shape
+from ndonnx.additional._additional import _getitem as getitem
+from ndonnx.additional._additional import _static_shape as static_shape
 
 from ._corearray import _CoreArray
 from ._index import ScalarIndexType
@@ -46,7 +48,11 @@ def array(
     out : Array
         The new array. This represents an ONNX model input.
     """
-    return Array._construct(shape=shape, dtype=dtype)
+    if (out := dtype._ops.make_array(shape, dtype)) is not NotImplemented:
+        return out
+    raise ndx.UnsupportedOperationError(
+        f"No implementation of `make_array` for {dtype}"
+    )
 
 
 def from_spox_var(
@@ -108,6 +114,17 @@ class Array:
         else:
             raise AttributeError(f"Field {name} not found")
 
+    def __iter__(self):
+        try:
+            n, *_ = self.shape
+        except IndexError:
+            raise ValueError("iteration over 0-d array")
+        if isinstance(n, int):
+            return (self[i, ...] for i in range(n))
+        raise ValueError(
+            "iteration requires dimension of static length, but dimension 0 is dynamic."
+        )
+
     def _set(self, other: Array) -> Array:
         self.dtype = other.dtype
         self._fields = other._fields
@@ -142,17 +159,7 @@ class Array:
         return ndx.astype(self, to)
 
     def __getitem__(self, index: IndexType) -> Array:
-        if isinstance(index, Array) and not (
-            isinstance(index.dtype, dtypes.Integral) or index.dtype == dtypes.bool
-        ):
-            raise TypeError(
-                f"Index must be an integral or boolean 'Array', not `{index.dtype}`"
-            )
-
-        if isinstance(index, Array):
-            index = index._core()
-
-        return self._transmute(lambda corearray: corearray[index])
+        return getitem(self, index)
 
     def __setitem__(
         self, index: IndexType | Self, updates: int | bool | float | Array
@@ -227,28 +234,25 @@ class Array:
         return len(self._static_shape)
 
     @property
-    def shape(self) -> Array | tuple[int, ...]:
+    def shape(self) -> tuple[int | None, ...]:
         """The shape of the array.
 
         Returns:
-            Array | tuple[int, ...]: The shape of the array.
+            tuple[int | None, ...]: The shape of the array.
 
         Note that the shape of the array is a tuple of integers when the "eager value"
-        of the array can be determined. This is in strict compliance with the Array API standard which
-        presupposes tuples in compliance tests.
+        of the array can be determined.
 
-        When lazy arrays are involved, the shape is data-dependent (or runtime inputs dependent) and so we
-        cannot reliably determine the shape. In such cases, an integer ``ndx.Array`` is returned instead.
+        When the array is lazy, getting the concrete shape may not be possible.
+        We fall back to the `static_shape` function, which may be implemented
+        using ONNX shape inference. This may have dimensions set as `None` where
+        they are unknown or symbolic with respect to input shapes.
         """
-        # The Array API standard expects that the shape has type tuple[int | None, ...], as do compliance tests.
-        # However, when the array is completely lazy, a concrete shape may not be determinable.
-        # We therefore provide an int Array which is provisioned for in the standard.
-        # See https://data-apis.org/array-api/latest/API_specification/generated/array_api.array.shape.html#shape for more context.
-        eager_value = self.to_numpy()
-        if eager_value is not None:
-            return eager_value.shape
+        shape_array = shape(self).to_numpy()
+        if shape_array is not None:
+            return tuple(map(int, shape_array))
         else:
-            return shape(self)
+            return static_shape(self)
 
     @property
     def values(self) -> Array:
@@ -358,23 +362,31 @@ class Array:
 
     def __int__(self) -> int:
         eager_value = self.to_numpy()
-        if eager_value is not None and eager_value.size == 1:
-            return int(eager_value)
-        else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to an int")
+        if eager_value is None:
+            raise ValueError(
+                f"The lazy Array {self} cannot be converted to a scalar int"
+            )
+        if eager_value.size != 1:
+            raise ValueError(
+                f"Array {self} with more than one element cannot be converted to a scalar int"
+            )
+        return int(eager_value)
 
     def __bool__(self) -> bool:
         eager_value = self.to_numpy()
-        if eager_value is not None and eager_value.size == 1:
-            return bool(self.to_numpy())
-        else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to a bool")
+        if eager_value is None:
+            raise ValueError(f"The truth value of lazy Array {self} is unknown")
+        if eager_value.size != 1:
+            raise ValueError(
+                f"The truth value of Array {self} with more than one element is ambiguous"
+            )
+        return bool(eager_value)
 
     def __len__(self) -> int:
-        if isinstance(eager_value := self.shape, tuple):
-            return eager_value[0]
+        if isinstance(self.shape[0], int):
+            return self.shape[0]
         else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to a length")
+            raise ValueError(f"Cannot determine length of Array {self}")
 
     def __pos__(self):
         return ndx.positive(self)
@@ -500,7 +512,7 @@ class Array:
         out: Array
             Scalar ``Array`` instance whose value is the number of elements in the original array.
         """
-        return ndx.prod(self.shape)
+        return ndx.prod(shape(self))
 
     @property
     def T(self) -> ndx.Array:  # noqa: N802
@@ -540,7 +552,7 @@ class Array:
         """
         if self.ndim != 1:
             raise TypeError("Cannot call len on Array of rank != 1")
-        return ndx.asarray(self.shape[0])
+        return shape(self)[0]
 
     def sum(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
         """See :py:func:`ndonnx.sum` for documentation."""

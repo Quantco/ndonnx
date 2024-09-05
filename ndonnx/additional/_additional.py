@@ -13,6 +13,7 @@ from ndonnx import _opset_extensions as opx
 
 if TYPE_CHECKING:
     from ndonnx import Array
+    from ndonnx._array import IndexType
 
 Scalar = TypeVar("Scalar", int, float, str)
 
@@ -33,10 +34,9 @@ def shape(x: Array) -> Array:
     out: Array
         Array of shape
     """
-    x = ndx.asarray(x)
     out = x.dtype._ops.shape(x)
     if out is NotImplemented:
-        raise TypeError(f"`shape` not implemented for `{x.dtype}`")
+        raise ndx.UnsupportedOperationError(f"`shape` not implemented for `{x.dtype}`")
     return out
 
 
@@ -89,7 +89,9 @@ def static_map(
         A new Array with the values mapped according to the mapping.
     """
     if not isinstance(x.dtype, ndx.CoreType):
-        raise TypeError("static_map accepts only non-nullable arrays")
+        raise ndx.UnsupportedOperationError(
+            "'static_map' accepts only non-nullable arrays"
+        )
     data = opx.static_map(x._core(), mapping, default)
     return ndx.Array._from_fields(data.dtype, data=data)
 
@@ -110,10 +112,11 @@ def fill_null(x: Array, value: Array | Scalar) -> Array:
         A new Array with the null values filled with the given value.
     """
 
-    x = ndx.asarray(x)
     out = x.dtype._ops.fill_null(x, value)
     if out is NotImplemented:
-        raise TypeError(f"`fill_null` not implemented for `{x.dtype}`")
+        raise ndx.UnsupportedOperationError(
+            f"`fill_null` not implemented for `{x.dtype}`"
+        )
     return out
 
 
@@ -139,8 +142,39 @@ def make_nullable(x: Array, null: Array) -> Array:
     TypeError
         If the data type of ``x`` does not have a nullable counterpart.
     """
-    x = ndx.asarray(x)
     out = x.dtype._ops.make_nullable(x, null)
     if out is NotImplemented:
-        raise TypeError(f"'make_nullable' not implemented for `{x.dtype}`")
+        raise ndx.UnsupportedOperationError(
+            f"'make_nullable' not implemented for `{x.dtype}`"
+        )
+    return out
+
+
+def _getitem(x: Array, index: IndexType) -> ndx.Array:
+    out = x.dtype._ops.getitem(x, index)
+    if out is NotImplemented:
+        raise ndx.UnsupportedOperationError(
+            f"'getitem' not implemented for `{x.dtype}`"
+        )
+    return out
+
+
+def _static_shape(x: Array) -> tuple[int | None, ...]:
+    """Return shape of the array as a tuple. Typical implementations will make use of
+    ONNX shape inference, with `None` entries denoting unknown or symbolic dimensions.
+
+    Parameters
+    ----------
+    x: Array
+        Array to get static shape of
+
+    Returns
+    -------
+    out: tuple[int | None, ...]
+    """
+    out = x.dtype._ops.static_shape(x)
+    if out is NotImplemented:
+        raise ndx.UnsupportedOperationError(
+            f"`static_shape` not implemented for `{x.dtype}`"
+        )
     return out

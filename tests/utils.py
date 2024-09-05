@@ -70,3 +70,17 @@ def get_numpy_array_api_namespace():
         return npx
     else:
         return np
+
+
+def assert_array_equal(
+    actual: np.ndarray,
+    expected: np.ndarray,
+):
+    np.testing.assert_array_equal(
+        actual, expected, strict=np.__version__.startswith("2")
+    )
+    assert isinstance(expected, np.ma.masked_array) == isinstance(
+        actual, np.ma.masked_array
+    )
+    if isinstance(expected, np.ma.masked_array):
+        np.testing.assert_array_equal(actual.mask, expected.mask)

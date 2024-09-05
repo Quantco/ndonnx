@@ -10,7 +10,15 @@ import numpy as np
 from typing_extensions import Self
 
 import ndonnx as ndx
-from ndonnx._core import CoreOperationsImpl, OperationsBlock
+from ndonnx._core import (
+    BooleanOperationsImpl,
+    NullableBooleanOperationsImpl,
+    NullableNumericOperationsImpl,
+    NullableStringOperationsImpl,
+    NumericOperationsImpl,
+    OperationsBlock,
+    StringOperationsImpl,
+)
 from ndonnx._data_types.schema import Schema
 
 from .conversion import CastError, CastMixin
@@ -23,6 +31,8 @@ if TYPE_CHECKING:
 
 class Numerical(CoreType):
     """Base class for numerical data types."""
+
+    _ops: OperationsBlock = NumericOperationsImpl()
 
 
 class Integral(Numerical):
@@ -128,6 +138,8 @@ class Boolean(CoreType):
     def to_numpy_dtype() -> np.dtype:
         return np.dtype("bool")
 
+    _ops: OperationsBlock = BooleanOperationsImpl()
+
 
 class Utf8(CoreType):
     """UTF-8 encoded string."""
@@ -138,7 +150,7 @@ class Utf8(CoreType):
 
     def _parse_input(self, data: np.ndarray) -> dict[str, np.ndarray]:
         if data.dtype.kind == "U" or (
-            data.dtype.kind == "O" and all(isinstance(x, str) for x in data)
+            data.dtype.kind == "O" and all(isinstance(x, str) for x in data.flat)
         ):
             return {"data": data.astype(np.str_)}
         else:
@@ -160,6 +172,8 @@ class Utf8(CoreType):
                 f"Expected data type with kind 'U', got {fields['data'].dtype}"
             )
 
+    _ops: OperationsBlock = StringOperationsImpl()
+
 
 T = TypeVar("T", StructType, CoreType, covariant=True)
 
@@ -175,7 +189,7 @@ class Nullable(StructType, Generic[T]):
         }
 
 
-class _NullableCore(Nullable[CoreType], CastMixin):
+class NullableCore(Nullable[CoreType], CastMixin):
     def copy(self) -> Self:
         return self
 
@@ -199,7 +213,7 @@ class _NullableCore(Nullable[CoreType], CastMixin):
         return Schema(type_name=type(self).__name__, author="ndonnx")
 
     def _cast_to(self, array: Array, dtype: CoreType | StructType) -> Array:
-        if isinstance(dtype, _NullableCore):
+        if isinstance(dtype, NullableCore):
             return ndx.Array._from_fields(
                 dtype,
                 values=self.values._cast_to(array.values, dtype.values),
@@ -216,7 +230,7 @@ class _NullableCore(Nullable[CoreType], CastMixin):
                 values=self.values._cast_from(array),
                 null=ndx.zeros_like(array, dtype=Boolean()),
             )
-        elif isinstance(array.dtype, _NullableCore):
+        elif isinstance(array.dtype, NullableCore):
             return ndx.Array._from_fields(
                 self,
                 values=self.values._cast_from(array.values),
@@ -225,11 +239,11 @@ class _NullableCore(Nullable[CoreType], CastMixin):
         else:
             raise CastError(f"Cannot cast from {array.dtype} to {self}")
 
-    _ops: OperationsBlock = CoreOperationsImpl()
 
-
-class NullableNumerical(_NullableCore):
+class NullableNumerical(NullableCore):
     """Base class for nullable numerical data types."""
+
+    _ops: OperationsBlock = NullableNumericOperationsImpl()
 
 
 class NullableIntegral(NullableNumerical):
@@ -298,14 +312,18 @@ class NFloat64(NullableFloating):
     null = Boolean()
 
 
-class NBoolean(_NullableCore):
+class NBoolean(NullableCore):
     values = Boolean()
     null = Boolean()
 
+    _ops: OperationsBlock = NullableBooleanOperationsImpl()
 
-class NUtf8(_NullableCore):
+
+class NUtf8(NullableCore):
     values = Utf8()
     null = Boolean()
+
+    _ops: OperationsBlock = NullableStringOperationsImpl()
 
 
 def from_numpy_dtype(np_dtype: np.dtype) -> CoreType:
@@ -387,18 +405,18 @@ class Finfo:
         )
 
 
-def get_finfo(dtype: _NullableCore | CoreType) -> Finfo:
+def get_finfo(dtype: NullableCore | CoreType) -> Finfo:
     try:
-        if isinstance(dtype, _NullableCore):
+        if isinstance(dtype, NullableCore):
             dtype = dtype.values
         return Finfo._from_dtype(dtype)
     except KeyError:
         raise TypeError(f"'{dtype}' is not a floating point data type.")
 
 
-def get_iinfo(dtype: _NullableCore | CoreType) -> Iinfo:
+def get_iinfo(dtype: NullableCore | CoreType) -> Iinfo:
     try:
-        if isinstance(dtype, _NullableCore):
+        if isinstance(dtype, NullableCore):
             dtype = dtype.values
         return Iinfo._from_dtype(dtype)
     except KeyError:
