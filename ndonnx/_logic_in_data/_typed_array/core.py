@@ -108,47 +108,18 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
 
 class TyArrayNumber(TyArray[CORE_DTYPES]):
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if isinstance(rhs, TyArrayNumber):
-            # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
-            if type(self) != type(rhs):
-                a, b = promote(self, rhs)
-                return a + b
-            var = op.add(self.var, rhs.var)
-            return ascoredata(var)
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.add, op.add)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if isinstance(rhs, TyArrayNumber):
-            # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
-            if type(self) != type(rhs):
-                a, b = promote(self, rhs)
-                return a * b
-            var = op.mul(self.var, rhs.var)
-            return ascoredata(var)
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.mul, op.mul)
 
     def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if isinstance(rhs, TyArrayNumber):
-            # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
-            if type(self) != type(rhs):
-                a, b = promote(self, rhs)
-                return a - b
-            var = op.add(self.var, rhs.var)
-            return ascoredata(var)
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.sub, op.sub)
 
 
 class TyArrayInteger(TyArrayNumber[CORE_DTYPES]):
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if isinstance(rhs, TyArray):
-            if self.dtype != rhs.dtype:
-                a, b = promote(self, rhs)
-                return a | b
-
-            # Data is core & integer
-            var = op.bitwise_or(self.var, rhs.var)
-            return ascoredata(var)
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or)
 
 
 class TyArrayFloating(TyArrayNumber[CORE_DTYPES]): ...
@@ -158,24 +129,10 @@ class TyArrayBool(TyArray[dtypes.Bool]):
     dtype = dtypes.bool_
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if self.dtype != rhs.dtype:
-            a, b = promote(self, rhs)
-            return a | b
-
-        if isinstance(rhs, TyArrayBool):
-            var = op.or_(self.var, rhs.var)
-            return ascoredata(var)
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.or_, op.or_)
 
     def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if self.dtype != rhs.dtype:
-            a, b = promote(self, rhs)
-            return a & b
-
-        if isinstance(rhs, TyArrayBool):
-            var = op.and_(self.var, rhs.var)
-            return ascoredata(var)
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.and_, op.and_)
 
     def __invert__(self) -> TyArrayBool:
         var = op.not_(self.var)
