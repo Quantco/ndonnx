@@ -83,10 +83,10 @@ class TyArrayBase(ABC, Generic[DTYPE]):
     def astype(self, dtype: DType) -> TyArrayBase:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
         res = self._astype(dtype)
-        if res == NotImplemented:
+        if res is NotImplemented:
             # `type(self._data)` does not know about the target `dtype`
-            res = dtype._tyarr_class.from_typed_array(self)
-        if res != NotImplemented:
+            res = dtype._tyarray_from_tyarray(self)
+        if res is not NotImplemented:
             return res
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
@@ -116,10 +116,35 @@ class TyArrayBase(ABC, Generic[DTYPE]):
     def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 
+    # mypy believes that __eq__ should return a `bool` but the docs say we can return whatever:
+    # https://docs.python.org/3/reference/datamodel.html#object.__eq__
+    def __eq__(self, other) -> TyArrayBase:  # type: ignore
+        res = self._eqcomp(other)
+        if res is NotImplemented:
+            res = other._eqcomp(self)
+        if res is NotImplemented:
+            raise ValueError(
+                f"comparison between `{type(self).__name__}` and `{type(other).__name__}` is not implemented."
+            )
+        return res
+
+    @abstractmethod
+    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+        """Implementation of equal-comparison.
+
+        '__eq__' has special semantics compared to other dunder methods.
+        https://docs.python.org/3/reference/datamodel.html#object.__eq__
+        """
+        ...
+
     def __invert__(self) -> TyArrayBase:
         return NotImplemented
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return NotImplemented
+
+    def __ne__(self, other: TyArrayBase) -> TyArrayBase:  # type: ignore
+        breakpoint()
         return NotImplemented
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:

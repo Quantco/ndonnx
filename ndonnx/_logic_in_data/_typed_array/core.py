@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import operator
 from collections.abc import Callable, Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeGuard, TypeVar
@@ -90,6 +91,9 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
 
     def _astype(self, dtype: DType) -> TyArrayBase:
         return NotImplemented
+
+    def _eqcomp(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.eq, op.equal)
 
     def _where(
         self, cond: TyArrayBool, y: TyArrayBase

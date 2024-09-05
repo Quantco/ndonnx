@@ -6,22 +6,46 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import reduce
 from types import NotImplementedType
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 import numpy as np
-from typing_extensions import Self
+import spox.opset.ai.onnx.v21 as op
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
+
     from . import _typed_array
+    from ._typed_array import core, masked
 
 
-class DType(ABC):
+TY_ARRAY = TypeVar("TY_ARRAY", bound="_typed_array.TyArrayBase[Any]")
+TY_ARRAY_CORE = TypeVar("TY_ARRAY_CORE", bound="core.TyArray[Any]")
+TY_MA_ARRAY_CORE = TypeVar("TY_MA_ARRAY_CORE", bound="masked.TyMaArray[Any]")
+
+
+class DType(ABC, Generic[TY_ARRAY]):
     @abstractmethod
     def _result_type(self, other: DType) -> DType | NotImplementedType: ...
 
     @property
     @abstractmethod
-    def _tyarr_class(self) -> type[_typed_array.TyArrayBase[Self]]: ...
+    def _tyarr_class(self) -> type[TY_ARRAY]:
+        """Consider using  `_tyarray_from_tyarray` or `_argument` instead of.
+
+        Those functions better provide the dtype instance (with it's state) to the newly
+        instantiated array.
+        """
+        ...
+
+    @abstractmethod
+    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY:
+        # replaces `TyArrayBase.from_typed_array`
+        ...
+
+    # @abstractmethod
+    # def _argument(self, shape) -> _typed_array.TyArrayBase[Self]:
+    #     # replaces `TyArrayBase.as_argument`
+    #     ...
 
     def __eq__(self, other) -> bool:
         if type(self) is not type(other):
@@ -35,11 +59,37 @@ class DType(ABC):
         return self.__class__.__name__
 
 
-class _CoreDType(DType): ...
+class _CoreDType(DType[TY_ARRAY_CORE]):
+    Foo: type[_typed_array.TyArrayBase[DType]]
+
+    @property
+    @abstractmethod
+    def _tyarr_class(self) -> type[TY_ARRAY_CORE]: ...
+
+    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY_CORE:
+        from ._typed_array.core import TyArray
+
+        if isinstance(arr, TyArray):
+            var = op.cast(arr.var, to=as_numpy(self))
+            return self._tyarr_class(var)
+        raise NotImplementedError
 
 
-class _NCoreDType(DType):
-    _unmasked_dtype: _CoreDType
+class _NCoreDType(DType[TY_MA_ARRAY_CORE]):
+    _unmasked_dtype: CoreDTypes
+
+    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_MA_ARRAY_CORE:
+        from ._typed_array.core import TyArray, ascoredata
+        from ._typed_array.masked import TyMaArray
+
+        if isinstance(arr, TyArray):
+            data = ascoredata(op.cast(arr.var, to=as_numpy(self._unmasked_dtype)))
+            return self._tyarr_class(data=data, mask=None)
+        if isinstance(arr, TyMaArray):
+            mask = arr.mask
+            data_ = arr.data.astype(self._unmasked_dtype)
+            return self._tyarr_class(data=data_, mask=mask)
+        raise NotImplementedError
 
 
 class _Number(_CoreDType):
@@ -177,6 +227,9 @@ class _PyInt(DType):
 
         return _ArrayPyInt
 
+    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
+        raise NotImplementedError
+
 
 class _PyFloat(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
@@ -193,6 +246,9 @@ class _PyFloat(DType):
         from ._typed_array import _ArrayPyFloat
 
         return _ArrayPyFloat
+
+    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
+        raise NotImplementedError
 
 
 # Non-nullable Singleton instances
@@ -581,7 +637,7 @@ def from_numpy(np_dtype: np.dtype) -> CoreDTypes:
     raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")
 
 
-def as_numpy(dtype: CoreDTypes) -> np.dtype:
+def as_numpy(dtype: _CoreDType) -> np.dtype:
     if dtype == int8:
         return np.dtype("int8")
     if dtype == int16:
@@ -616,3 +672,5 @@ def as_numpy(dtype: CoreDTypes) -> np.dtype:
 
 default_int = int64
 default_float = float64
+
+DTYPE = TypeVar("DTYPE", bound=DType)

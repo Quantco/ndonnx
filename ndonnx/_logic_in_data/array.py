@@ -124,7 +124,7 @@ class Array:
         return _apply_op(lhs, self, std_ops.sub)
 
 
-def asarray(obj: int | float | bool | str | Array) -> Array:
+def asarray(obj: int | float | bool | str | Array | np.ndarray) -> Array:
     if isinstance(obj, Array):
         return obj
     data = ascoredata(op.const(obj))

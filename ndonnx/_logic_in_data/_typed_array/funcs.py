@@ -18,9 +18,9 @@ def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBas
         raise TypeError("'cond' must be a boolean data type.")
 
     ret = x._where(cond, y)
-    if ret == NotImplemented:
+    if ret is NotImplemented:
         ret = y._rwhere(cond, x)
-        if ret == NotImplemented:
+        if ret is NotImplemented:
             raise TypeError(
                 f"Unsuppoerted operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
             )

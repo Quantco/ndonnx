@@ -6,7 +6,7 @@ import pytest
 
 from ndonnx._logic_in_data import Array, dtypes
 from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
-from ndonnx._logic_in_data.array import where
+from ndonnx._logic_in_data.array import asarray, where
 
 
 @pytest.mark.parametrize(
@@ -115,3 +115,8 @@ def test_datetime():
 
     res = arr + ten_s_td
     assert res.dtype == DateTime("s")
+
+
+def test_datetime_value_prop():
+    arr = asarray(np.asarray([1, 2])).astype(DateTime("s"))
+    np.testing.assert_equal(arr.to_numpy(), np.asarray([1, 2], dtype="datetime64[s]"))

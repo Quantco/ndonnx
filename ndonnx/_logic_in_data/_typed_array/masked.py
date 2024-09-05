@@ -155,6 +155,10 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
 
         return NotImplemented
 
+    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+        raise NotImplementedError()
+        ...
+
 
 class TyMaArrayNumber(TyMaArray[NCORE_NUMERIC_DTYPES]): ...
 

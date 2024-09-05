@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, cast
 import numpy as np
 
 from ..dtypes import CoreIntegerDTypes, DType, bool_, int64
-from .core import TyArrayBool, TyArrayInt64
+from .core import TyArrayBool, TyArrayInt64, TyArrayInteger
 from .funcs import astypedarray, typed_where
 from .py_scalars import _ArrayPyInt
 from .typed_array import TyArrayBase
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 Unit = Literal["ns", "s"]
 
+_NAT_SENTINEL = _ArrayPyInt(np.iinfo(np.int64).min)
+
 
 class DateTime(DType):
     def __init__(self, unit: Unit):
@@ -37,6 +39,14 @@ class DateTime(DType):
     @property
     def _tyarr_class(self) -> type[TyArrayDateTime]:
         return TyArrayDateTime
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TyArrayDateTime:
+        if isinstance(arr, TyArrayInteger):
+            data = safe_cast(TyArrayInt64, arr.astype(int64))
+            is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
+            return TyArrayDateTime(is_nat=is_nat, data=data, unit=self.unit)
+
+        raise NotImplementedError
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
@@ -53,6 +63,9 @@ class TimeDelta(DType):
     @property
     def _tyarr_class(self) -> type[TyArrayTimeDelta]:
         return TyArrayTimeDelta
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
+        raise NotImplementedError
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
@@ -81,6 +94,11 @@ class TimeBaseArray(TyArrayBase[TIME_DTYPE]):
     def from_typed_array(cls, tyarr: TyArrayBase):
         if isinstance(tyarr, cls):
             return cls(is_nat=tyarr.is_nat, data=tyarr.data, unit=tyarr.dtype.unit)
+        if isinstance(tyarr, TyArrayInteger):
+            data = safe_cast(TyArrayInt64, tyarr.astype(int64))
+            is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
+            # PROBLEM: UNIT IS NOT KNOWN HERE!
+            return cls(is_nat=is_nat, data=data, unit=tyarr.dtype.unit)
 
         return NotImplemented
 
@@ -93,6 +111,9 @@ class TimeBaseArray(TyArrayBase[TIME_DTYPE]):
         data = self.data.reshape(shape)
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
+    def _eqcomp(self, other) -> TyArrayBase:
+        raise NotImplementedError
 
 
 class TyArrayTimeDelta(TimeBaseArray[TimeDelta]):
@@ -113,9 +134,7 @@ class TyArrayTimeDelta(TimeBaseArray[TimeDelta]):
 
     def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
         if isinstance(dtype, CoreIntegerDTypes):
-            data = typed_where(
-                self.is_nat, astypedarray(np.iinfo(np.int64).min), self.data
-            )
+            data = typed_where(self.is_nat, _NAT_SENTINEL, self.data)
             return data.astype(dtype)
         if isinstance(dtype, TimeDelta):
             powers = {

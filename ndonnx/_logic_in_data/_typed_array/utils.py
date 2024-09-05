@@ -36,7 +36,9 @@ def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase[DType],
     return tuple([lhs.astype(acc)] + [other.astype(acc) for other in others])
 
 
-def safe_cast(ty: type[T], a: TyArrayBase) -> T:
+def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:
+    # The union with bool is due to mypy thinking that __eq__ always
+    # returns bool.
     if isinstance(a, ty):
         return a
-    raise TypeError(f"Expected 'TyArrayInt64' found `{type(a)}`")
+    raise TypeError(f"Expected `{ty}` found `{type(a)}`")

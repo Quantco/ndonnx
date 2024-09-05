@@ -13,7 +13,7 @@ from typing_extensions import Self
 from .. import dtypes
 from ..dtypes import DType
 from .core import TyArray, TyArrayNumber
-from .masked import TyMaArrayNumber
+from .masked import TyMaArray, TyMaArrayNumber
 from .typed_array import DTYPE, TyArrayBase
 from .utils import promote, safe_cast
 
@@ -89,6 +89,9 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
             return asncoredata(unmasked_typed_arr, None)
         raise NotImplementedError
 
+    def _eqcomp(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.eq)
+
     def where(self, cond: TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
 
@@ -110,7 +113,7 @@ def _promote_and_apply_op(
     if isinstance(rhs, _ArrayPyScalar) != isinstance(lhs, _ArrayPyScalar):
         lhs, rhs = promote(lhs, rhs)
         # I am not sure how to annotate `safe_cast` such that it can handle union types.
-        return safe_cast(TyArrayNumber | TyMaArrayNumber, lhs + rhs)  # type: ignore
+        return safe_cast(TyArray | TyMaArray, arr_op(lhs, rhs))  # type: ignore
 
     # We only know about the other (nullable) built-in types &
     # these scalars should never interact with themselves.
