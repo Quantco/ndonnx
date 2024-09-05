@@ -93,9 +93,11 @@ class Array:
         data = self._data[index]
         return type(self)._from_data(data)
 
-    # __r*__ are needed for interacting with Python scalars
-    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to
-    # dispatch between different `_TypedArray` subclasses.
+    ##################################################################
+    # __r*__ are needed for interacting with Python scalars          #
+    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to #
+    # dispatch between different `_TypedArray` subclasses.           #
+    ##################################################################
 
     def __add__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.add)
@@ -103,17 +105,23 @@ class Array:
     def __radd__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.add)
 
-    def __sub__(self, rhs: int | float | Array) -> Array:
-        return _apply_op(self, rhs, std_ops.sub)
+    def __mul__(self, rhs: int | float | Array) -> Array:
+        return _apply_op(self, rhs, std_ops.mul)
 
-    def __rsub__(self, lhs: int | float | Array) -> Array:
-        return _apply_op(lhs, self, std_ops.sub)
+    def __rmul__(self, lhs: int | float | Array) -> Array:
+        return _apply_op(lhs, self, std_ops.mul)
 
     def __or__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.or_)
 
     def __ror__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.or_)
+
+    def __sub__(self, rhs: int | float | Array) -> Array:
+        return _apply_op(self, rhs, std_ops.sub)
+
+    def __rsub__(self, lhs: int | float | Array) -> Array:
+        return _apply_op(lhs, self, std_ops.sub)
 
 
 def asarray(obj: int | float | bool | str | Array) -> Array:

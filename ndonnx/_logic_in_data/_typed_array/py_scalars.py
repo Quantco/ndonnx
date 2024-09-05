@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import operator
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -13,7 +15,7 @@ from ..dtypes import DType
 from .core import TyArray, TyArrayNumber
 from .masked import TyMaArrayNumber
 from .typed_array import DTYPE, TyArrayBase
-from .utils import promote
+from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
@@ -59,22 +61,16 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         raise ValueError("cannot reshape Python scalar")
 
     def __add__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        if isinstance(rhs, TyArrayNumber | TyMaArrayNumber):
-            lhs, rhs = promote(self, rhs)
-            return lhs + rhs
-
-        # We only know about the other (nullable) built-in types &
-        # these scalars should never interact with themselves.
-        return NotImplemented
+        return _promote_and_apply_op(self, rhs, operator.add)
 
     def __radd__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
-        if isinstance(lhs, TyArrayNumber | TyMaArrayNumber):
-            lhs, rhs = promote(lhs, self)
-            return lhs + rhs
+        return _promote_and_apply_op(lhs, self, operator.add)
 
-        # We only know about the other (nullable) built-in types &
-        # these scalars should never interact with themselves.
-        return NotImplemented
+    def __mul__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+        return _promote_and_apply_op(self, rhs, operator.mul)
+
+    def __rmul__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+        return _promote_and_apply_op(lhs, self, operator.mul)
 
     def __or__(self, rhs: TyArrayBase) -> TyArray:
         return NotImplemented
@@ -103,3 +99,19 @@ class _ArrayPyInt(_ArrayPyScalar[dtypes._PyInt]):
 
 class _ArrayPyFloat(_ArrayPyScalar[dtypes._PyFloat]):
     dtype = dtypes._pyfloat
+
+
+def _promote_and_apply_op(
+    lhs: TyArrayBase | _ArrayPyScalar,
+    rhs: TyArrayBase | _ArrayPyScalar,
+    arr_op: Callable[[TyArray, TyArray], TyArray],
+) -> TyArrayNumber | TyMaArrayNumber:
+    # Must be xor for the two unions
+    if isinstance(rhs, _ArrayPyScalar) != isinstance(lhs, _ArrayPyScalar):
+        lhs, rhs = promote(lhs, rhs)
+        # I am not sure how to annotate `safe_cast` such that it can handle union types.
+        return safe_cast(TyArrayNumber | TyMaArrayNumber, lhs + rhs)  # type: ignore
+
+    # We only know about the other (nullable) built-in types &
+    # these scalars should never interact with themselves.
+    return NotImplemented

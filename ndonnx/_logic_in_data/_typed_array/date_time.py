@@ -13,6 +13,7 @@ from .core import TyArrayBool, TyArrayInt64
 from .funcs import astypedarray, typed_where
 from .py_scalars import _ArrayPyInt
 from .typed_array import TyArrayBase
+from .utils import safe_cast
 
 if TYPE_CHECKING:
     from types import NotImplementedType
@@ -23,14 +24,6 @@ if TYPE_CHECKING:
 
 
 Unit = Literal["ns", "s"]
-
-T = TypeVar("T")
-
-
-def safe_cast(ty: type[T], a: TyArrayBase) -> T:
-    if isinstance(a, ty):
-        return a
-    raise TypeError(f"Expected 'TyArrayInt64' found `{type(a)}`")
 
 
 class DateTime(DType):
@@ -144,6 +137,12 @@ class TyArrayTimeDelta(TimeBaseArray[TimeDelta]):
             return data
         return NotImplemented
 
+    def __mul__(self, rhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        if isinstance(rhs, _ArrayPyInt):
+            data = cast(TyArrayInt64, (self.data * rhs))
+            return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
+        raise NotImplementedError
+
 
 class TyArrayDateTime(TimeBaseArray[DateTime]):
     def __init__(self, is_nat: TyArrayBool, data: TyArrayInt64, unit: Unit):
@@ -196,10 +195,16 @@ class TyArrayDateTime(TimeBaseArray[DateTime]):
         return NotImplemented
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+        rhs_data: _ArrayPyInt | TyArrayInt64
         if isinstance(rhs, _ArrayPyInt):
-            data = cast(TyArrayInt64, (self.data + rhs))
-            return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
-        raise NotImplementedError
+            rhs_data = rhs
+        elif isinstance(rhs, TyArrayTimeDelta):
+            rhs_data = rhs.data
+        else:
+            raise NotImplementedError
+
+        data = cast(TyArrayInt64, (self.data + rhs_data))
+        return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
 
     def __sub__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
         if isinstance(rhs, _ArrayPyInt):

@@ -119,6 +119,9 @@ class TyArrayBase(ABC, Generic[DTYPE]):
     def __invert__(self) -> TyArrayBase:
         return NotImplemented
 
+    def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return NotImplemented
+
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 

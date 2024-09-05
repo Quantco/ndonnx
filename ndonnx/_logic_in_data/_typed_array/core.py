@@ -113,6 +113,16 @@ class TyArrayNumber(TyArray[CORE_DTYPES]):
             return ascoredata(var)
         return NotImplemented
 
+    def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
+        if isinstance(rhs, TyArrayNumber):
+            # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
+            if type(self) != type(rhs):
+                a, b = promote(self, rhs)
+                return a * b
+            var = op.mul(self.var, rhs.var)
+            return ascoredata(var)
+        return NotImplemented
+
     def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
         if isinstance(rhs, TyArrayNumber):
             # NOTE: Can't always promote for all data types (c.f. datetime / timedelta)
