@@ -41,13 +41,6 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
         self.var = var
 
     @classmethod
-    def from_typed_array(cls, tyarr: TyArrayBase):
-        if isinstance(tyarr, TyArray):
-            var = op.cast(tyarr.var, to=dtypes.as_numpy(cls.dtype))
-            return cls(var)
-        raise NotImplementedError
-
-    @classmethod
     def as_argument(cls, shape: OnnxShape, dtype: DType):
         if isinstance(dtype, CoreDTypes):
             var = argument(Tensor(dtypes.as_numpy(dtype), shape))

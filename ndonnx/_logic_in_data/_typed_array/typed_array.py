@@ -31,24 +31,6 @@ class TyArrayBase(ABC, Generic[DTYPE]):
 
     @classmethod
     @abstractmethod
-    def from_typed_array(cls, tyarr: TyArrayBase):
-        """Create an instances from another ``_TypedArray`` object.
-
-        Returns `NotImplemented` if the conversion is not defined.
-
-        Raises
-        ------
-        ValueError:
-            If the conversion from `tyarr` is *known* to be invalid.
-
-        Note
-        ----
-        See `_TypedArray._astype`.
-        """
-        ...
-
-    @classmethod
-    @abstractmethod
     def as_argument(cls, shape: OnnxShape, dtype: DType):
         """Create an argument array.
 

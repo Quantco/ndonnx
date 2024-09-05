@@ -55,16 +55,6 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
     data: TyArray
 
     @classmethod
-    def from_typed_array(cls, tyarr: TyArrayBase):
-        if isinstance(tyarr, TyArray):
-            return asncoredata(tyarr, mask=None)
-        if isinstance(tyarr, TyMaArray):
-            new_data = tyarr.data.astype(cls.dtype._unmasked_dtype)
-            return cls(new_data, mask=tyarr.mask)
-
-        return NotImplemented
-
-    @classmethod
     def as_argument(cls, shape: OnnxShape, dtype: DType):
         if isinstance(dtype, NCoreDTypes):
             data_dtype = as_non_nullable(dtype)

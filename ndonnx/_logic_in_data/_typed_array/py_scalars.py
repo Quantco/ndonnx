@@ -36,13 +36,6 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         self.value = value
 
     @classmethod
-    def from_typed_array(cls, tyarr: TyArrayBase):
-        # This class should only be created when Python scalars
-        # interact with Array objects. As such it should only ever be
-        # instantiated using the `__int__` method.
-        raise ValueError(f"`{cls}` cannot be created from `{type(tyarr)}`")
-
-    @classmethod
     def as_argument(cls, shape: OnnxShape, dtype: DType):
         raise ValueError(f"`{cls}` cannot be an argument to a graph")
 

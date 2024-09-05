@@ -90,18 +90,6 @@ class TimeBaseArray(TyArrayBase[TIME_DTYPE]):
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
-    @classmethod
-    def from_typed_array(cls, tyarr: TyArrayBase):
-        if isinstance(tyarr, cls):
-            return cls(is_nat=tyarr.is_nat, data=tyarr.data, unit=tyarr.dtype.unit)
-        if isinstance(tyarr, TyArrayInteger):
-            data = safe_cast(TyArrayInt64, tyarr.astype(int64))
-            is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
-            # PROBLEM: UNIT IS NOT KNOWN HERE!
-            return cls(is_nat=is_nat, data=data, unit=tyarr.dtype.unit)
-
-        return NotImplemented
-
     @property
     def shape(self) -> OnnxShape:
         return self.data.shape
