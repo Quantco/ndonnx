@@ -108,7 +108,7 @@ class TyArrayNumber(TyArray):
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, op.add, True)
 
-    def __radd__(self, lhs) -> TyArrayBase:
+    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.add, op.add, False)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:

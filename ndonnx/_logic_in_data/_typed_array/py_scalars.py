@@ -99,7 +99,7 @@ class _ArrayPyScalar(TyArrayBase):
 class _ArrayPyInt(_ArrayPyScalar):
     dtype = dtypes._pyint
 
-    def __or__(self, rhs) -> TyArray | TyMaArray:
+    def __or__(self, rhs: TyArrayBase) -> TyArray | TyMaArray:
         if isinstance(rhs, TyArrayInteger):
             return _promote_and_apply_op(self, rhs, operator.or_, True)
         return NotImplemented
@@ -110,7 +110,10 @@ class _ArrayPyFloat(_ArrayPyScalar):
 
 
 def _promote_and_apply_op(
-    this: _ArrayPyScalar, other, arr_op: Callable[[Any, Any], Any], forward: bool
+    this: _ArrayPyScalar,
+    other: TyArrayBase,
+    arr_op: Callable[[Any, Any], Any],
+    forward: bool,
 ) -> TyArray | TyMaArray | NotImplementedType:
     if isinstance(other, TyArray | TyMaArray):
         this_, other = promote(this, other)

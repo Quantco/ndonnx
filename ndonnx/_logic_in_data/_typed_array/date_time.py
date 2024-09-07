@@ -254,7 +254,6 @@ class TyArrayDateTime(TimeBaseArray):
         data = cast(TyArrayInt64, (self.data + rhs_data))
         return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
 
-    # TODO: Fix too strict type hints on all dunder methods
     def __radd__(self, lhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
         return self.__add__(lhs)
 
