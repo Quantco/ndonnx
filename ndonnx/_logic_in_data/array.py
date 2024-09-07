@@ -90,6 +90,9 @@ class Array:
         """
         return self._data.to_numpy()
 
+    # def disassemble(self):
+    #     return self._data.disassemble()
+
     def __getitem__(self, index: Index) -> Array:
         data = self._data[index]
         return type(self)._from_data(data)

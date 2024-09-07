@@ -17,6 +17,7 @@ from ..dtypes import (
 
 if TYPE_CHECKING:
     from ..array import Index, OnnxShape
+    from ..schema import Components, Schema
     from .core import TyArray, TyArrayBool
 
 
@@ -55,6 +56,10 @@ class TyArrayBase(ABC, Generic[DTYPE]):
 
     def to_numpy(self) -> np.ndarray:
         raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
+
+    @abstractmethod
+    def disassemble(self) -> tuple[Components, Schema]:
+        raise NotImplementedError
 
     @overload
     def astype(self, dtype: dtypes.CoreDTypes) -> TyArray: ...

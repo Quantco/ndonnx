@@ -19,11 +19,13 @@ from ..dtypes import (
     DType,
     from_numpy,
 )
+from ..schema import Schema, var_to_primitive
 from .typed_array import TyArrayBase
 from .utils import promote
 
 if TYPE_CHECKING:
     from ..array import Index, OnnxShape
+    from ..schema import Components
 
 
 CORE_DTYPES = TypeVar("CORE_DTYPES", bound=CoreDTypes)
@@ -74,6 +76,13 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
                 raise ValueError("unexpected value data type")
             return np_arr
         raise ValueError("no propagated value available")
+
+    def disassemble(self) -> tuple[Components, Schema]:
+        dtype_info = self.dtype._info
+        component_schema = var_to_primitive(self.var)
+        schema = Schema(dtype_info=dtype_info, components=component_schema)
+        components = {"var": self.var}
+        return components, schema
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
         var = op.reshape(self.var, op.const(shape))

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 import numpy as np
 
 from ..dtypes import CoreIntegerDTypes, DType, _PyInt, bool_, int64
+from ..schema import DTypeInfo, flatten_components
 from .core import TyArrayBool, TyArrayInt64, TyArrayInteger
 from .funcs import astypedarray, typed_where
 from .py_scalars import _ArrayPyInt
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from ..array import Index, OnnxShape
+    from ..schema import Components, Schema, StructComponent
 
 
 Unit = Literal["ns", "s"]
@@ -57,6 +59,15 @@ class DateTime(DType):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
 
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state={"unit": self.unit},
+        )
+
 
 class TimeDelta(DType):
     def __init__(self, unit: Unit):
@@ -76,6 +87,15 @@ class TimeDelta(DType):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
 
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state={"unit": self.unit},
+        )
+
 
 TIME_DTYPE = TypeVar("TIME_DTYPE", bound=DateTime | TimeDelta)
 
@@ -89,6 +109,21 @@ class TimeBaseArray(TyArrayBase[TIME_DTYPE]):
 
     def __init__(self, is_nat: TyArrayBool, data: TyArrayInt64, unit: Unit):
         raise NotImplementedError
+
+    def disassemble(self) -> tuple[Components, Schema]:
+        dtype_info = self.dtype._info
+        component_schema: StructComponent = {
+            "data": self.data.disassemble()[1],
+            "is_nat": self.is_nat.disassemble()[1],
+        }
+        schema = Schema(dtype_info=dtype_info, components=component_schema)
+        components = flatten_components(
+            {
+                "data": self.data.disassemble()[0],
+                "is_nat": self.is_nat.disassemble()[0],
+            }
+        )
+        return components, schema
 
     def __getitem__(self, index: Index) -> Self:
         is_nat = self.is_nat[index]

@@ -8,12 +8,31 @@ import pytest
 from ndonnx._logic_in_data import Array, dtypes
 from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
 from ndonnx._logic_in_data.array import asarray, where
+from ndonnx._logic_in_data.build import build
+from ndonnx._logic_in_data.schema import get_schemas
 
 
 def check_dtype_shape(arr, dtype, shape):
     assert arr.dtype == dtype
     assert arr._data.shape == shape
     assert arr.shape == tuple(None if isinstance(el, str) else el for el in shape)
+
+
+def build_and_run(fn, *np_args):
+    import onnxruntime as ort
+
+    ins_np = {f"in{i}": arr for i, arr in enumerate(np_args)}
+    ins = {k: Array(a.shape, dtypes.from_numpy(a.dtype)) for k, a in ins_np.items()}
+
+    out = {"out": fn(*ins.values())}
+    mp = build(ins, out)
+    session = ort.InferenceSession(mp.SerializeToString())
+    (out,) = session.run(None, {f"{k}__var": a for k, a in ins_np.items()})
+    return out
+
+
+def constant_prop(fn, *np_args):
+    return fn(*[asarray(a) for a in np_args]).unwrap_numpy()
 
 
 @pytest.mark.parametrize(
@@ -162,3 +181,52 @@ def test_add_pyscalar_timedelta(op):
     expected_dtype = TimeDelta("s")
     check_dtype_shape(op(scalar, arr), expected_dtype, shape)
     check_dtype_shape(op(arr, scalar), expected_dtype, shape)
+
+
+def test_build():
+    a = Array(("N",), dtypes.nint64)
+    b = a[0]
+
+    mp = build({"a": a}, {"b": b})
+
+    schemas = get_schemas(mp)
+
+    # test json round trip of schema data
+    assert schemas.arguments["a"] == a._data.disassemble()[1]
+    assert schemas.results["b"] == b._data.disassemble()[1]
+
+
+@pytest.mark.parametrize(
+    "dtype, expect_ort_success",
+    [
+        (np.float16, True),
+        (np.float32, True),
+        (np.float64, True),
+        (np.int8, False),
+        (np.int16, False),
+        (np.int32, True),
+        (np.int64, True),
+        (np.uint8, False),
+        (np.uint16, False),
+        (np.uint32, False),
+        (np.uint64, False),
+    ],
+)
+@pytest.mark.parametrize("values", [[], 1, [1], [1, 2], [[1], [2]]])
+def test_function(dtype, values, expect_ort_success):
+    np_arr = np.asarray([1, 2], dtype=dtype)
+    fun = operator.add
+
+    expected = fun(np_arr, np_arr)
+
+    if expect_ort_success:
+        candidate = build_and_run(fun, np_arr, np_arr)
+        np.testing.assert_equal(expected, candidate)
+    else:
+        import onnxruntime as ort
+
+        with pytest.raises(ort.capi.onnxruntime_pybind11_state.NotImplemented):
+            build_and_run(fun, np_arr, np_arr)
+
+    candidate = constant_prop(fun, np_arr, np_arr)
+    np.testing.assert_equal(expected, candidate)

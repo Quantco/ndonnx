@@ -11,11 +11,14 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
 
+from .schema import DTypeInfo
+
 if TYPE_CHECKING:
     from typing_extensions import Self
 
     from . import _typed_array
     from ._typed_array import core, masked
+    from .schema import DTypeInfo
 
 
 TY_ARRAY = TypeVar("TY_ARRAY", bound="_typed_array.TyArrayBase[Any]")
@@ -42,10 +45,10 @@ class DType(ABC, Generic[TY_ARRAY]):
         # replaces `TyArrayBase.from_typed_array`
         ...
 
-    # @abstractmethod
-    # def _argument(self, shape) -> _typed_array.TyArrayBase[Self]:
-    #     # replaces `TyArrayBase.as_argument`
-    #     ...
+    @property
+    @abstractmethod
+    def _info(self) -> DTypeInfo:
+        raise NotImplementedError
 
     def __eq__(self, other) -> bool:
         if type(self) is not type(other):
@@ -74,6 +77,15 @@ class _CoreDType(DType[TY_ARRAY_CORE]):
             return self._tyarr_class(var)
         raise NotImplementedError
 
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state=None,
+        )
+
 
 class _NCoreDType(DType[TY_MA_ARRAY_CORE]):
     _unmasked_dtype: CoreDTypes
@@ -90,6 +102,15 @@ class _NCoreDType(DType[TY_MA_ARRAY_CORE]):
             data_ = arr.data.astype(self._unmasked_dtype)
             return self._tyarr_class(data=data_, mask=mask)
         raise NotImplementedError
+
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state=None,
+        )
 
 
 class _Number(_CoreDType):
@@ -230,6 +251,10 @@ class _PyInt(DType):
     def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
         raise NotImplementedError
 
+    @property
+    def _info(self) -> DTypeInfo:
+        raise ValueError("'_PyInt' has not public schema information")
+
 
 class _PyFloat(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
@@ -249,6 +274,10 @@ class _PyFloat(DType):
 
     def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
         raise NotImplementedError
+
+    @property
+    def _info(self) -> DTypeInfo:
+        raise ValueError("'_PyInt' has not public schema information")
 
 
 # Non-nullable Singleton instances

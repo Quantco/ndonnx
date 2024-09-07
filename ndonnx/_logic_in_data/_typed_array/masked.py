@@ -13,11 +13,13 @@ from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import CoreDTypes, DType, NCoreDTypes, as_non_nullable
+from ..schema import Schema, flatten_components
 from .core import TyArray, TyArrayBool
 from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
     from ..array import Index, OnnxShape
+    from ..schema import Components, StructComponent
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -41,6 +43,27 @@ class TyMaArrayBase(TyArrayBase[DTYPE]):
 
     data: TyArrayBase
     mask: TyArrayBool | None
+
+    def disassemble(self) -> tuple[Components, Schema]:
+        dtype_info = self.dtype._info
+        component_schema: StructComponent = (
+            {
+                "data": self.data.disassemble()[1],
+            }
+            | {"mask": self.mask.disassemble()[1]}
+            if self.mask is not None
+            else {}
+        )
+        schema = Schema(dtype_info=dtype_info, components=component_schema)
+        components = flatten_components(
+            {
+                "data": self.data.disassemble()[0],
+            }
+            | {"mask": self.mask.disassemble()[0]}
+            if self.mask is not None
+            else {}
+        )
+        return components, schema
 
 
 @dataclass

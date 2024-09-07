@@ -20,6 +20,7 @@ from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
+    from ..schema import Components, Schema
     from .core import TyArrayBool
 
 
@@ -42,6 +43,11 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
 
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
+
+    def disassemble(self) -> tuple[Components, Schema]:
+        raise ValueError(
+            "Python scalars cannot be disassembled into 'spox.Var' objects"
+        )
 
     @property
     def ndim(self) -> int:
