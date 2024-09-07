@@ -6,7 +6,7 @@ from __future__ import annotations
 import operator as std_ops
 from collections.abc import Callable
 from types import EllipsisType, NotImplementedType
-from typing import overload
+from typing import Any, Optional, Union, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -21,7 +21,15 @@ StandardShape = tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
 
 ScalarIndex = int | bool | slice | EllipsisType | None
-Index = ScalarIndex | tuple[ScalarIndex, ...]
+Index = Union[ScalarIndex, tuple[ScalarIndex, ...], "Array"]
+
+SetitemIndex = Union[
+    int,
+    slice,
+    EllipsisType,
+    tuple[Union[int, slice, EllipsisType], EllipsisType],
+    "Array",
+]
 
 
 class Array:
@@ -90,7 +98,7 @@ class Array:
         """
         return self._data.to_numpy()
 
-    def __getitem__(self, index: Index) -> Array:
+    def __getitem__(self, index: Index, /) -> Array:
         data = self._data[index]
         return type(self)._from_data(data)
 
@@ -100,11 +108,67 @@ class Array:
     # dispatch between different `_TypedArray` subclasses.           #
     ##################################################################
 
-    def __add__(self, rhs: int | float | Array) -> Array:
+    def __abs__(self: Array, /) -> Array:
+        raise NotImplementedError
+
+    def __add__(self: Array, rhs: int | float | Array, /) -> Array:
         return _apply_op(self, rhs, std_ops.add)
 
-    def __radd__(self, lhs: int | float | Array) -> Array:
+    def __radd__(self, lhs: int | float | Array, /) -> Array:
         return _apply_op(lhs, self, std_ops.add)
+
+    def __and__(self: Array, other: Union[int, bool, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __array_namespace__(
+        self: Array, /, *, api_version: Optional[str] = None
+    ) -> Any:
+        raise NotImplementedError
+
+    def __bool__(self: Array, /) -> bool:
+        raise NotImplementedError
+
+    def __complex__(self: Array, /) -> complex:
+        raise NotImplementedError
+
+    def __eq__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
+        raise NotImplementedError
+
+    def __float__(self: Array, /) -> float:
+        raise NotImplementedError
+
+    def __floordiv__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __ge__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __gt__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __index__(self: Array, /) -> int:
+        raise NotImplementedError
+
+    def __int__(self: Array, /) -> int:
+        raise NotImplementedError
+
+    def __invert__(self: Array, /) -> Array:
+        raise NotImplementedError
+
+    def __le__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __lshift__(self: Array, other: Union[int, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __lt__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __matmul__(self: Array, other: Array, /) -> Array:
+        raise NotImplementedError
+
+    def __mod__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
 
     def __mul__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.mul)
@@ -112,17 +176,46 @@ class Array:
     def __rmul__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.mul)
 
-    def __or__(self, rhs: int | float | Array) -> Array:
+    def __ne__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
+        raise NotImplementedError
+
+    def __neg__(self: Array, /) -> Array:
+        raise NotImplementedError
+
+    def __or__(self, rhs: int | bool | Array, /) -> Array:
         return _apply_op(self, rhs, std_ops.or_)
 
     def __ror__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.or_)
+
+    def __pos__(self: Array, /) -> Array:
+        raise NotImplementedError
+
+    def __pow__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __rshift__(self: Array, other: Union[int, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __setitem__(
+        self: Array,
+        key: SetitemIndex,
+        value: Union[int, float, bool, Array],
+        /,
+    ) -> None:
+        raise NotImplementedError
 
     def __sub__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.sub)
 
     def __rsub__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.sub)
+
+    def __truediv__(self: Array, other: Union[int, float, Array], /) -> Array:
+        raise NotImplementedError
+
+    def __xor__(self: Array, other: Union[int, bool, Array], /) -> Array:
+        raise NotImplementedError
 
 
 def asarray(obj: int | float | bool | str | Array | np.ndarray) -> Array:
