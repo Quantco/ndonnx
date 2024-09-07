@@ -38,10 +38,6 @@ class _ArrayPyScalar(TyArrayBase):
     def __init__(self, value: int | float):
         self.value = value
 
-    @classmethod
-    def as_argument(cls, shape: OnnxShape, dtype: DType):
-        raise ValueError(f"`{cls}` cannot be an argument to a graph")
-
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
 

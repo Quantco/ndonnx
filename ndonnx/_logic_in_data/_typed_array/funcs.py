@@ -5,7 +5,8 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
-from ..dtypes import DType, default_float, default_int, from_numpy
+from ..dtypes import DType, default_float, default_int
+from .core import ascoredata
 from .py_scalars import _ArrayPyFloat, _ArrayPyInt
 from .typed_array import TyArrayBase
 
@@ -44,13 +45,11 @@ def astypedarray(
         arr = _ArrayPyFloat(val)
         arr = arr if use_py_scalars else arr.astype(default_float)
     elif isinstance(val, Var):
-        dtype = from_numpy(val.unwrap_tensor().dtype)
-        arr = dtype._tyarr_class(val)
+        arr = ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):
         raise NotImplementedError
     elif isinstance(val, np.ndarray):
-        dtype = from_numpy(val.dtype)
-        arr = dtype._tyarr_class(op.const(val))
+        arr = ascoredata(op.const(val))
     else:
         raise ValueError
 

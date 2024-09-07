@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
+from spox import Tensor, argument
 
 from .schema import DTypeInfo
 
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
     from . import _typed_array
     from ._typed_array import core, masked
+    from .array import OnnxShape
     from .schema import DTypeInfo
 
 
@@ -45,6 +47,9 @@ class DType(ABC, Generic[TY_ARRAY]):
         # replaces `TyArrayBase.from_typed_array`
         ...
 
+    @abstractmethod
+    def _argument(self, shape: OnnxShape) -> TY_ARRAY: ...
+
     @property
     @abstractmethod
     def _info(self) -> DTypeInfo:
@@ -68,12 +73,17 @@ class _CoreDType(DType[TY_ARRAY_CORE]):
     def _tyarr_class(self) -> type[TY_ARRAY_CORE]: ...
 
     def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY_CORE:
-        from ._typed_array.core import TyArray
+        from ._typed_array.core import TyArray, ascoredata
+        from ._typed_array.utils import safe_cast
 
         if isinstance(arr, TyArray):
             var = op.cast(arr.var, to=as_numpy(self))
-            return self._tyarr_class(var)
+            return safe_cast(self._tyarr_class, ascoredata(var))
         raise NotImplementedError
+
+    def _argument(self, shape: OnnxShape) -> TY_ARRAY_CORE:
+        var = argument(Tensor(as_numpy(self), shape))
+        return self._tyarr_class(var)
 
     @property
     def _info(self):
@@ -109,6 +119,11 @@ class _NCoreDType(DType[TY_MA_ARRAY_CORE]):
             dtype=self.__class__.__name__,
             dtype_state=None,
         )
+
+    def _argument(self, shape: OnnxShape) -> TY_MA_ARRAY_CORE:
+        data = as_non_nullable(self)._argument(shape)
+        mask = bool_._argument(shape)
+        return self._tyarr_class(data=data, mask=mask)
 
 
 class _Number(_CoreDType):
@@ -249,6 +264,9 @@ class _PyInt(DType):
     def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
         raise NotImplementedError
 
+    def _argument(self, shape: OnnxShape):
+        raise ValueError("'{type(self)}' cannot be used as a model argument")
+
     @property
     def _info(self) -> DTypeInfo:
         raise ValueError("'_PyInt' has not public schema information")
@@ -276,6 +294,9 @@ class _PyFloat(DType):
     @property
     def _info(self) -> DTypeInfo:
         raise ValueError("'_PyInt' has not public schema information")
+
+    def _argument(self, shape: OnnxShape):
+        raise ValueError("'{type(self)}' cannot be used as a model argument")
 
 
 # Non-nullable Singleton instances
@@ -576,8 +597,11 @@ def as_nullable(dtype: CoreDTypes) -> NCoreDTypes:
     return _core_to_nullable_core[dtype]
 
 
-def as_non_nullable(dtype: NCoreDTypes) -> CoreDTypes:
-    return {v: k for k, v in _core_to_nullable_core.items()}[dtype]
+def as_non_nullable(dtype: _NCoreDType) -> _CoreDType:
+    mapping: dict[_NCoreDType, _CoreDType] = {
+        v: k for k, v in _core_to_nullable_core.items()
+    }
+    return mapping[dtype]
 
 
 def _result_type_core_numeric(

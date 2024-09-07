@@ -27,16 +27,6 @@ class TyArrayBase(ABC):
     @abstractmethod
     def __init__(self): ...
 
-    @classmethod
-    @abstractmethod
-    def as_argument(cls, shape: OnnxShape, dtype: DType):
-        """Create an argument array.
-
-        The 'dtype' parameter is needed since data types, such as categorical ones, may
-        carry state not encapsulated in the typed array.
-        """
-        raise NotImplementedError
-
     @abstractmethod
     def __getitem__(self, index: Index) -> Self: ...
 

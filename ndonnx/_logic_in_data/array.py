@@ -48,7 +48,7 @@ class Array:
             raise ValueError("Invalid arguments.")
 
         if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._data = dtype._tyarr_class.as_argument(shape, dtype)
+            self._data = dtype._argument(shape)
             return
         if isinstance(value, np.ndarray):
             raise NotImplementedError
@@ -89,9 +89,6 @@ class Array:
             If no propagated value is available.
         """
         return self._data.to_numpy()
-
-    # def disassemble(self):
-    #     return self._data.disassemble()
 
     def __getitem__(self, index: Index) -> Array:
         data = self._data[index]

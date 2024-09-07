@@ -32,7 +32,7 @@ Unit = Literal["ns", "s"]
 _NAT_SENTINEL = _ArrayPyInt(np.iinfo(np.int64).min)
 
 
-class DateTime(DType):
+class BaseTimeDType(DType):
     def __init__(self, unit: Unit):
         self.unit = unit
 
@@ -41,6 +41,28 @@ class DateTime(DType):
             return self
         return NotImplemented
 
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TimeBaseArray:
+        raise NotImplementedError
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}[{self.unit}]"
+
+    def _argument(self, shape: OnnxShape) -> TimeBaseArray:
+        data = int64._argument(shape)
+        is_nat = bool_._argument(shape)
+        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state={"unit": self.unit},
+        )
+
+
+class DateTime(BaseTimeDType):
     @property
     def _tyarr_class(self) -> type[TyArrayDateTime]:
         return TyArrayDateTime
@@ -69,32 +91,10 @@ class DateTime(DType):
         )
 
 
-class TimeDelta(DType):
-    def __init__(self, unit: Unit):
-        self.unit = unit
-
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
-        # TODO
-        raise NotImplementedError
-
+class TimeDelta(BaseTimeDType):
     @property
     def _tyarr_class(self) -> type[TyArrayTimeDelta]:
         return TyArrayTimeDelta
-
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
-        raise NotImplementedError
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self.unit}]"
-
-    @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state={"unit": self.unit},
-        )
 
 
 TIME_DTYPE = TypeVar("TIME_DTYPE", bound=DateTime | TimeDelta)
@@ -154,16 +154,6 @@ class TyArrayTimeDelta(TimeBaseArray):
         self.data = data
         self.dtype = TimeDelta(unit)
 
-    @classmethod
-    def as_argument(cls, shape: OnnxShape, dtype: DType) -> Self:
-        if not isinstance(dtype, TimeDelta):
-            raise ValueError("unexpected 'dtype' `{dtype}`")
-
-        is_nat = TyArrayBool.as_argument(shape, bool_)
-        data = TyArrayInt64.as_argument(shape, int64)
-        unit = dtype.unit
-        return cls(is_nat=is_nat, data=data, unit=unit)
-
     def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
         if isinstance(dtype, CoreIntegerDTypes):
             data = typed_where(self.is_nat, _NAT_SENTINEL, self.data)
@@ -214,16 +204,6 @@ class TyArrayDateTime(TimeBaseArray):
         self.is_nat = is_nat
         self.data = data
         self.dtype = DateTime(unit)
-
-    @classmethod
-    def as_argument(cls, shape: OnnxShape, dtype: DType) -> Self:
-        if not isinstance(dtype, DateTime):
-            raise ValueError("unexpected 'dtype' `{dtype}`")
-
-        is_nat = TyArrayBool.as_argument(shape, bool_)
-        data = TyArrayInt64.as_argument(shape, int64)
-        unit = dtype.unit
-        return cls(is_nat=is_nat, data=data, unit=unit)
 
     def to_numpy(self) -> np.ndarray:
         is_nat = self.is_nat.to_numpy()

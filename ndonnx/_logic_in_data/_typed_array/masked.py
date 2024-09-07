@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, TypeVar
 from typing_extensions import Self
 
 from .. import dtypes
-from ..dtypes import CoreDTypes, DType, NCoreDTypes, as_non_nullable
+from ..dtypes import CoreDTypes, DType, NCoreDTypes
 from ..schema import Schema, flatten_components
 from .core import TyArray, TyArrayBool
 from .typed_array import TyArrayBase
@@ -79,15 +79,6 @@ class TyMaArray(TyMaArrayBase):
         self.dtype = dtypes.as_nullable(data.dtype)
         self.data = data
         self.mask = mask
-
-    @classmethod
-    def as_argument(cls, shape: OnnxShape, dtype: DType):
-        if isinstance(dtype, NCoreDTypes):
-            data_dtype = as_non_nullable(dtype)
-            data = data_dtype._tyarr_class.as_argument(shape, data_dtype)
-            mask = TyArrayBool.as_argument(shape, dtype=dtypes.bool_)
-            return cls(data=data, mask=mask)
-        raise ValueError("unexpected 'dtype' `{dtype}`")
 
     @property
     def shape(self) -> OnnxShape:

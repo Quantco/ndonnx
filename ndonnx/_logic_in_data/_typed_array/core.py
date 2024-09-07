@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, TypeGuard, TypeVar
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
-from spox import Tensor, Var, argument
+from spox import Var
 from typing_extensions import Self
 
 from .. import dtypes
@@ -42,13 +42,6 @@ class TyArray(TyArrayBase):
         if from_numpy(var.unwrap_tensor().dtype) != self.dtype:
             raise ValueError(f"data type of 'var' is incompatible with `{type(self)}`")
         self.var = var
-
-    @classmethod
-    def as_argument(cls, shape: OnnxShape, dtype: DType):
-        if isinstance(dtype, CoreDTypes):
-            var = argument(Tensor(dtypes.as_numpy(dtype), shape))
-            return cls(var)
-        raise ValueError("unexpected 'dtype' `{dtype}`")
 
     def __getitem__(self, index: Index) -> Self:
         if isinstance(index, int):
