@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
 from typing_extensions import Self
@@ -21,11 +21,8 @@ if TYPE_CHECKING:
     from .core import TyArray, TyArrayBool
 
 
-DTYPE = TypeVar("DTYPE", bound=DType)
-
-
-class TyArrayBase(ABC, Generic[DTYPE]):
-    dtype: DTYPE
+class TyArrayBase(ABC):
+    dtype: DType
 
     @abstractmethod
     def __init__(self): ...

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable
-from dataclasses import dataclass
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar
 
@@ -37,8 +36,7 @@ ALL_NUM_DTYPES = TypeVar(
 )
 
 
-@dataclass
-class TyMaArrayBase(TyArrayBase[DTYPE]):
+class TyMaArrayBase(TyArrayBase):
     """Typed masked array object."""
 
     data: TyArrayBase
@@ -66,16 +64,21 @@ class TyMaArrayBase(TyArrayBase[DTYPE]):
         return components, schema
 
 
-@dataclass
-class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
+class TyMaArray(TyMaArrayBase):
     """Masked version of core types.
 
     The (subclasses) of this class are implemented such that they only
     know about `_ArrayCoreType`s, but not `_PyScalar`s.
     """
 
+    dtype: dtypes.NCoreDTypes
     # Specialization of data from `Data` to `_ArrayCoreType`
     data: TyArray
+
+    def __init__(self, data: TyArray, mask: TyArrayBool | None):
+        self.dtype = dtypes.as_nullable(data.dtype)
+        self.data = data
+        self.mask = mask
 
     @classmethod
     def as_argument(cls, shape: OnnxShape, dtype: DType):
@@ -83,7 +86,7 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
             data_dtype = as_non_nullable(dtype)
             data = data_dtype._tyarr_class.as_argument(shape, data_dtype)
             mask = TyArrayBool.as_argument(shape, dtype=dtypes.bool_)
-            return cls(data, mask)
+            return cls(data=data, mask=mask)
         raise ValueError("unexpected 'dtype' `{dtype}`")
 
     @property
@@ -96,7 +99,7 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
     def reshape(self, shape: tuple[int, ...]) -> Self:
         data = self.data.reshape(shape)
         mask = self.mask.reshape(shape) if self.mask is not None else None
-        return type(self)(data, mask)
+        return type(self)(data=data, mask=mask)
 
     def __getitem__(self, index: Index) -> Self:
         new_data = self.data[index]
@@ -179,60 +182,63 @@ class TyMaArray(TyMaArrayBase[NCORE_DTYPES]):
         ...
 
 
-class TyMaArrayNumber(TyMaArray[NCORE_NUMERIC_DTYPES]): ...
+class TyMaArrayNumber(TyMaArray):
+    dtype: dtypes.NCoreNumericDTypes
 
 
-class TyMaArrayInteger(TyMaArrayNumber[NCORE_INTEGER_DTYPES]): ...
+class TyMaArrayInteger(TyMaArrayNumber):
+    dtype: dtypes.NCoreIntegerDTypes
 
 
-class TyMaArrayFloating(TyMaArrayNumber[NCORE_FLOATING_DTYPES]): ...
+class TyMaArrayFloating(TyMaArrayNumber):
+    dtype: dtypes.NCoreFloatingDTypes
 
 
-class TyMaArrayBool(TyMaArray[dtypes.NBool]):
+class TyMaArrayBool(TyMaArray):
     dtype = dtypes.nbool
 
 
-class TyMaArrayInt8(TyMaArrayInteger[dtypes.NInt8]):
+class TyMaArrayInt8(TyMaArrayInteger):
     dtype = dtypes.nint8
 
 
-class TyMaArrayInt16(TyMaArrayInteger[dtypes.NInt16]):
+class TyMaArrayInt16(TyMaArrayInteger):
     dtype = dtypes.nint16
 
 
-class TyMaArrayInt32(TyMaArrayInteger[dtypes.NInt32]):
+class TyMaArrayInt32(TyMaArrayInteger):
     dtype = dtypes.nint32
 
 
-class TyMaArrayInt64(TyMaArrayInteger[dtypes.NInt64]):
+class TyMaArrayInt64(TyMaArrayInteger):
     dtype = dtypes.nint64
 
 
-class TyMaArrayUint8(TyMaArrayInteger[dtypes.NUint8]):
+class TyMaArrayUint8(TyMaArrayInteger):
     dtype = dtypes.nuint8
 
 
-class TyMaArrayUint16(TyMaArrayInteger[dtypes.NUint16]):
+class TyMaArrayUint16(TyMaArrayInteger):
     dtype = dtypes.nuint16
 
 
-class TyMaArrayUint32(TyMaArrayInteger[dtypes.NUint32]):
+class TyMaArrayUint32(TyMaArrayInteger):
     dtype = dtypes.nuint32
 
 
-class TyMaArrayUint64(TyMaArrayInteger[dtypes.NUint64]):
+class TyMaArrayUint64(TyMaArrayInteger):
     dtype = dtypes.nuint64
 
 
-class TyMaArrayFloat16(TyMaArrayFloating[dtypes.NFloat16]):
+class TyMaArrayFloat16(TyMaArrayFloating):
     dtype = dtypes.nfloat16
 
 
-class TyMaArrayFloat32(TyMaArrayFloating[dtypes.NFloat32]):
+class TyMaArrayFloat32(TyMaArrayFloating):
     dtype = dtypes.nfloat32
 
 
-class TyMaArrayFloat64(TyMaArrayFloating[dtypes.NFloat64]):
+class TyMaArrayFloat64(TyMaArrayFloating):
     dtype = dtypes.nfloat64
 
 

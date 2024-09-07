@@ -34,12 +34,10 @@ def promote(
 
 
 @overload
-def promote(
-    lhs: TyArrayBase, *others: TyArrayBase
-) -> tuple[TyArrayBase[DType], ...]: ...
+def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase, ...]: ...
 
 
-def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase[DType], ...]:
+def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase, ...]:
     acc: DType = lhs.dtype
     for other in others:
         updated = acc._result_type(other.dtype)

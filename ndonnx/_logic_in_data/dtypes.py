@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import reduce
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
     from .schema import DTypeInfo
 
 
-TY_ARRAY = TypeVar("TY_ARRAY", bound="_typed_array.TyArrayBase[Any]")
-TY_ARRAY_CORE = TypeVar("TY_ARRAY_CORE", bound="core.TyArray[Any]")
-TY_MA_ARRAY_CORE = TypeVar("TY_MA_ARRAY_CORE", bound="masked.TyMaArray[Any]")
+TY_ARRAY = TypeVar("TY_ARRAY", bound="_typed_array.TyArrayBase")
+TY_ARRAY_CORE = TypeVar("TY_ARRAY_CORE", bound="core.TyArray")
+TY_MA_ARRAY_CORE = TypeVar("TY_MA_ARRAY_CORE", bound="masked.TyMaArray")
 
 
 class DType(ABC, Generic[TY_ARRAY]):
@@ -63,8 +63,6 @@ class DType(ABC, Generic[TY_ARRAY]):
 
 
 class _CoreDType(DType[TY_ARRAY_CORE]):
-    Foo: type[_typed_array.TyArrayBase[DType]]
-
     @property
     @abstractmethod
     def _tyarr_class(self) -> type[TY_ARRAY_CORE]: ...

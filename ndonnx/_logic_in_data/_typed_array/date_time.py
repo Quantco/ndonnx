@@ -100,10 +100,11 @@ class TimeDelta(DType):
 TIME_DTYPE = TypeVar("TIME_DTYPE", bound=DateTime | TimeDelta)
 
 
-class TimeBaseArray(TyArrayBase[TIME_DTYPE]):
+class TimeBaseArray(TyArrayBase):
     # TimeDelta and DateTime share the same memory layout. We can
     # therefore share some functionality.
 
+    dtype: DateTime | TimeDelta
     is_nat: TyArrayBool
     data: TyArrayInt64
 
@@ -145,7 +146,9 @@ class TimeBaseArray(TyArrayBase[TIME_DTYPE]):
         raise NotImplementedError
 
 
-class TyArrayTimeDelta(TimeBaseArray[TimeDelta]):
+class TyArrayTimeDelta(TimeBaseArray):
+    dtype: TimeDelta
+
     def __init__(self, is_nat: TyArrayBool, data: TyArrayInt64, unit: Unit):
         self.is_nat = is_nat
         self.data = data
@@ -204,7 +207,9 @@ class TyArrayTimeDelta(TimeBaseArray[TimeDelta]):
         return _apply_op(self, lhs, operator.sub, False)
 
 
-class TyArrayDateTime(TimeBaseArray[DateTime]):
+class TyArrayDateTime(TimeBaseArray):
+    dtype: DateTime
+
     def __init__(self, is_nat: TyArrayBool, data: TyArrayInt64, unit: Unit):
         self.is_nat = is_nat
         self.data = data

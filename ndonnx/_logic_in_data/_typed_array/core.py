@@ -34,7 +34,8 @@ ALL_NUM_DTYPES = TypeVar(
 )
 
 
-class TyArray(TyArrayBase[CORE_DTYPES]):
+class TyArray(TyArrayBase):
+    dtype: dtypes.CoreDTypes
     var: Var
 
     def __init__(self, var: Var):
@@ -108,7 +109,9 @@ class TyArray(TyArrayBase[CORE_DTYPES]):
         return NotImplemented
 
 
-class TyArrayNumber(TyArray[CORE_DTYPES]):
+class TyArrayNumber(TyArray):
+    dtype: dtypes.CoreNumericDTypes
+
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, op.add, True)
 
@@ -128,15 +131,18 @@ class TyArrayNumber(TyArray[CORE_DTYPES]):
         return _promote_and_apply_op(self, lhs, operator.sub, op.sub, False)
 
 
-class TyArrayInteger(TyArrayNumber[CORE_DTYPES]):
+class TyArrayInteger(TyArrayNumber):
+    dtype: dtypes.CoreIntegerDTypes
+
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
 
 
-class TyArrayFloating(TyArrayNumber[CORE_DTYPES]): ...
+class TyArrayFloating(TyArrayNumber):
+    dtype: dtypes.CoreFloatingDTypes
 
 
-class TyArrayBool(TyArray[dtypes.Bool]):
+class TyArrayBool(TyArray):
     dtype = dtypes.bool_
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
@@ -150,47 +156,47 @@ class TyArrayBool(TyArray[dtypes.Bool]):
         return type(self)(var)
 
 
-class TyArrayInt8(TyArrayInteger[dtypes.Int8]):
+class TyArrayInt8(TyArrayInteger):
     dtype = dtypes.int8
 
 
-class TyArrayInt16(TyArrayInteger[dtypes.Int16]):
+class TyArrayInt16(TyArrayInteger):
     dtype = dtypes.int16
 
 
-class TyArrayInt32(TyArrayInteger[dtypes.Int32]):
+class TyArrayInt32(TyArrayInteger):
     dtype = dtypes.int32
 
 
-class TyArrayInt64(TyArrayInteger[dtypes.Int64]):
+class TyArrayInt64(TyArrayInteger):
     dtype = dtypes.int64
 
 
-class TyArrayUint8(TyArrayInteger[dtypes.Uint8]):
+class TyArrayUint8(TyArrayInteger):
     dtype = dtypes.uint8
 
 
-class TyArrayUint16(TyArrayInteger[dtypes.Uint16]):
+class TyArrayUint16(TyArrayInteger):
     dtype = dtypes.uint16
 
 
-class TyArrayUint32(TyArrayInteger[dtypes.Uint32]):
+class TyArrayUint32(TyArrayInteger):
     dtype = dtypes.uint32
 
 
-class TyArrayUint64(TyArrayInteger[dtypes.Uint64]):
+class TyArrayUint64(TyArrayInteger):
     dtype = dtypes.uint64
 
 
-class Float16Data(TyArrayFloating[dtypes.Float16]):
+class Float16Data(TyArrayFloating):
     dtype = dtypes.float16
 
 
-class Float32Data(TyArrayFloating[dtypes.Float32]):
+class Float32Data(TyArrayFloating):
     dtype = dtypes.float32
 
 
-class Float64Data(TyArrayFloating[dtypes.Float64]):
+class Float64Data(TyArrayFloating):
     dtype = dtypes.float64
 
 

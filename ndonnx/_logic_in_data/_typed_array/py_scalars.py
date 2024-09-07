@@ -15,7 +15,7 @@ from .. import dtypes
 from ..dtypes import DType
 from .core import TyArray, TyArrayInteger
 from .masked import TyMaArray
-from .typed_array import DTYPE, TyArrayBase
+from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from .core import TyArrayBool
 
 
-class _ArrayPyScalar(TyArrayBase[DTYPE]):
+class _ArrayPyScalar(TyArrayBase):
     """Array representing a Python scalar.
 
     This implementation is written as if it were a "custom" typed array which knows
@@ -32,6 +32,7 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
     array, though. Thus, this implementation may serve as a blue print for custom types.
     """
 
+    dtype: dtypes._PyFloat | dtypes._PyInt
     value: int | float
 
     def __init__(self, value: int | float):
@@ -60,22 +61,22 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
-    def __add__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, True)
 
-    def __radd__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.add, False)
 
-    def __mul__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+    def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.mul, True)
 
-    def __rmul__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+    def __rmul__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.mul, False)
 
-    def __sub__(self, rhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+    def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.sub, True)
 
-    def __rsub__(self, lhs: TyArrayBase[DType]) -> TyArrayBase[DType]:
+    def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.sub, False)
 
     def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
@@ -99,7 +100,7 @@ class _ArrayPyScalar(TyArrayBase[DTYPE]):
         raise NotImplementedError
 
 
-class _ArrayPyInt(_ArrayPyScalar[dtypes._PyInt]):
+class _ArrayPyInt(_ArrayPyScalar):
     dtype = dtypes._pyint
 
     def __or__(self, rhs) -> TyArray | TyMaArray:
@@ -108,7 +109,7 @@ class _ArrayPyInt(_ArrayPyScalar[dtypes._PyInt]):
         return NotImplemented
 
 
-class _ArrayPyFloat(_ArrayPyScalar[dtypes._PyFloat]):
+class _ArrayPyFloat(_ArrayPyScalar):
     dtype = dtypes._pyfloat
 
 
@@ -116,9 +117,9 @@ def _promote_and_apply_op(
     this: _ArrayPyScalar, other, arr_op: Callable[[Any, Any], Any], forward: bool
 ) -> TyArray | TyMaArray | NotImplementedType:
     if isinstance(other, TyArray | TyMaArray):
-        this, other = promote(this, other)
+        this_, other = promote(this, other)
         # I am not sure how to annotate `safe_cast` such that it can handle union types.
-        res = arr_op(this, other) if forward else arr_op(other, this)
+        res = arr_op(this_, other) if forward else arr_op(other, this_)
         return safe_cast(TyArray | TyMaArray, res)  # type: ignore
 
     # We only know about the other (nullable) built-in types &
