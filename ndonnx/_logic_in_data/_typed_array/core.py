@@ -14,14 +14,10 @@ from spox import Var
 from typing_extensions import Self
 
 from .. import dtypes
-from ..dtypes import (
-    CoreDTypes,
-    DType,
-    from_numpy,
-)
+from ..dtypes import CoreDTypes, DType, float32, float64, from_numpy
 from ..schema import Schema, var_to_primitive
 from .typed_array import TyArrayBase
-from .utils import promote
+from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from ..array import Index, OnnxShape
@@ -111,6 +107,12 @@ class TyArrayNumber(TyArray):
     def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.add, op.add, False)
 
+    def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.truediv, op.div, True)
+
+    def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.truediv, op.div, False)
+
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.mul, op.mul, True)
 
@@ -123,6 +125,11 @@ class TyArrayNumber(TyArray):
     def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.sub, op.sub, False)
 
+    # Element-wise functions
+    def __abs__(self) -> Self:
+        # ORT supports all data types
+        return type(self)(op.abs(self.var))
+
 
 class TyArrayInteger(TyArrayNumber):
     dtype: dtypes.CoreIntegerDTypes
@@ -130,9 +137,77 @@ class TyArrayInteger(TyArrayNumber):
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
 
+    def isnan(self) -> TyArrayBool:
+        var = op.constant_of_shape(op.shape(self.var), value=np.array(False))
+        return TyArrayBool(var)
+
+
+T = TypeVar("T", bound=TyArray)
+
+
+def _element_wise(
+    x: T, op: Callable[[Var], Var], via: dtypes._CoreDType | None = None
+) -> T:
+    if via is not None:
+        return safe_cast(type(x), type(x)(op(x.astype(via).var)).astype(x.dtype))
+    return type(x)(op(x.var))
+
 
 class TyArrayFloating(TyArrayNumber):
     dtype: dtypes.CoreFloatingDTypes
+
+    # Element-wise for floating point
+    def acos(self) -> Self:
+        return _element_wise(self, op.acos, float32)
+
+    def acosh(self) -> Self:
+        return _element_wise(self, op.acosh, float32)
+
+    def asin(self) -> Self:
+        return _element_wise(self, op.asin, float32)
+
+    def asinh(self) -> Self:
+        return _element_wise(self, op.asinh, float32)
+
+    def atan(self) -> Self:
+        return _element_wise(self, op.atan, float32)
+
+    def atanh(self) -> Self:
+        return _element_wise(self, op.atanh, float32)
+
+    def ceil(self) -> Self:
+        return _element_wise(self, op.ceil, float64)
+
+    def exp(self) -> Self:
+        return _element_wise(self, op.exp)
+
+    def expm1(self) -> Self:
+        from .py_scalars import _ArrayPyFloat
+
+        return safe_cast(type(self), self - _ArrayPyFloat(1.0)).exp()
+
+    def floor(self) -> Self:
+        return _element_wise(self, op.floor, float64)
+
+    def isnan(self) -> TyArrayBool:
+        return TyArrayBool(op.isnan(self.var))
+
+    def log(self) -> Self:
+        return _element_wise(self, op.log, float64)
+
+    def log1p(self) -> Self:
+        from .py_scalars import _ArrayPyFloat
+
+        x = safe_cast(type(self), self + _ArrayPyFloat(1.0))
+        return _element_wise(x, op.log, float64)
+
+    def log2(self) -> Self:
+        from .py_scalars import _ArrayPyFloat
+
+        res = self.log() / _ArrayPyFloat(float(np.log(2)))
+        return safe_cast(type(self), res)
+
+    # TODO: remaining element-wise functions
 
 
 class TyArrayBool(TyArray):

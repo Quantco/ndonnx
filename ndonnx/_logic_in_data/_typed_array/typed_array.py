@@ -52,6 +52,9 @@ class TyArrayBase(ABC):
     def astype(self, dtype: dtypes.CoreDTypes) -> TyArray: ...
 
     @overload
+    def astype(self, dtype: dtypes._CoreDType) -> TyArray: ...
+
+    @overload
     def astype(self, dtype: DType) -> TyArrayBase: ...
 
     def astype(self, dtype: DType) -> TyArrayBase:
