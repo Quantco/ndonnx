@@ -76,9 +76,18 @@ class Array:
         return inst
 
     @property
-    def shape(self) -> StandardShape:
+    def shape(self) -> tuple[int | None, ...]:
         shape = self._data.shape
         return tuple(None if isinstance(item, str) else item for item in shape)
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def dynamic_shape(self) -> Array:
+        shape = self._data.dynamic_shape
+        return Array._from_data(shape)
 
     @property
     def dtype(self) -> DType:
@@ -234,13 +243,6 @@ def asarray(
     data: TyArrayBase = ascoredata(op.const(obj))
     if dtype:
         data = data.astype(dtype)
-    return Array._from_data(data)
-
-
-def where(cond: Array, a: Array, b: Array) -> Array:
-    from ._typed_array.funcs import typed_where
-
-    data = typed_where(cond._data, a._data, b._data)
     return Array._from_data(data)
 
 

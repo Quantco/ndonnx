@@ -13,7 +13,7 @@ from typing_extensions import Self
 from .. import dtypes
 from ..dtypes import CoreDTypes, DType, NCoreDTypes
 from ..schema import Schema, flatten_components
-from .core import TyArray, TyArrayBool
+from .core import TyArray, TyArrayBool, TyArrayInt64
 from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
@@ -82,17 +82,18 @@ class TyMaArray(TyMaArrayBase):
 
     @property
     def shape(self) -> OnnxShape:
-        shape = self.data.shape
-        if shape is None:
-            raise ValueError("Missing shape information")
-        return shape
+        return self.data.shape
+
+    @property
+    def dynamic_shape(self) -> TyArrayInt64:
+        return self.data.dynamic_shape
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
         data = self.data.reshape(shape)
         mask = self.mask.reshape(shape) if self.mask is not None else None
         return type(self)(data=data, mask=mask)
 
-    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         data = self.data.broadcast_to(shape)
         mask = self.mask.broadcast_to(shape) if self.mask else None
         return type(self)(data=data, mask=mask)

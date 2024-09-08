@@ -5,9 +5,9 @@ import operator
 import numpy as np
 import pytest
 
-from ndonnx._logic_in_data import Array, dtypes
+from ndonnx._logic_in_data import Array, dtypes, where
 from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
-from ndonnx._logic_in_data.array import asarray, where
+from ndonnx._logic_in_data.array import asarray
 from ndonnx._logic_in_data.build import build
 from ndonnx._logic_in_data.schema import get_schemas
 
@@ -248,12 +248,22 @@ def test_indexing_shape():
     assert arr[0].shape == (None,)
 
 
+@pytest.mark.parametrize("idx", [0, -1])
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
-def test_indexing_value_prop_scalar_index(np_array):
+def test_indexing_value_prop_scalar_index(np_array, idx):
     arr = asarray(np_array)
-    assert arr[0].shape == np_array[0].shape
-    assert arr[0].dtype == arr.dtype
-    np.testing.assert_equal(arr[0].unwrap_numpy(), np_array[0])
+    assert arr[idx].shape == np_array[idx].shape
+    assert arr[idx].dtype == arr.dtype
+    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+
+
+@pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
+def test_indexing_value_prop_scalar_slice(np_array):
+    arr = asarray(np_array)
+    idx = slice(None, 1)
+    assert arr[idx].shape == np_array[idx].shape
+    assert arr[idx].dtype == arr.dtype
+    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
 
 
 def test_indexing_value_prop_tuple_index():

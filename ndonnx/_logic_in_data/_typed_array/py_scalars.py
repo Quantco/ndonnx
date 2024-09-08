@@ -21,7 +21,7 @@ from .utils import promote, safe_cast
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, Schema
-    from .core import TyArrayBool
+    from .core import TyArrayBool, TyArrayInt64
 
 
 class _ArrayPyScalar(TyArrayBase):
@@ -54,10 +54,14 @@ class _ArrayPyScalar(TyArrayBase):
     def shape(self) -> OnnxShape:
         return ()
 
+    @property
+    def dynamic_shape(self) -> TyArrayInt64:
+        raise ValueError("'dynamic_shape' should never be called on Python scalar")
+
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
-    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         raise ValueError("cannot broadcast Python scalar")
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:

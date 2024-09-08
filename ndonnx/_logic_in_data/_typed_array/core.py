@@ -30,6 +30,57 @@ ALL_NUM_DTYPES = TypeVar(
 )
 
 
+class _Index:
+    starts: list[int]
+    ends: list[int]
+    steps: list[int]
+    axes: list[int]
+    squeeze_axes: list[int]
+
+    def __init__(self, index: Index):
+        if isinstance(index, tuple):
+            index_ = index
+        elif isinstance(index, int | slice):
+            index_ = (index,)
+        else:
+            raise NotImplementedError
+        self.starts = []
+        self.ends = []
+        self.steps = []
+        self.axes = []
+        self.squeeze_axes = []
+
+        def compute_end_slice(stop: int | None, step: int | None) -> int:
+            if isinstance(stop, int):
+                return stop
+            step = step or 1
+            # Iterate "to the end"
+            if step < 1:
+                return int(np.iinfo(np.int64).min)
+            return int(np.iinfo(np.int64).max)
+
+        def compute_end_single_idx(start: int):
+            end = start + 1
+            if end == 0:
+                return np.iinfo(np.int64).max
+            return end
+
+        for i, el in enumerate(index_):
+            if isinstance(el, slice):
+                self.starts.append(el.start or 0)
+                self.ends.append(compute_end_slice(el.stop, el.step))
+                self.axes.append(i)
+                self.steps.append(el.step or 1)
+            elif isinstance(el, int):
+                self.starts.append(el)
+                self.ends.append(compute_end_single_idx(el))
+                self.axes.append(i)
+                self.steps.append(1)
+                self.squeeze_axes.append(i)
+            else:
+                raise NotImplementedError
+
+
 class TyArray(TyArrayBase):
     dtype: dtypes.CoreDTypes
     var: Var
@@ -40,27 +91,18 @@ class TyArray(TyArrayBase):
         self.var = var
 
     def __getitem__(self, index: Index) -> Self:
-        if isinstance(index, int):
-            var = op.slice(
-                self.var,
-                starts=op.const([index]),
-                ends=op.const([index + 1]),
-                axes=op.const([0]),
-            )
-            var = op.squeeze(var, axes=op.const([0]))
-            return type(self)(var)
-        if isinstance(index, tuple) and all_items_are_int(index):
-            starts, ends, axes = zip(*[(el, el + 1, i) for i, el in enumerate(index)])
-            var = op.slice(
-                self.var,
-                starts=op.const(starts),
-                ends=op.const(ends),
-                axes=op.const(axes),
-            )
-            var = op.squeeze(var, axes=op.const(axes))
-            return type(self)(var)
-
-        raise NotImplementedError
+        if index == ():
+            return self
+        parsed = _Index(index)
+        var = op.slice(
+            self.var,
+            starts=op.const(parsed.starts),
+            ends=op.const(parsed.ends),
+            axes=op.const(parsed.axes),
+            steps=op.const(parsed.steps),
+        )
+        var = op.squeeze(var, axes=op.const(parsed.squeeze_axes, np.int64))
+        return type(self)(var)
 
     @property
     def shape(self) -> OnnxShape:
@@ -68,6 +110,11 @@ class TyArray(TyArrayBase):
         if shape is None:
             raise ValueError("Missing shape information")
         return shape
+
+    @property
+    def dynamic_shape(self) -> TyArrayInt64:
+        var = op.shape(self.var)
+        return TyArrayInt64(var)
 
     def to_numpy(self) -> np.ndarray:
         if self.var._value is not None:
@@ -109,8 +156,12 @@ class TyArray(TyArrayBase):
         var = op.reshape(self.var, op.const(shape), allowzero=True)
         return type(self)(var)
 
-    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
-        var = op.expand(self.var, op.const(shape, dtype=np.int64))
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+        if isinstance(shape, tuple):
+            shape_var = op.const(shape, dtype=np.int64)
+        else:
+            shape_var = shape.var
+        var = op.expand(self.var, shape_var)
         return type(self)(var)
 
     def as_core_dtype(self, dtype: CoreDTypes) -> TyArray:

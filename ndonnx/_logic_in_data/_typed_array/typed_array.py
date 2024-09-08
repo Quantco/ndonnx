@@ -18,7 +18,7 @@ from ..dtypes import (
 if TYPE_CHECKING:
     from ..array import Index, OnnxShape
     from ..schema import Components, Schema
-    from .core import TyArray, TyArrayBool
+    from .core import TyArray, TyArrayBool, TyArrayInt64
 
 
 class TyArrayBase(ABC):
@@ -33,6 +33,10 @@ class TyArrayBase(ABC):
     @property
     @abstractmethod
     def shape(self) -> OnnxShape: ...
+
+    @property
+    @abstractmethod
+    def dynamic_shape(self) -> TyArrayInt64: ...
 
     @abstractmethod
     def reshape(self, shape: tuple[int, ...]) -> Self: ...
@@ -81,7 +85,7 @@ class TyArrayBase(ABC):
         raise ValueError(f"'all' is not implemented for `{self.dtype}`")
 
     @abstractmethod
-    def broadcast_to(self, shape: tuple[int, ...]) -> Self: ...
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
 
     def isnan(self) -> TyArrayBase:
         raise ValueError(f"'isnan' is not implemented for {self.dtype}")
