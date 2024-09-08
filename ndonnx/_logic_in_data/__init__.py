@@ -26,18 +26,20 @@ from .funcs import (
     ones_like,
     full,
     full_like,
-    finfo,
-    iinfo,
     reshape,
     all,
-    isfinite,
-    isnan,
-    equal,
     zeros,
     zeros_like,
     linspace,
     where,
 )
+from .elementwise import (
+    isfinite,
+    isnan,
+)
+from .binary_functions import add, equal
+from .infos import finfo, iinfo
+
 
 __all__ = [
     "Array",
@@ -75,4 +77,6 @@ __all__ = [
     "zeros",
     "zeros",
     "zeros_like",
+    "add",
+    "equal",
 ]

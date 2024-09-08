@@ -246,10 +246,6 @@ def asarray(
     return Array._from_data(data)
 
 
-def add(a: Array, b: Array) -> Array:
-    return a + b
-
-
 def _as_array(
     val: int | float | Array | Var | np.ndarray, use_py_scalars=False
 ) -> Array:
@@ -286,5 +282,4 @@ def _apply_op(
     if data is not NotImplemented:
         return Array._from_data(data)
 
-    breakpoint()
     return NotImplemented

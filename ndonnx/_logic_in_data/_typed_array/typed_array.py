@@ -81,11 +81,14 @@ class TyArrayBase(ABC):
         """
         return NotImplemented
 
+    @abstractmethod
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+
+    # Aggregating functions
     def all(self) -> TyArrayBase:
         raise ValueError(f"'all' is not implemented for `{self.dtype}`")
 
-    @abstractmethod
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+    # Element-wise functions without additional arguments
 
     def isnan(self) -> TyArrayBase:
         raise ValueError(f"'isnan' is not implemented for {self.dtype}")
@@ -93,6 +96,46 @@ class TyArrayBase(ABC):
     def isfinite(self) -> TyArrayBase:
         raise ValueError(f"'isinfinite' is not implemented for {self.dtype}")
 
+    def acos(self) -> Self:
+        raise ValueError(f"'acos' is not implemented for {self.dtype}")
+
+    def acosh(self) -> Self:
+        raise ValueError(f"'acosh' is not implemented for {self.dtype}")
+
+    def asin(self) -> Self:
+        raise ValueError(f"'asin' is not implemented for {self.dtype}")
+
+    def asinh(self) -> Self:
+        raise ValueError(f"'asinh' is not implemented for {self.dtype}")
+
+    def atan(self) -> Self:
+        raise ValueError(f"'atan' is not implemented for {self.dtype}")
+
+    def atanh(self) -> Self:
+        raise ValueError(f"'atanh' is not implemented for {self.dtype}")
+
+    def ceil(self) -> Self:
+        raise ValueError(f"'ceil' is not implemented for {self.dtype}")
+
+    def exp(self) -> Self:
+        raise ValueError(f"'exp' is not implemented for {self.dtype}")
+
+    def expm1(self) -> Self:
+        raise ValueError(f"'expm1' is not implemented for {self.dtype}")
+
+    def floor(self) -> Self:
+        raise ValueError(f"'floor' is not implemented for {self.dtype}")
+
+    def log(self) -> Self:
+        raise ValueError(f"'log' is not implemented for {self.dtype}")
+
+    def log1p(self) -> Self:
+        raise ValueError(f"'log1p' is not implemented for {self.dtype}")
+
+    def log2(self) -> Self:
+        raise ValueError(f"'log2' is not implemented for {self.dtype}")
+
+    # Multi-input functions
     def _where(
         self, cond: TyArrayBool, y: TyArrayBase
     ) -> TyArrayBase | NotImplementedType:
@@ -103,6 +146,7 @@ class TyArrayBase(ABC):
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
+    # Dunder-functions
     def __add__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 
