@@ -57,6 +57,9 @@ class _ArrayPyScalar(TyArrayBase):
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
+    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
+        raise ValueError("cannot broadcast Python scalar")
+
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, True)
 

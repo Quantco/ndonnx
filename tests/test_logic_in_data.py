@@ -101,12 +101,6 @@ def test_value_prop():
         Array(("N",), dtypes.int32).unwrap_numpy()
 
 
-def test__getitem__():
-    arr = Array(("N", "M"), dtypes.nint32)
-    assert arr[0]._data.shape == ("M",)
-    assert arr[0].shape == (None,)
-
-
 @pytest.mark.parametrize(
     "x_ty, y_ty, res_ty",
     [
@@ -230,3 +224,43 @@ def test_function(dtype, values, expect_ort_success):
 
     candidate = constant_prop(fun, np_arr, np_arr)
     np.testing.assert_equal(expected, candidate)
+
+
+@pytest.mark.parametrize("dtype", [None, dtypes.int32, dtypes.float64])
+def test_ones(dtype):
+    from ndonnx._logic_in_data import ones
+    from ndonnx._logic_in_data.dtypes import as_numpy
+
+    shape = (2,)
+    candidate = ones(shape, dtype=dtype)
+    assert candidate.dtype == dtype or dtypes.float64
+
+    if dtype is None:
+        dtype = dtypes.default_float
+    np.testing.assert_equal(
+        candidate.unwrap_numpy(), np.ones(shape, dtype=as_numpy(dtype))
+    )
+
+
+def test_indexing_shape():
+    arr = Array(("N", "M"), dtypes.nint32)
+    assert arr[0]._data.shape == ("M",)
+    assert arr[0].shape == (None,)
+
+
+@pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
+def test_indexing_value_prop_scalar_index(np_array):
+    arr = asarray(np_array)
+    assert arr[0].shape == np_array[0].shape
+    assert arr[0].dtype == arr.dtype
+    np.testing.assert_equal(arr[0].unwrap_numpy(), np_array[0])
+
+
+def test_indexing_value_prop_tuple_index():
+    np_arr = np.asarray([[1, 2]])
+    arr = asarray(np_arr)
+    for idx in np.ndindex(arr.shape):  # type: ignore
+        el = arr[idx]
+        assert el.shape == ()
+        assert el.dtype == arr.dtype
+        np.testing.assert_equal(el.unwrap_numpy(), np_arr[idx])

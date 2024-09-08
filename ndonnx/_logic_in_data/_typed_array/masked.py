@@ -92,6 +92,11 @@ class TyMaArray(TyMaArrayBase):
         mask = self.mask.reshape(shape) if self.mask is not None else None
         return type(self)(data=data, mask=mask)
 
+    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
+        data = self.data.broadcast_to(shape)
+        mask = self.mask.broadcast_to(shape) if self.mask else None
+        return type(self)(data=data, mask=mask)
+
     def __getitem__(self, index: Index) -> Self:
         new_data = self.data[index]
         new_mask = self.mask[index] if self.mask is not None else None

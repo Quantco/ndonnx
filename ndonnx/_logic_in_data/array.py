@@ -17,7 +17,7 @@ from ._typed_array.funcs import astypedarray
 from .dtypes import DType
 
 StrictShape = tuple[int, ...]
-StandardShape = tuple[int | None, ...]
+StandardShape = int | tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
 
 ScalarIndex = int | bool | slice | EllipsisType | None
@@ -126,16 +126,18 @@ class Array:
         raise NotImplementedError
 
     def __bool__(self: Array, /) -> bool:
-        raise NotImplementedError
+        # TODO: If we want to do this, it should be on the typed array!
+        return bool(self.unwrap_numpy())
 
     def __complex__(self: Array, /) -> complex:
         raise NotImplementedError
 
     def __eq__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.eq)
 
     def __float__(self: Array, /) -> float:
-        raise NotImplementedError
+        # TODO: If we want to do this, it should be on the typed array!
+        return float(self.unwrap_numpy())
 
     def __floordiv__(self: Array, other: Union[int, float, Array], /) -> Array:
         raise NotImplementedError
@@ -150,7 +152,8 @@ class Array:
         raise NotImplementedError
 
     def __int__(self: Array, /) -> int:
-        raise NotImplementedError
+        # TODO: If we want to do this, it should be on the typed array!
+        return int(self.unwrap_numpy())
 
     def __invert__(self: Array, /) -> Array:
         raise NotImplementedError
@@ -218,10 +221,19 @@ class Array:
         raise NotImplementedError
 
 
-def asarray(obj: int | float | bool | str | Array | np.ndarray) -> Array:
+def asarray(
+    obj: Array | bool | int | float | np.ndarray,
+    /,
+    *,
+    dtype: DType | None = None,
+    device=None,
+    copy: bool | None = None,
+) -> Array:
     if isinstance(obj, Array):
         return obj
-    data = ascoredata(op.const(obj))
+    data: TyArrayBase = ascoredata(op.const(obj))
+    if dtype:
+        data = data.astype(dtype)
     return Array._from_data(data)
 
 

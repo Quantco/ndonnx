@@ -47,8 +47,19 @@ class TyArray(TyArrayBase):
                 ends=op.const([index + 1]),
                 axes=op.const([0]),
             )
-            var = op.squeeze(var, axes=op.const(0))
+            var = op.squeeze(var, axes=op.const([0]))
             return type(self)(var)
+        if isinstance(index, tuple) and all_items_are_int(index):
+            starts, ends, axes = zip(*[(el, el + 1, i) for i, el in enumerate(index)])
+            var = op.slice(
+                self.var,
+                starts=op.const(starts),
+                ends=op.const(ends),
+                axes=op.const(axes),
+            )
+            var = op.squeeze(var, axes=op.const(axes))
+            return type(self)(var)
+
         raise NotImplementedError
 
     @property
@@ -67,6 +78,26 @@ class TyArray(TyArrayBase):
             return np_arr
         raise ValueError("no propagated value available")
 
+    def all(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayBool:
+        if isinstance(axis, int):
+            axis = (axis,)
+
+        bools = self.astype(dtypes.bool_)
+
+        if bools.ndim == 0:
+            if axis:
+                ValueError("'axis' were provided but 'self' is a scalar")
+            # Nothing left to reduce
+            return safe_cast(TyArrayBool, bools)
+
+        axes = op.const(list(axis)) if axis else None
+
+        # max int8 is returned if dimensions are empty
+        var = op.reduce_min(bools.astype(dtypes.int8).var, axes=axes, keepdims=keepdims)
+        return safe_cast(TyArrayBool, TyArrayInt8(var).astype(dtypes.bool_))
+
     def disassemble(self) -> tuple[Components, Schema]:
         dtype_info = self.dtype._info
         component_schema = var_to_primitive(self.var)
@@ -75,7 +106,11 @@ class TyArray(TyArrayBase):
         return components, schema
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
-        var = op.reshape(self.var, op.const(shape))
+        var = op.reshape(self.var, op.const(shape), allowzero=True)
+        return type(self)(var)
+
+    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
+        var = op.expand(self.var, op.const(shape, dtype=np.int64))
         return type(self)(var)
 
     def as_core_dtype(self, dtype: CoreDTypes) -> TyArray:
@@ -278,6 +313,12 @@ def is_sequence_of_core_data(
     seq: Sequence[TyArrayBase],
 ) -> TypeGuard[Sequence[TyArray]]:
     return all(isinstance(d, TyArray) for d in seq)
+
+
+def all_items_are_int(
+    seq: Sequence,
+) -> TypeGuard[Sequence[int]]:
+    return all(isinstance(d, int) for d in seq)
 
 
 def _promote_and_apply_op(

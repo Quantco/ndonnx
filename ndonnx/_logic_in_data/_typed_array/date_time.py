@@ -142,6 +142,11 @@ class TimeBaseArray(TyArrayBase):
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
+    def broadcast_to(self, shape: tuple[int, ...]) -> Self:
+        data = self.data.broadcast_to(shape)
+        is_nat = self.is_nat.broadcast_to(shape)
+        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+
     def _eqcomp(self, other) -> TyArrayBase:
         raise NotImplementedError
 

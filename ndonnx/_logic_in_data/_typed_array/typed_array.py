@@ -77,6 +77,18 @@ class TyArrayBase(ABC):
         """
         return NotImplemented
 
+    def all(self) -> TyArrayBase:
+        raise ValueError(f"'all' is not implemented for `{self.dtype}`")
+
+    @abstractmethod
+    def broadcast_to(self, shape: tuple[int, ...]) -> Self: ...
+
+    def isnan(self) -> TyArrayBase:
+        raise ValueError(f"'isnan' is not implemented for {self.dtype}")
+
+    def isfinite(self) -> TyArrayBase:
+        raise ValueError(f"'isinfinite' is not implemented for {self.dtype}")
+
     def _where(
         self, cond: TyArrayBool, y: TyArrayBase
     ) -> TyArrayBase | NotImplementedType:
