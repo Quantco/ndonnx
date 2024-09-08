@@ -34,7 +34,7 @@ def bitwise_right_shift(x1: Array, x2: Array, /) -> Array:
 
 
 def bitwise_xor(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 ^ x2
 
 
 def copysign(x1: Array, x2: Array, /) -> Array:
@@ -50,15 +50,15 @@ def equal(x1: Array, x2: Array, /) -> Array:
 
 
 def floor_divide(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 / x2
 
 
 def greater(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 < x2
 
 
 def greater_equal(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 <= x2
 
 
 def hypot(x1: Array, x2: Array, /) -> Array:
@@ -66,11 +66,11 @@ def hypot(x1: Array, x2: Array, /) -> Array:
 
 
 def less(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 < x2
 
 
 def less_equal(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 <= x2
 
 
 def logaddexp(x1: Array, x2: Array, /) -> Array:
@@ -82,11 +82,11 @@ def logical_and(x1: Array, x2: Array, /) -> Array:
 
 
 def logical_or(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 | x2
 
 
 def logical_xor(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 ^ x2
 
 
 def maximum(x1: Array, x2: Array, /) -> Array:
@@ -98,15 +98,15 @@ def minimum(x1: Array, x2: Array, /) -> Array:
 
 
 def multiply(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 * x2
 
 
 def not_equal(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 != x2
 
 
 def pow(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1**x2
 
 
 def remainder(x1: Array, x2: Array, /) -> Array:
@@ -114,4 +114,4 @@ def remainder(x1: Array, x2: Array, /) -> Array:
 
 
 def subtract(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 - x2
