@@ -248,7 +248,7 @@ def test_indexing_shape():
     assert arr[0].shape == (None,)
 
 
-@pytest.mark.parametrize("idx", [0, -1])
+@pytest.mark.parametrize("idx", [0, -1, (0,), (..., 0)])
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
 def test_indexing_value_prop_scalar_index(np_array, idx):
     arr = asarray(np_array)
@@ -274,3 +274,14 @@ def test_indexing_value_prop_tuple_index():
         assert el.shape == ()
         assert el.dtype == arr.dtype
         np.testing.assert_equal(el.unwrap_numpy(), np_arr[idx])
+
+
+@pytest.mark.parametrize("idx", [-1, (0, 1), (-1, ...), (..., 1)])
+@pytest.mark.parametrize("np_array", [np.asarray([[42, 42]])])
+def test_indexing_setitem_scalar(np_array, idx):
+    np_array = np_array.copy()
+    arr = asarray(np_array.copy())
+    arr[idx] = -1
+    np_array[idx] = -1
+
+    np.testing.assert_equal(arr.unwrap_numpy(), np_array)

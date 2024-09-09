@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from ..array import Index, OnnxShape
+    from ..array import Index, OnnxShape, SetitemIndex
     from ..schema import Components, Schema, StructComponent
 
 
@@ -131,6 +131,14 @@ class TimeBaseArray(TyArrayBase):
         data = self.data[index]
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
+    def __setitem__(
+        self,
+        key: SetitemIndex,
+        value: Self,
+        /,
+    ) -> None:
+        raise NotImplementedError
 
     @property
     def shape(self) -> OnnxShape:

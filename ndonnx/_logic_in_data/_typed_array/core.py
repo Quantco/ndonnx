@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable, Sequence
-from types import NotImplementedType
+from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, TypeGuard, TypeVar
 
 import numpy as np
@@ -20,7 +20,7 @@ from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
-    from ..array import Index, OnnxShape
+    from ..array import Index, OnnxShape, SetitemIndex
     from ..schema import Components
 
 
@@ -65,6 +65,7 @@ class _Index:
                 return np.iinfo(np.int64).max
             return end
 
+        has_ellipsis = False
         for i, el in enumerate(index_):
             if isinstance(el, slice):
                 self.starts.append(el.start or 0)
@@ -77,6 +78,28 @@ class _Index:
                 self.axes.append(i)
                 self.steps.append(1)
                 self.squeeze_axes.append(i)
+            elif isinstance(el, type(...)):
+                # Continue from the back until we hit the ellipsis again
+                has_ellipsis = True
+                break
+            else:
+                raise NotImplementedError
+        if not has_ellipsis:
+            return
+        for i, el in enumerate(index_[::-1], start=1):
+            if isinstance(el, slice):
+                self.starts.append(el.start or 0)
+                self.ends.append(compute_end_slice(el.stop, el.step))
+                self.axes.append(-i)
+                self.steps.append(el.step or 1)
+            elif isinstance(el, int):
+                self.starts.append(el)
+                self.ends.append(compute_end_single_idx(el))
+                self.axes.append(-i)
+                self.steps.append(1)
+                self.squeeze_axes.append(-i)
+            elif isinstance(el, type(...)):
+                break
             else:
                 raise NotImplementedError
 
@@ -103,6 +126,37 @@ class TyArray(TyArrayBase):
         )
         var = op.squeeze(var, axes=op.const(parsed.squeeze_axes, np.int64))
         return type(self)(var)
+
+    def __setitem__(
+        self,
+        key: SetitemIndex,
+        value: Self,
+        /,
+    ) -> None:
+        from ..array import Array
+
+        if isinstance(key, Array):
+            raise NotImplementedError
+        if value.ndim == 0:
+            value = type(self)(op.unsqueeze(value.var, op.const([0])))
+        if isinstance(key, int | EllipsisType | slice):
+            keys: tuple = (key,)
+        else:
+            keys = key
+        if keys[-1] == ...:
+            # remove trailing ellipsis
+            keys = keys[:-1]
+        if isinstance(keys, tuple) and all_items_are_int(keys):
+            var = op.scatter_nd(self.var, op.const([keys]), value.var)
+
+        else:
+            # - Roll axes until all ellipsis axes are in the end
+            # - Update
+            # - Roll back
+            raise NotImplementedError
+
+        # Validate that var has the right type
+        self.var = type(self)(var).var
 
     @property
     def shape(self) -> OnnxShape:

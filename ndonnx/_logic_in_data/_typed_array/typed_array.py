@@ -16,7 +16,7 @@ from ..dtypes import (
 )
 
 if TYPE_CHECKING:
-    from ..array import Index, OnnxShape
+    from ..array import Index, OnnxShape, SetitemIndex
     from ..schema import Components, Schema
     from .core import TyArray, TyArrayBool, TyArrayInt64
 
@@ -27,8 +27,20 @@ class TyArrayBase(ABC):
     @abstractmethod
     def __init__(self): ...
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
     @abstractmethod
     def __getitem__(self, index: Index) -> Self: ...
+
+    def __setitem__(
+        self,
+        key: SetitemIndex,
+        value: Self,
+        /,
+    ) -> None:
+        # TODO: Make abstractmethod
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -181,7 +193,6 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __ne__(self, other: TyArrayBase) -> TyArrayBase:  # type: ignore
-        breakpoint()
         return NotImplemented
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:

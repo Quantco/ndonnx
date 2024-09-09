@@ -14,7 +14,7 @@ from spox import Var
 
 from ._typed_array import TyArrayBase, ascoredata
 from ._typed_array.funcs import astypedarray
-from .dtypes import DType
+from .dtypes import CoreDTypes, DType
 
 StrictShape = tuple[int, ...]
 StandardShape = int | tuple[int | None, ...]
@@ -215,7 +215,8 @@ class Array:
         value: Union[int, float, bool, Array],
         /,
     ) -> None:
-        raise NotImplementedError
+        # Specs say that the data type of self must not be changed.
+        self._data[key] = asarray(value, dtype=self.dtype)._data
 
     def __sub__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.sub)
@@ -228,6 +229,18 @@ class Array:
 
     def __xor__(self: Array, other: Union[int, bool, Array], /) -> Array:
         raise NotImplementedError
+
+    def __repr__(self) -> str:
+        # TODO: Visualize if we have a constant or something lazy for non-core types!
+        val = None
+        if isinstance(self.dtype, CoreDTypes):
+            try:
+                val = self.unwrap_numpy().tolist()
+            except ValueError:
+                pass
+        if val is not None:
+            return f"array({val}, shape={self.shape}, dtype={self.dtype})"
+        return f"array(shape={self.shape}, dtype={self.dtype})"
 
 
 def asarray(
