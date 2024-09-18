@@ -23,11 +23,14 @@ OnnxShape = tuple[int | str | None, ...]
 ScalarIndex = int | bool | slice | EllipsisType | None
 Index = Union[ScalarIndex, tuple[ScalarIndex, ...], "Array"]
 
+ScalarGetitemIndex = int | slice | EllipsisType | None
+GetitemIndex = Union[ScalarGetitemIndex, tuple[ScalarGetitemIndex, ...], "Array"]
+
 SetitemIndex = Union[
     int,
     slice,
     EllipsisType,
-    tuple[Union[int, slice, EllipsisType], EllipsisType],
+    tuple[Union[int, slice, EllipsisType], ...],
     "Array",
 ]
 
@@ -107,9 +110,37 @@ class Array:
         """
         return self._data.to_numpy()
 
-    def __getitem__(self, index: Index, /) -> Array:
-        data = self._data[index]
+    def __getitem__(self, key: GetitemIndex, /) -> Array:
+        from ._typed_array.core import TyArrayInt64
+        from ._typed_array.indexing import StaticGetIndex
+
+        if isinstance(key, Array):
+            if not isinstance(key._data, TyArrayInt64):
+                raise TypeError("indexing array must have int64 data type")
+            idx: StaticGetIndex | TyArrayInt64 = key._data
+        else:
+            idx = key
+        data = self._data[idx]
         return type(self)._from_data(data)
+
+    def __setitem__(
+        self: Array,
+        key: SetitemIndex,
+        value: Union[int, float, bool, Array],
+        /,
+    ) -> None:
+        from ._typed_array.core import TyArrayInt64
+        from ._typed_array.indexing import StaticIndex
+
+        if isinstance(key, Array):
+            if not isinstance(key._data, TyArrayInt64):
+                raise TypeError("indexing array must have int64 data type")
+            idx: StaticIndex | TyArrayInt64 = key._data
+        else:
+            idx = key
+
+        # Specs say that the data type of self must not be changed.
+        self._data[idx] = asarray(value, dtype=self.dtype)._data
 
     ##################################################################
     # __r*__ are needed for interacting with Python scalars          #
@@ -208,15 +239,6 @@ class Array:
 
     def __rshift__(self: Array, other: Union[int, Array], /) -> Array:
         raise NotImplementedError
-
-    def __setitem__(
-        self: Array,
-        key: SetitemIndex,
-        value: Union[int, float, bool, Array],
-        /,
-    ) -> None:
-        # Specs say that the data type of self must not be changed.
-        self._data[key] = asarray(value, dtype=self.dtype)._data
 
     def __sub__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.sub)

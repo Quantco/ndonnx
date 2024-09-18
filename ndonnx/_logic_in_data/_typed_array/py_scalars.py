@@ -35,9 +35,6 @@ class _ArrayPyScalar(TyArrayBase):
     dtype: dtypes._PyFloat | dtypes._PyInt
     value: int | float
 
-    def __init__(self, value: int | float):
-        self.value = value
-
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
 
@@ -106,6 +103,12 @@ class _ArrayPyScalar(TyArrayBase):
 class _ArrayPyInt(_ArrayPyScalar):
     dtype = dtypes._pyint
 
+    def __init__(self, value: int):
+        # int is subclass of bool
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise TypeError(f"expected 'int' found `{type(value)}`")
+        self.value = value
+
     def __or__(self, rhs: TyArrayBase) -> TyArray | TyMaArray:
         if isinstance(rhs, TyArrayInteger):
             return _promote_and_apply_op(self, rhs, operator.or_, True)
@@ -115,6 +118,11 @@ class _ArrayPyInt(_ArrayPyScalar):
 class _ArrayPyFloat(_ArrayPyScalar):
     dtype = dtypes._pyfloat
 
+    def __init__(self, value: float):
+        if not isinstance(value, float):
+            raise TypeError(f"expected 'float' found `{type(value)}`")
+        self.value = value
+
 
 def _promote_and_apply_op(
     this: _ArrayPyScalar,
@@ -123,7 +131,10 @@ def _promote_and_apply_op(
     forward: bool,
 ) -> TyArray | TyMaArray | NotImplementedType:
     if isinstance(other, TyArray | TyMaArray):
-        this_, other = promote(this, other)
+        try:
+            this_, other = promote(this, other)
+        except Exception:
+            breakpoint()
         # I am not sure how to annotate `safe_cast` such that it can handle union types.
         res = arr_op(this_, other) if forward else arr_op(other, this_)
         return safe_cast(TyArray | TyMaArray, res)  # type: ignore

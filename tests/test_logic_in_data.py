@@ -35,6 +35,14 @@ def constant_prop(fn, *np_args):
     return fn(*[asarray(a) for a in np_args]).unwrap_numpy()
 
 
+@pytest.fixture(autouse=True)
+def error_when_prop_fails():
+    from spox import _future
+
+    _future.set_type_warning_level(_future.TypeWarningLevel.OUTPUTS)
+    yield
+
+
 @pytest.mark.parametrize(
     "op",
     [
@@ -248,7 +256,7 @@ def test_indexing_shape():
     assert arr[0].shape == (None,)
 
 
-@pytest.mark.parametrize("idx", [0, -1, (0,), (..., 0)])
+@pytest.mark.parametrize("idx", [0, -1, (0,), (..., 0), (None, -1)])
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
 def test_indexing_value_prop_scalar_index(np_array, idx):
     arr = asarray(np_array)
@@ -276,12 +284,33 @@ def test_indexing_value_prop_tuple_index():
         np.testing.assert_equal(el.unwrap_numpy(), np_arr[idx])
 
 
-@pytest.mark.parametrize("idx", [-1, (0, 1), (-1, ...), (..., 1)])
+@pytest.mark.parametrize("idx", [-1, (0, 1), (-1, ...), (..., 1), (-1, ..., 1)])
 @pytest.mark.parametrize("np_array", [np.asarray([[42, 42]])])
 def test_indexing_setitem_scalar(np_array, idx):
     np_array = np_array.copy()
     arr = asarray(np_array.copy())
+
     arr[idx] = -1
     np_array[idx] = -1
+    np.testing.assert_equal(arr.unwrap_numpy(), np_array)
 
+
+@pytest.mark.parametrize(
+    "np_array, idx",
+    [
+        (np.array([False, False]), (slice(None, None, -1),)),
+        (np.array([False, False]), (slice(None, None, -2),)),
+        (
+            np.full((0, 2), dtype=bool, fill_value=True),
+            (slice(None), slice(None, None, 2)),
+        ),
+    ],
+)
+def test_more_slicing(np_array, idx):
+    np_array = np_array.copy()
+    arr = asarray(np_array)
+
+    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+    arr[idx] = -1
+    np_array[idx] = -1
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)

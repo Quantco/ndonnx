@@ -16,9 +16,10 @@ from ..dtypes import (
 )
 
 if TYPE_CHECKING:
-    from ..array import Index, OnnxShape, SetitemIndex
+    from ..array import OnnxShape
     from ..schema import Components, Schema
     from .core import TyArray, TyArrayBool, TyArrayInt64
+    from .indexing import StaticGetIndex, StaticIndex
 
 
 class TyArrayBase(ABC):
@@ -31,11 +32,11 @@ class TyArrayBase(ABC):
         return f"{type(self).__name__}({self.__dict__})"
 
     @abstractmethod
-    def __getitem__(self, index: Index) -> Self: ...
+    def __getitem__(self, index: StaticGetIndex | TyArrayInt64) -> Self: ...
 
     def __setitem__(
         self,
-        key: SetitemIndex,
+        key: StaticIndex | TyArrayInt64,
         value: Self,
         /,
     ) -> None:
@@ -95,6 +96,10 @@ class TyArrayBase(ABC):
 
     @abstractmethod
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+
+    def permute_dims(self, axes: tuple[int, ...]) -> Self:
+        # TODO: Make abstract
+        raise NotImplementedError
 
     # Aggregating functions
     def all(self) -> TyArrayBase:

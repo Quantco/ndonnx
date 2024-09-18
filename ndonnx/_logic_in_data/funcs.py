@@ -141,6 +141,11 @@ def ones_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
     return full_like(x, 1, dtype=dtype)
 
 
+def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
+    data = x._data.permute_dims(axes=axes)
+    return Array._from_data(data)
+
+
 def reshape(x: Array, /, shape: tuple[int, ...], *, copy: bool | None = None) -> Array:
     if copy is not None:
         raise ValueError("'copy' semantics are not implemented, yet")
