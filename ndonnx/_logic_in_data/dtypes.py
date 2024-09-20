@@ -253,6 +253,10 @@ class _PyInt(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, CoreNumericDTypes | NCoreNumericDTypes):
             return other
+        if isinstance(other, Bool):
+            return default_int
+        if isinstance(other, NBool):
+            return as_nullable(default_int)
         return NotImplemented
 
     @property

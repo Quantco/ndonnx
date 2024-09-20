@@ -268,6 +268,11 @@ def test_indexing_with_array(_a):
     assert_array_equal(expected_c, actual)
 
 
+def test_indexing_ndarray_with_scalar():
+    res = ndx.asarray([[1, 2]])[-1]
+    np.testing.assert_array_equal(res.to_numpy(), np.asarray[1, 2])
+
+
 def test_indexing_with_tuple_of_array(_a):
     a = numpy_to_graph_input(_a)
     index = numpy_to_graph_input(np.array([0, 2]))

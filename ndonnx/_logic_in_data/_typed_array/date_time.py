@@ -23,8 +23,12 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from ..array import Index, OnnxShape, SetitemIndex
+    from ..array import OnnxShape
     from ..schema import Components, Schema, StructComponent
+    from .indexing import (
+        GetitemIndex,
+        SetitemIndex,
+    )
 
 
 Unit = Literal["ns", "s"]
@@ -126,7 +130,7 @@ class TimeBaseArray(TyArrayBase):
         )
         return components, schema
 
-    def __getitem__(self, index: Index) -> Self:
+    def __getitem__(self, index: GetitemIndex) -> Self:
         is_nat = self.is_nat[index]
         data = self.data[index]
 

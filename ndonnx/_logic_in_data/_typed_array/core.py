@@ -13,15 +13,12 @@ import spox.opset.ai.onnx.v21 as op
 from spox import Var
 from typing_extensions import Self
 
+from ndonnx._corearray import _CoreArray
+
 from .. import dtypes
 from ..dtypes import CoreDTypes, DType, float32, float64, from_numpy
 from ..schema import Schema, var_to_primitive
-from .indexing import (
-    NormStaticGetIndex,
-    StaticGetIndex,
-    StaticIndex,
-    normalize_get_indices,
-)
+from .indexing import GetitemIndex, GetitemIndexStatic, SetitemIndex, SetitemIndexStatic
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
@@ -36,82 +33,6 @@ ALL_NUM_DTYPES = TypeVar(
 )
 
 
-class _Index2:
-    # original_array: TyArrayBase
-    # normalized_indices: tuple[int | None | slice, ...]
-    reordered_array: TyArrayBase
-    new_to_old: tuple[int, ...]
-
-
-class _Index:
-    starts: list[int]
-    ends: list[int]
-    steps: list[int]
-    axes: list[int]
-    # Axes to squeeze after indexing
-    squeeze_axes: list[int]
-
-    # Axes to unsqueeze before indexing
-    unsqueeze_axes: list[int]
-
-    _MIN = int(np.iinfo(np.int64).min)
-    _MAX = int(np.iinfo(np.int64).max)
-
-    def __init__(self, index: NormStaticGetIndex):
-        if isinstance(index, tuple):
-            index_ = index
-        elif isinstance(index, int | slice):
-            index_ = (index,)
-        else:
-            raise NotImplementedError
-        self.starts = []
-        self.ends = []
-        self.steps = []
-        self.axes = []
-        self.squeeze_axes = []
-        self.unsqueeze_axes = []
-
-        def compute_end_slice(stop: int | None, step: int | None) -> int:
-            if isinstance(stop, int):
-                return stop
-            step = step or 1
-            # Iterate "to the end"
-            if step < 1:
-                return self._MIN
-            return self._MAX
-
-        def compute_end_single_idx(start: int):
-            # e.g arr[-1]
-            end = start + 1
-            if end == 0:
-                return np.iinfo(np.int64).max
-            return end
-
-        for i, el in enumerate(index_):
-            if isinstance(el, slice):
-                step = el.step or 1
-                self._add(
-                    el.start or (0 if step > 0 else self._MAX),
-                    compute_end_slice(el.stop, el.step),
-                    step,
-                )
-            elif isinstance(el, int):
-                self._add(el, compute_end_single_idx(el), 1)
-                self.squeeze_axes.append(len(self.starts) - 1)
-            elif el is None:
-                self._add(0, self._MAX, 1)
-                self.unsqueeze_axes.append(len(self.starts) - 1)
-            else:
-                breakpoint()
-                raise NotImplementedError
-
-    def _add(self, start: int, stop: int, step: int):
-        self.starts.append(start)
-        self.ends.append(stop)
-        self.steps.append(step)
-        self.axes.append(self.axes[-1] + 1 if len(self.axes) else 0)
-
-
 class TyArray(TyArrayBase):
     dtype: dtypes.CoreDTypes
     var: Var
@@ -121,83 +42,43 @@ class TyArray(TyArrayBase):
             raise ValueError(f"data type of 'var' is incompatible with `{type(self)}`")
         self.var = var
 
-    def __getitem__(self, index: StaticGetIndex | TyArrayInt64) -> Self:
-        if isinstance(index, TyArrayInt64):
+    def __getitem__(self, key: GetitemIndex) -> Self:
+        if isinstance(key, TyArrayInt64):
             raise NotImplementedError
-        norm_idx = normalize_get_indices(index, self.ndim)
-        if norm_idx == ():
-            return self
-        parsed = _Index(norm_idx)
-        var = self.var
-        if parsed.unsqueeze_axes:
-            var = op.unsqueeze(self.var, op.const(parsed.unsqueeze_axes, np.int64))
-        try:
-            var = op.slice(
-                var,
-                starts=op.const(parsed.starts, np.int64),
-                ends=op.const(parsed.ends, np.int64),
-                axes=op.const(parsed.axes, np.int64),
-                steps=op.const(parsed.steps, np.int64),
+
+        ca = _as_old_corarray(self)
+        if isinstance(key, TyArrayInteger):
+            key_: GetitemIndexStatic | _CoreArray = _as_old_corarray(
+                key.astype(dtypes.int64)
             )
-        except Exception:
-            breakpoint()
-        var = op.squeeze(var, axes=op.const(parsed.squeeze_axes, np.int64))
-        return type(self)(var)
+        else:
+            key_ = key
+
+        return type(self)(ca[key_].var)
 
     def __setitem__(
         self,
-        key: StaticIndex | TyArrayInt64,
+        key: SetitemIndex,
         value: Self,
         /,
     ) -> None:
-        if isinstance(key, TyArrayInt64):
+        ca = _as_old_corarray(self)
+        if isinstance(key, TyArrayBool):
             raise NotImplementedError
-        if value.ndim == 0:
-            value = type(self)(op.unsqueeze(value.var, op.const([0])))
-        if isinstance(key, int | EllipsisType | slice):
-            keys: tuple = (key,)
-        else:
-            keys = key
-        if None in keys:
-            raise ValueError("'None' values may not be used in '__setitem__' key")
-
-        if isinstance(keys, tuple) and all_items_are_int(keys):
-            try:
-                var = op.scatter_nd(self.var, op.const([keys], np.int64), value.var)
-            except Exception:
-                breakpoint()
-        elif (
-            isinstance(keys, tuple) and all_items_are_int(keys[:-1]) and keys[-1] == ...
-        ):
-            var = op.scatter_nd(self.var, op.const([keys[:-1]], np.int64), value.var)
-        else:
-            from ndonnx._opset_extensions import _ndindxes
-
-            # unsqueezed_key = _Index(normalize_indices(key, self.ndim)).as_unsqueezed_slices()
-            indices = TyArrayInt64(_ndindxes(self.dynamic_shape.var))[key]
-            idx_tpl_length = indices.shape[-1]
-            if not isinstance(idx_tpl_length, int):
-                raise ValueError("'indices' should have a static shape at this point")
-            updates = value.broadcast_to(self.dynamic_shape[idx_tpl_length:])
-            update_shape = TyArrayInt64(
-                op.concat(
-                    [
-                        self.dynamic_shape[:1].var,
-                        self.dynamic_shape[idx_tpl_length:].var,
-                    ],
-                    axis=0,
-                )
+        if isinstance(key, TyArrayInteger):
+            key_: SetitemIndexStatic | _CoreArray = _as_old_corarray(
+                key.astype(dtypes.int64)
             )
-            updates = value.broadcast_to(update_shape)
-            var = op.scatter_nd(self.var, indices.var, updates.var)
-            # TODO: Optimization:
-            # - Replace ellipsis with `slice(None)`s
-            # - permute_axes so that all `slice(None)` are at the end
-            # - Update
-            # - Roll back
+        elif isinstance(key, TyArrayInteger):
+            key_ = _as_old_corarray(key.as_core_dtype(dtypes.int64))
+        else:
+            key_ = key
+        ca[key_] = _as_old_corarray(value)
 
-        # Validate that var has the right type
-        self.var = type(self)(var).var
+        # Check that the type was not changed by going through the constructor
+        self.var = type(self)(ca.var).var
+
+        return
 
     @property
     def shape(self) -> OnnxShape:
@@ -496,3 +377,19 @@ def _remove_trailing_ellipsis_and_none_slice(
     if indices[-1] in (..., slice(None)):
         return _remove_trailing_ellipsis_and_none_slice(indices[:-1])
     return tuple(indices)
+
+
+def _as_old_corarray(tyarr: TyArray) -> _CoreArray:
+    from ndonnx._corearray import _CoreArray
+
+    ca = _CoreArray(tyarr.var)
+    try:
+        spox_prop_val = tyarr.var._get_value()
+        if not isinstance(spox_prop_val, np.ndarray):
+            raise ValueError(
+                "Propagated value has unexpected type `{type(spox_prop_val)}`"
+            )
+        ca._eager_value = spox_prop_val
+    except ValueError:
+        pass
+    return ca

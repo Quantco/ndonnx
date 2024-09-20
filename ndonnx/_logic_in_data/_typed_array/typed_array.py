@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, Schema
     from .core import TyArray, TyArrayBool, TyArrayInt64
-    from .indexing import StaticGetIndex, StaticIndex
+    from .indexing import GetitemIndex, SetitemIndex
 
 
 class TyArrayBase(ABC):
@@ -32,11 +32,11 @@ class TyArrayBase(ABC):
         return f"{type(self).__name__}({self.__dict__})"
 
     @abstractmethod
-    def __getitem__(self, index: StaticGetIndex | TyArrayInt64) -> Self: ...
+    def __getitem__(self, index: GetitemIndex) -> Self: ...
 
     def __setitem__(
         self,
-        key: StaticIndex | TyArrayInt64,
+        key: SetitemIndex,
         value: Self,
         /,
     ) -> None:

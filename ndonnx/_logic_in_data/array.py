@@ -20,18 +20,14 @@ StrictShape = tuple[int, ...]
 StandardShape = int | tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
 
-ScalarIndex = int | bool | slice | EllipsisType | None
-Index = Union[ScalarIndex, tuple[ScalarIndex, ...], "Array"]
-
-ScalarGetitemIndex = int | slice | EllipsisType | None
-GetitemIndex = Union[ScalarGetitemIndex, tuple[ScalarGetitemIndex, ...], "Array"]
+GetitemIndex = Union[
+    int | slice | EllipsisType | None,
+    tuple[int | slice | EllipsisType | None, ...],
+    "Array",
+]
 
 SetitemIndex = Union[
-    int,
-    slice,
-    EllipsisType,
-    tuple[Union[int, slice, EllipsisType], ...],
-    "Array",
+    int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...], "Array"
 ]
 
 
@@ -111,13 +107,13 @@ class Array:
         return self._data.to_numpy()
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
-        from ._typed_array.core import TyArrayInt64
-        from ._typed_array.indexing import StaticGetIndex
+        from ._typed_array.core import TyArrayInteger
+        from ._typed_array.indexing import GetitemIndexStatic
 
         if isinstance(key, Array):
-            if not isinstance(key._data, TyArrayInt64):
+            if not isinstance(key._data, TyArrayInteger):
                 raise TypeError("indexing array must have int64 data type")
-            idx: StaticGetIndex | TyArrayInt64 = key._data
+            idx: GetitemIndexStatic | TyArrayInteger = key._data
         else:
             idx = key
         data = self._data[idx]
@@ -129,18 +125,34 @@ class Array:
         value: Union[int, float, bool, Array],
         /,
     ) -> None:
-        from ._typed_array.core import TyArrayInt64
-        from ._typed_array.indexing import StaticIndex
+        from ._typed_array.core import TyArrayInteger
+        from ._typed_array.indexing import SetitemIndexStatic
 
         if isinstance(key, Array):
-            if not isinstance(key._data, TyArrayInt64):
-                raise TypeError("indexing array must have int64 data type")
-            idx: StaticIndex | TyArrayInt64 = key._data
+            if not isinstance(key._data, TyArrayInteger):
+                raise TypeError(
+                    "indexing array must have integer data type; found `{key.dtype}`"
+                )
+            idx: SetitemIndexStatic | TyArrayInteger = key._data
         else:
             idx = key
 
         # Specs say that the data type of self must not be changed.
         self._data[idx] = asarray(value, dtype=self.dtype)._data
+
+    # TODO: __bool__, __int__, __index__, and __int__ should probably be
+    # defined on the typed array
+    def __bool__(self: Array, /) -> bool:
+        return bool(self.unwrap_numpy())
+
+    def __float__(self: Array, /) -> float:
+        return float(self.unwrap_numpy())
+
+    def __index__(self: Array, /) -> int:
+        return self.unwrap_numpy().__index__()
+
+    def __int__(self: Array, /) -> int:
+        return int(self.unwrap_numpy())
 
     ##################################################################
     # __r*__ are needed for interacting with Python scalars          #
@@ -165,19 +177,11 @@ class Array:
     ) -> Any:
         raise NotImplementedError
 
-    def __bool__(self: Array, /) -> bool:
-        # TODO: If we want to do this, it should be on the typed array!
-        return bool(self.unwrap_numpy())
-
     def __complex__(self: Array, /) -> complex:
         raise NotImplementedError
 
     def __eq__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
         return _apply_op(self, other, std_ops.eq)
-
-    def __float__(self: Array, /) -> float:
-        # TODO: If we want to do this, it should be on the typed array!
-        return float(self.unwrap_numpy())
 
     def __floordiv__(self: Array, other: Union[int, float, Array], /) -> Array:
         raise NotImplementedError
@@ -187,13 +191,6 @@ class Array:
 
     def __gt__(self: Array, other: Union[int, float, Array], /) -> Array:
         raise NotImplementedError
-
-    def __index__(self: Array, /) -> int:
-        raise NotImplementedError
-
-    def __int__(self: Array, /) -> int:
-        # TODO: If we want to do this, it should be on the typed array!
-        return int(self.unwrap_numpy())
 
     def __invert__(self: Array, /) -> Array:
         raise NotImplementedError

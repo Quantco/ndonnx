@@ -88,7 +88,7 @@ class _CoreArray:
             indexing_expressions = len(tuple(idx for idx in index if idx is not None))
             if self.ndim != indexing_expressions:
                 raise IndexError(
-                    f"Index has {indexing_expressions} expressions but Array has rank {self.ndim}"
+                    f"Index has `{indexing_expressions}` expressions but Array has rank `{self.ndim}`"
                 )
             return index
 

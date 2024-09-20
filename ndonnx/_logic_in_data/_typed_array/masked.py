@@ -19,7 +19,7 @@ from .typed_array import TyArrayBase
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, StructComponent
-    from .indexing import StaticGetIndex
+    from .indexing import GetitemIndex
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -99,7 +99,7 @@ class TyMaArray(TyMaArrayBase):
         mask = self.mask.broadcast_to(shape) if self.mask else None
         return type(self)(data=data, mask=mask)
 
-    def __getitem__(self, index: StaticGetIndex | TyArrayInt64) -> Self:
+    def __getitem__(self, index: GetitemIndex) -> Self:
         new_data = self.data[index]
         new_mask = self.mask[index] if self.mask is not None else None
 

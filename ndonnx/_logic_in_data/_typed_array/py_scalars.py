@@ -105,8 +105,8 @@ class _ArrayPyInt(_ArrayPyScalar):
 
     def __init__(self, value: int):
         # int is subclass of bool
-        if not isinstance(value, int) or isinstance(value, bool):
-            raise TypeError(f"expected 'int' found `{type(value)}`")
+        if not isinstance(value, int | bool):
+            raise TypeError(f"expected 'int' or 'bool' found `{type(value)}`")
         self.value = value
 
     def __or__(self, rhs: TyArrayBase) -> TyArray | TyMaArray:

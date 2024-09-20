@@ -149,8 +149,6 @@ def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
 def reshape(x: Array, /, shape: tuple[int, ...], *, copy: bool | None = None) -> Array:
     if copy is not None:
         raise ValueError("'copy' semantics are not implemented, yet")
-    if len(shape) == 0:
-        return x
     return Array._from_data(x._data.reshape(shape))
 
 

@@ -252,11 +252,13 @@ def test_ones(dtype):
 
 def test_indexing_shape():
     arr = Array(("N", "M"), dtypes.nint32)
-    assert arr[0]._data.shape == ("M",)
-    assert arr[0].shape == (None,)
+    assert arr[0, :]._data.shape == ("M",)
+    assert arr[0, :].shape == (None,)
 
 
-@pytest.mark.parametrize("idx", [0, -1, (0,), (..., 0), (None, -1)])
+@pytest.mark.parametrize(
+    "idx", [(0, ...), (-1, ...), (0, ...), (..., 0), (None, ..., -1)]
+)
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
 def test_indexing_value_prop_scalar_index(np_array, idx):
     arr = asarray(np_array)
@@ -268,7 +270,7 @@ def test_indexing_value_prop_scalar_index(np_array, idx):
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
 def test_indexing_value_prop_scalar_slice(np_array):
     arr = asarray(np_array)
-    idx = slice(None, 1)
+    idx = (slice(None, 1), ...)
     assert arr[idx].shape == np_array[idx].shape
     assert arr[idx].dtype == arr.dtype
     np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
@@ -284,7 +286,7 @@ def test_indexing_value_prop_tuple_index():
         np.testing.assert_equal(el.unwrap_numpy(), np_arr[idx])
 
 
-@pytest.mark.parametrize("idx", [-1, (0, 1), (-1, ...), (..., 1), (-1, ..., 1)])
+@pytest.mark.parametrize("idx", [(0, 1), (-1, ...), (..., 1), (-1, ..., 1)])
 @pytest.mark.parametrize("np_array", [np.asarray([[42, 42]])])
 def test_indexing_setitem_scalar(np_array, idx):
     np_array = np_array.copy()
@@ -313,4 +315,15 @@ def test_more_slicing(np_array, idx):
     np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
     arr[idx] = -1
     np_array[idx] = -1
+    np.testing.assert_equal(arr.unwrap_numpy(), np_array)
+
+
+def test_assign_to_zero_dim():
+    np_array = np.array([])
+    arr = asarray(np_array)
+
+    idx = ...
+    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+    arr[idx] = asarray(np_array)
+    np_array[idx] = np_array.copy()
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)
