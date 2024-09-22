@@ -159,7 +159,8 @@ class Array:
     ##################################################################
 
     def __abs__(self: Array, /) -> Array:
-        raise NotImplementedError
+        data = self._data.__abs__()
+        return Array._from_data(data)
 
     def __add__(self: Array, rhs: int | float | Array, /) -> Array:
         return _apply_op(self, rhs, std_ops.add)
@@ -182,13 +183,13 @@ class Array:
         return _apply_op(self, other, std_ops.eq)
 
     def __floordiv__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.floordiv)
 
     def __ge__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.ge)
 
     def __gt__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.gt)
 
     def __invert__(self: Array, /) -> Array:
         raise NotImplementedError

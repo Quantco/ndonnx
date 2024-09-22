@@ -181,6 +181,12 @@ class TyArrayNumber(TyArray):
     def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.add, op.add, False)
 
+    def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.ge, op.greater_or_equal, False)
+
+    def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.gt, op.greater, False)
+
     def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.truediv, op.div, True)
 

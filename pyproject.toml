@@ -53,6 +53,7 @@ ignore = [
     "N806",  # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
     "E501",  # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
     "UP038", # https://github.com/astral-sh/ruff/issues/7871
+    "N807",  # Free functions may start/end with dunders __array_namespace_info__
     "UP007",
 ]
 select = [

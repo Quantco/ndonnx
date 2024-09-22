@@ -67,6 +67,18 @@ class _ArrayPyScalar(TyArrayBase):
     def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.add, False)
 
+    def __le__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.le, False)
+
+    def __lt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.lt, False)
+
+    def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.ge, False)
+
+    def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.gt, False)
+
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.mul, True)
 

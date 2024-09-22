@@ -8,6 +8,10 @@ Each function directly dispatches to the inner typed array.
 from .array import Array
 
 
+def abs(array: Array, /) -> Array:
+    return Array._from_data(array._data.__abs__())
+
+
 def acos(array: Array, /) -> Array:
     return Array._from_data(array._data.acos())
 

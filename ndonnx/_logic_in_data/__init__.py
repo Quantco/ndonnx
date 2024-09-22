@@ -34,14 +34,16 @@ from .funcs import (
     where,
 )
 from .elementwise import (
+    abs,
     isfinite,
     isnan,
 )
 from .binary_functions import add, equal, maximum
 from .infos import finfo, iinfo
-
+from .namespace_info import __array_namespace_info__
 
 __all__ = [
+    "__array_namespace_info__",
     "Array",
     "int8",
     "int16",
@@ -56,6 +58,7 @@ __all__ = [
     "float64",
     "bool",
     "DType",
+    "abs",
     "all",
     "arange",
     "asarray",

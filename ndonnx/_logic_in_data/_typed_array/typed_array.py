@@ -160,6 +160,9 @@ class TyArrayBase(ABC):
         raise ValueError(f"'log2' is not implemented for {self.dtype}")
 
     # Dunder-functions
+    def __abs__(self) -> TyArrayBase:
+        raise ValueError(f"'__abs__' is not implemented for {self.dtype}")
+
     def __add__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 
@@ -186,6 +189,12 @@ class TyArrayBase(ABC):
         https://docs.python.org/3/reference/datamodel.html#object.__eq__
         """
         ...
+
+    def __ge__(self, other: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __gt__(self, other: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
 
     def __invert__(self) -> TyArrayBase:
         return NotImplemented
