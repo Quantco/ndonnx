@@ -67,3 +67,14 @@ def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
             f"Unsupported operand data types for 'max': `{x1.dtype}` and `{x2.dtype}`"
         )
     return res
+
+
+def sum(
+    x: TyArrayBase,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    dtype: DType | None = None,
+    keepdims: bool = False,
+) -> TyArrayBase:
+    return x.sum(axis=axis, dtype=dtype, keepdims=keepdims)

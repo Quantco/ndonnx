@@ -5,15 +5,15 @@ from types import EllipsisType
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from .core import TyArrayInteger
+    from .core import TyArrayBool, TyArrayInteger
 
 
 GetitemIndexStatic = Union[
     int | slice | EllipsisType | None, tuple[int | slice | EllipsisType | None, ...]
 ]
-GetitemIndex = Union[GetitemIndexStatic, "TyArrayInteger"]
+GetitemIndex = Union[GetitemIndexStatic, "TyArrayInteger", "TyArrayBool"]
 
 SetitemIndexStatic = Union[
     int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...]
 ]
-SetitemIndex = Union[SetitemIndexStatic, "TyArrayInteger"]
+SetitemIndex = Union[SetitemIndexStatic, "TyArrayInteger", "TyArrayBool"]

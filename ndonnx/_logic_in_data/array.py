@@ -107,13 +107,21 @@ class Array:
         return self._data.unwrap_numpy()
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
-        from ._typed_array.core import TyArrayInteger
+        from ._typed_array.core import TyArrayBool, TyArrayInteger
         from ._typed_array.indexing import GetitemIndexStatic
 
         if isinstance(key, Array):
-            if not isinstance(key._data, TyArrayInteger):
-                raise TypeError("indexing array must have int64 data type")
-            idx: GetitemIndexStatic | TyArrayInteger = key._data
+            if key.ndim > self.ndim:
+                raise IndexError(
+                    "Rank of 'key' must be less or equal to rank of 'self'"
+                )
+            elif not all(ks in (xs, 0) for xs, ks in zip(self.shape, key.shape)):
+                raise IndexError("Shape of 'key' is incompatible with shape of 'self'")
+            if not isinstance(key._data, TyArrayInteger | TyArrayBool):
+                raise TypeError(
+                    f"indexing array must have integer or boolean data type; found `{key.dtype}`"
+                )
+            idx: GetitemIndexStatic | TyArrayInteger | TyArrayBool = key._data
         else:
             idx = key
         data = self._data[idx]
@@ -125,15 +133,15 @@ class Array:
         value: Union[int, float, bool, Array],
         /,
     ) -> None:
-        from ._typed_array.core import TyArrayInteger
+        from ._typed_array.core import TyArrayBool, TyArrayInteger
         from ._typed_array.indexing import SetitemIndexStatic
 
         if isinstance(key, Array):
-            if not isinstance(key._data, TyArrayInteger):
+            if not isinstance(key._data, TyArrayInteger | TyArrayBool):
                 raise TypeError(
-                    "indexing array must have integer data type; found `{key.dtype}`"
+                    f"indexing array must have integer or boolean data type; found `{key.dtype}`"
                 )
-            idx: SetitemIndexStatic | TyArrayInteger = key._data
+            idx: SetitemIndexStatic | TyArrayInteger | TyArrayBool = key._data
         else:
             idx = key
 

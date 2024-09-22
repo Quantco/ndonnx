@@ -40,6 +40,12 @@ def arange(
     return asarray(np.arange(start, stop, step), dtype=dtype)
 
 
+def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Array:
+    if not copy and x.dtype == dtype:
+        return x
+    return x.astype(dtype)
+
+
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
     from ._typed_array.core import TyArrayInt64
 
@@ -150,6 +156,19 @@ def reshape(x: Array, /, shape: tuple[int, ...], *, copy: bool | None = None) ->
     if copy is not None:
         raise ValueError("'copy' semantics are not implemented, yet")
     return Array._from_data(x._data.reshape(shape))
+
+
+def sum(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    dtype: DType | None = None,
+    keepdims: bool = False,
+) -> Array:
+    from ._typed_array.funcs import sum
+
+    return Array._from_data(sum(x._data))
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:

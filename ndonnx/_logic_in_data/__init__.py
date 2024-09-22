@@ -18,6 +18,7 @@ from .dtypes import (
     DType,
 )
 from .funcs import (
+    astype,
     arange,
     empty,
     empty_like,
@@ -32,6 +33,7 @@ from .funcs import (
     zeros_like,
     linspace,
     where,
+    sum,
 )
 from .elementwise import (
     abs,
@@ -62,6 +64,7 @@ __all__ = [
     "all",
     "arange",
     "asarray",
+    "astype",
     "empty",
     "empty_like",
     "equal",
@@ -83,4 +86,5 @@ __all__ = [
     "add",
     "equal",
     "maximum",
+    "sum",
 ]

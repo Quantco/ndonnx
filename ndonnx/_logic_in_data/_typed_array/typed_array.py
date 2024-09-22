@@ -108,9 +108,23 @@ class TyArrayBase(ABC):
         # TODO: Make abstract
         raise NotImplementedError
 
-    # Aggregating functions
-    def all(self) -> TyArrayBase:
+    #############################################################################
+    # Element-wise member functions that reflect free functions of the standard #
+    #############################################################################
+    def all(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayBase:
         raise ValueError(f"'all' is not implemented for `{self.dtype}`")
+
+    def sum(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase:
+        raise ValueError(f"'sum' is not implemented for `{self.dtype}`")
 
     # Element-wise functions without additional arguments
 

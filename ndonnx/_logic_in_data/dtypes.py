@@ -44,6 +44,7 @@ class DType(ABC, Generic[TY_ARRAY]):
 
     @abstractmethod
     def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY:
+        # TODO: Find a better name and add a docstring
         # replaces `TyArrayBase.from_typed_array`
         ...
 

@@ -51,6 +51,8 @@ class TyArray(TyArrayBase):
             key_: GetitemIndexStatic | _CoreArray = _as_old_corarray(
                 key.astype(dtypes.int64)
             )
+        elif isinstance(key, TyArrayBool):
+            key_ = _as_old_corarray(key)
         else:
             key_ = key
 
@@ -69,8 +71,8 @@ class TyArray(TyArrayBase):
             key_: SetitemIndexStatic | _CoreArray = _as_old_corarray(
                 key.astype(dtypes.int64)
             )
-        elif isinstance(key, TyArrayInteger):
-            key_ = _as_old_corarray(key.as_core_dtype(dtypes.int64))
+        elif isinstance(key, TyArrayBool):
+            key_ = _as_old_corarray(key)
         else:
             key_ = key
         ca[key_] = _as_old_corarray(value)
@@ -174,6 +176,40 @@ class TyArray(TyArrayBase):
 
 class TyArrayNumber(TyArray):
     dtype: dtypes.CoreNumericDTypes
+
+    def sum(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase:
+        if dtype is not None and not isinstance(dtype, dtypes.CoreNumericDTypes):
+            return self.astype(dtype).sum(axis=axis, dtype=dtype, keepdims=keepdims)
+        elif dtype is None and isinstance(self, TyArrayInteger):
+            # Input is signed
+            if self.dtype in (dtypes.int8, dtypes.int16, dtypes.int32, dtypes.int64):
+                dtype_: dtypes.CoreNumericDTypes = dtypes.int64
+            else:
+                dtype_ = dtypes.uint64
+        elif dtype is None:
+            dtype_ = self.dtype
+        else:
+            dtype_ = dtype
+        if axis is None:
+            axis_ = None
+        elif isinstance(axis, int):
+            axis_ = op.const([axis], dtype=np.int64)
+        else:
+            axis_ = op.const(axis, dtype=np.int64)
+        var = op.reduce_sum(
+            self.astype(dtype_).var,
+            axis_,
+            keepdims=keepdims,
+            noop_with_empty_axes=axis is not None,
+        )
+        return ascoredata(var)
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, op.add, True)
