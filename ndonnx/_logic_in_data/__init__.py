@@ -37,7 +37,7 @@ from .elementwise import (
     isfinite,
     isnan,
 )
-from .binary_functions import add, equal
+from .binary_functions import add, equal, maximum
 from .infos import finfo, iinfo
 
 
@@ -79,4 +79,5 @@ __all__ = [
     "zeros_like",
     "add",
     "equal",
+    "maximum",
 ]

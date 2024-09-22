@@ -18,12 +18,12 @@ def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBas
     if not isinstance(cond, TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 
-    ret = x._where(cond, y)
+    ret = x.__ndx_where__(cond, y)
     if ret is NotImplemented:
-        ret = y._rwhere(cond, x)
+        ret = y.__ndx_rwhere__(cond, x)
         if ret is NotImplemented:
             raise TypeError(
-                f"Unsuppoerted operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
+                f"Unsupported operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
             )
     return ret
 
@@ -56,3 +56,14 @@ def astypedarray(
     if dtype is not None:
         return arr.astype(dtype)
     return arr
+
+
+def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
+    res = x1.__ndx_maximum__(x2)
+    if res is NotImplemented:
+        res = x2.__ndx_rmaximum__(x1)
+    if res is NotImplemented:
+        raise TypeError(
+            f"Unsupported operand data types for 'max': `{x1.dtype}` and `{x2.dtype}`"
+        )
+    return res

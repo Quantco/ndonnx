@@ -58,7 +58,14 @@ class TyArrayBase(ABC):
     def ndim(self) -> int:
         return len(self.shape)
 
-    def to_numpy(self) -> np.ndarray:
+    def unwrap_numpy(self) -> np.ndarray:
+        """Converter 'self' into a NumPy array.
+
+        The conversion requires 'self' to be a constant that can be represented by a
+        NumPy data type.
+
+        Otherwise, a 'ValueError' is raised
+        """
         raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
 
     @abstractmethod
@@ -152,17 +159,6 @@ class TyArrayBase(ABC):
     def log2(self) -> Self:
         raise ValueError(f"'log2' is not implemented for {self.dtype}")
 
-    # Multi-input functions
-    def _where(
-        self, cond: TyArrayBool, y: TyArrayBase
-    ) -> TyArrayBase | NotImplementedType:
-        return NotImplemented
-
-    def _rwhere(
-        self, cond: TyArrayBool, y: TyArrayBase
-    ) -> TyArrayBase | NotImplementedType:
-        return NotImplemented
-
     # Dunder-functions
     def __add__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented
@@ -204,4 +200,27 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __sub__(self, other: TyArrayBase) -> TyArrayBase:
+        return NotImplemented
+
+    # Functions which may return `NotImplemented`
+    # Note: Prefixed with `__ndx_` to avoid naming collisions with
+    # possible future Python dunder methods
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_rwhere__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_maximum__(
+        self, other: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_rmaximum__(
+        self, other: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
         return NotImplemented

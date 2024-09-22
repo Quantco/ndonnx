@@ -92,7 +92,7 @@ class TyArray(TyArrayBase):
         var = op.shape(self.var)
         return TyArrayInt64(var)
 
-    def to_numpy(self) -> np.ndarray:
+    def unwrap_numpy(self) -> np.ndarray:
         if self.var._value is not None:
             np_arr = np.asarray(self.var._value.value)
             if np_arr.dtype != dtypes.as_numpy(self.dtype):
@@ -153,13 +153,21 @@ class TyArray(TyArrayBase):
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, op.equal, True)
 
-    def _where(
-        self, cond: TyArrayBool, y: TyArrayBase
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(y, TyArray):
             x, y = promote(self, y)
             var = op.where(cond.var, x.var, y.var)
             return type(x)(var)
+
+        return NotImplemented
+
+    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(rhs, TyArray):
+            lhs, rhs = promote(self, rhs)
+            var = op.max([lhs.var, rhs.var])
+            return type(lhs)(var)
 
         return NotImplemented
 

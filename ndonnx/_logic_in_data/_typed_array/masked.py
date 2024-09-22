@@ -116,15 +116,15 @@ class TyMaArray(TyMaArrayBase):
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
 
-    def _where(
-        self, cond: TyArrayBool, y: TyArrayBase
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(y, TyArray):
-            return self._where(cond, asncoredata(y, None))
+            return self.__ndx_where__(cond, asncoredata(y, None))
         if isinstance(y, TyMaArray):
             x_ = unmask_core(self)
             y_ = unmask_core(y)
-            new_data = x_._where(cond, y_)
+            new_data = x_.__ndx_where__(cond, y_)
             if self.mask is not None and y.mask is not None:
                 new_mask = cond & self.mask | ~cond & y.mask
             elif self.mask is not None:
@@ -144,11 +144,28 @@ class TyMaArray(TyMaArrayBase):
 
         return NotImplemented
 
-    def _rwhere(
-        self, cond: TyArrayBool, x: TyArrayBase
+    def __ndx_rwhere__(
+        self, cond: TyArrayBool, x: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(x, TyArray):
-            return asncoredata(x, None)._where(cond, self)
+            return asncoredata(x, None).__ndx_where__(cond, self)
+        return NotImplemented
+
+    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(rhs, TyArray):
+            return self.__ndx_maximum__(asncoredata(rhs, None))
+        if isinstance(rhs, TyMaArray):
+            lhs_ = unmask_core(self)
+            rhs_ = unmask_core(rhs)
+            new_data = lhs_.__ndx_maximum__(rhs_)
+            new_mask = _merge_masks(self.mask, rhs.mask)
+            return asncoredata(new_data, new_mask)
+
+        return NotImplemented
+
+    def __ndx_rmaximum__(self, lhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(lhs, TyArray):
+            return asncoredata(lhs, None).__ndx_maximum__(self)
         return NotImplemented
 
     # Dunder implementations

@@ -104,7 +104,7 @@ class Array:
         ValueError:
             If no propagated value is available.
         """
-        return self._data.to_numpy()
+        return self._data.unwrap_numpy()
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         from ._typed_array.core import TyArrayInteger
@@ -140,8 +140,6 @@ class Array:
         # Specs say that the data type of self must not be changed.
         self._data[idx] = asarray(value, dtype=self.dtype)._data
 
-    # TODO: __bool__, __int__, __index__, and __int__ should probably be
-    # defined on the typed array
     def __bool__(self: Array, /) -> bool:
         return bool(self.unwrap_numpy())
 
@@ -250,7 +248,7 @@ class Array:
         raise NotImplementedError
 
     def __repr__(self) -> str:
-        # TODO: Visualize if we have a constant or something lazy for non-core types!
+        # TODO: Visualize if we have a constant or something lazy for non-core types
         val = None
         if isinstance(self.dtype, CoreDTypes):
             try:

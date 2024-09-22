@@ -5,7 +5,7 @@ import operator
 import numpy as np
 import pytest
 
-from ndonnx._logic_in_data import Array, dtypes, where
+from ndonnx._logic_in_data import Array, dtypes, maximum, where
 from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
 from ndonnx._logic_in_data.array import asarray
 from ndonnx._logic_in_data.build import build
@@ -327,3 +327,26 @@ def test_assign_to_zero_dim():
     arr[idx] = asarray(np_array)
     np_array[idx] = np_array.copy()
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)
+
+
+@pytest.mark.parametrize(
+    "np_dtype, ndx_dtype",
+    [
+        (np.dtype("int32"), dtypes.int32),
+        (np.dtype("datetime64[s]"), DateTime("s")),
+    ],
+)
+@pytest.mark.parametrize(
+    "np_array1, np_array2",
+    [
+        (np.array([1, 2]), np.array([3])),
+    ],
+)
+def test_min_max(ndx_dtype, np_dtype, np_array1, np_array2):
+    arr1 = asarray(np_array1).astype(ndx_dtype)
+    arr2 = asarray(np_array2).astype(ndx_dtype)
+
+    candidate = maximum(arr1, arr2).unwrap_numpy()
+    expectation = np.maximum(np_array1.astype(np_dtype), np_array2.astype(np_dtype))
+
+    np.testing.assert_array_equal(candidate, expectation)

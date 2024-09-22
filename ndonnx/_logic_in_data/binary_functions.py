@@ -7,6 +7,7 @@ typed arrays.
 """
 
 from .array import Array
+from .elementwise import atan
 
 
 def add(a: Array, b: Array) -> Array:
@@ -14,15 +15,16 @@ def add(a: Array, b: Array) -> Array:
 
 
 def atan2(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    # TODO: Consider special cases defined in standard
+    return atan(x1 / x2)
 
 
 def bitwise_and(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 & x2
 
 
 def bitwise_left_shift(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 << x2
 
 
 def bitwise_or(x1: Array, x2: Array, /) -> Array:
@@ -30,7 +32,7 @@ def bitwise_or(x1: Array, x2: Array, /) -> Array:
 
 
 def bitwise_right_shift(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return x1 >> x2
 
 
 def bitwise_xor(x1: Array, x2: Array, /) -> Array:
@@ -90,7 +92,10 @@ def logical_xor(x1: Array, x2: Array, /) -> Array:
 
 
 def maximum(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    from ._typed_array.funcs import maximum
+
+    data = maximum(x1._data, x2._data)
+    return Array._from_data(data)
 
 
 def minimum(x1: Array, x2: Array, /) -> Array:

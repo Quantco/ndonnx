@@ -226,9 +226,9 @@ class TyArrayDateTime(TimeBaseArray):
         self.data = data
         self.dtype = DateTime(unit)
 
-    def to_numpy(self) -> np.ndarray:
-        is_nat = self.is_nat.to_numpy()
-        data = self.data.to_numpy()
+    def unwrap_numpy(self) -> np.ndarray:
+        is_nat = self.is_nat.unwrap_numpy()
+        data = self.data.unwrap_numpy()
 
         out = data.astype(f"datetime64[{self.dtype.unit}]")
         out[is_nat] = np.array("NaT", "datetime64")
@@ -259,6 +259,15 @@ class TyArrayDateTime(TimeBaseArray):
 
             return data
         return NotImplemented
+
+    def __ndx_maximum__(self, rhs: TyArrayBase) -> TyArrayBase:
+        if not isinstance(rhs, TyArrayDateTime):
+            return NotImplemented
+        if self.dtype.unit != rhs.dtype.unit:
+            raise ValueError("inter-operation between time units is not implemented")
+        data = safe_cast(TyArrayInt64, self.data.__ndx_maximum__(rhs.data))
+        is_nat = safe_cast(TyArrayBool, self.is_nat | rhs.is_nat)
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
         if isinstance(rhs, _ArrayPyInt | TyArrayInt64):
