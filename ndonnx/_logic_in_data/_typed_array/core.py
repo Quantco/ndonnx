@@ -47,12 +47,12 @@ class TyArray(TyArrayBase):
             raise NotImplementedError
 
         ca = _as_old_corarray(self)
-        if isinstance(key, TyArrayInteger):
-            key_: GetitemIndexStatic | _CoreArray = _as_old_corarray(
-                key.astype(dtypes.int64)
-            )
-        elif isinstance(key, TyArrayBool):
-            key_ = _as_old_corarray(key)
+        if isinstance(key, TyArrayBool):
+            # Let's be defensive here: Bool arrays may become a
+            # subclass of int array
+            key_: GetitemIndexStatic | _CoreArray = _as_old_corarray(key)
+        elif isinstance(key, TyArrayInteger):
+            key_ = _as_old_corarray(key.astype(dtypes.int64))
         else:
             key_ = key
 
@@ -66,13 +66,9 @@ class TyArray(TyArrayBase):
     ) -> None:
         ca = _as_old_corarray(self)
         if isinstance(key, TyArrayBool):
-            raise NotImplementedError
-        if isinstance(key, TyArrayInteger):
-            key_: SetitemIndexStatic | _CoreArray = _as_old_corarray(
-                key.astype(dtypes.int64)
-            )
-        elif isinstance(key, TyArrayBool):
-            key_ = _as_old_corarray(key)
+            key_: SetitemIndexStatic | _CoreArray = _as_old_corarray(key)
+        elif isinstance(key, TyArrayInteger):
+            key_ = _as_old_corarray(key.astype(dtypes.int64))
         else:
             key_ = key
         ca[key_] = _as_old_corarray(value)
