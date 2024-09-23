@@ -288,7 +288,7 @@ T = TypeVar("T", bound=TyArray)
 
 
 def _element_wise(
-    x: T, op: Callable[[Var], Var], via: dtypes._CoreDType | None = None
+    x: T, op: Callable[[Var], Var], via: dtypes._OnnxDType | None = None
 ) -> T:
     """Apply an element wise operations possible with an onnxruntime workaround ``via``
     a different data type.
@@ -347,9 +347,9 @@ class TyArrayFloating(TyArrayNumber):
         return _element_wise(self, op.log, float64)
 
     def log2(self) -> Self:
-        from .py_scalars import _ArrayPyFloat
+        from .py_scalars import TyArrayPyFloat
 
-        res = self.log() / _ArrayPyFloat(float(np.log(2)))
+        res = self.log() / TyArrayPyFloat(float(np.log(2)))
         return safe_cast(type(self), res)
 
     # TODO: remaining element-wise functions

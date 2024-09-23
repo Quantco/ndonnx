@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from .typed_array import TyArrayBase
 
-from .core import (
+from .onnx import (
     ascoredata,
+    TyArray,
     TyArrayFloat16,
     TyArrayFloat32,
     TyArrayFloat64,
@@ -19,8 +20,10 @@ from .core import (
     TyArrayUint32,
     TyArrayUint64,
     TyArrayString,
+    TyArrayInteger,
 )
-from .masked import (
+from .masked_onnx import (
+    TyMaArray,
     TyMaArrayFloat16,
     TyMaArrayFloat32,
     TyMaArrayFloat64,
@@ -37,10 +40,11 @@ from .masked import (
     asncoredata,
 )
 
-from .py_scalars import _ArrayPyInt, _ArrayPyFloat, _ArrayPyString
+from .py_scalars import TyArrayPyInt, TyArrayPyFloat, TyArrayPyString
 
 
 __all__ = [
+    "TyArray",
     "TyArrayBase",
     "TyArrayBool",
     "TyArrayInt8",
@@ -55,6 +59,8 @@ __all__ = [
     "TyArrayFloat16",
     "TyArrayFloat32",
     "TyArrayFloat64",
+    "TyArrayInteger",
+    "TyMaArray",
     "TyMaArrayFloat16",
     "TyMaArrayFloat32",
     "TyMaArrayFloat64",
@@ -68,9 +74,9 @@ __all__ = [
     "TyMaArrayUint32",
     "TyMaArrayUint64",
     "TyMaArrayString",
-    "_ArrayPyInt",
-    "_ArrayPyFloat",
-    "_ArrayPyString",
+    "TyArrayPyInt",
+    "TyArrayPyFloat",
+    "TyArrayPyString",
     "asncoredata",
     "ascoredata",
 ]

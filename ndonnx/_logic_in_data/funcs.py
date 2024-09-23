@@ -47,7 +47,7 @@ def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Arra
 
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
-    from ._typed_array.core import TyArrayInt64
+    from ._typed_array import TyArrayInt64
 
     if isinstance(shape, Array):
         if not isinstance(shape._data, TyArrayInt64):

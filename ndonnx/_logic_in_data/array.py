@@ -108,7 +108,7 @@ class Array:
         return self._data.unwrap_numpy()
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
-        from ._typed_array.core import TyArrayBool, TyArrayInteger
+        from ._typed_array import TyArrayBool, TyArrayInteger
         from ._typed_array.indexing import GetitemIndexStatic
 
         if isinstance(key, Array):
@@ -134,7 +134,7 @@ class Array:
         value: Union[int, float, bool, Array],
         /,
     ) -> None:
-        from ._typed_array.core import TyArrayBool, TyArrayInteger
+        from ._typed_array import TyArrayBool, TyArrayInteger
         from ._typed_array.indexing import SetitemIndexStatic
 
         if isinstance(key, Array):

@@ -6,13 +6,13 @@ import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
 from ..dtypes import DType, default_float, default_int, string
-from .core import ascoredata
-from .py_scalars import _ArrayPyFloat, _ArrayPyInt, _ArrayPyString
+from .onnx import ascoredata
+from .py_scalars import TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase
 
 
 def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
-    from .core import TyArrayBool
+    from . import TyArrayBool
 
     # TODO: Masked condition
     if not isinstance(cond, TyArrayBool):
@@ -39,13 +39,13 @@ def astypedarray(
 
     arr: TyArrayBase
     if isinstance(val, int):
-        arr = _ArrayPyInt(val)
+        arr = TyArrayPyInt(val)
         arr = arr if use_py_scalars else arr.astype(default_int)
     elif isinstance(val, float):
-        arr = _ArrayPyFloat(val)
+        arr = TyArrayPyFloat(val)
         arr = arr if use_py_scalars else arr.astype(default_float)
     elif isinstance(val, str):
-        arr = _ArrayPyString(val)
+        arr = TyArrayPyString(val)
         arr = arr if use_py_scalars else arr.astype(string)
     elif isinstance(val, Var):
         arr = ascoredata(val)

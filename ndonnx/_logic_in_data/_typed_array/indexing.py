@@ -5,7 +5,7 @@ from types import EllipsisType
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from .core import TyArrayBool, TyArrayInteger
+    from . import TyArrayBool, TyArrayInteger
 
 
 GetitemIndexStatic = Union[

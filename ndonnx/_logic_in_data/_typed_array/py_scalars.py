@@ -13,15 +13,14 @@ from typing_extensions import Self
 
 from .. import dtypes
 from ..dtypes import DType
-from .core import TyArray, TyArrayInteger
-from .masked import TyMaArray
+from . import TyArray, TyArrayInteger, TyMaArray
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, Schema
-    from .core import TyArrayBool, TyArrayInt64
+    from . import TyArrayBool, TyArrayInt64
 
 
 class _ArrayPyScalar(TyArrayBase):
@@ -32,7 +31,7 @@ class _ArrayPyScalar(TyArrayBase):
     array, though. Thus, this implementation may serve as a blue print for custom types.
     """
 
-    dtype: dtypes._PyFloat | dtypes._PyInt | dtypes._PyString
+    dtype: dtypes.PyFloat | dtypes.PyInteger | dtypes.PyString
     value: int | float | str
 
     def __getitem__(self, index) -> Self:
@@ -65,7 +64,7 @@ class _ArrayPyScalar(TyArrayBase):
         raise NotImplementedError
 
     def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
-        from .masked import asncoredata
+        from . import asncoredata
 
         # We implement this class under the assumption that the other
         # built-in typed arrays do not know about it. Thus, we define
@@ -114,8 +113,8 @@ class _ArrayPyScalarNumber(_ArrayPyScalar):
         return _promote_and_apply_op(self, lhs, operator.sub, False)
 
 
-class _ArrayPyInt(_ArrayPyScalarNumber):
-    dtype = dtypes._pyint
+class TyArrayPyInt(_ArrayPyScalarNumber):
+    dtype = dtypes.pyint
 
     def __init__(self, value: int):
         # int is subclass of bool
@@ -129,8 +128,8 @@ class _ArrayPyInt(_ArrayPyScalarNumber):
         return NotImplemented
 
 
-class _ArrayPyFloat(_ArrayPyScalarNumber):
-    dtype = dtypes._pyfloat
+class TyArrayPyFloat(_ArrayPyScalarNumber):
+    dtype = dtypes.pyfloat
 
     def __init__(self, value: float):
         if not isinstance(value, float):
@@ -138,8 +137,8 @@ class _ArrayPyFloat(_ArrayPyScalarNumber):
         self.value = value
 
 
-class _ArrayPyString(_ArrayPyScalar):
-    dtype = dtypes._pystring
+class TyArrayPyString(_ArrayPyScalar):
+    dtype = dtypes.pystring
 
     def __init__(self, value: str):
         if not isinstance(value, str):

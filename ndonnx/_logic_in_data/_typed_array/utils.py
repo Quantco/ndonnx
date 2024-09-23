@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, TypeVar, overload
 
 if TYPE_CHECKING:
     from ..dtypes import DType
-    from .core import TyArray
-    from .masked import TyMaArray
+    from . import TyArray, TyMaArray
     from .py_scalars import _ArrayPyScalar
     from .typed_array import TyArrayBase
 

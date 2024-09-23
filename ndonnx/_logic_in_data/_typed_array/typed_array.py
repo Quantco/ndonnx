@@ -18,7 +18,7 @@ from ..dtypes import (
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, Schema
-    from .core import TyArray, TyArrayBool, TyArrayInt64
+    from . import TyArray, TyArrayBool, TyArrayInt64
     from .indexing import GetitemIndex, SetitemIndex
 
 
@@ -76,7 +76,7 @@ class TyArrayBase(ABC):
     def astype(self, dtype: dtypes.CoreDTypes) -> TyArray: ...
 
     @overload
-    def astype(self, dtype: dtypes._CoreDType) -> TyArray: ...
+    def astype(self, dtype: dtypes._OnnxDType) -> TyArray: ...
 
     @overload
     def astype(self, dtype: DType) -> TyArrayBase: ...

@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 import numpy as np
 
-from ..dtypes import CoreIntegerDTypes, DType, _PyInt, bool_, int64
+from ..dtypes import CoreIntegerDTypes, DType, PyInteger, bool_, int64
 from ..schema import DTypeInfo, flatten_components
-from .core import TyArrayBool, TyArrayInt64, TyArrayInteger
 from .funcs import astypedarray, typed_where
-from .py_scalars import _ArrayPyInt
+from .onnx import TyArrayBool, TyArrayInt64, TyArrayInteger
+from .py_scalars import TyArrayPyInt
 from .typed_array import TyArrayBase
 from .utils import safe_cast
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 Unit = Literal["ns", "s"]
 
-_NAT_SENTINEL = _ArrayPyInt(np.iinfo(np.int64).min)
+_NAT_SENTINEL = TyArrayPyInt(np.iinfo(np.int64).min)
 
 
 class BaseTimeDType(DType):
@@ -41,7 +41,7 @@ class BaseTimeDType(DType):
         self.unit = unit
 
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, _PyInt):
+        if isinstance(other, PyInteger):
             return self
         return NotImplemented
 
@@ -75,7 +75,7 @@ class DateTime(BaseTimeDType):
         if isinstance(arr, TyArrayInteger):
             data = safe_cast(TyArrayInt64, arr.astype(int64))
             is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
-        elif isinstance(arr, _ArrayPyInt):
+        elif isinstance(arr, TyArrayPyInt):
             data = safe_cast(TyArrayInt64, arr.astype(int64))
             is_nat = safe_cast(TyArrayBool, data == _NAT_SENTINEL)
         else:
@@ -270,7 +270,7 @@ class TyArrayDateTime(TimeBaseArray):
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
-        if isinstance(rhs, _ArrayPyInt | TyArrayInt64):
+        if isinstance(rhs, TyArrayPyInt | TyArrayInt64):
             rhs_data = rhs
         elif isinstance(rhs, TyArrayTimeDelta):
             if self.dtype.unit != rhs.dtype.unit:
@@ -289,7 +289,7 @@ class TyArrayDateTime(TimeBaseArray):
 
     def _sub(self, other, forward: bool):
         op = operator.sub
-        if isinstance(other, _ArrayPyInt):
+        if isinstance(other, TyArrayPyInt):
             data_ = op(self.data, other) if forward else op(other, self.data)
             data = safe_cast(TyArrayInt64, data_)
             return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
@@ -316,7 +316,7 @@ def _apply_op(
     op: Callable[[Any, Any], Any],
     forward: bool,
 ):
-    if isinstance(other, _ArrayPyInt | TyArrayInt64):
+    if isinstance(other, TyArrayPyInt | TyArrayInt64):
         other_data = other
     elif isinstance(other, TyArrayTimeDelta):
         if this.dtype.unit != other.dtype.unit:

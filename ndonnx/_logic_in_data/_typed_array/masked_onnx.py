@@ -14,7 +14,7 @@ from typing_extensions import Self
 from .. import dtypes
 from ..dtypes import CoreDTypes, DType, NCoreDTypes
 from ..schema import Schema, flatten_components
-from .core import TyArray, TyArrayBool, TyArrayInt64
+from . import TyArray, TyArrayBool, TyArrayInt64
 from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
@@ -286,37 +286,37 @@ def _merge_masks(a: TyArrayBool | None, b: TyArrayBool | None) -> TyArrayBool | 
 
 
 def asncoredata(core_array: TyArrayBase, mask: TyArrayBool | None) -> TyMaArray:
-    from . import core
+    from . import onnx
 
-    if isinstance(core_array, core.TyArrayInt8):
+    if isinstance(core_array, onnx.TyArrayInt8):
         return TyMaArrayInt8(core_array, mask)
-    if isinstance(core_array, core.TyArrayInt16):
+    if isinstance(core_array, onnx.TyArrayInt16):
         return TyMaArrayInt16(core_array, mask)
-    if isinstance(core_array, core.TyArrayInt32):
+    if isinstance(core_array, onnx.TyArrayInt32):
         return TyMaArrayInt32(core_array, mask)
-    if isinstance(core_array, core.TyArrayInt64):
+    if isinstance(core_array, onnx.TyArrayInt64):
         return TyMaArrayInt64(core_array, mask)
 
-    if isinstance(core_array, core.TyArrayUint8):
+    if isinstance(core_array, onnx.TyArrayUint8):
         return TyMaArrayUint8(core_array, mask)
-    if isinstance(core_array, core.TyArrayUint16):
+    if isinstance(core_array, onnx.TyArrayUint16):
         return TyMaArrayUint16(core_array, mask)
-    if isinstance(core_array, core.TyArrayUint32):
+    if isinstance(core_array, onnx.TyArrayUint32):
         return TyMaArrayUint32(core_array, mask)
-    if isinstance(core_array, core.TyArrayUint64):
+    if isinstance(core_array, onnx.TyArrayUint64):
         return TyMaArrayUint64(core_array, mask)
 
-    if isinstance(core_array, core.TyArrayFloat16):
+    if isinstance(core_array, onnx.TyArrayFloat16):
         return TyMaArrayFloat16(core_array, mask)
-    if isinstance(core_array, core.TyArrayFloat32):
+    if isinstance(core_array, onnx.TyArrayFloat32):
         return TyMaArrayFloat32(core_array, mask)
-    if isinstance(core_array, core.TyArrayFloat64):
+    if isinstance(core_array, onnx.TyArrayFloat64):
         return TyMaArrayFloat64(core_array, mask)
 
-    if isinstance(core_array, core.TyArrayBool):
+    if isinstance(core_array, onnx.TyArrayBool):
         return TyMaArrayBool(core_array, mask)
 
-    if isinstance(core_array, core.TyArrayString):
+    if isinstance(core_array, onnx.TyArrayString):
         return TyMaArrayString(core_array, mask)
 
     raise TypeError(f"expected '_ArrayCoreType' found `{type(core_array)}`")
