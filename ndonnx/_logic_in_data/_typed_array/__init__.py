@@ -6,9 +6,9 @@ from .typed_array import TyArrayBase
 
 from .core import (
     ascoredata,
-    Float16Data,
-    Float32Data,
-    Float64Data,
+    TyArrayFloat16,
+    TyArrayFloat32,
+    TyArrayFloat64,
     TyArrayBool,
     TyArrayInt8,
     TyArrayInt16,
@@ -42,9 +42,6 @@ from .py_scalars import _ArrayPyInt, _ArrayPyFloat, _ArrayPyString
 
 __all__ = [
     "TyArrayBase",
-    "Float16Data",
-    "Float32Data",
-    "Float64Data",
     "TyArrayBool",
     "TyArrayInt8",
     "TyArrayInt16",
@@ -55,6 +52,9 @@ __all__ = [
     "TyArrayUint32",
     "TyArrayUint64",
     "TyArrayString",
+    "TyArrayFloat16",
+    "TyArrayFloat32",
+    "TyArrayFloat64",
     "TyMaArrayFloat16",
     "TyMaArrayFloat32",
     "TyMaArrayFloat64",

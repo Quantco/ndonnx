@@ -242,26 +242,26 @@ class Uint64(_Number):
 
 class Float16(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Float16Data]:
-        from ._typed_array import Float16Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayFloat16]:
+        from ._typed_array import TyArrayFloat16
 
-        return Float16Data
+        return TyArrayFloat16
 
 
 class Float32(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Float32Data]:
-        from ._typed_array import Float32Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayFloat32]:
+        from ._typed_array import TyArrayFloat32
 
-        return Float32Data
+        return TyArrayFloat32
 
 
 class Float64(_Number):
     @property
-    def _tyarr_class(self) -> type[_typed_array.Float64Data]:
-        from ._typed_array import Float64Data
+    def _tyarr_class(self) -> type[_typed_array.TyArrayFloat64]:
+        from ._typed_array import TyArrayFloat64
 
-        return Float64Data
+        return TyArrayFloat64
 
 
 class _PyString(DType):

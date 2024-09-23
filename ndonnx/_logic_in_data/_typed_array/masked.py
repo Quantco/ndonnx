@@ -306,11 +306,11 @@ def asncoredata(core_array: TyArrayBase, mask: TyArrayBool | None) -> TyMaArray:
     if isinstance(core_array, core.TyArrayUint64):
         return TyMaArrayUint64(core_array, mask)
 
-    if isinstance(core_array, core.Float16Data):
+    if isinstance(core_array, core.TyArrayFloat16):
         return TyMaArrayFloat16(core_array, mask)
-    if isinstance(core_array, core.Float32Data):
+    if isinstance(core_array, core.TyArrayFloat32):
         return TyMaArrayFloat32(core_array, mask)
-    if isinstance(core_array, core.Float64Data):
+    if isinstance(core_array, core.TyArrayFloat64):
         return TyMaArrayFloat64(core_array, mask)
 
     if isinstance(core_array, core.TyArrayBool):

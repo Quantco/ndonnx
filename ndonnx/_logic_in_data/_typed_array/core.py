@@ -401,16 +401,15 @@ class TyArrayUint64(TyArrayInteger):
     dtype = dtypes.uint64
 
 
-# TODO: Rename
-class Float16Data(TyArrayFloating):
+class TyArrayFloat16(TyArrayFloating):
     dtype = dtypes.float16
 
 
-class Float32Data(TyArrayFloating):
+class TyArrayFloat32(TyArrayFloating):
     dtype = dtypes.float32
 
 
-class Float64Data(TyArrayFloating):
+class TyArrayFloat64(TyArrayFloating):
     dtype = dtypes.float64
 
 
