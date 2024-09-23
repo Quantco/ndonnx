@@ -9,6 +9,8 @@ from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, TypeGuard, TypeVar
 
 import numpy as np
+import spox
+import spox._future
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 from typing_extensions import Self
@@ -266,8 +268,19 @@ T = TypeVar("T", bound=TyArray)
 def _element_wise(
     x: T, op: Callable[[Var], Var], via: dtypes._CoreDType | None = None
 ) -> T:
-    if via is not None:
-        return safe_cast(type(x), type(x)(op(x.astype(via).var)).astype(x.dtype))
+    """Apply an element wise operations possible with an onnxruntime workaround ``via``
+    a different data type.
+
+    The workaround is only applied if
+    ``spox._value_prop._VALUE_PROP_BACKEND==spox._future.ValuePropBackend.ONNXRUNTIME``.
+    """
+    target_ort = (
+        spox._value_prop._VALUE_PROP_BACKEND
+        == spox._future.ValuePropBackend.ONNXRUNTIME
+    )
+    if via is not None and target_ort:
+        res = ascoredata(op(x.astype(via).var))
+        return safe_cast(type(x), res.astype(x.dtype))
     return type(x)(op(x.var))
 
 
@@ -302,11 +315,6 @@ class TyArrayFloating(TyArrayNumber):
     def exp(self) -> Self:
         return _element_wise(self, op.exp)
 
-    def expm1(self) -> Self:
-        from .py_scalars import _ArrayPyFloat
-
-        return safe_cast(type(self), self - _ArrayPyFloat(1.0)).exp()
-
     def floor(self) -> Self:
         return _element_wise(self, op.floor, float64)
 
@@ -315,12 +323,6 @@ class TyArrayFloating(TyArrayNumber):
 
     def log(self) -> Self:
         return _element_wise(self, op.log, float64)
-
-    def log1p(self) -> Self:
-        from .py_scalars import _ArrayPyFloat
-
-        x = safe_cast(type(self), self + _ArrayPyFloat(1.0))
-        return _element_wise(x, op.log, float64)
 
     def log2(self) -> Self:
         from .py_scalars import _ArrayPyFloat
