@@ -32,8 +32,8 @@ class _ArrayPyScalar(TyArrayBase):
     array, though. Thus, this implementation may serve as a blue print for custom types.
     """
 
-    dtype: dtypes._PyFloat | dtypes._PyInt
-    value: int | float
+    dtype: dtypes._PyFloat | dtypes._PyInt | dtypes._PyString
+    value: int | float | str
 
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
@@ -61,6 +61,28 @@ class _ArrayPyScalar(TyArrayBase):
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         raise ValueError("cannot broadcast Python scalar")
 
+    def where(self, cond: TyArrayBool, y: TyArrayBase) -> TyArrayBase:
+        raise NotImplementedError
+
+    def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
+        from .masked import asncoredata
+
+        # We implement this class under the assumption that the other
+        # built-in typed arrays do not know about it. Thus, we define
+        # the mapping from this class into those classes **here**.
+        if isinstance(dtype, dtypes.CoreDTypes):
+            np_arr = np.array(self.value, dtypes.as_numpy(dtype))
+            return dtype._tyarr_class(op.const(np_arr))
+        if isinstance(dtype, dtypes.NCoreDTypes):
+            unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
+            return asncoredata(unmasked_typed_arr, None)
+        return NotImplemented
+
+    def _eqcomp(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.eq, True)
+
+
+class _ArrayPyScalarNumber(_ArrayPyScalar):
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, True)
 
@@ -91,28 +113,8 @@ class _ArrayPyScalar(TyArrayBase):
     def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.sub, False)
 
-    def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
-        from .masked import asncoredata
 
-        # We implement this class under the assumption that the other
-        # built-in typed arrays do not know about it. Thus, we define
-        # the mapping from this class into those classes **here**.
-        if isinstance(dtype, dtypes.CoreNumericDTypes):
-            np_arr = np.array(self.value, dtypes.as_numpy(dtype))
-            return dtype._tyarr_class(op.const(np_arr))
-        if isinstance(dtype, dtypes.NCoreNumericDTypes):
-            unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
-            return asncoredata(unmasked_typed_arr, None)
-        return NotImplemented
-
-    def _eqcomp(self, other) -> TyArrayBase:
-        return _promote_and_apply_op(self, other, operator.eq, True)
-
-    def where(self, cond: TyArrayBool, y: TyArrayBase) -> TyArrayBase:
-        raise NotImplementedError
-
-
-class _ArrayPyInt(_ArrayPyScalar):
+class _ArrayPyInt(_ArrayPyScalarNumber):
     dtype = dtypes._pyint
 
     def __init__(self, value: int):
@@ -127,13 +129,28 @@ class _ArrayPyInt(_ArrayPyScalar):
         return NotImplemented
 
 
-class _ArrayPyFloat(_ArrayPyScalar):
+class _ArrayPyFloat(_ArrayPyScalarNumber):
     dtype = dtypes._pyfloat
 
     def __init__(self, value: float):
         if not isinstance(value, float):
             raise TypeError(f"expected 'float' found `{type(value)}`")
         self.value = value
+
+
+class _ArrayPyString(_ArrayPyScalar):
+    dtype = dtypes._pystring
+
+    def __init__(self, value: str):
+        if not isinstance(value, str):
+            raise TypeError(f"expected 'str' found `{type(value)}`")
+        self.value = value
+
+    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.add, True)
+
+    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.add, False)
 
 
 def _promote_and_apply_op(
@@ -143,12 +160,9 @@ def _promote_and_apply_op(
     forward: bool,
 ) -> TyArray | TyMaArray | NotImplementedType:
     if isinstance(other, TyArray | TyMaArray):
-        try:
-            this_, other = promote(this, other)
-        except Exception:
-            breakpoint()
-        # I am not sure how to annotate `safe_cast` such that it can handle union types.
+        this_, other = promote(this, other)
         res = arr_op(this_, other) if forward else arr_op(other, this_)
+        # I am not sure how to annotate `safe_cast` such that it can handle union types.
         return safe_cast(TyArray | TyMaArray, res)  # type: ignore
 
     # We only know about the other (nullable) built-in types &

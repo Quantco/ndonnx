@@ -5,7 +5,7 @@ import operator
 import numpy as np
 import pytest
 
-from ndonnx._logic_in_data import Array, dtypes, maximum, where
+from ndonnx._logic_in_data import Array, dtypes, maximum, reshape, where
 from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
 from ndonnx._logic_in_data.array import asarray
 from ndonnx._logic_in_data.build import build
@@ -350,3 +350,19 @@ def test_min_max(ndx_dtype, np_dtype, np_array1, np_array2):
     expectation = np.maximum(np_array1.astype(np_dtype), np_array2.astype(np_dtype))
 
     np.testing.assert_array_equal(candidate, expectation)
+
+
+@pytest.mark.parametrize("value", ["foo", np.array("foo"), np.array(["foo"])])
+@pytest.mark.parametrize("string_dtype", [dtypes.string, dtypes.nstring])
+def test_string_arrays(value, string_dtype):
+    arr = asarray(value).astype(string_dtype)
+
+    assert "foobar" == (arr + "bar").unwrap_numpy()
+    assert "barfoo" == ("bar" + arr).unwrap_numpy()
+
+    arr2 = reshape(arr, (1,))
+    if string_dtype == dtypes.string:
+        assert arr2[0] == arr
+    else:
+        # TODO: Properly implement eq for masked arrays
+        assert arr2._data[0].data == arr._data.data  # type: ignore

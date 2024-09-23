@@ -69,6 +69,8 @@ class DType(ABC, Generic[TY_ARRAY]):
 
 
 class _CoreDType(DType[TY_ARRAY_CORE]):
+    """Data types with a direct representation in the ONNX standard."""
+
     @property
     @abstractmethod
     def _tyarr_class(self) -> type[TY_ARRAY_CORE]: ...
@@ -151,6 +153,18 @@ class _NNumber(_NCoreDType):
         return as_nullable(core_result)
 
 
+class String(_CoreDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.TyArrayString]:
+        from ._typed_array import TyArrayString
+
+        return TyArrayString
+
+
+# TODO: Should this be a subclass of _Number?
 class Bool(_CoreDType):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         return NotImplemented
@@ -250,6 +264,29 @@ class Float64(_Number):
         return Float64Data
 
 
+class _PyString(DType):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, String | NString):
+            return other
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array._ArrayPyString]:
+        from ._typed_array import _ArrayPyString
+
+        return _ArrayPyString
+
+    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
+        raise NotImplementedError
+
+    def _argument(self, shape: OnnxShape):
+        raise ValueError("'{type(self)}' cannot be used as a model argument")
+
+    @property
+    def _info(self) -> DTypeInfo:
+        raise ValueError("'_PyString' has not public schema information")
+
+
 class _PyInt(DType):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, CoreNumericDTypes | NCoreNumericDTypes):
@@ -321,9 +358,26 @@ uint16 = Uint16()
 uint32 = Uint32()
 uint64 = Uint64()
 
+string = String()
+
+
 # scalar singleton instances
 _pyint = _PyInt()
 _pyfloat = _PyFloat()
+_pystring = _PyString()
+
+
+class NString(_NCoreDType):
+    _unmasked_dtype = string
+
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[_typed_array.TyMaArrayString]:
+        from ._typed_array import TyMaArrayString
+
+        return TyMaArrayString
 
 
 class NBool(_NCoreDType):
@@ -466,6 +520,8 @@ nuint16 = NUint16()
 nuint32 = NUint32()
 nuint64 = NUint64()
 
+nstring = NString()
+
 # Union types
 #
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
@@ -476,7 +532,7 @@ CoreIntegerDTypes = Int8 | Int16 | Int32 | Int64 | Uint8 | Uint16 | Uint32 | Uin
 
 CoreNumericDTypes = CoreFloatingDTypes | CoreIntegerDTypes
 
-CoreDTypes = Bool | CoreNumericDTypes
+CoreDTypes = Bool | CoreNumericDTypes | String
 
 NCoreIntegerDTypes = (
     NInt8 | NInt16 | NInt32 | NInt64 | NUint8 | NUint16 | NUint32 | NUint64
@@ -485,7 +541,7 @@ NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
 
 NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 
-NCoreDTypes = NBool | NCoreNumericDTypes
+NCoreDTypes = NBool | NCoreNumericDTypes | NString
 
 
 # Promotion tables taken from:
@@ -595,6 +651,7 @@ _core_to_nullable_core: dict[CoreDTypes, NCoreDTypes] = {
     float16: nfloat16,
     float32: nfloat32,
     float64: nfloat64,
+    string: nstring,
 }
 
 
@@ -690,6 +747,9 @@ def from_numpy(np_dtype: np.dtype) -> CoreDTypes:
     if np_dtype == np.bool:
         return bool_
 
+    if np_dtype == np.dtypes.StringDType() or np_dtype.kind == "U":
+        return string
+
     raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")
 
 
@@ -721,6 +781,10 @@ def as_numpy(dtype: _CoreDType) -> np.dtype:
 
     if dtype == bool_:
         return np.dtype("bool")
+
+    if dtype == string:
+        # TODO: Migrate to numpy.StringDType
+        return np.dtype(str)
 
     # Should never happen
     raise ValueError(f"'{dtype}' does not have a corresponding NumPy data type")

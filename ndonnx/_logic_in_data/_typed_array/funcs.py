@@ -5,9 +5,9 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
-from ..dtypes import DType, default_float, default_int
+from ..dtypes import DType, default_float, default_int, string
 from .core import ascoredata
-from .py_scalars import _ArrayPyFloat, _ArrayPyInt
+from .py_scalars import _ArrayPyFloat, _ArrayPyInt, _ArrayPyString
 from .typed_array import TyArrayBase
 
 
@@ -29,7 +29,7 @@ def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBas
 
 
 def astypedarray(
-    val: int | float | np.ndarray | TyArrayBase | Var,
+    val: int | float | str | np.ndarray | TyArrayBase | Var,
     dtype: None | DType = None,
     use_py_scalars=False,
 ) -> TyArrayBase:
@@ -44,6 +44,9 @@ def astypedarray(
     elif isinstance(val, float):
         arr = _ArrayPyFloat(val)
         arr = arr if use_py_scalars else arr.astype(default_float)
+    elif isinstance(val, str):
+        arr = _ArrayPyString(val)
+        arr = arr if use_py_scalars else arr.astype(string)
     elif isinstance(val, Var):
         arr = ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):

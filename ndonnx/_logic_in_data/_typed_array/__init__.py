@@ -18,6 +18,7 @@ from .core import (
     TyArrayUint16,
     TyArrayUint32,
     TyArrayUint64,
+    TyArrayString,
 )
 from .masked import (
     TyMaArrayFloat16,
@@ -32,10 +33,11 @@ from .masked import (
     TyMaArrayUint16,
     TyMaArrayUint32,
     TyMaArrayUint64,
+    TyMaArrayString,
     asncoredata,
 )
 
-from .py_scalars import _ArrayPyInt, _ArrayPyFloat
+from .py_scalars import _ArrayPyInt, _ArrayPyFloat, _ArrayPyString
 
 
 __all__ = [
@@ -52,6 +54,7 @@ __all__ = [
     "TyArrayUint16",
     "TyArrayUint32",
     "TyArrayUint64",
+    "TyArrayString",
     "TyMaArrayFloat16",
     "TyMaArrayFloat32",
     "TyMaArrayFloat64",
@@ -64,8 +67,10 @@ __all__ = [
     "TyMaArrayUint16",
     "TyMaArrayUint32",
     "TyMaArrayUint64",
+    "TyMaArrayString",
     "_ArrayPyInt",
     "_ArrayPyFloat",
+    "_ArrayPyString",
     "asncoredata",
     "ascoredata",
 ]

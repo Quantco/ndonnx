@@ -8,6 +8,7 @@ from collections.abc import Callable
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar
 
+import numpy as np
 from typing_extensions import Self
 
 from .. import dtypes
@@ -99,6 +100,12 @@ class TyMaArray(TyMaArrayBase):
         mask = self.mask.broadcast_to(shape) if self.mask else None
         return type(self)(data=data, mask=mask)
 
+    def unwrap_numpy(self) -> np.ndarray:
+        return np.ma.MaskedArray(
+            data=self.data.unwrap_numpy(),
+            mask=None if self.mask is None else self.mask.unwrap_numpy(),
+        )
+
     def __getitem__(self, index: GetitemIndex) -> Self:
         new_data = self.data[index]
         new_mask = self.mask[index] if self.mask is not None else None
@@ -115,6 +122,9 @@ class TyMaArray(TyMaArrayBase):
             new_data = self.data.astype(dtype._unmasked_dtype)
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
+
+    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+        raise NotImplementedError()
 
     def __ndx_where__(
         self, cond: TyArrayBool, y: TyArrayBase, /
@@ -150,6 +160,20 @@ class TyMaArray(TyMaArrayBase):
         if isinstance(x, TyArray):
             return asncoredata(x, None).__ndx_where__(cond, self)
         return NotImplemented
+
+
+class TyMaArrayString(TyMaArray):
+    dtype = dtypes.nstring
+
+    def __add__(self, rhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, rhs, operator.add, True)
+
+    def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
+        return _apply_op(self, lhs, operator.add, False)
+
+
+class TyMaArrayNumber(TyMaArray):
+    dtype: dtypes.NCoreNumericDTypes
 
     def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
         if isinstance(rhs, TyArray):
@@ -191,14 +215,6 @@ class TyMaArray(TyMaArrayBase):
 
     def __rmul__(self, lhs: TyArrayBase) -> TyMaArray:
         return _apply_op(self, lhs, operator.mul, False)
-
-    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
-        raise NotImplementedError()
-        ...
-
-
-class TyMaArrayNumber(TyMaArray):
-    dtype: dtypes.NCoreNumericDTypes
 
 
 class TyMaArrayInteger(TyMaArrayNumber):
@@ -300,7 +316,10 @@ def asncoredata(core_array: TyArrayBase, mask: TyArrayBool | None) -> TyMaArray:
     if isinstance(core_array, core.TyArrayBool):
         return TyMaArrayBool(core_array, mask)
 
-    raise TypeError("expected '_ArrayCoreType' found `{type(core_array)}`")
+    if isinstance(core_array, core.TyArrayString):
+        return TyMaArrayString(core_array, mask)
+
+    raise TypeError(f"expected '_ArrayCoreType' found `{type(core_array)}`")
 
 
 def unmask_core(arr: TyArray | TyMaArray) -> TyArray:

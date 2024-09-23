@@ -171,10 +171,10 @@ class Array:
         data = self._data.__abs__()
         return Array._from_data(data)
 
-    def __add__(self: Array, rhs: int | float | Array, /) -> Array:
+    def __add__(self: Array, rhs: int | float | str | Array, /) -> Array:
         return _apply_op(self, rhs, std_ops.add)
 
-    def __radd__(self, lhs: int | float | Array, /) -> Array:
+    def __radd__(self, lhs: int | float | str | Array, /) -> Array:
         return _apply_op(lhs, self, std_ops.add)
 
     def __and__(self: Array, other: Union[int, bool, Array], /) -> Array:
@@ -283,6 +283,8 @@ def asarray(
         if copy:
             return Array._from_data(std_copy(obj._data))
         return obj
+    if isinstance(obj, bool | int | float):
+        obj = np.array(obj)
     data: TyArrayBase = ascoredata(op.const(obj))
     if dtype:
         data = data.astype(dtype)
@@ -290,7 +292,7 @@ def asarray(
 
 
 def _as_array(
-    val: int | float | Array | Var | np.ndarray, use_py_scalars=False
+    val: int | float | str | Array | Var | np.ndarray, use_py_scalars=False
 ) -> Array:
     if isinstance(val, Array):
         return val
@@ -301,22 +303,22 @@ def _as_array(
 @overload
 def _apply_op(
     lhs: Array,
-    rhs: int | float | Array,
+    rhs: int | float | str | Array,
     op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
 ) -> Array | NotImplementedType: ...
 
 
 @overload
 def _apply_op(
-    lhs: int | float | Array,
+    lhs: int | float | str | Array,
     rhs: Array,
     op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
 ) -> Array | NotImplementedType: ...
 
 
 def _apply_op(
-    lhs: int | float | Array,
-    rhs: int | float | Array,
+    lhs: int | float | str | Array,
+    rhs: int | float | str | Array,
     op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
 ) -> Array | NotImplementedType:
     lhs = _as_array(lhs, use_py_scalars=True)

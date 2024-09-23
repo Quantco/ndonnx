@@ -95,10 +95,22 @@ class TyArray(TyArrayBase):
     def unwrap_numpy(self) -> np.ndarray:
         if self.var._value is not None:
             np_arr = np.asarray(self.var._value.value)
-            if np_arr.dtype != dtypes.as_numpy(self.dtype):
-                # Should not happen
-                raise ValueError("unexpected value data type")
-            return np_arr
+            np_arr.astype(np.dtypes.StringDType)
+            if np_arr.dtype == dtypes.as_numpy(self.dtype):
+                return np_arr
+            if dtypes.as_numpy(self.dtype).kind == "U" and np_arr.dtype.kind in [
+                "U",
+                "O",
+            ]:
+                # String-case
+                # TODO: Where does the "object" kind come from?
+                # Probably spox; we should have a more predictable
+                # upstream string support.
+                return np_arr
+
+            # Should not happen
+            raise ValueError("unexpected value data type")
+
         raise ValueError("no propagated value available")
 
     def all(
@@ -170,6 +182,16 @@ class TyArray(TyArrayBase):
             return type(lhs)(var)
 
         return NotImplemented
+
+
+class TyArrayString(TyArray):
+    dtype = dtypes.string
+
+    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.add, op.string_concat, True)
+
+    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.add, op.string_concat, False)
 
 
 class TyArrayNumber(TyArray):
@@ -379,6 +401,7 @@ class TyArrayUint64(TyArrayInteger):
     dtype = dtypes.uint64
 
 
+# TODO: Rename
 class Float16Data(TyArrayFloating):
     dtype = dtypes.float16
 
