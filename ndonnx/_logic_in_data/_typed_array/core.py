@@ -253,6 +253,12 @@ class TyArrayInteger(TyArrayNumber):
         var = op.constant_of_shape(op.shape(self.var), value=np.array(False))
         return TyArrayBool(var)
 
+    def isinf(self) -> TyArrayBool:
+        from ..array import Array
+        from ..funcs import full_like
+
+        return safe_cast(TyArrayBool, full_like(Array._from_data(self), False)._data)
+
 
 T = TypeVar("T", bound=TyArray)
 
@@ -267,6 +273,9 @@ def _element_wise(
 
 class TyArrayFloating(TyArrayNumber):
     dtype: dtypes.CoreFloatingDTypes
+
+    def isinf(self) -> TyArrayBool:
+        return TyArrayBool(op.isinf(self.var))
 
     # Element-wise for floating point
     def acos(self) -> Self:

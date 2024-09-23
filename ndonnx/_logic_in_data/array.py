@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import operator as std_ops
 from collections.abc import Callable
+from copy import copy as std_copy
 from types import EllipsisType, NotImplementedType
 from typing import Any, Optional, Union, overload
 
@@ -200,16 +201,17 @@ class Array:
         return _apply_op(self, other, std_ops.gt)
 
     def __invert__(self: Array, /) -> Array:
-        raise NotImplementedError
+        data = self._data.__invert__()
+        return Array._from_data(data)
 
     def __le__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.le)
 
     def __lshift__(self: Array, other: Union[int, Array], /) -> Array:
         raise NotImplementedError
 
     def __lt__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.lt)
 
     def __matmul__(self: Array, other: Array, /) -> Array:
         raise NotImplementedError
@@ -224,7 +226,7 @@ class Array:
         return _apply_op(lhs, self, std_ops.mul)
 
     def __ne__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
-        raise NotImplementedError
+        return ~(self == other)
 
     def __neg__(self: Array, /) -> Array:
         raise NotImplementedError
@@ -278,6 +280,8 @@ def asarray(
     copy: bool | None = None,
 ) -> Array:
     if isinstance(obj, Array):
+        if copy:
+            return Array._from_data(std_copy(obj._data))
         return obj
     data: TyArrayBase = ascoredata(op.const(obj))
     if dtype:

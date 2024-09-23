@@ -60,4 +60,8 @@ def isfinite(array: Array, /) -> Array:
     return Array._from_data(array._data.isfinite())
 
 
+def isinf(array: Array, /) -> Array:
+    return Array._from_data(array._data.isinf())
+
+
 # TODO: Expose the remaining unary functions

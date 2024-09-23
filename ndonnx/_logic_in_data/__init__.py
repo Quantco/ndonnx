@@ -35,14 +35,11 @@ from .funcs import (
     where,
     sum,
 )
-from .elementwise import (
-    abs,
-    isfinite,
-    isnan,
-)
+from .elementwise import abs, isfinite, isnan, isinf
 from .binary_functions import add, equal, maximum
 from .infos import finfo, iinfo
 from .namespace_info import __array_namespace_info__
+from .constants import e, inf, nan, pi, newaxis
 
 __all__ = [
     "__array_namespace_info__",
@@ -87,4 +84,10 @@ __all__ = [
     "equal",
     "maximum",
     "sum",
+    "e",
+    "inf",
+    "nan",
+    "pi",
+    "newaxis",
+    "isinf",
 ]

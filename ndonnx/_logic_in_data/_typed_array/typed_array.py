@@ -134,6 +134,9 @@ class TyArrayBase(ABC):
     def isfinite(self) -> TyArrayBase:
         raise ValueError(f"'isinfinite' is not implemented for {self.dtype}")
 
+    def isinf(self) -> TyArrayBase:
+        raise ValueError(f"'isinf' is not implemented for {self.dtype}")
+
     def acos(self) -> Self:
         raise ValueError(f"'acos' is not implemented for {self.dtype}")
 
