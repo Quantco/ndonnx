@@ -14,7 +14,7 @@ import ndonnx._opset_extensions as opx
 import ndonnx.additional as nda
 
 from ._interface import OperationsBlock
-from ._utils import from_corearray
+from ._utils import assemble_output_recurse, from_corearray
 
 if TYPE_CHECKING:
     from ndonnx._array import Array, IndexType
@@ -270,7 +270,7 @@ class UniformShapeOperations(OperationsBlock):
             if eager_values is None:
                 field_value = None
             else:
-                field_value = _assemble_output_recurse(field_dtype, eager_values[name])
+                field_value = assemble_output_recurse(field_dtype, eager_values[name])
             fields[name] = field_dtype._ops.make_array(
                 shape,
                 field_dtype,
@@ -293,14 +293,3 @@ class UniformShapeOperations(OperationsBlock):
             index = index._core()
 
         return x._transmute(lambda corearray: corearray[index])
-
-
-def _assemble_output_recurse(dtype: Dtype, values: dict) -> np.ndarray:
-    if isinstance(dtype, dtypes.CoreType):
-        return dtype._assemble_output(values)
-    else:
-        fields = {
-            name: _assemble_output_recurse(field_dtype, values[name])
-            for name, field_dtype in dtype._fields().items()
-        }
-        return dtype._assemble_output(fields)
