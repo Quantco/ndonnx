@@ -263,7 +263,9 @@ def test_broadcasting(arrays):
         np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.float64),
         np.ma.masked_array([1, 2]),
         np.ma.masked_array(["a", "b"], mask=True),
-        np.ma.masked_array([1, 2, 3], mask=[[[1]]]),
+        np.ma.masked_array([1, 2, 3], mask=[[[0]]]),
+        np.ma.masked_array([[1, 2, 3]], mask=[True, False, True]),
+        np.ma.masked_array([1.0, 2.0, 3.0], mask=[0, 0, 1]),
     ],
 )
 def test_initialization(np_array):
