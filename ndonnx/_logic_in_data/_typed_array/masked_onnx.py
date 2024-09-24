@@ -19,7 +19,7 @@ from .typed_array import TyArrayBase
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, StructComponent
-    from .indexing import GetitemIndex
+    from .indexing import GetitemIndex, SetitemIndex
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -299,6 +299,15 @@ class TyMaArray(TyMaArrayBase):
         new_mask = self.mask[index] if self.mask is not None else None
 
         return type(self)(data=new_data, mask=new_mask)
+
+    def __setitem__(self, index: SetitemIndex, value: Self) -> None:
+        self.data[index] = value.data
+        mask = _merge_masks(None if self.mask is None else self.mask[index], value.mask)
+        if self.mask is not None and mask is not None:
+            self.mask[index] = mask
+        else:
+            # TODO
+            raise NotImplementedError
 
     def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # Implemented under the assumption that we know about core, but not py_scalars

@@ -22,6 +22,7 @@ from .utils import promote, safe_cast
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, DTypeInfo, Schema
+    from .indexing import SetitemIndex
 
 
 class PyString(DType):
@@ -114,6 +115,14 @@ class _ArrayPyScalar(TyArrayBase):
 
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
+
+    def __setitem__(
+        self,
+        key: SetitemIndex,
+        value: Self,
+        /,
+    ) -> None:
+        raise NotImplementedError
 
     def disassemble(self) -> tuple[Components, Schema]:
         raise ValueError(

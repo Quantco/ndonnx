@@ -31,14 +31,13 @@ class TyArrayBase(ABC):
     @abstractmethod
     def __getitem__(self, index: GetitemIndex) -> Self: ...
 
+    @abstractmethod
     def __setitem__(
         self,
         key: SetitemIndex,
         value: Self,
         /,
-    ) -> None:
-        # TODO: Make abstractmethod
-        raise NotImplementedError
+    ) -> None: ...
 
     @property
     @abstractmethod
@@ -81,8 +80,8 @@ class TyArrayBase(ABC):
 
     @abstractmethod
     def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
-        """Reflective sibling method for `Self.from_typed_array` which must thus not
-        call the latter.
+        """Reflective sibling method for `DType._tyarray_from_tyarray` which must thus
+        not call the latter.
 
         Used this function to implement the conversion from a custom type into a built-
         in one.
