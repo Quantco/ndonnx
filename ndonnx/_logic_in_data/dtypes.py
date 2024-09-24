@@ -9,23 +9,18 @@ from types import NotImplementedType
 from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
-import spox.opset.ai.onnx.v21 as op
-from spox import Tensor, argument
 
 from .schema import DTypeInfo
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
-
     from . import _typed_array
-    from ._typed_array import TyArray, TyArrayBase, TyMaArray
+    from ._typed_array import TyArrayBase, onnx
+    from ._typed_array.onnx import CoreDTypes
     from .array import OnnxShape
     from .schema import DTypeInfo
 
 
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArrayBase")
-TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
-TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
 
 
 class DType(ABC, Generic[TY_ARRAY]):
@@ -68,632 +63,13 @@ class DType(ABC, Generic[TY_ARRAY]):
         return self.__class__.__name__
 
 
-class _OnnxDType(DType[TY_ARRAY_ONNX]):
-    """Data types with a direct representation in the ONNX standard."""
-
-    @property
-    @abstractmethod
-    def _tyarr_class(self) -> type[TY_ARRAY_ONNX]: ...
-
-    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY_ONNX:
-        from ._typed_array import TyArray, ascoredata
-        from ._typed_array.utils import safe_cast
-
-        if isinstance(arr, TyArray):
-            var = op.cast(arr.var, to=as_numpy(self))
-            return safe_cast(self._tyarr_class, ascoredata(var))
-        raise NotImplementedError
-
-    def _argument(self, shape: OnnxShape) -> TY_ARRAY_ONNX:
-        var = argument(Tensor(as_numpy(self), shape))
-        return self._tyarr_class(var)
-
-    @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state=None,
-        )
-
-
-class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
-    _unmasked_dtype: CoreDTypes
-
-    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_MA_ARRAY_ONNX:
-        from ._typed_array import TyArray, TyMaArray, ascoredata
-
-        if isinstance(arr, TyArray):
-            data = ascoredata(op.cast(arr.var, to=as_numpy(self._unmasked_dtype)))
-            return self._tyarr_class(data=data, mask=None)
-        if isinstance(arr, TyMaArray):
-            mask = arr.mask
-            data_ = arr.data.astype(self._unmasked_dtype)
-            return self._tyarr_class(data=data_, mask=mask)
-        raise NotImplementedError
-
-    @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state=None,
-        )
-
-    def _argument(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
-        data = as_non_nullable(self)._argument(shape)
-        mask = bool_._argument(shape)
-        return self._tyarr_class(data=data, mask=mask)
-
-
-class _Number(_OnnxDType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(self, CoreNumericDTypes) and isinstance(rhs, CoreNumericDTypes):
-            return _result_type_core_numeric(self, rhs)
-
-        return NotImplemented
-
-
-class _NNumber(_MaOnnxDType):
-    _core_type: CoreNumericDTypes
-
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(self, NCoreNumericDTypes) and isinstance(rhs, CoreNumericDTypes):
-            core_result = _result_type_core_numeric(self._core_type, rhs)
-        elif isinstance(rhs, NCoreNumericDTypes):
-            core_result = _result_type_core_numeric(self._core_type, rhs._core_type)
-
-        else:
-            # No implicit promotion for bools and strings
-            return NotImplemented
-
-        return as_nullable(core_result)
-
-
-class String(_OnnxDType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayString]:
-        from ._typed_array import TyArrayString
-
-        return TyArrayString
-
-
-# TODO: Should this be a subclass of _Number?
-class Bool(_OnnxDType):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayBool]:
-        from ._typed_array import TyArrayBool
-
-        return TyArrayBool
-
-
-class Int8(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayInt8]:
-        from ._typed_array import TyArrayInt8
-
-        return TyArrayInt8
-
-
-class Int16(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayInt16]:
-        from ._typed_array import TyArrayInt16
-
-        return TyArrayInt16
-
-
-class Int32(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayInt32]:
-        from ._typed_array import TyArrayInt32
-
-        return TyArrayInt32
-
-
-class Int64(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayInt64]:
-        from ._typed_array import TyArrayInt64
-
-        return TyArrayInt64
-
-
-class Uint8(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayUint8]:
-        from ._typed_array import TyArrayUint8
-
-        return TyArrayUint8
-
-
-class Uint16(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayUint16]:
-        from ._typed_array import TyArrayUint16
-
-        return TyArrayUint16
-
-
-class Uint32(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayUint32]:
-        from ._typed_array import TyArrayUint32
-
-        return TyArrayUint32
-
-
-class Uint64(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayUint64]:
-        from ._typed_array import TyArrayUint64
-
-        return TyArrayUint64
-
-
-class Float16(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayFloat16]:
-        from ._typed_array import TyArrayFloat16
-
-        return TyArrayFloat16
-
-
-class Float32(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayFloat32]:
-        from ._typed_array import TyArrayFloat32
-
-        return TyArrayFloat32
-
-
-class Float64(_Number):
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayFloat64]:
-        from ._typed_array import TyArrayFloat64
-
-        return TyArrayFloat64
-
-
-class PyString(DType):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, String | NString):
-            return other
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayPyString]:
-        from ._typed_array import TyArrayPyString
-
-        return TyArrayPyString
-
-    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
-        raise NotImplementedError
-
-    def _argument(self, shape: OnnxShape):
-        raise ValueError("'{type(self)}' cannot be used as a model argument")
-
-    @property
-    def _info(self) -> DTypeInfo:
-        raise ValueError("'_PyString' has not public schema information")
-
-
-class PyInteger(DType):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, CoreNumericDTypes | NCoreNumericDTypes):
-            return other
-        if isinstance(other, Bool):
-            return default_int
-        if isinstance(other, NBool):
-            return as_nullable(default_int)
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayPyInt]:
-        from ._typed_array import TyArrayPyInt
-
-        return TyArrayPyInt
-
-    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
-        raise NotImplementedError
-
-    def _argument(self, shape: OnnxShape):
-        raise ValueError("'{type(self)}' cannot be used as a model argument")
-
-    @property
-    def _info(self) -> DTypeInfo:
-        raise ValueError("'_PyInt' has not public schema information")
-
-
-class PyFloat(DType):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, CoreIntegerDTypes):
-            return float64
-        if isinstance(other, NCoreIntegerDTypes):
-            return nfloat64
-        if isinstance(other, CoreFloatingDTypes | NCoreFloatingDTypes):
-            return other
-        raise ValueError
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyArrayPyFloat]:
-        from ._typed_array import TyArrayPyFloat
-
-        return TyArrayPyFloat
-
-    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> Self:
-        raise NotImplementedError
-
-    @property
-    def _info(self) -> DTypeInfo:
-        raise ValueError("'_PyInt' has not public schema information")
-
-    def _argument(self, shape: OnnxShape):
-        raise ValueError("'{type(self)}' cannot be used as a model argument")
-
-
-# Non-nullable Singleton instances
-bool_ = Bool()
-
-float16 = Float16()
-float32 = Float32()
-float64 = Float64()
-
-int16 = Int16()
-int32 = Int32()
-int64 = Int64()
-int8 = Int8()
-
-uint8 = Uint8()
-uint16 = Uint16()
-uint32 = Uint32()
-uint64 = Uint64()
-
-string = String()
-
-
-# scalar singleton instances
-pyint = PyInteger()
-pyfloat = PyFloat()
-pystring = PyString()
-
-
-class NString(_MaOnnxDType):
-    _unmasked_dtype = string
-
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayString]:
-        from ._typed_array import TyMaArrayString
-
-        return TyMaArrayString
-
-
-class NBool(_MaOnnxDType):
-    _unmasked_dtype = bool_
-
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayBool]:
-        from ._typed_array import TyMaArrayBool
-
-        return TyMaArrayBool
-
-
-class NInt8(_NNumber):
-    _unmasked_dtype = int8
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt8]:
-        from ._typed_array import TyMaArrayInt8
-
-        return TyMaArrayInt8
-
-
-class NInt16(_NNumber):
-    _unmasked_dtype = int16
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt16]:
-        from ._typed_array import TyMaArrayInt16
-
-        return TyMaArrayInt16
-
-
-class NInt32(_NNumber):
-    _unmasked_dtype = int32
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt32]:
-        from ._typed_array import TyMaArrayInt32
-
-        return TyMaArrayInt32
-
-
-class NInt64(_NNumber):
-    _unmasked_dtype = int64
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayInt64]:
-        from ._typed_array import TyMaArrayInt64
-
-        return TyMaArrayInt64
-
-
-class NUint8(_NNumber):
-    _unmasked_dtype = uint8
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint8]:
-        from ._typed_array import TyMaArrayUint8
-
-        return TyMaArrayUint8
-
-
-class NUint16(_NNumber):
-    _unmasked_dtype = uint16
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint16]:
-        from ._typed_array import TyMaArrayUint16
-
-        return TyMaArrayUint16
-
-
-class NUint32(_NNumber):
-    _unmasked_dtype = uint32
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint32]:
-        from ._typed_array import TyMaArrayUint32
-
-        return TyMaArrayUint32
-
-
-class NUint64(_NNumber):
-    _unmasked_dtype = uint64
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayUint64]:
-        from ._typed_array import TyMaArrayUint64
-
-        return TyMaArrayUint64
-
-
-class NFloat16(_NNumber):
-    _unmasked_dtype = float16
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayFloat16]:
-        from ._typed_array import TyMaArrayFloat16
-
-        return TyMaArrayFloat16
-
-
-class NFloat32(_NNumber):
-    _unmasked_dtype = float32
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayFloat32]:
-        from ._typed_array import TyMaArrayFloat32
-
-        return TyMaArrayFloat32
-
-
-class NFloat64(_NNumber):
-    _unmasked_dtype = float64
-
-    @property
-    def _tyarr_class(self) -> type[_typed_array.TyMaArrayFloat64]:
-        from ._typed_array import TyMaArrayFloat64
-
-        return TyMaArrayFloat64
-
-
-# Nullable Singleton instances
-nbool = NBool()
-
-nfloat16 = NFloat16()
-nfloat32 = NFloat32()
-nfloat64 = NFloat64()
-
-nint8 = NInt8()
-nint16 = NInt16()
-nint32 = NInt32()
-nint64 = NInt64()
-
-nuint8 = NUint8()
-nuint16 = NUint16()
-nuint32 = NUint32()
-nuint64 = NUint64()
-
-nstring = NString()
-
-# Union types
-#
-# Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
-
-CoreFloatingDTypes = Float16 | Float32 | Float64
-
-CoreIntegerDTypes = Int8 | Int16 | Int32 | Int64 | Uint8 | Uint16 | Uint32 | Uint64
-
-CoreNumericDTypes = CoreFloatingDTypes | CoreIntegerDTypes
-
-CoreDTypes = Bool | CoreNumericDTypes | String
-
-NCoreIntegerDTypes = (
-    NInt8 | NInt16 | NInt32 | NInt64 | NUint8 | NUint16 | NUint32 | NUint64
-)
-NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
-
-NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
-
-NCoreDTypes = NBool | NCoreNumericDTypes | NString
-
-
-# Promotion tables taken from:
-# https://data-apis.org/array-api/draft/API_specification/type_promotion.html#type-promotion
-# and
-# https://numpy.org/neps/nep-0050-scalar-promotion.html#motivation-and-scope
-_signed_signed: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
-    (int8, int8): int8,
-    (int16, int8): int16,
-    (int32, int8): int32,
-    (int64, int8): int64,
-    (int8, int16): int16,
-    (int16, int16): int16,
-    (int32, int16): int32,
-    (int64, int16): int64,
-    (int8, int32): int32,
-    (int16, int32): int32,
-    (int32, int32): int32,
-    (int64, int32): int64,
-    (int8, int64): int64,
-    (int16, int64): int64,
-    (int32, int64): int64,
-    (int64, int64): int64,
-}
-_unsigned_unsigned: dict[
-    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
-] = {
-    (uint8, uint8): uint8,
-    (uint16, uint8): uint16,
-    (uint32, uint8): uint32,
-    (uint64, uint8): uint64,
-    (uint8, uint16): uint16,
-    (uint16, uint16): uint16,
-    (uint32, uint16): uint32,
-    (uint64, uint16): uint64,
-    (uint8, uint32): uint32,
-    (uint16, uint32): uint32,
-    (uint32, uint32): uint32,
-    (uint64, uint32): uint64,
-    (uint8, uint64): uint64,
-    (uint16, uint64): uint64,
-    (uint32, uint64): uint64,
-    (uint64, uint64): uint64,
-}
-_mixed_integers: dict[
-    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
-] = {
-    (int8, uint8): int16,
-    (int16, uint8): int16,
-    (int32, uint8): int32,
-    (int64, uint8): int64,
-    (int8, uint16): int32,
-    (int16, uint16): int32,
-    (int32, uint16): int32,
-    (int64, uint16): int64,
-    (int8, uint32): int64,
-    (int16, uint32): int64,
-    (int32, uint32): int64,
-    (int64, uint32): int64,
-    # NOTE: Standard does not define interaction with uint64!
-}
-
-_floating_floating: dict[
-    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
-] = {
-    (float32, float32): float32,
-    (float32, float64): float64,
-    (float64, float32): float64,
-    (float64, float64): float64,
-}
-
-# Non-standard interactions
-_non_standard: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
-    (int8, uint64): float64,
-    (int16, uint64): float64,
-    (int32, uint64): float64,
-    (int64, uint64): float64,
-}
-
-# Mixed integers and floating point numbers are not
-# strictly defined, but generally we want to cast the
-# integer to a floating point and then try again.
-_int_to_floating: dict[CoreNumericDTypes, CoreNumericDTypes] = {
-    int8: float16,
-    uint8: float16,
-    int16: float32,
-    uint16: float32,
-    int32: float64,
-    uint32: float64,
-    int64: float64,
-    uint64: float64,
-}
-
-
 # Helper functions
-
-_core_to_nullable_core: dict[CoreDTypes, NCoreDTypes] = {
-    bool_: nbool,
-    int8: nint8,
-    int16: nint16,
-    int32: nint32,
-    int64: nint64,
-    uint8: nuint8,
-    uint16: nuint16,
-    uint32: nuint32,
-    uint64: nuint64,
-    float16: nfloat16,
-    float32: nfloat32,
-    float64: nfloat64,
-    string: nstring,
-}
-
-
-def as_nullable(dtype: CoreDTypes) -> NCoreDTypes:
-    return _core_to_nullable_core[dtype]
-
-
-def as_non_nullable(dtype: _MaOnnxDType) -> _OnnxDType:
-    mapping: dict[_MaOnnxDType, _OnnxDType] = {
-        v: k for k, v in _core_to_nullable_core.items()
-    }
-    return mapping[dtype]
-
-
-def _result_type_core_numeric(
-    a: CoreNumericDTypes, b: CoreNumericDTypes
-) -> CoreNumericDTypes:
-    # Attempt promotion between known types. The implementation is not
-    # using `isinstance` to avoid subclassing issues.
-    if ret := _signed_signed.get((a, b)):
-        return ret
-    if ret := _unsigned_unsigned.get((a, b)):
-        return ret
-    if ret := _mixed_integers.get((a, b)):
-        return ret
-    if ret := _floating_floating.get((a, b)):
-        return ret
-    if ret := _non_standard.get((a, b)):
-        return ret
-    if a_floating := _int_to_floating.get(a):
-        return _result_type_core_numeric(a_floating, b)
-    if b_floating := _int_to_floating.get(b):
-        return _result_type_core_numeric(a, b_floating)
-
-    # TODO: Do bools and strings
-
-    raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")
 
 
 @overload
 def result_type(
-    first: CoreNumericDTypes, *others: CoreNumericDTypes
-) -> CoreNumericDTypes: ...
+    first: onnx.CoreNumericDTypes, *others: onnx.CoreNumericDTypes
+) -> onnx.CoreNumericDTypes: ...
 
 
 @overload
@@ -718,78 +94,79 @@ def result_type(first: DType, *others: DType) -> DType:
 
 
 def from_numpy(np_dtype: np.dtype) -> CoreDTypes:
+    from ._typed_array import onnx
+
     if np_dtype == np.int8:
-        return int8
+        return onnx.int8
     if np_dtype == np.int16:
-        return int16
+        return onnx.int16
     if np_dtype == np.int32:
-        return int32
+        return onnx.int32
     if np_dtype == np.int64:
-        return int64
+        return onnx.int64
 
     if np_dtype == np.uint8:
-        return uint8
+        return onnx.uint8
     if np_dtype == np.uint16:
-        return uint16
+        return onnx.uint16
     if np_dtype == np.uint32:
-        return uint32
+        return onnx.uint32
     if np_dtype == np.uint64:
-        return uint64
+        return onnx.uint64
 
     if np_dtype == np.float16:
-        return float16
+        return onnx.float16
     if np_dtype == np.float32:
-        return float32
+        return onnx.float32
     if np_dtype == np.float64:
-        return float64
+        return onnx.float64
 
     if np_dtype == np.bool:
-        return bool_
+        return onnx.bool_
 
     if np_dtype == np.dtypes.StringDType() or np_dtype.kind == "U":
-        return string
+        return onnx.string
 
     raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")
 
 
-def as_numpy(dtype: _OnnxDType) -> np.dtype:
-    if dtype == int8:
+def as_numpy(dtype: onnx._OnnxDType) -> np.dtype:
+    from ._typed_array import onnx
+
+    if dtype == onnx.int8:
         return np.dtype("int8")
-    if dtype == int16:
+    if dtype == onnx.int16:
         return np.dtype("int16")
-    if dtype == int32:
+    if dtype == onnx.int32:
         return np.dtype("int32")
-    if dtype == int64:
+    if dtype == onnx.int64:
         return np.dtype("int64")
 
-    if dtype == uint8:
+    if dtype == onnx.uint8:
         return np.dtype("uint8")
-    if dtype == uint16:
+    if dtype == onnx.uint16:
         return np.dtype("uint16")
-    if dtype == uint32:
+    if dtype == onnx.uint32:
         return np.dtype("uint32")
-    if dtype == uint64:
+    if dtype == onnx.uint64:
         return np.dtype("uint64")
 
-    if dtype == float16:
+    if dtype == onnx.float16:
         return np.dtype("float16")
-    if dtype == float32:
+    if dtype == onnx.float32:
         return np.dtype("float32")
-    if dtype == float64:
+    if dtype == onnx.float64:
         return np.dtype("float64")
 
-    if dtype == bool_:
+    if dtype == onnx.bool_:
         return np.dtype("bool")
 
-    if dtype == string:
+    if dtype == onnx.string:
         # TODO: Migrate to numpy.StringDType
         return np.dtype(str)
 
     # Should never happen
     raise ValueError(f"'{dtype}' does not have a corresponding NumPy data type")
 
-
-default_int = int64
-default_float = float64
 
 DTYPE = TypeVar("DTYPE", bound=DType)

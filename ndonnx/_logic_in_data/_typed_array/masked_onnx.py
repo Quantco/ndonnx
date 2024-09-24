@@ -11,10 +11,9 @@ from typing import TYPE_CHECKING, TypeVar
 import numpy as np
 from typing_extensions import Self
 
-from .. import dtypes
-from ..dtypes import CoreDTypes, DType, NCoreDTypes
-from ..schema import Schema, flatten_components
-from . import TyArray, TyArrayBool, TyArrayInt64
+from ..dtypes import TY_ARRAY, DType
+from ..schema import DTypeInfo, Schema, flatten_components
+from . import onnx
 from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
@@ -24,25 +23,214 @@ if TYPE_CHECKING:
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
-CORE_DTYPES = TypeVar("CORE_DTYPES", bound=CoreDTypes)
-NCORE_DTYPES = TypeVar("NCORE_DTYPES", bound=NCoreDTypes)
+CORE_DTYPES = TypeVar("CORE_DTYPES", bound=onnx.CoreDTypes)
+NCORE_DTYPES = TypeVar("NCORE_DTYPES", bound="NCoreDTypes")
 
-NCORE_NUMERIC_DTYPES = TypeVar("NCORE_NUMERIC_DTYPES", bound=dtypes.NCoreNumericDTypes)
-NCORE_FLOATING_DTYPES = TypeVar(
-    "NCORE_FLOATING_DTYPES", bound=dtypes.NCoreFloatingDTypes
-)
-NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound=dtypes.NCoreIntegerDTypes)
+NCORE_NUMERIC_DTYPES = TypeVar("NCORE_NUMERIC_DTYPES", bound="NCoreNumericDTypes")
+NCORE_FLOATING_DTYPES = TypeVar("NCORE_FLOATING_DTYPES", bound="NCoreFloatingDTypes")
+NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="NCoreIntegerDTypes")
 
 ALL_NUM_DTYPES = TypeVar(
-    "ALL_NUM_DTYPES", bound=dtypes.CoreNumericDTypes | dtypes.NCoreNumericDTypes
+    "ALL_NUM_DTYPES", bound="onnx.CoreNumericDTypes | NCoreNumericDTypes"
 )
+TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
+
+
+class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
+    _unmasked_dtype: onnx.CoreDTypes
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
+        if isinstance(arr, onnx.TyArray):
+            return asncoredata(arr, None).astype(self)
+        if isinstance(arr, TyMaArray):
+            mask = arr.mask
+            data_ = arr.data.astype(self._unmasked_dtype)
+            return self._tyarr_class(data=data_, mask=mask)
+        raise NotImplementedError
+
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state=None,
+        )
+
+    def _argument(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
+        data = as_non_nullable(self)._argument(shape)
+        mask = onnx.bool_._argument(shape)
+        return self._tyarr_class(data=data, mask=mask)
+
+
+class _NNumber(_MaOnnxDType):
+    _core_type: onnx.CoreNumericDTypes
+
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        if isinstance(self, NCoreNumericDTypes) and isinstance(
+            rhs, onnx.CoreNumericDTypes
+        ):
+            core_result = onnx._result_type_core_numeric(self._core_type, rhs)
+        elif isinstance(rhs, NCoreNumericDTypes):
+            core_result = onnx._result_type_core_numeric(
+                self._core_type, rhs._core_type
+            )
+
+        else:
+            # No implicit promotion for bools and strings
+            return NotImplemented
+
+        return as_nullable(core_result)
+
+
+class NString(_MaOnnxDType):
+    _unmasked_dtype = onnx.string
+
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayString]:
+        return TyMaArrayString
+
+
+class NBool(_MaOnnxDType):
+    _unmasked_dtype = onnx.bool_
+
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayBool]:
+        return TyMaArrayBool
+
+
+class NInt8(_NNumber):
+    _unmasked_dtype = onnx.int8
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayInt8]:
+        return TyMaArrayInt8
+
+
+class NInt16(_NNumber):
+    _unmasked_dtype = onnx.int16
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayInt16]:
+        return TyMaArrayInt16
+
+
+class NInt32(_NNumber):
+    _unmasked_dtype = onnx.int32
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayInt32]:
+        return TyMaArrayInt32
+
+
+class NInt64(_NNumber):
+    _unmasked_dtype = onnx.int64
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayInt64]:
+        return TyMaArrayInt64
+
+
+class NUint8(_NNumber):
+    _unmasked_dtype = onnx.uint8
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayUint8]:
+        return TyMaArrayUint8
+
+
+class NUint16(_NNumber):
+    _unmasked_dtype = onnx.uint16
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayUint16]:
+        return TyMaArrayUint16
+
+
+class NUint32(_NNumber):
+    _unmasked_dtype = onnx.uint32
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayUint32]:
+        return TyMaArrayUint32
+
+
+class NUint64(_NNumber):
+    _unmasked_dtype = onnx.uint64
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayUint64]:
+        return TyMaArrayUint64
+
+
+class NFloat16(_NNumber):
+    _unmasked_dtype = onnx.float16
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayFloat16]:
+        return TyMaArrayFloat16
+
+
+class NFloat32(_NNumber):
+    _unmasked_dtype = onnx.float32
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayFloat32]:
+        return TyMaArrayFloat32
+
+
+class NFloat64(_NNumber):
+    _unmasked_dtype = onnx.float64
+
+    @property
+    def _tyarr_class(self) -> type[TyMaArrayFloat64]:
+        return TyMaArrayFloat64
+
+
+# Nullable Singleton instances
+nbool = NBool()
+
+nfloat16 = NFloat16()
+nfloat32 = NFloat32()
+nfloat64 = NFloat64()
+
+nint8 = NInt8()
+nint16 = NInt16()
+nint32 = NInt32()
+nint64 = NInt64()
+
+nuint8 = NUint8()
+nuint16 = NUint16()
+nuint32 = NUint32()
+nuint64 = NUint64()
+
+nstring = NString()
+
+# Union types
+#
+# Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
+
+NCoreIntegerDTypes = (
+    NInt8 | NInt16 | NInt32 | NInt64 | NUint8 | NUint16 | NUint32 | NUint64
+)
+NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
+
+NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
+
+NCoreDTypes = NBool | NCoreNumericDTypes | NString
 
 
 class TyMaArrayBase(TyArrayBase):
     """Typed masked array object."""
 
     data: TyArrayBase
-    mask: TyArrayBool | None
+    mask: onnx.TyArrayBool | None
 
     def disassemble(self) -> tuple[Components, Schema]:
         dtype_info = self.dtype._info
@@ -73,12 +261,12 @@ class TyMaArray(TyMaArrayBase):
     know about `_ArrayCoreType`s, but not `_PyScalar`s.
     """
 
-    dtype: dtypes.NCoreDTypes
+    dtype: NCoreDTypes
     # Specialization of data from `Data` to `_ArrayCoreType`
-    data: TyArray
+    data: onnx.TyArray
 
-    def __init__(self, data: TyArray, mask: TyArrayBool | None):
-        self.dtype = dtypes.as_nullable(data.dtype)
+    def __init__(self, data: onnx.TyArray, mask: onnx.TyArrayBool | None):
+        self.dtype = as_nullable(data.dtype)
         self.data = data
         self.mask = mask
 
@@ -87,7 +275,7 @@ class TyMaArray(TyMaArrayBase):
         return self.data.shape
 
     @property
-    def dynamic_shape(self) -> TyArrayInt64:
+    def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self.data.dynamic_shape
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
@@ -95,7 +283,7 @@ class TyMaArray(TyMaArrayBase):
         mask = self.mask.reshape(shape) if self.mask is not None else None
         return type(self)(data=data, mask=mask)
 
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+    def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self.data.broadcast_to(shape)
         mask = self.mask.broadcast_to(shape) if self.mask else None
         return type(self)(data=data, mask=mask)
@@ -112,13 +300,13 @@ class TyMaArray(TyMaArrayBase):
 
         return type(self)(data=new_data, mask=new_mask)
 
-    def _astype(self, dtype: DType) -> TyArrayBase:
+    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # Implemented under the assumption that we know about core, but not py_scalars
-        if isinstance(dtype, dtypes.CoreDTypes):
+        if isinstance(dtype, onnx.CoreDTypes):
             # TODO: Not clear what the behavior should be if we have a mask
             # TODO: There is currently no way to get the mask through the public `Array` class!
             raise NotImplementedError
-        elif isinstance(dtype, dtypes.NCoreDTypes):
+        elif isinstance(dtype, NCoreDTypes):
             new_data = self.data.astype(dtype._unmasked_dtype)
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
@@ -127,9 +315,9 @@ class TyMaArray(TyMaArrayBase):
         raise NotImplementedError()
 
     def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: onnx.TyArrayBool, y: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
-        if isinstance(y, TyArray):
+        if isinstance(y, onnx.TyArray):
             return self.__ndx_where__(cond, asncoredata(y, None))
         if isinstance(y, TyMaArray):
             x_ = unmask_core(self)
@@ -144,7 +332,7 @@ class TyMaArray(TyMaArrayBase):
             else:
                 new_mask = None
 
-            if new_mask is not None and not isinstance(new_mask, TyArrayBool):
+            if new_mask is not None and not isinstance(new_mask, onnx.TyArrayBool):
                 # Should never happen. Might be worth while adding
                 # overloads to the BoolData dunder methods to
                 # propagate the types more precisely.
@@ -155,15 +343,15 @@ class TyMaArray(TyMaArrayBase):
         return NotImplemented
 
     def __ndx_rwhere__(
-        self, cond: TyArrayBool, x: TyArrayBase, /
+        self, cond: onnx.TyArrayBool, x: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
-        if isinstance(x, TyArray):
+        if isinstance(x, onnx.TyArray):
             return asncoredata(x, None).__ndx_where__(cond, self)
         return NotImplemented
 
 
 class TyMaArrayString(TyMaArray):
-    dtype = dtypes.nstring
+    dtype = nstring
 
     def __add__(self, rhs: TyArrayBase) -> TyMaArray:
         return _apply_op(self, rhs, operator.add, True)
@@ -173,10 +361,10 @@ class TyMaArrayString(TyMaArray):
 
 
 class TyMaArrayNumber(TyMaArray):
-    dtype: dtypes.NCoreNumericDTypes
+    dtype: NCoreNumericDTypes
 
     def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(rhs, TyArray):
+        if isinstance(rhs, onnx.TyArray):
             return self.__ndx_maximum__(asncoredata(rhs, None))
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
@@ -188,7 +376,7 @@ class TyMaArrayNumber(TyMaArray):
         return NotImplemented
 
     def __ndx_rmaximum__(self, lhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(lhs, TyArray):
+        if isinstance(lhs, onnx.TyArray):
             return asncoredata(lhs, None).__ndx_maximum__(self)
         return NotImplemented
 
@@ -218,112 +406,81 @@ class TyMaArrayNumber(TyMaArray):
 
 
 class TyMaArrayInteger(TyMaArrayNumber):
-    dtype: dtypes.NCoreIntegerDTypes
+    dtype: NCoreIntegerDTypes
 
 
 class TyMaArrayFloating(TyMaArrayNumber):
-    dtype: dtypes.NCoreFloatingDTypes
+    dtype: NCoreFloatingDTypes
 
 
 class TyMaArrayBool(TyMaArray):
-    dtype = dtypes.nbool
+    dtype = nbool
 
 
 class TyMaArrayInt8(TyMaArrayInteger):
-    dtype = dtypes.nint8
+    dtype = nint8
 
 
 class TyMaArrayInt16(TyMaArrayInteger):
-    dtype = dtypes.nint16
+    dtype = nint16
 
 
 class TyMaArrayInt32(TyMaArrayInteger):
-    dtype = dtypes.nint32
+    dtype = nint32
 
 
 class TyMaArrayInt64(TyMaArrayInteger):
-    dtype = dtypes.nint64
+    dtype = nint64
 
 
 class TyMaArrayUint8(TyMaArrayInteger):
-    dtype = dtypes.nuint8
+    dtype = nuint8
 
 
 class TyMaArrayUint16(TyMaArrayInteger):
-    dtype = dtypes.nuint16
+    dtype = nuint16
 
 
 class TyMaArrayUint32(TyMaArrayInteger):
-    dtype = dtypes.nuint32
+    dtype = nuint32
 
 
 class TyMaArrayUint64(TyMaArrayInteger):
-    dtype = dtypes.nuint64
+    dtype = nuint64
 
 
 class TyMaArrayFloat16(TyMaArrayFloating):
-    dtype = dtypes.nfloat16
+    dtype = nfloat16
 
 
 class TyMaArrayFloat32(TyMaArrayFloating):
-    dtype = dtypes.nfloat32
+    dtype = nfloat32
 
 
 class TyMaArrayFloat64(TyMaArrayFloating):
-    dtype = dtypes.nfloat64
+    dtype = nfloat64
 
 
-def _merge_masks(a: TyArrayBool | None, b: TyArrayBool | None) -> TyArrayBool | None:
+def _merge_masks(
+    a: onnx.TyArrayBool | None, b: onnx.TyArrayBool | None
+) -> onnx.TyArrayBool | None:
     if a is None:
         return b
     if b is None:
         return a
     out = a | b
-    if isinstance(out, TyArrayBool):
+    if isinstance(out, onnx.TyArrayBool):
         return out
     # Should never happen
     raise TypeError("Unexpected array type")
 
 
-def asncoredata(core_array: TyArrayBase, mask: TyArrayBool | None) -> TyMaArray:
-    from . import onnx
-
-    if isinstance(core_array, onnx.TyArrayInt8):
-        return TyMaArrayInt8(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayInt16):
-        return TyMaArrayInt16(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayInt32):
-        return TyMaArrayInt32(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayInt64):
-        return TyMaArrayInt64(core_array, mask)
-
-    if isinstance(core_array, onnx.TyArrayUint8):
-        return TyMaArrayUint8(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayUint16):
-        return TyMaArrayUint16(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayUint32):
-        return TyMaArrayUint32(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayUint64):
-        return TyMaArrayUint64(core_array, mask)
-
-    if isinstance(core_array, onnx.TyArrayFloat16):
-        return TyMaArrayFloat16(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayFloat32):
-        return TyMaArrayFloat32(core_array, mask)
-    if isinstance(core_array, onnx.TyArrayFloat64):
-        return TyMaArrayFloat64(core_array, mask)
-
-    if isinstance(core_array, onnx.TyArrayBool):
-        return TyMaArrayBool(core_array, mask)
-
-    if isinstance(core_array, onnx.TyArrayString):
-        return TyMaArrayString(core_array, mask)
-
-    raise TypeError(f"expected '_ArrayCoreType' found `{type(core_array)}`")
+def asncoredata(core_array: onnx.TyArray, mask: onnx.TyArrayBool | None) -> TyMaArray:
+    return as_nullable(core_array.dtype)._tyarr_class(core_array, mask)
 
 
-def unmask_core(arr: TyArray | TyMaArray) -> TyArray:
-    if isinstance(arr, TyArray):
+def unmask_core(arr: onnx.TyArray | TyMaArray) -> onnx.TyArray:
+    if isinstance(arr, onnx.TyArray):
         return arr
     return arr.data
 
@@ -331,11 +488,11 @@ def unmask_core(arr: TyArray | TyMaArray) -> TyArray:
 def _apply_op(
     this: TyMaArray,
     other: TyArrayBase,
-    op: Callable[[TyArray, TyArray], TyArray],
+    op: Callable[[onnx.TyArray, onnx.TyArray], onnx.TyArray],
     forward: bool,
 ) -> TyMaArray:
     """Apply an operation by passing it through to the data member."""
-    if isinstance(other, TyArray):
+    if isinstance(other, onnx.TyArray):
         data = op(this.data, other) if forward else op(other, this.data)
         mask = this.mask
     elif isinstance(other, TyMaArray):
@@ -345,3 +502,35 @@ def _apply_op(
         return NotImplemented
 
     return asncoredata(data, mask)
+
+
+####################
+# Conversion Table #
+####################
+
+_core_to_nullable_core: dict[onnx.CoreDTypes, NCoreDTypes] = {
+    onnx.bool_: nbool,
+    onnx.int8: nint8,
+    onnx.int16: nint16,
+    onnx.int32: nint32,
+    onnx.int64: nint64,
+    onnx.uint8: nuint8,
+    onnx.uint16: nuint16,
+    onnx.uint32: nuint32,
+    onnx.uint64: nuint64,
+    onnx.float16: nfloat16,
+    onnx.float32: nfloat32,
+    onnx.float64: nfloat64,
+    onnx.string: nstring,
+}
+
+
+def as_nullable(dtype: onnx.CoreDTypes) -> NCoreDTypes:
+    return _core_to_nullable_core[dtype]
+
+
+def as_non_nullable(dtype: _MaOnnxDType) -> onnx.CoreDTypes:
+    mapping: dict[_MaOnnxDType, onnx.CoreDTypes] = {
+        v: k for k, v in _core_to_nullable_core.items()
+    }
+    return mapping[dtype]

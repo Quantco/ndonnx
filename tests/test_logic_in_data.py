@@ -5,6 +5,7 @@ import operator
 import numpy as np
 import pytest
 
+import ndonnx._logic_in_data as ndx
 from ndonnx._logic_in_data import Array, dtypes, maximum, reshape, where
 from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
 from ndonnx._logic_in_data.array import asarray
@@ -54,12 +55,12 @@ def error_when_prop_fails():
 @pytest.mark.parametrize(
     "scalar, dtype, res_dtype",
     [
-        (1, dtypes.int32, dtypes.int32),
-        (1.0, dtypes.int32, dtypes.float64),
-        (1.0, dtypes.float32, dtypes.float32),
-        (1.0, dtypes.float64, dtypes.float64),
-        (1.0, dtypes.nfloat64, dtypes.nfloat64),
-        (1.0, dtypes.nint32, dtypes.nfloat64),
+        (1, ndx.int32, ndx.int32),
+        (1.0, ndx.int32, ndx.float64),
+        (1.0, ndx.float32, ndx.float32),
+        (1.0, ndx.float64, ndx.float64),
+        (1.0, ndx.nfloat64, ndx.nfloat64),
+        (1.0, ndx.nint32, ndx.nfloat64),
     ],
 )
 def test_add_pyscalar_coretypes(scalar, dtype, res_dtype, op):
@@ -73,10 +74,10 @@ def test_add_pyscalar_coretypes(scalar, dtype, res_dtype, op):
 @pytest.mark.parametrize(
     "dtype1, dtype2, res_dtype",
     [
-        (dtypes.int32, dtypes.int32, dtypes.int32),
-        (dtypes.int64, dtypes.int32, dtypes.int64),
-        (dtypes.float64, dtypes.int32, dtypes.float64),
-        (dtypes.nint32, dtypes.int32, dtypes.nint32),
+        (ndx.int32, ndx.int32, ndx.int32),
+        (ndx.int64, ndx.int32, ndx.int64),
+        (ndx.float64, ndx.int32, ndx.float64),
+        (ndx.nint32, ndx.int32, ndx.nint32),
     ],
 )
 def test_core_add(dtype1, dtype2, res_dtype):
@@ -89,9 +90,9 @@ def test_core_add(dtype1, dtype2, res_dtype):
 @pytest.mark.parametrize(
     "dtype1, dtype2, res_dtype",
     [
-        (dtypes.int32, dtypes.int32, dtypes.int32),
-        (dtypes.int64, dtypes.int32, dtypes.int64),
-        (dtypes.bool_, dtypes.bool_, dtypes.bool_),
+        (ndx.int32, ndx.int32, ndx.int32),
+        (ndx.int64, ndx.int32, ndx.int64),
+        (ndx.bool, ndx.bool, ndx.bool),
     ],
 )
 def test_core_or(dtype1, dtype2, res_dtype):
@@ -106,20 +107,20 @@ def test_value_prop():
     np.testing.assert_allclose((arr + arr).unwrap_numpy(), np.array(2))
 
     with pytest.raises(ValueError, match="no propagated value available"):
-        Array(("N",), dtypes.int32).unwrap_numpy()
+        Array(("N",), ndx.int32).unwrap_numpy()
 
 
 @pytest.mark.parametrize(
     "x_ty, y_ty, res_ty",
     [
-        (dtypes.int16, dtypes.int32, dtypes.int32),
-        (dtypes.nint16, dtypes.int32, dtypes.nint32),
-        (dtypes.int32, dtypes.nint16, dtypes.nint32),
+        (ndx.int16, ndx.int32, ndx.int32),
+        (ndx.nint16, ndx.int32, ndx.nint32),
+        (ndx.int32, ndx.nint16, ndx.nint32),
     ],
 )
 def test_where(x_ty, y_ty, res_ty):
     shape = ("N", "M")
-    cond = Array(shape, dtypes.bool_)
+    cond = Array(shape, ndx.bool)
     x = Array(shape, x_ty)
     y = Array(shape, y_ty)
 
@@ -186,7 +187,7 @@ def test_add_pyscalar_timedelta(op):
 
 
 def test_build():
-    a = Array(("N",), dtypes.nint64)
+    a = Array(("N",), ndx.nint64)
     b = a[0]
 
     mp = build({"a": a}, {"b": b})
@@ -234,24 +235,24 @@ def test_function(dtype, values, expect_ort_success):
     np.testing.assert_equal(expected, candidate)
 
 
-@pytest.mark.parametrize("dtype", [None, dtypes.int32, dtypes.float64])
+@pytest.mark.parametrize("dtype", [None, ndx.int32, ndx.float64])
 def test_ones(dtype):
     from ndonnx._logic_in_data import ones
     from ndonnx._logic_in_data.dtypes import as_numpy
 
     shape = (2,)
     candidate = ones(shape, dtype=dtype)
-    assert candidate.dtype == dtype or dtypes.float64
+    assert candidate.dtype == dtype or ndx.float64
 
     if dtype is None:
-        dtype = dtypes.default_float
+        dtype = ndx._default_float
     np.testing.assert_equal(
         candidate.unwrap_numpy(), np.ones(shape, dtype=as_numpy(dtype))
     )
 
 
 def test_indexing_shape():
-    arr = Array(("N", "M"), dtypes.nint32)
+    arr = Array(("N", "M"), ndx.nint32)
     assert arr[0, :]._data.shape == ("M",)
     assert arr[0, :].shape == (None,)
 
@@ -332,7 +333,7 @@ def test_assign_to_zero_dim():
 @pytest.mark.parametrize(
     "np_dtype, ndx_dtype",
     [
-        (np.dtype("int32"), dtypes.int32),
+        (np.dtype("int32"), ndx.int32),
         (np.dtype("datetime64[s]"), DateTime("s")),
     ],
 )
@@ -353,7 +354,7 @@ def test_min_max(ndx_dtype, np_dtype, np_array1, np_array2):
 
 
 @pytest.mark.parametrize("value", ["foo", np.array("foo"), np.array(["foo"])])
-@pytest.mark.parametrize("string_dtype", [dtypes.string, dtypes.nstring])
+@pytest.mark.parametrize("string_dtype", [ndx.string, ndx.nstring])
 def test_string_arrays(value, string_dtype):
     arr = asarray(value).astype(string_dtype)
 
@@ -361,7 +362,7 @@ def test_string_arrays(value, string_dtype):
     assert "barfoo" == ("bar" + arr).unwrap_numpy()
 
     arr2 = reshape(arr, (1,))
-    if string_dtype == dtypes.string:
+    if string_dtype == ndx.string:
         assert arr2[0] == arr
     else:
         # TODO: Properly implement eq for masked arrays

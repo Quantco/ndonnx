@@ -4,22 +4,23 @@
 from __future__ import annotations
 
 import operator
+from abc import abstractmethod
 from collections.abc import Callable, Sequence
-from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, TypeGuard, TypeVar
+from types import NotImplementedType
+from typing import TYPE_CHECKING, TypeGuard, TypeVar, overload
 
 import numpy as np
 import spox
 import spox._future
 import spox.opset.ai.onnx.v21 as op
-from spox import Var
+from spox import Tensor, Var, argument
 from typing_extensions import Self
 
 from ndonnx._corearray import _CoreArray
 
 from .. import dtypes
-from ..dtypes import CoreDTypes, DType, float32, float64, from_numpy
-from ..schema import Schema, var_to_primitive
+from ..dtypes import TY_ARRAY, DType, as_numpy, from_numpy
+from ..schema import DTypeInfo, Schema, var_to_primitive
 from .indexing import GetitemIndex, GetitemIndexStatic, SetitemIndex, SetitemIndexStatic
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
@@ -29,14 +30,163 @@ if TYPE_CHECKING:
     from ..schema import Components
 
 
-CORE_DTYPES = TypeVar("CORE_DTYPES", bound=CoreDTypes)
-ALL_NUM_DTYPES = TypeVar(
-    "ALL_NUM_DTYPES", bound=dtypes.CoreNumericDTypes | dtypes.NCoreNumericDTypes
-)
+CORE_DTYPES = TypeVar("CORE_DTYPES", bound="CoreDTypes")
+# ALL_NUM_DTYPES = TypeVar(
+#     "ALL_NUM_DTYPES", bound=dtypes.CoreNumericDTypes | dtypes.NCoreNumericDTypes
+# )
+TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
+
+
+class _OnnxDType(DType[TY_ARRAY_ONNX]):
+    """Data types with a direct representation in the ONNX standard."""
+
+    @property
+    @abstractmethod
+    def _tyarr_class(self) -> type[TY_ARRAY_ONNX]: ...
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TY_ARRAY_ONNX:
+        if isinstance(arr, TyArray):
+            var = op.cast(arr.var, to=as_numpy(self))
+            return safe_cast(self._tyarr_class, ascoredata(var))
+        raise NotImplementedError
+
+    def _argument(self, shape: OnnxShape) -> TY_ARRAY_ONNX:
+        var = argument(Tensor(as_numpy(self), shape))
+        return self._tyarr_class(var)
+
+    @property
+    def _info(self):
+        return DTypeInfo(
+            defining_library="ndonnx",
+            version=1,
+            dtype=self.__class__.__name__,
+            dtype_state=None,
+        )
+
+
+class _Number(_OnnxDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        if isinstance(self, CoreNumericDTypes) and isinstance(rhs, CoreNumericDTypes):
+            return _result_type_core_numeric(self, rhs)
+
+        return NotImplemented
+
+
+class String(_OnnxDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayString]:
+        return TyArrayString
+
+
+# TODO: Should this be a subclass of _Number?
+class Bool(_OnnxDType):
+    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayBool]:
+        return TyArrayBool
+
+
+class Int8(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayInt8]:
+        return TyArrayInt8
+
+
+class Int16(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayInt16]:
+        return TyArrayInt16
+
+
+class Int32(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayInt32]:
+        return TyArrayInt32
+
+
+class Int64(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayInt64]:
+        return TyArrayInt64
+
+
+class Uint8(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayUint8]:
+        return TyArrayUint8
+
+
+class Uint16(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayUint16]:
+        return TyArrayUint16
+
+
+class Uint32(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayUint32]:
+        return TyArrayUint32
+
+
+class Uint64(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayUint64]:
+        return TyArrayUint64
+
+
+class Float16(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayFloat16]:
+        return TyArrayFloat16
+
+
+class Float32(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayFloat32]:
+        return TyArrayFloat32
+
+
+class Float64(_Number):
+    @property
+    def _tyarr_class(self) -> type[TyArrayFloat64]:
+        return TyArrayFloat64
+
+
+# Non-nullable Singleton instances
+bool_ = Bool()
+
+float16 = Float16()
+float32 = Float32()
+float64 = Float64()
+
+int16 = Int16()
+int32 = Int32()
+int64 = Int64()
+int8 = Int8()
+
+uint8 = Uint8()
+uint16 = Uint16()
+uint32 = Uint32()
+uint64 = Uint64()
+
+string = String()
+
+# Union types
+#
+# Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
+CoreFloatingDTypes = Float16 | Float32 | Float64
+CoreIntegerDTypes = Int8 | Int16 | Int32 | Int64 | Uint8 | Uint16 | Uint32 | Uint64
+CoreNumericDTypes = CoreFloatingDTypes | CoreIntegerDTypes
+CoreDTypes = Bool | CoreNumericDTypes | String
 
 
 class TyArray(TyArrayBase):
-    dtype: dtypes.CoreDTypes
+    dtype: CoreDTypes
     var: Var
 
     def __init__(self, var: Var):
@@ -54,7 +204,7 @@ class TyArray(TyArrayBase):
             # subclass of int array
             key_: GetitemIndexStatic | _CoreArray = _as_old_corarray(key)
         elif isinstance(key, TyArrayInteger):
-            key_ = _as_old_corarray(key.astype(dtypes.int64))
+            key_ = _as_old_corarray(key.astype(int64))
         else:
             key_ = key
 
@@ -70,7 +220,7 @@ class TyArray(TyArrayBase):
         if isinstance(key, TyArrayBool):
             key_: SetitemIndexStatic | _CoreArray = _as_old_corarray(key)
         elif isinstance(key, TyArrayInteger):
-            key_ = _as_old_corarray(key.astype(dtypes.int64))
+            key_ = _as_old_corarray(key.astype(int64))
         else:
             key_ = key
         ca[key_] = _as_old_corarray(value)
@@ -119,7 +269,7 @@ class TyArray(TyArrayBase):
         if isinstance(axis, int):
             axis = (axis,)
 
-        bools = self.astype(dtypes.bool_)
+        bools = self.astype(bool_)
 
         if bools.ndim == 0:
             if axis:
@@ -130,8 +280,8 @@ class TyArray(TyArrayBase):
         axes = op.const(list(axis), np.int64) if axis else None
 
         # max int8 is returned if dimensions are empty
-        var = op.reduce_min(bools.astype(dtypes.int8).var, axes=axes, keepdims=keepdims)
-        return safe_cast(TyArrayBool, TyArrayInt8(var).astype(dtypes.bool_))
+        var = op.reduce_min(bools.astype(int8).var, axes=axes, keepdims=keepdims)
+        return safe_cast(TyArrayBool, TyArrayInt8(var).astype(bool_))
 
     def disassemble(self) -> tuple[Components, Schema]:
         dtype_info = self.dtype._info
@@ -159,11 +309,21 @@ class TyArray(TyArrayBase):
     def as_core_dtype(self, dtype: CoreDTypes) -> TyArray:
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
-    def _astype(self, dtype: DType) -> TyArrayBase:
+    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, op.equal, True)
+
+    @overload
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArray, /
+    ) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType: ...
 
     def __ndx_where__(
         self, cond: TyArrayBool, y: TyArrayBase, /
@@ -175,6 +335,14 @@ class TyArray(TyArrayBase):
 
         return NotImplemented
 
+    @overload
+    def __ndx_maximum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_maximum__(
+        self, rhs: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
     def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
         if isinstance(rhs, TyArray):
             lhs, rhs = promote(self, rhs)
@@ -185,7 +353,7 @@ class TyArray(TyArrayBase):
 
 
 class TyArrayString(TyArray):
-    dtype = dtypes.string
+    dtype = string
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.add, op.string_concat, True)
@@ -195,7 +363,7 @@ class TyArrayString(TyArray):
 
 
 class TyArrayNumber(TyArray):
-    dtype: dtypes.CoreNumericDTypes
+    dtype: CoreNumericDTypes
 
     def sum(
         self,
@@ -205,14 +373,14 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        if dtype is not None and not isinstance(dtype, dtypes.CoreNumericDTypes):
+        if dtype is not None and not isinstance(dtype, CoreNumericDTypes):
             return self.astype(dtype).sum(axis=axis, dtype=dtype, keepdims=keepdims)
         elif dtype is None and isinstance(self, TyArrayInteger):
             # Input is signed
-            if self.dtype in (dtypes.int8, dtypes.int16, dtypes.int32, dtypes.int64):
-                dtype_: dtypes.CoreNumericDTypes = dtypes.int64
+            if self.dtype in (int8, int16, int32, int64):
+                dtype_: CoreNumericDTypes = int64
             else:
-                dtype_ = dtypes.uint64
+                dtype_ = uint64
         elif dtype is None:
             dtype_ = self.dtype
         else:
@@ -268,7 +436,7 @@ class TyArrayNumber(TyArray):
 
 
 class TyArrayInteger(TyArrayNumber):
-    dtype: dtypes.CoreIntegerDTypes
+    dtype: CoreIntegerDTypes
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
@@ -284,30 +452,8 @@ class TyArrayInteger(TyArrayNumber):
         return safe_cast(TyArrayBool, full_like(Array._from_data(self), False)._data)
 
 
-T = TypeVar("T", bound=TyArray)
-
-
-def _element_wise(
-    x: T, op: Callable[[Var], Var], via: dtypes._OnnxDType | None = None
-) -> T:
-    """Apply an element wise operations possible with an onnxruntime workaround ``via``
-    a different data type.
-
-    The workaround is only applied if
-    ``spox._value_prop._VALUE_PROP_BACKEND==spox._future.ValuePropBackend.ONNXRUNTIME``.
-    """
-    target_ort = (
-        spox._value_prop._VALUE_PROP_BACKEND
-        == spox._future.ValuePropBackend.ONNXRUNTIME
-    )
-    if via is not None and target_ort:
-        res = ascoredata(op(x.astype(via).var))
-        return safe_cast(type(x), res.astype(x.dtype))
-    return type(x)(op(x.var))
-
-
 class TyArrayFloating(TyArrayNumber):
-    dtype: dtypes.CoreFloatingDTypes
+    dtype: CoreFloatingDTypes
 
     def isinf(self) -> TyArrayBool:
         return TyArrayBool(op.isinf(self.var))
@@ -356,7 +502,7 @@ class TyArrayFloating(TyArrayNumber):
 
 
 class TyArrayBool(TyArray):
-    dtype = dtypes.bool_
+    dtype = bool_
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.or_, True)
@@ -370,47 +516,47 @@ class TyArrayBool(TyArray):
 
 
 class TyArrayInt8(TyArrayInteger):
-    dtype = dtypes.int8
+    dtype = int8
 
 
 class TyArrayInt16(TyArrayInteger):
-    dtype = dtypes.int16
+    dtype = int16
 
 
 class TyArrayInt32(TyArrayInteger):
-    dtype = dtypes.int32
+    dtype = int32
 
 
 class TyArrayInt64(TyArrayInteger):
-    dtype = dtypes.int64
+    dtype = int64
 
 
 class TyArrayUint8(TyArrayInteger):
-    dtype = dtypes.uint8
+    dtype = uint8
 
 
 class TyArrayUint16(TyArrayInteger):
-    dtype = dtypes.uint16
+    dtype = uint16
 
 
 class TyArrayUint32(TyArrayInteger):
-    dtype = dtypes.uint32
+    dtype = uint32
 
 
 class TyArrayUint64(TyArrayInteger):
-    dtype = dtypes.uint64
+    dtype = uint64
 
 
 class TyArrayFloat16(TyArrayFloating):
-    dtype = dtypes.float16
+    dtype = float16
 
 
 class TyArrayFloat32(TyArrayFloating):
-    dtype = dtypes.float32
+    dtype = float32
 
 
 class TyArrayFloat64(TyArrayFloating):
-    dtype = dtypes.float64
+    dtype = float64
 
 
 def ascoredata(var: Var) -> TyArray:
@@ -429,6 +575,26 @@ def all_items_are_int(
     seq: Sequence,
 ) -> TypeGuard[Sequence[int]]:
     return all(isinstance(d, int) for d in seq)
+
+
+T = TypeVar("T", bound=TyArray)
+
+
+def _element_wise(x: T, op: Callable[[Var], Var], via: _OnnxDType | None = None) -> T:
+    """Apply an element wise operations possible with an onnxruntime workaround ``via``
+    a different data type.
+
+    The workaround is only applied if
+    ``spox._value_prop._VALUE_PROP_BACKEND==spox._future.ValuePropBackend.ONNXRUNTIME``.
+    """
+    target_ort = (
+        spox._value_prop._VALUE_PROP_BACKEND
+        == spox._future.ValuePropBackend.ONNXRUNTIME
+    )
+    if via is not None and target_ort:
+        res = ascoredata(op(x.astype(via).var))
+        return safe_cast(type(x), res.astype(x.dtype))
+    return type(x)(op(x.var))
 
 
 def _promote_and_apply_op(
@@ -450,14 +616,6 @@ def _promote_and_apply_op(
     return NotImplemented
 
 
-def _remove_trailing_ellipsis_and_none_slice(
-    indices: tuple[int | slice | EllipsisType, ...],
-) -> tuple[int | slice | EllipsisType, ...]:
-    if indices[-1] in (..., slice(None)):
-        return _remove_trailing_ellipsis_and_none_slice(indices[:-1])
-    return tuple(indices)
-
-
 def _as_old_corarray(tyarr: TyArray) -> _CoreArray:
     from ndonnx._corearray import _CoreArray
 
@@ -472,3 +630,124 @@ def _as_old_corarray(tyarr: TyArray) -> _CoreArray:
     except ValueError:
         pass
     return ca
+
+
+#####################
+# Conversion tables #
+#####################
+
+# Promotion tables taken from:
+# https://data-apis.org/array-api/draft/API_specification/type_promotion.html#type-promotion
+# and
+# https://numpy.org/neps/nep-0050-scalar-promotion.html#motivation-and-scope
+_signed_signed: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
+    (int8, int8): int8,
+    (int16, int8): int16,
+    (int32, int8): int32,
+    (int64, int8): int64,
+    (int8, int16): int16,
+    (int16, int16): int16,
+    (int32, int16): int32,
+    (int64, int16): int64,
+    (int8, int32): int32,
+    (int16, int32): int32,
+    (int32, int32): int32,
+    (int64, int32): int64,
+    (int8, int64): int64,
+    (int16, int64): int64,
+    (int32, int64): int64,
+    (int64, int64): int64,
+}
+_unsigned_unsigned: dict[
+    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
+] = {
+    (uint8, uint8): uint8,
+    (uint16, uint8): uint16,
+    (uint32, uint8): uint32,
+    (uint64, uint8): uint64,
+    (uint8, uint16): uint16,
+    (uint16, uint16): uint16,
+    (uint32, uint16): uint32,
+    (uint64, uint16): uint64,
+    (uint8, uint32): uint32,
+    (uint16, uint32): uint32,
+    (uint32, uint32): uint32,
+    (uint64, uint32): uint64,
+    (uint8, uint64): uint64,
+    (uint16, uint64): uint64,
+    (uint32, uint64): uint64,
+    (uint64, uint64): uint64,
+}
+_mixed_integers: dict[
+    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
+] = {
+    (int8, uint8): int16,
+    (int16, uint8): int16,
+    (int32, uint8): int32,
+    (int64, uint8): int64,
+    (int8, uint16): int32,
+    (int16, uint16): int32,
+    (int32, uint16): int32,
+    (int64, uint16): int64,
+    (int8, uint32): int64,
+    (int16, uint32): int64,
+    (int32, uint32): int64,
+    (int64, uint32): int64,
+    # NOTE: Standard does not define interaction with uint64!
+}
+
+_floating_floating: dict[
+    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
+] = {
+    (float32, float32): float32,
+    (float32, float64): float64,
+    (float64, float32): float64,
+    (float64, float64): float64,
+}
+
+# Non-standard interactions
+_non_standard: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
+    (int8, uint64): float64,
+    (int16, uint64): float64,
+    (int32, uint64): float64,
+    (int64, uint64): float64,
+}
+
+# Mixed integers and floating point numbers are not
+# strictly defined, but generally we want to cast the
+# integer to a floating point and then try again.
+_int_to_floating: dict[CoreNumericDTypes, CoreNumericDTypes] = {
+    int8: float16,
+    uint8: float16,
+    int16: float32,
+    uint16: float32,
+    int32: float64,
+    uint32: float64,
+    int64: float64,
+    uint64: float64,
+}
+
+
+def _result_type_core_numeric(
+    a: CoreNumericDTypes, b: CoreNumericDTypes
+) -> CoreNumericDTypes:
+    # Attempt promotion between known types. The implementation is not
+    # using `isinstance` to avoid subclassing issues.
+    if ret := _signed_signed.get((a, b)):
+        return ret
+    if ret := _unsigned_unsigned.get((a, b)):
+        return ret
+    if ret := _mixed_integers.get((a, b)):
+        return ret
+    if ret := _floating_floating.get((a, b)):
+        return ret
+    if ret := _non_standard.get((a, b)):
+        return ret
+    if a_floating := _int_to_floating.get(a):
+        return _result_type_core_numeric(a_floating, b)
+    if b_floating := _int_to_floating.get(b):
+        return _result_type_core_numeric(a, b_floating)
+
+    # TODO: Do bools and strings
+
+    raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")

@@ -5,20 +5,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from types import NotImplementedType
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING
 
 import numpy as np
 from typing_extensions import Self
 
-from .. import dtypes
-from ..dtypes import (
-    DType,
-)
+from ..dtypes import TY_ARRAY, DType
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
     from ..schema import Components, Schema
-    from . import TyArray, TyArrayBool, TyArrayInt64
+    from . import TyArrayBool, TyArrayInt64
     from .indexing import GetitemIndex, SetitemIndex
 
 
@@ -72,16 +69,7 @@ class TyArrayBase(ABC):
     def disassemble(self) -> tuple[Components, Schema]:
         raise NotImplementedError
 
-    @overload
-    def astype(self, dtype: dtypes.CoreDTypes) -> TyArray: ...
-
-    @overload
-    def astype(self, dtype: dtypes._OnnxDType) -> TyArray: ...
-
-    @overload
-    def astype(self, dtype: DType) -> TyArrayBase: ...
-
-    def astype(self, dtype: DType) -> TyArrayBase:
+    def astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
         res = self._astype(dtype)
         if res is NotImplemented:
@@ -92,7 +80,7 @@ class TyArrayBase(ABC):
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
     @abstractmethod
-    def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
+    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         """Reflective sibling method for `Self.from_typed_array` which must thus not
         call the latter.
 

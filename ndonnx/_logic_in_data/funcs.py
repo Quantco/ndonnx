@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import numpy as np
 
+import ndonnx._logic_in_data as ndx
+
 from . import DType, dtypes
 from .array import Array, asarray
 
@@ -30,10 +32,10 @@ def arange(
         if builtins.all(
             isinstance(el, int) for el in [start, stop, step] if el is not None
         ):
-            dtype = dtypes.default_int
+            dtype = ndx._default_int
         else:
-            dtype = dtypes.default_float
-    dtype = dtype or dtypes.default_float
+            dtype = ndx._default_float
+    dtype = dtype or ndx._default_float
     if not isinstance(dtype, dtypes.CoreDTypes):
         raise ValueError(f"Only core data types are supported, found `{dtype}`")
 
@@ -96,11 +98,11 @@ def full(
         shape = (shape,)
     if dtype is None:
         if isinstance(fill_value, bool):
-            dtype = dtypes.bool_
+            dtype = ndx.bool
         elif isinstance(fill_value, int):
-            dtype = dtypes.default_int
+            dtype = ndx._default_int
         elif isinstance(fill_value, float):
-            dtype = dtypes.default_float
+            dtype = ndx._default_float
         else:
             raise TypeError(f"Unexpected 'fill_value' type `{type(fill_value)}`")
     return broadcast_to(asarray(fill_value, dtype=dtype), shape)
@@ -129,7 +131,7 @@ def linspace(
     device=None,
     endpoint: bool = True,
 ) -> Array:
-    dtype = dtype or dtypes.default_float
+    dtype = dtype or ndx._default_float
     if not isinstance(dtype, dtypes.CoreDTypes):
         raise ValueError(f"Only core data types are supported, found `{dtype}`")
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
@@ -138,7 +140,7 @@ def linspace(
 def ones(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:
-    dtype = dtype or dtypes.default_float
+    dtype = dtype or ndx._default_float
     return full(shape, 1, dtype=dtype)
 
 
@@ -181,7 +183,7 @@ def where(cond: Array, a: Array, b: Array) -> Array:
 def zeros(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:
-    dtype = dtype or dtypes.default_float
+    dtype = dtype or ndx._default_float
     return full(shape, 0, dtype=dtype)
 
 

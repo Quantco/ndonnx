@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from .array import Array, asarray
-from .dtypes import (
+from .dtypes import DType
+from ._typed_array.onnx import (
     int8,
     int16,
     int32,
@@ -14,8 +15,23 @@ from .dtypes import (
     float16,
     float32,
     float64,
+    string,
     bool_ as bool,
-    DType,
+)
+from ._typed_array.masked_onnx import (
+    nint8,
+    nint16,
+    nint32,
+    nint64,
+    nuint8,
+    nuint16,
+    nuint32,
+    nuint64,
+    nfloat16,
+    nfloat32,
+    nfloat64,
+    nstring,
+    nbool,
 )
 from .funcs import (
     astype,
@@ -56,9 +72,14 @@ from .infos import finfo, iinfo
 from .namespace_info import __array_namespace_info__
 from .constants import e, inf, nan, pi, newaxis
 
+_default_int = int64
+_default_float = float64
+
 __all__ = [
     "__array_namespace_info__",
     "Array",
+    "DType",
+    # ONNX data types
     "int8",
     "int16",
     "int32",
@@ -70,8 +91,22 @@ __all__ = [
     "float16",
     "float32",
     "float64",
+    "string",
     "bool",
-    "DType",
+    # masked ONNX data types
+    "nint8",
+    "nint16",
+    "nint32",
+    "nint64",
+    "nuint8",
+    "nuint16",
+    "nuint32",
+    "nuint64",
+    "nfloat16",
+    "nfloat32",
+    "nfloat64",
+    "nbool",
+    "nstring",
     "abs",
     "acos",
     "acos",

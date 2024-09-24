@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import dtypes
+from ._typed_array import masked_onnx, onnx
 from .array import Array
 from .dtypes import DType
 
@@ -25,9 +26,9 @@ class Iinfo:
 def iinfo(ty: DType | Array, /) -> Iinfo:
     if isinstance(ty, Array):
         ty = ty.dtype
-    if isinstance(ty, dtypes.NCoreIntegerDTypes):
-        npdtype = dtypes.as_numpy(dtypes.as_non_nullable(ty))
-    elif isinstance(ty, dtypes.CoreIntegerDTypes):
+    if isinstance(ty, masked_onnx.NCoreIntegerDTypes):
+        npdtype = dtypes.as_numpy(masked_onnx.as_non_nullable(ty))
+    elif isinstance(ty, onnx.CoreIntegerDTypes):
         npdtype = dtypes.as_numpy(ty)
     else:
         raise ValueError(f"'Iinfo' not available for type `{ty}`")
@@ -54,9 +55,9 @@ class Finfo:
 def finfo(ty: DType | Array, /):
     if isinstance(ty, Array):
         ty = ty.dtype
-    if isinstance(ty, dtypes.NCoreFloatingDTypes):
-        npdtype = dtypes.as_numpy(dtypes.as_non_nullable(ty))
-    elif isinstance(ty, dtypes.CoreFloatingDTypes):
+    if isinstance(ty, masked_onnx.NCoreFloatingDTypes):
+        npdtype = dtypes.as_numpy(masked_onnx.as_non_nullable(ty))
+    elif isinstance(ty, onnx.CoreFloatingDTypes):
         npdtype = dtypes.as_numpy(ty)
     else:
         raise ValueError(f"'FIinfo' not available for type `{ty}`")

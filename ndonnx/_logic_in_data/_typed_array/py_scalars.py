@@ -11,16 +11,94 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from typing_extensions import Self
 
+import ndonnx._logic_in_data as ndx
+
 from .. import dtypes
-from ..dtypes import DType
-from . import TyArray, TyArrayInteger, TyMaArray
+from ..dtypes import TY_ARRAY, DType
+from . import TyArray, TyArrayInteger, TyMaArray, masked_onnx, onnx
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
-    from ..schema import Components, Schema
-    from . import TyArrayBool, TyArrayInt64
+    from ..schema import Components, DTypeInfo, Schema
+
+
+class PyString(DType):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, onnx.String | masked_onnx.NString):
+            return other
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayPyString]:
+        return TyArrayPyString
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
+        raise NotImplementedError
+
+    def _argument(self, shape: OnnxShape):
+        raise ValueError("'{type(self)}' cannot be used as a model argument")
+
+    @property
+    def _info(self) -> DTypeInfo:
+        raise ValueError("'_PyString' has not public schema information")
+
+
+class PyInteger(DType):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, onnx.CoreNumericDTypes | masked_onnx.NCoreNumericDTypes):
+            return other
+        if isinstance(other, onnx.Bool):
+            return ndx._default_int
+        if isinstance(other, masked_onnx.NBool):
+            return masked_onnx.as_nullable(ndx._default_int)
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayPyInt]:
+        return TyArrayPyInt
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
+        raise NotImplementedError
+
+    def _argument(self, shape: OnnxShape):
+        raise ValueError("'{type(self)}' cannot be used as a model argument")
+
+    @property
+    def _info(self) -> DTypeInfo:
+        raise ValueError("'_PyInt' has not public schema information")
+
+
+class PyFloat(DType):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, onnx.CoreIntegerDTypes):
+            return onnx.float64
+        if isinstance(other, masked_onnx.NCoreIntegerDTypes):
+            return masked_onnx.nfloat64
+        if isinstance(other, onnx.CoreFloatingDTypes | masked_onnx.NCoreFloatingDTypes):
+            return other
+        raise ValueError
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayPyFloat]:
+        return TyArrayPyFloat
+
+    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
+        raise NotImplementedError
+
+    @property
+    def _info(self) -> DTypeInfo:
+        raise ValueError("'_PyInt' has not public schema information")
+
+    def _argument(self, shape: OnnxShape):
+        raise ValueError("'{type(self)}' cannot be used as a model argument")
+
+
+# scalar singleton instances
+pyint = PyInteger()
+pyfloat = PyFloat()
+pystring = PyString()
 
 
 class _ArrayPyScalar(TyArrayBase):
@@ -31,7 +109,7 @@ class _ArrayPyScalar(TyArrayBase):
     array, though. Thus, this implementation may serve as a blue print for custom types.
     """
 
-    dtype: dtypes.PyFloat | dtypes.PyInteger | dtypes.PyString
+    dtype: PyFloat | PyInteger | PyString
     value: int | float | str
 
     def __getitem__(self, index) -> Self:
@@ -51,30 +129,34 @@ class _ArrayPyScalar(TyArrayBase):
         return ()
 
     @property
-    def dynamic_shape(self) -> TyArrayInt64:
+    def dynamic_shape(self) -> onnx.TyArrayInt64:
         raise ValueError("'dynamic_shape' should never be called on Python scalar")
 
     def reshape(self, shape: tuple[int, ...]) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+    def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         raise ValueError("cannot broadcast Python scalar")
 
-    def where(self, cond: TyArrayBool, y: TyArrayBase) -> TyArrayBase:
+    def where(self, cond: onnx.TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
 
-    def _astype(self, dtype: DType) -> TyArrayBase | NotImplementedType:
+    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         from . import asncoredata
+
+        # mypy gets confused with the generic return type after the
+        # narrowing so we put it aside here.
+        res_ty = dtype._tyarr_class
 
         # We implement this class under the assumption that the other
         # built-in typed arrays do not know about it. Thus, we define
         # the mapping from this class into those classes **here**.
-        if isinstance(dtype, dtypes.CoreDTypes):
+        if isinstance(dtype, onnx.CoreDTypes):
             np_arr = np.array(self.value, dtypes.as_numpy(dtype))
-            return dtype._tyarr_class(op.const(np_arr))
-        if isinstance(dtype, dtypes.NCoreDTypes):
+            return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
+        if isinstance(dtype, masked_onnx.NCoreDTypes):
             unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
-            return asncoredata(unmasked_typed_arr, None)
+            return safe_cast(res_ty, asncoredata(unmasked_typed_arr, None))
         return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:
@@ -114,7 +196,7 @@ class _ArrayPyScalarNumber(_ArrayPyScalar):
 
 
 class TyArrayPyInt(_ArrayPyScalarNumber):
-    dtype = dtypes.pyint
+    dtype = pyint
 
     def __init__(self, value: int):
         # int is subclass of bool
@@ -129,7 +211,7 @@ class TyArrayPyInt(_ArrayPyScalarNumber):
 
 
 class TyArrayPyFloat(_ArrayPyScalarNumber):
-    dtype = dtypes.pyfloat
+    dtype = pyfloat
 
     def __init__(self, value: float):
         if not isinstance(value, float):
@@ -138,7 +220,7 @@ class TyArrayPyFloat(_ArrayPyScalarNumber):
 
 
 class TyArrayPyString(_ArrayPyScalar):
-    dtype = dtypes.pystring
+    dtype = pystring
 
     def __init__(self, value: str):
         if not isinstance(value, str):

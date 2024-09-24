@@ -3,31 +3,32 @@
 
 from typing import TypedDict
 
-from . import dtypes
+from ._typed_array import onnx
+from .dtypes import DType
 
 DefaultDataTypes = TypedDict(
     "DefaultDataTypes",
     {
-        "real floating": dtypes.DType,
-        "complex floating": dtypes.DType,
-        "integral": dtypes.DType,
-        "indexing": dtypes.DType,
+        "real floating": DType,
+        "complex floating": DType,
+        "integral": DType,
+        "indexing": DType,
     },
 )
 
 
 class DataTypes(TypedDict, total=False):
-    bool: dtypes.DType
-    float32: dtypes.DType
-    float64: dtypes.DType
-    int8: dtypes.DType
-    int16: dtypes.DType
-    int32: dtypes.DType
-    int64: dtypes.DType
-    uint8: dtypes.DType
-    uint16: dtypes.DType
-    uint32: dtypes.DType
-    uint64: dtypes.DType
+    bool: DType
+    float32: DType
+    float64: DType
+    int8: DType
+    int16: DType
+    int32: DType
+    int64: DType
+    uint8: DType
+    uint16: DType
+    uint32: DType
+    uint64: DType
 
 
 Capabilities = TypedDict(
@@ -57,10 +58,10 @@ class Info:
     def default_dtypes(self, *, device: None) -> DefaultDataTypes:
         # TODO: We are not standard compliant until we support complex numbers
         return {  # type: ignore
-            "real floating": dtypes.default_float,
-            # "complex floating": dtypes.complex128,
-            "integral": dtypes.default_int,
-            "indexing": dtypes.default_int,
+            "real floating": onnx.default_float,
+            # "complex floating": onnx.complex128,
+            "integral": onnx.default_int,
+            "indexing": onnx.default_int,
         }
 
     def devices(self) -> list[None]:
@@ -68,19 +69,19 @@ class Info:
 
     def dtypes(self, *, device: None, kind: None | str | tuple[str, ...]) -> DataTypes:
         return {
-            "bool": dtypes.bool_,
-            "float32": dtypes.float32,
-            "float64": dtypes.float64,
-            # "complex64": dtypes.DType,
-            # "complex128": dtypes.DType,
-            "int8": dtypes.int8,
-            "int16": dtypes.int16,
-            "int32": dtypes.int32,
-            "int64": dtypes.int64,
-            "uint8": dtypes.uint8,
-            "uint16": dtypes.uint16,
-            "uint32": dtypes.uint32,
-            "uint64": dtypes.uint64,
+            "bool": onnx.bool_,
+            "float32": onnx.float32,
+            "float64": onnx.float64,
+            # "complex64": DType,
+            # "complex128": DType,
+            "int8": onnx.int8,
+            "int16": onnx.int16,
+            "int32": onnx.int32,
+            "int64": onnx.int64,
+            "uint8": onnx.uint8,
+            "uint16": onnx.uint16,
+            "uint32": onnx.uint32,
+            "uint64": onnx.uint64,
         }
 
 
