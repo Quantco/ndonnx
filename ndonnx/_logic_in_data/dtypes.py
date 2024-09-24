@@ -30,7 +30,7 @@ class DType(ABC, Generic[TY_ARRAY]):
     @property
     @abstractmethod
     def _tyarr_class(self) -> type[TY_ARRAY]:
-        """Consider using  `_tyarray_from_tyarray` or `_argument` instead of.
+        """Consider using  ``TyArrayBase.astype`` or ``_argument`` instead of.
 
         Those functions better provide the dtype instance (with it's state) to the newly
         instantiated array.
@@ -38,9 +38,12 @@ class DType(ABC, Generic[TY_ARRAY]):
         ...
 
     @abstractmethod
-    def _tyarray_from_tyarray(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY:
-        # TODO: Find a better name and add a docstring
-        # replaces `TyArrayBase.from_typed_array`
+    def __ndx_convert_tyarray__(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY:
+        """Convert the given array to this data type.
+
+        This function is used to implement ``TyArrayBase.astype`` and
+        should not be called directly.
+        """
         ...
 
     @abstractmethod
@@ -167,6 +170,3 @@ def as_numpy(dtype: onnx._OnnxDType) -> np.dtype:
 
     # Should never happen
     raise ValueError(f"'{dtype}' does not have a corresponding NumPy data type")
-
-
-DTYPE = TypeVar("DTYPE", bound=DType)

@@ -70,16 +70,16 @@ class TyArrayBase(ABC):
 
     def astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
-        res = self._astype(dtype)
+        res = self.__ndx_astype__(dtype)
         if res is NotImplemented:
             # `type(self._data)` does not know about the target `dtype`
-            res = dtype._tyarray_from_tyarray(self)
+            res = dtype.__ndx_convert_tyarray__(self)
         if res is not NotImplemented:
             return res
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
     @abstractmethod
-    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         """Reflective sibling method for `DType._tyarray_from_tyarray` which must thus
         not call the latter.
 

@@ -44,7 +44,7 @@ class BaseTimeDType(DType):
             return self
         return NotImplemented
 
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TimeBaseArray:
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TimeBaseArray:
         raise NotImplementedError
 
     def __repr__(self) -> str:
@@ -70,7 +70,7 @@ class DateTime(BaseTimeDType):
     def _tyarr_class(self) -> type[TyArrayDateTime]:
         return TyArrayDateTime
 
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TyArrayDateTime:
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TyArrayDateTime:
         if isinstance(arr, onnx.TyArrayInteger):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
             is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
@@ -174,7 +174,7 @@ class TyArrayTimeDelta(TimeBaseArray):
         self.data = data
         self.dtype = TimeDelta(unit)
 
-    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.CoreIntegerDTypes):
             data = typed_where(self.is_nat, _NAT_SENTINEL, self.data)
@@ -234,7 +234,7 @@ class TyArrayDateTime(TimeBaseArray):
         out[is_nat] = np.array("NaT", "datetime64")
         return out
 
-    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.CoreIntegerDTypes):
             data = typed_where(

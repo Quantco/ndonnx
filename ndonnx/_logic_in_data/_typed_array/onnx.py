@@ -44,7 +44,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
     @abstractmethod
     def _tyarr_class(self) -> type[TY_ARRAY_ONNX]: ...
 
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TY_ARRAY_ONNX:
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_ARRAY_ONNX:
         if isinstance(arr, TyArray):
             var = op.cast(arr.var, to=as_numpy(self))
             return safe_cast(self._tyarr_class, ascoredata(var))
@@ -309,7 +309,7 @@ class TyArray(TyArrayBase):
     def as_core_dtype(self, dtype: CoreDTypes) -> TyArray:
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
-    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:

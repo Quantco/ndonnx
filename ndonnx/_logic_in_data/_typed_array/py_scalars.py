@@ -25,17 +25,8 @@ if TYPE_CHECKING:
     from .indexing import SetitemIndex
 
 
-class PyString(DType):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, onnx.String | masked_onnx.NString):
-            return other
-        return NotImplemented
-
-    @property
-    def _tyarr_class(self) -> type[TyArrayPyString]:
-        return TyArrayPyString
-
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
+class _PyScalar(DType):
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> Self:
         raise NotImplementedError
 
     def _argument(self, shape: OnnxShape):
@@ -46,7 +37,18 @@ class PyString(DType):
         raise ValueError("'_PyString' has not public schema information")
 
 
-class PyInteger(DType):
+class PyString(_PyScalar):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, onnx.String | masked_onnx.NString):
+            return other
+        return NotImplemented
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayPyString]:
+        return TyArrayPyString
+
+
+class PyInteger(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.CoreNumericDTypes | masked_onnx.NCoreNumericDTypes):
             return other
@@ -60,18 +62,8 @@ class PyInteger(DType):
     def _tyarr_class(self) -> type[TyArrayPyInt]:
         return TyArrayPyInt
 
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
-        raise NotImplementedError
 
-    def _argument(self, shape: OnnxShape):
-        raise ValueError("'{type(self)}' cannot be used as a model argument")
-
-    @property
-    def _info(self) -> DTypeInfo:
-        raise ValueError("'_PyInt' has not public schema information")
-
-
-class PyFloat(DType):
+class PyFloat(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.CoreIntegerDTypes):
             return onnx.float64
@@ -84,16 +76,6 @@ class PyFloat(DType):
     @property
     def _tyarr_class(self) -> type[TyArrayPyFloat]:
         return TyArrayPyFloat
-
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> Self:
-        raise NotImplementedError
-
-    @property
-    def _info(self) -> DTypeInfo:
-        raise ValueError("'_PyInt' has not public schema information")
-
-    def _argument(self, shape: OnnxShape):
-        raise ValueError("'{type(self)}' cannot be used as a model argument")
 
 
 # scalar singleton instances
@@ -150,7 +132,7 @@ class _ArrayPyScalar(TyArrayBase):
     def where(self, cond: onnx.TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
 
-    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         from . import asncoredata
 
         # mypy gets confused with the generic return type after the
@@ -164,7 +146,7 @@ class _ArrayPyScalar(TyArrayBase):
             np_arr = np.array(self.value, dtypes.as_numpy(dtype))
             return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
         if isinstance(dtype, masked_onnx.NCoreDTypes):
-            unmasked_typed_arr = self._astype(dtype._unmasked_dtype)
+            unmasked_typed_arr = self.__ndx_astype__(dtype._unmasked_dtype)
             return safe_cast(res_ty, asncoredata(unmasked_typed_arr, None))
         return NotImplemented
 

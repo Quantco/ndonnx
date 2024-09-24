@@ -39,7 +39,7 @@ TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
     _unmasked_dtype: onnx.CoreDTypes
 
-    def _tyarray_from_tyarray(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
         if isinstance(arr, onnx.TyArray):
             return asncoredata(arr, None).astype(self)
         if isinstance(arr, TyMaArray):
@@ -309,7 +309,7 @@ class TyMaArray(TyMaArrayBase):
             # TODO
             raise NotImplementedError
 
-    def _astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # Implemented under the assumption that we know about core, but not py_scalars
         if isinstance(dtype, onnx.CoreDTypes):
             # TODO: Not clear what the behavior should be if we have a mask
