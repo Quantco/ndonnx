@@ -129,6 +129,12 @@ class TimeBaseArray(TyArrayBase):
         )
         return components, schema
 
+    def __ndx_value_repr__(self):
+        return {
+            "data": self.data.__ndx_value_repr__()["data"],
+            "is_nat": self.is_nat.__ndx_value_repr__()["data"],
+        }
+
     def __getitem__(self, index: GetitemIndex) -> Self:
         is_nat = self.is_nat[index]
         data = self.data[index]

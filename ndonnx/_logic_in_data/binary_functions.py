@@ -15,7 +15,7 @@ def add(a: Array, b: Array) -> Array:
 
 
 def atan2(x1: Array, x2: Array, /) -> Array:
-    # TODO: Consider special cases defined in standard
+    # TODO: Remove or implement special cases of standard. Right now, it is just wrong!
     return atan(x1 / x2)
 
 

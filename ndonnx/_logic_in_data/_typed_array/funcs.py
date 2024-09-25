@@ -8,9 +8,10 @@ from spox import Var
 import ndonnx._logic_in_data as ndx
 
 from ..dtypes import DType
-from .onnx import ascoredata
+from . import masked_onnx, onnx
 from .py_scalars import TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase
+from .utils import safe_cast
 
 
 def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
@@ -50,11 +51,16 @@ def astypedarray(
         arr = TyArrayPyString(val)
         arr = arr if use_py_scalars else arr.astype(ndx.string)
     elif isinstance(val, Var):
-        arr = ascoredata(val)
+        arr = onnx.ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):
-        raise NotImplementedError
+        data = onnx.ascoredata(op.const(val.data))
+        if val.mask == np.ma.nomask:
+            mask = None
+        else:
+            mask = safe_cast(onnx.TyArrayBool, onnx.ascoredata(op.const(val.mask)))
+        arr = masked_onnx.asncoredata(data, mask)
     elif isinstance(val, np.ndarray):
-        arr = ascoredata(op.const(val))
+        arr = onnx.ascoredata(op.const(val))
     else:
         raise ValueError
 

@@ -10,10 +10,9 @@ from types import EllipsisType, NotImplementedType
 from typing import Any, Optional, Union, overload
 
 import numpy as np
-import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
-from ._typed_array import TyArrayBase, ascoredata
+from ._typed_array import TyArrayBase
 from ._typed_array.funcs import astypedarray
 from .dtypes import DType
 
@@ -259,18 +258,10 @@ class Array:
         raise NotImplementedError
 
     def __repr__(self) -> str:
-        from ._typed_array import onnx
-
-        # TODO: Visualize if we have a constant or something lazy for non-core types
-        val = None
-        if isinstance(self.dtype, onnx.CoreDTypes):
-            try:
-                val = self.unwrap_numpy().tolist()
-            except ValueError:
-                pass
-        if val is not None:
-            return f"array({val}, shape={self.shape}, dtype={self.dtype})"
-        return f"array(shape={self.shape}, dtype={self.dtype})"
+        value_repr = ", ".join(
+            [f"{k}: {v}" for k, v in self._data.__ndx_value_repr__().items()]
+        )
+        return f"array({value_repr}, shape={self.shape}, dtype={self.dtype})"
 
 
 def asarray(
@@ -287,7 +278,7 @@ def asarray(
         return obj
     if isinstance(obj, bool | int | float):
         obj = np.array(obj)
-    data: TyArrayBase = ascoredata(op.const(obj))
+    data = astypedarray(obj)
     if dtype:
         data = data.astype(dtype)
     return Array._from_data(data)

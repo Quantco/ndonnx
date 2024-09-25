@@ -14,7 +14,9 @@ from typing_extensions import Self
 from ..dtypes import TY_ARRAY, DType
 from ..schema import DTypeInfo, Schema, flatten_components
 from . import onnx
+from .funcs import astypedarray
 from .typed_array import TyArrayBase
+from .utils import safe_cast
 
 if TYPE_CHECKING:
     from ..array import OnnxShape
@@ -253,6 +255,14 @@ class TyMaArrayBase(TyArrayBase):
         )
         return components, schema
 
+    def __ndx_value_repr__(self) -> dict[str, str]:
+        reps = {}
+        reps["data"] = self.data.__ndx_value_repr__()["data"]
+        reps["mask"] = (
+            "None" if self.mask is None else self.mask.__ndx_value_repr__()["data"]
+        )
+        return reps
+
 
 class TyMaArray(TyMaArrayBase):
     """Masked version of core types.
@@ -302,12 +312,20 @@ class TyMaArray(TyMaArrayBase):
 
     def __setitem__(self, index: SetitemIndex, value: Self) -> None:
         self.data[index] = value.data
-        mask = _merge_masks(None if self.mask is None else self.mask[index], value.mask)
-        if self.mask is not None and mask is not None:
-            self.mask[index] = mask
+        new_mask = _merge_masks(
+            None if self.mask is None else self.mask[index], value.mask
+        )
+        breakpoint
+        if new_mask is None:
+            return
+        if self.mask is None:
+            shape = self.dynamic_shape
+            self.mask = safe_cast(
+                onnx.TyArrayBool, astypedarray(False).broadcast_to(shape)
+            )
+            self.mask[index] = new_mask
         else:
-            # TODO
-            raise NotImplementedError
+            self.mask[index] = new_mask
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # Implemented under the assumption that we know about core, but not py_scalars

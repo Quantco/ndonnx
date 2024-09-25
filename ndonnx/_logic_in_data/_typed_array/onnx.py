@@ -194,6 +194,12 @@ class TyArray(TyArrayBase):
             raise ValueError(f"data type of 'var' is incompatible with `{type(self)}`")
         self.var = var
 
+    def __ndx_value_repr__(self) -> dict[str, str]:
+        try:
+            return {"data": str(self.unwrap_numpy().tolist())}
+        except ValueError:
+            return {"data": "*lazy*"}
+
     def __getitem__(self, key: GetitemIndex) -> Self:
         if isinstance(key, TyArrayInt64):
             raise NotImplementedError

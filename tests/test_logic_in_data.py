@@ -288,11 +288,13 @@ def test_indexing_value_prop_tuple_index():
 
 
 @pytest.mark.parametrize("idx", [(0, 1), (-1, ...), (..., 1), (-1, ..., 1)])
-@pytest.mark.parametrize("np_array", [np.asarray([[42, 42]])])
+@pytest.mark.parametrize(
+    "np_array",
+    [np.asarray([[42, 42]]), np.ma.asarray([[42, 42]])],
+)
 def test_indexing_setitem_scalar(np_array, idx):
     np_array = np_array.copy()
     arr = asarray(np_array.copy())
-
     arr[idx] = -1
     np_array[idx] = -1
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)
@@ -367,3 +369,23 @@ def test_string_arrays(value, string_dtype):
     else:
         # TODO: Properly implement eq for masked arrays
         assert arr2._data[0].data == arr._data.data  # type: ignore
+
+
+def test_repr_eager():
+    assert "array(data: [1], shape=(1,), dtype=Int64)" == str(asarray(np.array([1])))
+    assert "array(data: [1], mask: None, shape=(1,), dtype=NInt64)" == str(
+        asarray(np.ma.array([1]))
+    )
+    assert "array(data: [1], mask: [True], shape=(1,), dtype=NInt64)" == str(
+        asarray(np.ma.array([1], mask=[True]))
+    )
+
+
+def test_repr_lazy():
+    # TODO: Show dynamic shape parameters rather than `None`
+    assert "array(data: *lazy*, shape=(None,), dtype=Int64)" == str(
+        Array(("N",), ndx.int64)
+    )
+    assert "array(data: *lazy*, mask: *lazy*, shape=(None,), dtype=NInt64)" == str(
+        Array(("N",), ndx.nint64)
+    )

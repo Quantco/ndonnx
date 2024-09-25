@@ -15,7 +15,7 @@ import ndonnx._logic_in_data as ndx
 
 from .. import dtypes
 from ..dtypes import TY_ARRAY, DType
-from . import TyArray, TyArrayInteger, TyMaArray, masked_onnx, onnx
+from . import masked_onnx, onnx
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
@@ -94,6 +94,9 @@ class _ArrayPyScalar(TyArrayBase):
 
     dtype: PyFloat | PyInteger | PyString
     value: int | float | str
+
+    def __ndx_value_repr__(self):
+        return {"value": str(self.value)}
 
     def __getitem__(self, index) -> Self:
         raise IndexError(f"`{type(self)}` cannot be indexed")
@@ -195,8 +198,8 @@ class TyArrayPyInt(_ArrayPyScalarNumber):
             raise TypeError(f"expected 'int' or 'bool' found `{type(value)}`")
         self.value = value
 
-    def __or__(self, rhs: TyArrayBase) -> TyArray | TyMaArray:
-        if isinstance(rhs, TyArrayInteger):
+    def __or__(self, rhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
+        if isinstance(rhs, onnx.TyArrayInteger):
             return _promote_and_apply_op(self, rhs, operator.or_, True)
         return NotImplemented
 
@@ -230,12 +233,12 @@ def _promote_and_apply_op(
     other: TyArrayBase,
     arr_op: Callable[[Any, Any], Any],
     forward: bool,
-) -> TyArray | TyMaArray | NotImplementedType:
-    if isinstance(other, TyArray | TyMaArray):
+) -> onnx.TyArray | masked_onnx.TyMaArray | NotImplementedType:
+    if isinstance(other, onnx.TyArray | masked_onnx.TyMaArray):
         this_, other = promote(this, other)
         res = arr_op(this_, other) if forward else arr_op(other, this_)
         # I am not sure how to annotate `safe_cast` such that it can handle union types.
-        return safe_cast(TyArray | TyMaArray, res)  # type: ignore
+        return safe_cast(onnx.TyArray | masked_onnx.TyMaArray, res)  # type: ignore
 
     # We only know about the other (nullable) built-in types &
     # these scalars should never interact with themselves.

@@ -29,6 +29,10 @@ class TyArrayBase(ABC):
         return f"{type(self).__name__}({self.__dict__})"
 
     @abstractmethod
+    def __ndx_value_repr__(self) -> dict[str, str]:
+        """A string representation of the fields to be used in ``Array.__repr__```."""
+
+    @abstractmethod
     def __getitem__(self, index: GetitemIndex) -> Self: ...
 
     @abstractmethod
