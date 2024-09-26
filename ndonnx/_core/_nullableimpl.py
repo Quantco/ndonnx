@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Union
 
+import numpy as np
+
 import ndonnx as ndx
 
 from ._shapeimpl import UniformShapeOperations
-from ._utils import validate_core
+from ._utils import assemble_output_recurse, validate_core
 
 if TYPE_CHECKING:
     from ndonnx._array import Array
@@ -35,3 +37,33 @@ class NullableOperationsImpl(UniformShapeOperations):
             x = ndx.astype(x, target_dtype)
             y = ndx.astype(y, target_dtype)
         return super().where(condition, x, y)
+
+    def make_array(
+        self,
+        shape: tuple[int | None | str, ...],
+        dtype: Dtype,
+        eager_value: np.ndarray | None = None,
+    ) -> Array:
+        if not isinstance(dtype, ndx.Nullable):
+            return NotImplemented
+
+        if eager_value is not None:
+            eager_values = dtype._parse_input(eager_value)
+            values_np = assemble_output_recurse(dtype.values, eager_values["values"])
+            values = ndx.asarray(values_np, dtype=dtype.values)
+            null = ndx.asarray(
+                np.broadcast_to(
+                    assemble_output_recurse(dtype.null, eager_values["null"]),
+                    values_np.shape,
+                ),
+                dtype=dtype.null,
+            )
+        else:
+            values = ndx.array(shape=shape, dtype=dtype.values)
+            null = ndx.array(shape=shape, dtype=dtype.null)
+
+        return ndx.Array._from_fields(
+            dtype,
+            values=values,
+            null=null,
+        )

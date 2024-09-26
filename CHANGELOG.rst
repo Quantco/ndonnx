@@ -7,6 +7,13 @@
 Changelog
 =========
 
+0.9.1 (unreleased)
+------------------
+
+**Bug fix**
+
+- Fixed a bug in the construction of nullable arrays using :func:`ndonnx.asarray` where the shape of the null field would not match the values field if the provided `np.ma.MaskedArray`'s mask was scalar.
+
 
 0.9.0 (2024-08-30)
 ------------------

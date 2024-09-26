@@ -254,3 +254,23 @@ def test_broadcasting(arrays):
         # NumPy simply drops the masked array.
         # We do not want to do the same quite intentionally.
         np.testing.assert_equal(a.to_numpy(), e)
+
+
+@pytest.mark.parametrize(
+    "np_array",
+    [
+        np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64),
+        np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.float64),
+        np.ma.masked_array([1, 2]),
+        np.ma.masked_array(["a", "b"], mask=True),
+        np.ma.masked_array([1, 2, 3], mask=[[[0]]]),
+        np.ma.masked_array([[1, 2, 3]], mask=[True, False, True]),
+        np.ma.masked_array([1.0, 2.0, 3.0], mask=[0, 0, 1]),
+    ],
+)
+def test_initialization(np_array):
+    actual = ndx.asarray(np_array)
+    values = actual.values.to_numpy()
+    null = actual.null.to_numpy()
+    assert_array_equal(actual.to_numpy(), np_array)
+    assert values.shape == null.shape

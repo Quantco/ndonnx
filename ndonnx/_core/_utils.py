@@ -1,9 +1,12 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 import functools
 import itertools
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 import ndonnx as ndx
 import ndonnx._data_types as dtypes
@@ -11,6 +14,7 @@ from ndonnx._utility import promote
 
 if TYPE_CHECKING:
     from ndonnx import Array
+    from ndonnx._data_types import Dtype
 
 
 def binary_op(
@@ -209,3 +213,14 @@ def validate_core(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def assemble_output_recurse(dtype: Dtype, values: dict) -> np.ndarray:
+    if isinstance(dtype, dtypes.CoreType):
+        return dtype._assemble_output(values)
+    else:
+        fields = {
+            name: assemble_output_recurse(field_dtype, values[name])
+            for name, field_dtype in dtype._fields().items()
+        }
+        return dtype._assemble_output(fields)
