@@ -14,24 +14,7 @@ from .typed_array import TyArrayBase
 from .utils import safe_cast
 
 
-def typed_where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
-    from . import TyArrayBool
-
-    # TODO: Masked condition
-    if not isinstance(cond, TyArrayBool):
-        raise TypeError("'cond' must be a boolean data type.")
-
-    ret = x.__ndx_where__(cond, y)
-    if ret is NotImplemented:
-        ret = y.__ndx_rwhere__(cond, x)
-        if ret is NotImplemented:
-            raise TypeError(
-                f"Unsupported operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
-            )
-    return ret
-
-
-def astypedarray(
+def astyarray(
     val: int | float | str | np.ndarray | TyArrayBase | Var,
     dtype: None | DType = None,
     use_py_scalars=False,
@@ -69,6 +52,28 @@ def astypedarray(
     return arr
 
 
+#########################################################################
+# Free functions implemented via `__ndx_*__` methods on the typed array #
+#########################################################################
+
+
+def where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
+    from . import TyArrayBool
+
+    # TODO: Masked condition
+    if not isinstance(cond, TyArrayBool):
+        raise TypeError("'cond' must be a boolean data type.")
+
+    ret = x.__ndx_where__(cond, y)
+    if ret is NotImplemented:
+        ret = y.__ndx_rwhere__(cond, x)
+        if ret is NotImplemented:
+            raise TypeError(
+                f"Unsupported operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
+            )
+    return ret
+
+
 def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     res = x1.__ndx_maximum__(x2)
     if res is NotImplemented:
@@ -78,14 +83,3 @@ def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
             f"Unsupported operand data types for 'max': `{x1.dtype}` and `{x2.dtype}`"
         )
     return res
-
-
-def sum(
-    x: TyArrayBase,
-    /,
-    *,
-    axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
-    keepdims: bool = False,
-) -> TyArrayBase:
-    return x.sum(axis=axis, dtype=dtype, keepdims=keepdims)

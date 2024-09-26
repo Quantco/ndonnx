@@ -31,6 +31,10 @@ class TyArrayBase(ABC):
     @abstractmethod
     def __ndx_value_repr__(self) -> dict[str, str]:
         """A string representation of the fields to be used in ``Array.__repr__```."""
+        # Note: It is unfortunate that this part of the API relies on
+        # the rather useless `dict[str, str]` type hint. `TypedDict`
+        # is not a viable solution (?) since it does not play nicely
+        # with the subtyping.
 
     @abstractmethod
     def __getitem__(self, index: GetitemIndex) -> Self: ...

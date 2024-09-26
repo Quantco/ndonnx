@@ -168,15 +168,13 @@ def sum(
     dtype: DType | None = None,
     keepdims: bool = False,
 ) -> Array:
-    from ._typed_array.funcs import sum
-
-    return Array._from_data(sum(x._data))
+    return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:
-    from ._typed_array.funcs import typed_where
+    from ._typed_array import funcs as tyfuncs
 
-    data = typed_where(cond._data, a._data, b._data)
+    data = tyfuncs.where(cond._data, a._data, b._data)
     return Array._from_data(data)
 
 

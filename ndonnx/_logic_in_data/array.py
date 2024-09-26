@@ -13,7 +13,7 @@ import numpy as np
 from spox import Var
 
 from ._typed_array import TyArrayBase
-from ._typed_array.funcs import astypedarray
+from ._typed_array.funcs import astyarray
 from .dtypes import DType
 
 StrictShape = tuple[int, ...]
@@ -60,7 +60,7 @@ class Array:
         if isinstance(value, np.ndarray):
             raise NotImplementedError
         if isinstance(value, int | float):
-            ty_arr = astypedarray(value, use_py_scalars=False, dtype=dtype)
+            ty_arr = astyarray(value, use_py_scalars=False, dtype=dtype)
             self._data = ty_arr
             return
 
@@ -278,7 +278,7 @@ def asarray(
         return obj
     if isinstance(obj, bool | int | float):
         obj = np.array(obj)
-    data = astypedarray(obj)
+    data = astyarray(obj)
     if dtype:
         data = data.astype(dtype)
     return Array._from_data(data)
@@ -289,7 +289,7 @@ def _as_array(
 ) -> Array:
     if isinstance(val, Array):
         return val
-    ty_arr = astypedarray(val, use_py_scalars=use_py_scalars)
+    ty_arr = astyarray(val, use_py_scalars=use_py_scalars)
     return Array._from_data(ty_arr)
 
 

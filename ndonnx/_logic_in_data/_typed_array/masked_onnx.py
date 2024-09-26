@@ -14,7 +14,7 @@ from typing_extensions import Self
 from ..dtypes import TY_ARRAY, DType
 from ..schema import DTypeInfo, Schema, flatten_components
 from . import onnx
-from .funcs import astypedarray
+from .funcs import astyarray
 from .typed_array import TyArrayBase
 from .utils import safe_cast
 
@@ -321,7 +321,7 @@ class TyMaArray(TyMaArrayBase):
         if self.mask is None:
             shape = self.dynamic_shape
             self.mask = safe_cast(
-                onnx.TyArrayBool, astypedarray(False).broadcast_to(shape)
+                onnx.TyArrayBool, astyarray(False).broadcast_to(shape)
             )
             self.mask[index] = new_mask
         else:

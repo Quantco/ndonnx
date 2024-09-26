@@ -13,7 +13,7 @@ import numpy as np
 from ..dtypes import TY_ARRAY, DType
 from ..schema import DTypeInfo, flatten_components
 from . import onnx, py_scalars
-from .funcs import astypedarray, typed_where
+from .funcs import astyarray, where
 from .typed_array import TyArrayBase
 from .utils import safe_cast
 
@@ -183,7 +183,7 @@ class TyArrayTimeDelta(TimeBaseArray):
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.CoreIntegerDTypes):
-            data = typed_where(self.is_nat, _NAT_SENTINEL, self.data)
+            data = where(self.is_nat, _NAT_SENTINEL, self.data)
             return data.astype(dtype)
         if isinstance(dtype, TimeDelta):
             powers = {
@@ -193,9 +193,7 @@ class TyArrayTimeDelta(TimeBaseArray):
                 "ns": 9,
             }
             power = powers[dtype.unit] - powers[self.dtype.unit]
-            data = typed_where(
-                self.is_nat, astypedarray(np.iinfo(np.int64).min), self.data
-            )
+            data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
 
             if power > 0:
                 data = data * np.pow(10, power)
@@ -243,9 +241,7 @@ class TyArrayDateTime(TimeBaseArray):
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.CoreIntegerDTypes):
-            data = typed_where(
-                self.is_nat, astypedarray(np.iinfo(np.int64).min), self.data
-            )
+            data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
             return data.astype(dtype)
         if isinstance(dtype, DateTime):
             powers = {
@@ -255,9 +251,7 @@ class TyArrayDateTime(TimeBaseArray):
                 "ns": 9,
             }
             power = powers[dtype.unit] - powers[self.dtype.unit]
-            data = typed_where(
-                self.is_nat, astypedarray(np.iinfo(np.int64).min), self.data
-            )
+            data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
 
             if power > 0:
                 data = data * np.pow(10, power)
