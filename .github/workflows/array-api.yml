@@ -12,6 +12,12 @@ jobs:
     name: Array API test
     timeout-minutes: 90
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - ort117
+          - ort118
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -21,10 +27,12 @@ jobs:
           submodules: recursive
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659
+        with:
+          environments: ${{ matrix.environment }}
       - name: Install repository
-        run: pixi run postinstall
+        run: pixi run -e ${{ matrix.environment }} postinstall
       - name: Run Array API tests
-        run: pixi run arrayapitests
+        run: pixi run -e ${{ matrix.environment }} arrayapitests
       - name: Upload Array API tests report
         uses: actions/upload-artifact@v4
         with:

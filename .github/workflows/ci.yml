@@ -35,7 +35,6 @@ jobs:
           - py310
           - py311
           - py312
-          - np1x
           - ort117
           - ort118
     steps:
