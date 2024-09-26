@@ -634,14 +634,9 @@ def ndindex(shape: _CoreArray, to_reverse=None, axes_permutation=None) -> _CoreA
     Returns:
         A tensor of shape `shape`, where each element is its index in the tensor
     """
-    var = _ndindxes(shape.var, to_reverse, axes_permutation)
-    return _CoreArray(var)
-
-
-def _ndindxes(shape_var: Var, to_reverse=None, axes_permutation=None) -> Var:
     if to_reverse is None:
         to_reverse = []
-    (rank,) = get_shape(shape_var)
+    (rank,) = get_shape(shape.var)
 
     if not isinstance(rank, int):
         raise ValueError("rank must be a constant integer")
@@ -654,6 +649,7 @@ def _ndindxes(shape_var: Var, to_reverse=None, axes_permutation=None) -> Var:
     else:
         axes_indices = [axes_permutation.index(i) for i in builtins.range(rank)]
 
+    shape_var = shape.var
     dtype = shape_var.unwrap_tensor().dtype
     ranges = [
         (
@@ -693,7 +689,7 @@ def _ndindxes(shape_var: Var, to_reverse=None, axes_permutation=None) -> Var:
         axis=-1,
     )
 
-    return ret
+    return _CoreArray(ret)
 
 
 @eager_propagate

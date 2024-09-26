@@ -13,7 +13,6 @@ numpy = "*"
 spox = ">=0.10"
 typing_extensions = "*"
 onnx = "*"
-jupyterlab = ">=4.2.4,<5"
 
 [host-dependencies]
 pip = "*"
@@ -56,11 +55,12 @@ ARRAY_API_TESTS_MODULE="ndonnx._logic_in_data"
 ARRAY_API_TESTS_VERSION="2023.12"
 ARRAY_API_TESTS_SKIP_DTYPES="complex64,complex128"
 
+
 [feature.lint.dependencies]
 pre-commit = "*"
 insert-license-header = "*"
 docformatter = "*"
-ruff = "0.4"
+ruff = "*"
 prettier = "*"
 pre-commit-hooks = "*"
 typos = "*"
