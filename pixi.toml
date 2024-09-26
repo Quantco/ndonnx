@@ -75,19 +75,16 @@ python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
 [feature.ort117.dependencies]
-python = "3.12.*"
 onnxruntime = "1.17.*"
 [feature.ort118.dependencies]
-python = "3.12.*"
 onnxruntime = "1.18.*"
 
 [environments]
 default = ["test", "lint"]
 py310 = ["py310", "test"]
 py311 = ["py311", "test"]
-py312 = ["py312", "test"]
-ort117 = ["ort117", "test"]
-ort118 = ["ort118", "test"]
+ort117py312 = ["py312", "ort117", "test"]
+ort118py312 = ["py312", "ort118", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }

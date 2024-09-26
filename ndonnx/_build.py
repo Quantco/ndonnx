@@ -37,7 +37,7 @@ def build(
     out: onnx.ModelProto
         ONNX model
 
-    Note: the generated ONNX model should be runnable on the latest two versions of onnxruntime documented in an ndonnx release.
+    Note: the generated ONNX model should be runnable on the latest two minor versions of onnxruntime documented in an ndonnx release.
     """
 
     def collect_vars(name: str, arr: _CoreArray | Array):
