@@ -51,9 +51,9 @@ test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
 [feature.test.tasks.arrayapitests]
 cmd = "pytest --max-examples 16 api-coverage-tests/array_api_tests/  -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg --skips-file=skips.txt --xfails-file=xfails.txt --hypothesis-seed=0"
 [feature.test.tasks.arrayapitests.env]
-ARRAY_API_TESTS_MODULE="ndonnx"
-ARRAY_API_TESTS_VERSION="2023.12"
-ARRAY_API_TESTS_SKIP_DTYPES="complex64,complex128"
+ARRAY_API_TESTS_MODULE = "ndonnx"
+ARRAY_API_TESTS_VERSION = "2023.12"
+ARRAY_API_TESTS_SKIP_DTYPES = "complex64,complex128"
 
 
 [feature.lint.dependencies]
@@ -74,16 +74,20 @@ python = "3.10.*"
 python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
-[feature.np1x.dependencies]
-python = "3.11.*"
-numpy = "1.*"
+[feature.ort117.dependencies]
+python = "3.12.*"
+onnxruntime = "1.17.0"
+[feature.ort118.dependencies]
+python = "3.12.*"
+onnxruntime = "1.18.0"
 
 [environments]
 default = ["test", "lint"]
 py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
-np1x = ["np1x", "test"]
+ort117 = ["ort117", "test"]
+ort118 = ["ort118", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }

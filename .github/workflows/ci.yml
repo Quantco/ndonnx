@@ -36,6 +36,8 @@ jobs:
           - py311
           - py312
           - np1x
+          - ort117
+          - ort118
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4

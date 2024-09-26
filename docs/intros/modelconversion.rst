@@ -110,3 +110,8 @@ We can use an ONNX backend like onnxruntime to run our model. Here we use onnxru
 
     print(out)
     # array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
+
+.. note::
+
+    ONNX backends may not always support the entire ONNX specification and can sometimes miss kernel implementations for specific data types.
+    Since onnxruntime is such a common backend, ndonnx ensures proactively that any model generated using :func:`ndonnx.build` is compatible with at least the two latest onnxruntime releases on conda-forge.
