@@ -30,9 +30,9 @@ nbsphinx = "*"
 docs = "cd docs && make html"
 
 [feature.build.dependencies]
-build = "*"
+python-build = "*"
 [feature.build.tasks]
-build-wheel = "python -m build --no-isolation ."
+build-wheel = "python -m build --no-isolation --wheel ."
 
 [feature.test.dependencies]
 pytest = ">=6"
@@ -41,7 +41,7 @@ pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = "*"
 onnxruntime = "*"
-mypy = ">=1.10.0,<1.11"
+mypy = "*"
 ndindex = "*"
 
 [feature.test.tasks]
