@@ -76,10 +76,10 @@ python = "3.11.*"
 python = "3.12.*"
 [feature.ort117.dependencies]
 python = "3.12.*"
-onnxruntime = "1.17.0"
+onnxruntime = "1.17.*"
 [feature.ort118.dependencies]
 python = "3.12.*"
-onnxruntime = "1.18.0"
+onnxruntime = "1.18.*"
 
 [environments]
 default = ["test", "lint"]
