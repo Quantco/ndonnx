@@ -389,3 +389,20 @@ def test_repr_lazy():
     assert "array(data: *lazy*, mask: *lazy*, shape=(None,), dtype=NInt64)" == str(
         Array(("N",), ndx.nint64)
     )
+
+
+@pytest.mark.parametrize("axis", [None, 0, 1])
+@pytest.mark.parametrize(
+    "np_arrays",
+    [
+        [np.asarray([[1], [2]]), np.asarray([[3.0], [4.0]])],
+        [np.ma.array([[1], [2]]), np.ma.array([[3.0], [4.0]])],
+        [np.ma.array([[1], [2]]), np.ma.array([[3.0], [4.0]], mask=[[True], [False]])],
+    ],
+)
+def test_concat(np_arrays, axis):
+    arrays = [asarray(arr) for arr in np_arrays]
+    expected = np.concat(np_arrays, axis=axis)
+    candidate = ndx.concat(arrays, axis=axis).unwrap_numpy()
+
+    np.testing.assert_equal(expected, candidate)

@@ -1,5 +1,6 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
+from functools import reduce
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -24,7 +25,10 @@ def astyarray(
         return val
 
     arr: TyArrayBase
-    if isinstance(val, int):
+    if isinstance(val, bool):
+        arr = TyArrayPyInt(val)
+        arr = arr if use_py_scalars else arr.astype(ndx.bool)
+    elif isinstance(val, int):
         arr = TyArrayPyInt(val)
         arr = arr if use_py_scalars else arr.astype(ndx._default_int)
     elif isinstance(val, float):
@@ -37,7 +41,7 @@ def astyarray(
         arr = onnx.ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):
         data = onnx.ascoredata(op.const(val.data))
-        if val.mask == np.ma.nomask:
+        if val.mask is np.ma.nomask:
             mask = None
         else:
             mask = safe_cast(onnx.TyArrayBool, onnx.ascoredata(op.const(val.mask)))
@@ -50,6 +54,17 @@ def astyarray(
     if dtype is not None:
         return arr.astype(dtype)
     return arr
+
+
+def concat(
+    arrays: tuple[TyArrayBase, ...] | list[TyArrayBase], /, *, axis: None | int = 0
+) -> TyArrayBase:
+    first, *others = arrays
+    dtype = reduce(
+        lambda dtype, arr: dtype._result_type(arr.dtype), others, first.dtype
+    )
+    arrays = [arr.astype(dtype) for arr in arrays]
+    return arrays[0].concat(arrays[1:], axis=axis)
 
 
 #########################################################################

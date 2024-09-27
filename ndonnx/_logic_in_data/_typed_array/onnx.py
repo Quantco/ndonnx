@@ -316,7 +316,18 @@ class TyArray(TyArrayBase):
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+        # TODO: How did this not show up earlier?
         return NotImplemented
+
+    def concat(self, others: list[Self], axis: None | int) -> Self:
+        var = op.concat(
+            [self.var] + [el.var for el in others], axis=0 if axis is None else axis
+        )
+        res = type(self)(var)
+        if axis is None and res.ndim != 1:
+            # Flatten the result. It is ok to concat first on the 0th axis.
+            res = res.reshape((-1,))
+        return res
 
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, op.equal, True)

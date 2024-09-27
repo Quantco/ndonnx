@@ -66,16 +66,16 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
 
 class _NNumber(_MaOnnxDType):
-    _core_type: onnx.CoreNumericDTypes
+    _unmasked_dtype: onnx.CoreNumericDTypes
 
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         if isinstance(self, NCoreNumericDTypes) and isinstance(
             rhs, onnx.CoreNumericDTypes
         ):
-            core_result = onnx._result_type_core_numeric(self._core_type, rhs)
+            core_result = onnx._result_type_core_numeric(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NCoreNumericDTypes):
             core_result = onnx._result_type_core_numeric(
-                self._core_type, rhs._core_type
+                self._unmasked_dtype, rhs._unmasked_dtype
             )
 
         else:
@@ -337,6 +337,21 @@ class TyMaArray(TyMaArrayBase):
             new_data = self.data.astype(dtype._unmasked_dtype)
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
+
+    def concat(self, others: list[Self], axis: None | int) -> Self:
+        data = self.data.concat([el.data for el in others], axis)
+        if all(el.mask is None for el in [self] + others):
+            mask = None
+        else:
+            masks = []
+            for el in [self] + others:
+                masks.append(
+                    astyarray(False).broadcast_to(self.data.dynamic_shape)
+                    if el.mask is None
+                    else el.mask
+                )
+            mask = safe_cast(onnx.TyArrayBool, masks[0].concat(masks[1:], axis))
+        return safe_cast(type(self), asncoredata(data, mask))
 
     def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
         raise NotImplementedError()

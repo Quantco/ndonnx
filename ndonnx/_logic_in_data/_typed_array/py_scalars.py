@@ -153,6 +153,10 @@ class _ArrayPyScalar(TyArrayBase):
             return safe_cast(res_ty, asncoredata(unmasked_typed_arr, None))
         return NotImplemented
 
+    def concat(self, others: list[Self], axis: None | int) -> Self:
+        # Python scalars should never have to be concatenated
+        raise NotImplementedError
+
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, True)
 

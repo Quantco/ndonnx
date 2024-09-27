@@ -177,12 +177,15 @@ class Array:
         return _apply_op(lhs, self, std_ops.add)
 
     def __and__(self: Array, other: Union[int, bool, Array], /) -> Array:
-        raise NotImplementedError
+        return _apply_op(self, other, std_ops.and_)
 
     def __array_namespace__(
         self: Array, /, *, api_version: Optional[str] = None
     ) -> Any:
-        raise NotImplementedError
+        # TODO: Version namespace
+        import ndonnx._logic_in_data as ndx
+
+        return ndx
 
     def __complex__(self: Array, /) -> complex:
         raise NotImplementedError

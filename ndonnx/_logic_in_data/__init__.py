@@ -36,6 +36,7 @@ from ._typed_array.masked_onnx import (
 from .funcs import (
     astype,
     arange,
+    concat,
     empty,
     empty_like,
     eye,
@@ -120,6 +121,7 @@ __all__ = [
     "astype",
     "atan",
     "atanh",
+    "concat",
     "ceil",
     "e",
     "empty",

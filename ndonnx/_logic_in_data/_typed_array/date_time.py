@@ -157,16 +157,22 @@ class TimeBaseArray(TyArrayBase):
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self.data.dynamic_shape
 
+    def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
+        data = self.data.broadcast_to(shape)
+        is_nat = self.is_nat.broadcast_to(shape)
+        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+
+    def concat(self, others: list[Self], axis: None | int) -> Self:
+        data = self.data.concat([arr.data for arr in others], axis=axis)
+        is_nat = self.is_nat.concat([arr.is_nat for arr in others], axis=axis)
+
+        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+
     def reshape(self, shape: tuple[int, ...]) -> Self:
         is_nat = self.is_nat.reshape(shape)
         data = self.data.reshape(shape)
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
-
-    def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        data = self.data.broadcast_to(shape)
-        is_nat = self.is_nat.broadcast_to(shape)
-        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
 
     def _eqcomp(self, other) -> TyArrayBase:
         raise NotImplementedError

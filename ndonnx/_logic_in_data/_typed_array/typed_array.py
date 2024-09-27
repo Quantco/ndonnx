@@ -97,6 +97,9 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     @abstractmethod
+    def concat(self, others: list[Self], axis: None | int) -> Self: ...
+
+    @abstractmethod
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
@@ -106,7 +109,13 @@ class TyArrayBase(ABC):
     #############################################################################
     # Element-wise member functions that reflect free functions of the standard #
     #############################################################################
+
     def all(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayBase:
+        raise ValueError(f"'all' is not implemented for `{self.dtype}`")
+
+    def any(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBase:
         raise ValueError(f"'all' is not implemented for `{self.dtype}`")

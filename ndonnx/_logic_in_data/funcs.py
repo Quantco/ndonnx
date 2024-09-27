@@ -8,6 +8,7 @@ import numpy as np
 import ndonnx._logic_in_data as ndx
 
 from . import DType, dtypes
+from ._typed_array import funcs as tyfuncs
 from .array import Array, asarray
 
 
@@ -15,6 +16,12 @@ def all(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
     return Array._from_data(x._data.all())
+
+
+def any(
+    x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+) -> Array:
+    return Array._from_data(x._data.any())
 
 
 def arange(
@@ -58,6 +65,13 @@ def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
             )
         return Array._from_data(x._data.broadcast_to(shape._data))
     return Array._from_data(x._data.broadcast_to(shape))
+
+
+def concat(
+    arrays: tuple[Array, ...] | list[Array], /, *, axis: None | int = 0
+) -> Array:
+    data = tyfuncs.concat([arr._data for arr in arrays], axis=axis)
+    return Array._from_data(data)
 
 
 def empty(
@@ -172,8 +186,6 @@ def sum(
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:
-    from ._typed_array import funcs as tyfuncs
-
     data = tyfuncs.where(cond._data, a._data, b._data)
     return Array._from_data(data)
 
