@@ -9,6 +9,7 @@ import ndonnx._logic_in_data as ndx
 
 from . import DType, dtypes
 from ._typed_array import funcs as tyfuncs
+from ._typed_array import onnx
 from .array import Array, asarray
 
 
@@ -43,7 +44,7 @@ def arange(
         else:
             dtype = ndx._default_float
     dtype = dtype or ndx._default_float
-    if not isinstance(dtype, dtypes.CoreDTypes):
+    if not isinstance(dtype, onnx.CoreDTypes):
         raise ValueError(f"Only core data types are supported, found `{dtype}`")
 
     return asarray(np.arange(start, stop, step), dtype=dtype)
@@ -74,6 +75,20 @@ def concat(
     return Array._from_data(data)
 
 
+def cumulative_sum(
+    x: Array,
+    /,
+    *,
+    axis: int | None = None,
+    dtype: DType | None = None,
+    include_initial: bool = False,
+) -> Array:
+    data = x._data.cumulative_sum(
+        axis=axis, dtype=dtype, include_initial=include_initial
+    )
+    return Array._from_data(data)
+
+
 def empty(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:
@@ -99,6 +114,18 @@ def eye(
 ) -> Array:
     nparr = np.eye(n_rows, n_cols, k=k)
     return asarray(nparr, dtype=dtype)
+
+
+def flip(x: Array, /, *, axis: int | tuple[int, ...] | None = None) -> Array:
+    if axis is None:
+        index = [slice(None, None, -1) for _ in range(x.ndim)]
+    else:
+        index = [slice(None, None, 1) for _ in range(x.ndim)]
+        if isinstance(axis, int):
+            axis = (axis,)
+        for ax in axis:
+            index[ax] = slice(None, None, -1)
+    return x[tuple(index)]
 
 
 def full(

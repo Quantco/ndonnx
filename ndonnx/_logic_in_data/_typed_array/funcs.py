@@ -49,6 +49,7 @@ def astyarray(
     elif isinstance(val, np.ndarray):
         arr = onnx.ascoredata(op.const(val))
     else:
+        breakpoint()
         raise ValueError
 
     if dtype is not None:

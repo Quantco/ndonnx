@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import operator as std_ops
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from copy import copy as std_copy
 from types import EllipsisType, NotImplementedType
 from typing import Any, Optional, Union, overload
@@ -105,6 +105,12 @@ class Array:
             If no propagated value is available.
         """
         return self._data.unwrap_numpy()
+
+    def to_numpy(self) -> np.ndarray:
+        from warnings import warn
+
+        warn("'to_numpy' is deprecated in favor of 'unwrap_numpy'", DeprecationWarning)
+        return self.unwrap_numpy()
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         from ._typed_array import TyArrayBool, TyArrayInteger
@@ -254,8 +260,11 @@ class Array:
     def __rsub__(self, lhs: int | float | Array) -> Array:
         return _apply_op(lhs, self, std_ops.sub)
 
-    def __truediv__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+    def __truediv__(self: Array, rhs: Union[int, float, Array], /) -> Array:
+        return _apply_op(self, rhs, std_ops.truediv)
+
+    def __rtruediv__(self: Array, lhs: Union[int, float, Array], /) -> Array:
+        return _apply_op(lhs, self, std_ops.truediv)
 
     def __xor__(self: Array, other: Union[int, bool, Array], /) -> Array:
         raise NotImplementedError
@@ -268,7 +277,7 @@ class Array:
 
 
 def asarray(
-    obj: Array | bool | int | float | np.ndarray,
+    obj: Array | bool | int | float | np.ndarray | Sequence,
     /,
     *,
     dtype: DType | None = None,
@@ -279,8 +288,14 @@ def asarray(
         if copy:
             return Array._from_data(std_copy(obj._data))
         return obj
-    if isinstance(obj, bool | int | float):
+    elif isinstance(obj, bool | int | float):
         obj = np.array(obj)
+    elif isinstance(obj, np.ndarray):
+        pass
+    elif isinstance(obj, Sequence):
+        obj = np.array(obj)
+    else:
+        TypeError(f"Unexpected input type: `{type(obj)}`")
     data = astyarray(obj)
     if dtype:
         data = data.astype(dtype)

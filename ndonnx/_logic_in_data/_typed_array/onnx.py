@@ -180,7 +180,9 @@ string = String()
 #
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
 CoreFloatingDTypes = Float16 | Float32 | Float64
-CoreIntegerDTypes = Int8 | Int16 | Int32 | Int64 | Uint8 | Uint16 | Uint32 | Uint64
+CoreSingedIntegerDTypes = Int8 | Int16 | Int32 | Int64
+CoreUnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
+CoreIntegerDTypes = CoreSingedIntegerDTypes | CoreUnsignedIntegerDTypes
 CoreNumericDTypes = CoreFloatingDTypes | CoreIntegerDTypes
 CoreDTypes = Bool | CoreNumericDTypes | String
 
@@ -289,6 +291,26 @@ class TyArray(TyArrayBase):
         var = op.reduce_min(bools.astype(int8).var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayInt8(var).astype(bool_))
 
+    def any(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayBool:
+        if isinstance(axis, int):
+            axis = (axis,)
+
+        bools = self.astype(bool_)
+
+        if bools.ndim == 0:
+            if axis:
+                ValueError("'axis' were provided but 'self' is a scalar")
+            # Nothing left to reduce
+            return safe_cast(TyArrayBool, bools)
+
+        axes = op.const(list(axis), np.int64) if axis else None
+
+        # min uint8 is returned if dimensions are empty
+        var = op.reduce_max(bools.astype(uint8).var, axes=axes, keepdims=keepdims)
+        return safe_cast(TyArrayBool, TyArrayUint8(var).astype(bool_))
+
     def disassemble(self) -> tuple[Components, Schema]:
         dtype_info = self.dtype._info
         component_schema = var_to_primitive(self.var)
@@ -382,6 +404,53 @@ class TyArrayString(TyArray):
 class TyArrayNumber(TyArray):
     dtype: CoreNumericDTypes
 
+    def cumulative_sum(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        from .funcs import astyarray
+
+        if dtype is None:
+            if isinstance(self.dtype, CoreSingedIntegerDTypes):
+                dtype_: DType = int64
+            elif isinstance(self.dtype, CoreUnsignedIntegerDTypes):
+                dtype_ = uint64
+            else:
+                dtype_ = self.dtype
+        else:
+            dtype_ = self.dtype
+        if self.dtype != dtype_:
+            return self.astype(dtype_).sum(axis=axis, include_initial=include_initial)
+
+        if axis is None:
+            if self.ndim > 1:
+                raise ValueError(
+                    "'axis' parameter must be provided for arrays with more than one dimension."
+                )
+            axis_ = 0
+        else:
+            axis_ = axis
+
+        out = ascoredata(
+            op.cumsum(
+                self.var,
+                op.const(axis_, np.int64),
+                exclusive=False,
+            )
+        )
+        if include_initial:
+            out_shape = out.dynamic_shape
+            out_shape[axis_] = safe_cast(TyArrayInt64, astyarray(1))
+            zeros = safe_cast(
+                type(self), astyarray(0, out.dtype).broadcast_to(out_shape)
+            )
+            out = out.concat([zeros], axis=axis_)
+        return out
+
     def sum(
         self,
         /,
@@ -390,18 +459,18 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        if dtype is not None and not isinstance(dtype, CoreNumericDTypes):
-            return self.astype(dtype).sum(axis=axis, dtype=dtype, keepdims=keepdims)
-        elif dtype is None and isinstance(self, TyArrayInteger):
-            # Input is signed
-            if self.dtype in (int8, int16, int32, int64):
-                dtype_: CoreNumericDTypes = int64
-            else:
+        if dtype is None:
+            if isinstance(self.dtype, CoreSingedIntegerDTypes):
+                dtype_: DType = int64
+            elif isinstance(self.dtype, CoreUnsignedIntegerDTypes):
                 dtype_ = uint64
-        elif dtype is None:
-            dtype_ = self.dtype
+            else:
+                dtype_ = self.dtype
         else:
-            dtype_ = dtype
+            dtype_ = self.dtype
+        if self.dtype != dtype_:
+            return self.astype(dtype_).sum(axis=axis, keepdims=keepdims)
+
         if axis is None:
             axis_ = None
         elif isinstance(axis, int):
@@ -409,7 +478,7 @@ class TyArrayNumber(TyArray):
         else:
             axis_ = op.const(axis, dtype=np.int64)
         var = op.reduce_sum(
-            self.astype(dtype_).var,
+            self.var,
             axis_,
             keepdims=keepdims,
             noop_with_empty_axes=axis is not None,

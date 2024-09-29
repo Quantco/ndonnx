@@ -106,19 +106,29 @@ class TyArrayBase(ABC):
         # TODO: Make abstract
         raise NotImplementedError
 
-    #############################################################################
-    # Element-wise member functions that reflect free functions of the standard #
-    #############################################################################
+    ################################################################
+    # Member functions that reflect free functions of the standard #
+    ################################################################
 
     def all(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBase:
-        raise ValueError(f"'all' is not implemented for `{self.dtype}`")
+        raise _make_value_error("all", self.dtype)
 
     def any(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBase:
-        raise ValueError(f"'all' is not implemented for `{self.dtype}`")
+        raise _make_value_error("any", self.dtype)
+
+    def cumulative_sum(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        raise _make_value_error("cumulative_sum", self.dtype)
 
     def sum(
         self,
@@ -128,61 +138,61 @@ class TyArrayBase(ABC):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        raise ValueError(f"'sum' is not implemented for `{self.dtype}`")
+        raise _make_value_error("sum", self.dtype)
 
     # Element-wise functions without additional arguments
 
     def isnan(self) -> TyArrayBase:
-        raise ValueError(f"'isnan' is not implemented for {self.dtype}")
+        raise _make_value_error("isnan", self.dtype)
 
     def isfinite(self) -> TyArrayBase:
-        raise ValueError(f"'isinfinite' is not implemented for {self.dtype}")
+        raise _make_value_error("isfinite", self.dtype)
 
     def isinf(self) -> TyArrayBase:
-        raise ValueError(f"'isinf' is not implemented for {self.dtype}")
+        raise _make_value_error("isinf", self.dtype)
 
     def acos(self) -> Self:
-        raise ValueError(f"'acos' is not implemented for {self.dtype}")
+        raise _make_value_error("acos", self.dtype)
 
     def acosh(self) -> Self:
-        raise ValueError(f"'acosh' is not implemented for {self.dtype}")
+        raise _make_value_error("acosh", self.dtype)
 
     def asin(self) -> Self:
-        raise ValueError(f"'asin' is not implemented for {self.dtype}")
+        raise _make_value_error("asin", self.dtype)
 
     def asinh(self) -> Self:
-        raise ValueError(f"'asinh' is not implemented for {self.dtype}")
+        raise _make_value_error("asinh", self.dtype)
 
     def atan(self) -> Self:
-        raise ValueError(f"'atan' is not implemented for {self.dtype}")
+        raise _make_value_error("atan", self.dtype)
 
     def atanh(self) -> Self:
-        raise ValueError(f"'atanh' is not implemented for {self.dtype}")
+        raise _make_value_error("atanh", self.dtype)
 
     def ceil(self) -> Self:
-        raise ValueError(f"'ceil' is not implemented for {self.dtype}")
+        raise _make_value_error("ceil", self.dtype)
 
     def exp(self) -> Self:
-        raise ValueError(f"'exp' is not implemented for {self.dtype}")
+        raise _make_value_error("exp", self.dtype)
 
     def expm1(self) -> Self:
-        raise ValueError(f"'expm1' is not implemented for {self.dtype}")
+        raise _make_value_error("expm1", self.dtype)
 
     def floor(self) -> Self:
-        raise ValueError(f"'floor' is not implemented for {self.dtype}")
+        raise _make_value_error("floor", self.dtype)
 
     def log(self) -> Self:
-        raise ValueError(f"'log' is not implemented for {self.dtype}")
+        raise _make_value_error("log", self.dtype)
 
     def log1p(self) -> Self:
-        raise ValueError(f"'log1p' is not implemented for {self.dtype}")
+        raise _make_value_error("log1p", self.dtype)
 
     def log2(self) -> Self:
-        raise ValueError(f"'log2' is not implemented for {self.dtype}")
+        raise _make_value_error("log2", self.dtype)
 
     # Dunder-functions
     def __abs__(self) -> TyArrayBase:
-        raise ValueError(f"'__abs__' is not implemented for {self.dtype}")
+        raise _make_value_error("__abs__", self.dtype)
 
     def __add__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented
@@ -254,3 +264,7 @@ class TyArrayBase(ABC):
         self, other: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
+
+
+def _make_value_error(fn_name, dtype: DType) -> ValueError:
+    return ValueError(f"`{fn_name}` is not implemented for data type `{dtype}`")
