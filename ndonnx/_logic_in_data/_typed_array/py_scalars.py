@@ -50,7 +50,7 @@ class PyString(_PyScalar):
 
 class PyInteger(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, onnx.CoreNumericDTypes | masked_onnx.NCoreNumericDTypes):
+        if isinstance(other, onnx.NumericDTypes | masked_onnx.NCoreNumericDTypes):
             return other
         if isinstance(other, onnx.Bool):
             return ndx._default_int
@@ -65,11 +65,11 @@ class PyInteger(_PyScalar):
 
 class PyFloat(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, onnx.CoreIntegerDTypes):
+        if isinstance(other, onnx.IntegerDTypes):
             return onnx.float64
         if isinstance(other, masked_onnx.NCoreIntegerDTypes):
             return masked_onnx.nfloat64
-        if isinstance(other, onnx.CoreFloatingDTypes | masked_onnx.NCoreFloatingDTypes):
+        if isinstance(other, onnx.FloatingDTypes | masked_onnx.NCoreFloatingDTypes):
             return other
         raise ValueError
 
@@ -145,7 +145,7 @@ class _ArrayPyScalar(TyArrayBase):
         # We implement this class under the assumption that the other
         # built-in typed arrays do not know about it. Thus, we define
         # the mapping from this class into those classes **here**.
-        if isinstance(dtype, onnx.CoreDTypes):
+        if isinstance(dtype, onnx.DTypes):
             np_arr = np.array(self.value, dtypes.as_numpy(dtype))
             return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
         if isinstance(dtype, masked_onnx.NCoreDTypes):

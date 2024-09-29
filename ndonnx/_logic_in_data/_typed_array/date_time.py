@@ -188,7 +188,7 @@ class TyArrayTimeDelta(TimeBaseArray):
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         res_type = dtype._tyarr_class
-        if isinstance(dtype, onnx.CoreIntegerDTypes):
+        if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, _NAT_SENTINEL, self.data)
             return data.astype(dtype)
         if isinstance(dtype, TimeDelta):
@@ -246,7 +246,7 @@ class TyArrayDateTime(TimeBaseArray):
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         res_type = dtype._tyarr_class
-        if isinstance(dtype, onnx.CoreIntegerDTypes):
+        if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
             return data.astype(dtype)
         if isinstance(dtype, DateTime):

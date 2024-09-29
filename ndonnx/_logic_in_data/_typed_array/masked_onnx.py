@@ -25,21 +25,18 @@ if TYPE_CHECKING:
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
-CORE_DTYPES = TypeVar("CORE_DTYPES", bound=onnx.CoreDTypes)
+CORE_DTYPES = TypeVar("CORE_DTYPES", bound=onnx.DTypes)
 NCORE_DTYPES = TypeVar("NCORE_DTYPES", bound="NCoreDTypes")
 
 NCORE_NUMERIC_DTYPES = TypeVar("NCORE_NUMERIC_DTYPES", bound="NCoreNumericDTypes")
 NCORE_FLOATING_DTYPES = TypeVar("NCORE_FLOATING_DTYPES", bound="NCoreFloatingDTypes")
 NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="NCoreIntegerDTypes")
 
-ALL_NUM_DTYPES = TypeVar(
-    "ALL_NUM_DTYPES", bound="onnx.CoreNumericDTypes | NCoreNumericDTypes"
-)
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
-    _unmasked_dtype: onnx.CoreDTypes
+    _unmasked_dtype: onnx.DTypes
 
     def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
         if isinstance(arr, onnx.TyArray):
@@ -66,12 +63,10 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
 
 class _NNumber(_MaOnnxDType):
-    _unmasked_dtype: onnx.CoreNumericDTypes
+    _unmasked_dtype: onnx.NumericDTypes
 
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(self, NCoreNumericDTypes) and isinstance(
-            rhs, onnx.CoreNumericDTypes
-        ):
+        if isinstance(self, NCoreNumericDTypes) and isinstance(rhs, onnx.NumericDTypes):
             core_result = onnx._result_type_core_numeric(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NCoreNumericDTypes):
             core_result = onnx._result_type_core_numeric(
@@ -329,7 +324,7 @@ class TyMaArray(TyMaArrayBase):
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # Implemented under the assumption that we know about core, but not py_scalars
-        if isinstance(dtype, onnx.CoreDTypes):
+        if isinstance(dtype, onnx.DTypes):
             # TODO: Not clear what the behavior should be if we have a mask
             # TODO: There is currently no way to get the mask through the public `Array` class!
             raise NotImplementedError
@@ -550,7 +545,7 @@ def _apply_op(
 # Conversion Table #
 ####################
 
-_core_to_nullable_core: dict[onnx.CoreDTypes, NCoreDTypes] = {
+_core_to_nullable_core: dict[onnx.DTypes, NCoreDTypes] = {
     onnx.bool_: nbool,
     onnx.int8: nint8,
     onnx.int16: nint16,
@@ -567,12 +562,12 @@ _core_to_nullable_core: dict[onnx.CoreDTypes, NCoreDTypes] = {
 }
 
 
-def as_nullable(dtype: onnx.CoreDTypes) -> NCoreDTypes:
+def as_nullable(dtype: onnx.DTypes) -> NCoreDTypes:
     return _core_to_nullable_core[dtype]
 
 
-def as_non_nullable(dtype: _MaOnnxDType) -> onnx.CoreDTypes:
-    mapping: dict[_MaOnnxDType, onnx.CoreDTypes] = {
+def as_non_nullable(dtype: _MaOnnxDType) -> onnx.DTypes:
+    mapping: dict[_MaOnnxDType, onnx.DTypes] = {
         v: k for k, v in _core_to_nullable_core.items()
     }
     return mapping[dtype]

@@ -7,7 +7,7 @@ import numpy as np
 
 import ndonnx._logic_in_data as ndx
 
-from . import DType, dtypes
+from . import DType
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
 from .array import Array, asarray
@@ -44,7 +44,7 @@ def arange(
         else:
             dtype = ndx._default_float
     dtype = dtype or ndx._default_float
-    if not isinstance(dtype, onnx.CoreDTypes):
+    if not isinstance(dtype, onnx.DTypes):
         raise ValueError(f"Only core data types are supported, found `{dtype}`")
 
     return asarray(np.arange(start, stop, step), dtype=dtype)
@@ -173,7 +173,7 @@ def linspace(
     endpoint: bool = True,
 ) -> Array:
     dtype = dtype or ndx._default_float
-    if not isinstance(dtype, dtypes.CoreDTypes):
+    if not isinstance(dtype, onnx.DTypes):
         raise ValueError(f"Only core data types are supported, found `{dtype}`")
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
 

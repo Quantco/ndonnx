@@ -30,10 +30,6 @@ if TYPE_CHECKING:
     from ..schema import Components
 
 
-CORE_DTYPES = TypeVar("CORE_DTYPES", bound="CoreDTypes")
-# ALL_NUM_DTYPES = TypeVar(
-#     "ALL_NUM_DTYPES", bound=dtypes.CoreNumericDTypes | dtypes.NCoreNumericDTypes
-# )
 TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
 
 
@@ -66,7 +62,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
 
 class _Number(_OnnxDType):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(self, CoreNumericDTypes) and isinstance(rhs, CoreNumericDTypes):
+        if isinstance(self, NumericDTypes) and isinstance(rhs, NumericDTypes):
             return _result_type_core_numeric(self, rhs)
 
         return NotImplemented
@@ -179,16 +175,16 @@ string = String()
 # Union types
 #
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
-CoreFloatingDTypes = Float16 | Float32 | Float64
-CoreSingedIntegerDTypes = Int8 | Int16 | Int32 | Int64
-CoreUnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
-CoreIntegerDTypes = CoreSingedIntegerDTypes | CoreUnsignedIntegerDTypes
-CoreNumericDTypes = CoreFloatingDTypes | CoreIntegerDTypes
-CoreDTypes = Bool | CoreNumericDTypes | String
+FloatingDTypes = Float16 | Float32 | Float64
+SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
+UnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
+IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
+NumericDTypes = FloatingDTypes | IntegerDTypes
+DTypes = Bool | NumericDTypes | String
 
 
 class TyArray(TyArrayBase):
-    dtype: CoreDTypes
+    dtype: DTypes
     var: Var
 
     def __init__(self, var: Var):
@@ -334,7 +330,7 @@ class TyArray(TyArrayBase):
         var = op.transpose(self.var, perm=axes)
         return type(self)(var)
 
-    def as_core_dtype(self, dtype: CoreDTypes) -> TyArray:
+    def as_core_dtype(self, dtype: DTypes) -> TyArray:
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
@@ -402,7 +398,7 @@ class TyArrayString(TyArray):
 
 
 class TyArrayNumber(TyArray):
-    dtype: CoreNumericDTypes
+    dtype: NumericDTypes
 
     def cumulative_sum(
         self,
@@ -415,9 +411,9 @@ class TyArrayNumber(TyArray):
         from .funcs import astyarray
 
         if dtype is None:
-            if isinstance(self.dtype, CoreSingedIntegerDTypes):
+            if isinstance(self.dtype, SignedIntegerDTypes):
                 dtype_: DType = int64
-            elif isinstance(self.dtype, CoreUnsignedIntegerDTypes):
+            elif isinstance(self.dtype, UnsignedIntegerDTypes):
                 dtype_ = uint64
             else:
                 dtype_ = self.dtype
@@ -460,9 +456,9 @@ class TyArrayNumber(TyArray):
         keepdims: bool = False,
     ) -> TyArrayBase:
         if dtype is None:
-            if isinstance(self.dtype, CoreSingedIntegerDTypes):
+            if isinstance(self.dtype, SignedIntegerDTypes):
                 dtype_: DType = int64
-            elif isinstance(self.dtype, CoreUnsignedIntegerDTypes):
+            elif isinstance(self.dtype, UnsignedIntegerDTypes):
                 dtype_ = uint64
             else:
                 dtype_ = self.dtype
@@ -522,7 +518,7 @@ class TyArrayNumber(TyArray):
 
 
 class TyArrayInteger(TyArrayNumber):
-    dtype: CoreIntegerDTypes
+    dtype: IntegerDTypes
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
@@ -539,7 +535,7 @@ class TyArrayInteger(TyArrayNumber):
 
 
 class TyArrayFloating(TyArrayNumber):
-    dtype: CoreFloatingDTypes
+    dtype: FloatingDTypes
 
     def isinf(self) -> TyArrayBool:
         return TyArrayBool(op.isinf(self.var))
@@ -726,7 +722,7 @@ def _as_old_corarray(tyarr: TyArray) -> _CoreArray:
 # https://data-apis.org/array-api/draft/API_specification/type_promotion.html#type-promotion
 # and
 # https://numpy.org/neps/nep-0050-scalar-promotion.html#motivation-and-scope
-_signed_signed: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
+_signed_signed: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (int8, int8): int8,
     (int16, int8): int16,
     (int32, int8): int32,
@@ -744,9 +740,7 @@ _signed_signed: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTy
     (int32, int64): int64,
     (int64, int64): int64,
 }
-_unsigned_unsigned: dict[
-    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
-] = {
+_unsigned_unsigned: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (uint8, uint8): uint8,
     (uint16, uint8): uint16,
     (uint32, uint8): uint32,
@@ -764,9 +758,7 @@ _unsigned_unsigned: dict[
     (uint32, uint64): uint64,
     (uint64, uint64): uint64,
 }
-_mixed_integers: dict[
-    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
-] = {
+_mixed_integers: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (int8, uint8): int16,
     (int16, uint8): int16,
     (int32, uint8): int32,
@@ -782,9 +774,7 @@ _mixed_integers: dict[
     # NOTE: Standard does not define interaction with uint64!
 }
 
-_floating_floating: dict[
-    tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes
-] = {
+_floating_floating: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (float32, float32): float32,
     (float32, float64): float64,
     (float64, float32): float64,
@@ -792,7 +782,7 @@ _floating_floating: dict[
 }
 
 # Non-standard interactions
-_non_standard: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTypes] = {
+_non_standard: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (int8, uint64): float64,
     (int16, uint64): float64,
     (int32, uint64): float64,
@@ -802,7 +792,7 @@ _non_standard: dict[tuple[CoreNumericDTypes, CoreNumericDTypes], CoreNumericDTyp
 # Mixed integers and floating point numbers are not
 # strictly defined, but generally we want to cast the
 # integer to a floating point and then try again.
-_int_to_floating: dict[CoreNumericDTypes, CoreNumericDTypes] = {
+_int_to_floating: dict[NumericDTypes, NumericDTypes] = {
     int8: float16,
     uint8: float16,
     int16: float32,
@@ -814,9 +804,7 @@ _int_to_floating: dict[CoreNumericDTypes, CoreNumericDTypes] = {
 }
 
 
-def _result_type_core_numeric(
-    a: CoreNumericDTypes, b: CoreNumericDTypes
-) -> CoreNumericDTypes:
+def _result_type_core_numeric(a: NumericDTypes, b: NumericDTypes) -> NumericDTypes:
     # Attempt promotion between known types. The implementation is not
     # using `isinstance` to avoid subclassing issues.
     if ret := _signed_signed.get((a, b)):

@@ -28,7 +28,7 @@ def iinfo(ty: DType | Array, /) -> Iinfo:
         ty = ty.dtype
     if isinstance(ty, masked_onnx.NCoreIntegerDTypes):
         npdtype = dtypes.as_numpy(masked_onnx.as_non_nullable(ty))
-    elif isinstance(ty, onnx.CoreIntegerDTypes):
+    elif isinstance(ty, onnx.IntegerDTypes):
         npdtype = dtypes.as_numpy(ty)
     else:
         raise ValueError(f"'Iinfo' not available for type `{ty}`")
@@ -57,7 +57,7 @@ def finfo(ty: DType | Array, /):
         ty = ty.dtype
     if isinstance(ty, masked_onnx.NCoreFloatingDTypes):
         npdtype = dtypes.as_numpy(masked_onnx.as_non_nullable(ty))
-    elif isinstance(ty, onnx.CoreFloatingDTypes):
+    elif isinstance(ty, onnx.FloatingDTypes):
         npdtype = dtypes.as_numpy(ty)
     else:
         raise ValueError(f"'FIinfo' not available for type `{ty}`")

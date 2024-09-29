@@ -15,7 +15,6 @@ from .schema import DTypeInfo
 if TYPE_CHECKING:
     from . import _typed_array
     from ._typed_array import TyArrayBase, onnx
-    from ._typed_array.onnx import CoreDTypes
     from .array import OnnxShape
     from .schema import DTypeInfo
 
@@ -71,12 +70,12 @@ class DType(ABC, Generic[TY_ARRAY]):
 
 @overload
 def result_type(
-    first: onnx.CoreNumericDTypes, *others: onnx.CoreNumericDTypes
-) -> onnx.CoreNumericDTypes: ...
+    first: onnx.NumericDTypes, *others: onnx.NumericDTypes
+) -> onnx.NumericDTypes: ...
 
 
 @overload
-def result_type(first: CoreDTypes, *others: CoreDTypes) -> CoreDTypes: ...
+def result_type(first: onnx.DTypes, *others: onnx.DTypes) -> onnx.DTypes: ...
 
 
 @overload
@@ -96,7 +95,7 @@ def result_type(first: DType, *others: DType) -> DType:
     return res
 
 
-def from_numpy(np_dtype: np.dtype) -> CoreDTypes:
+def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
     from ._typed_array import onnx
 
     if np_dtype == np.int8:
