@@ -178,6 +178,12 @@ def linspace(
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
 
 
+def mean(
+    x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+) -> Array:
+    return Array._from_data(x._data.mean())
+
+
 def ones(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:

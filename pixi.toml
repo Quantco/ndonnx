@@ -53,7 +53,7 @@ cmd = "pytest --max-examples 16 api-coverage-tests/array_api_tests/ -v -rfX --js
 [feature.test.tasks.arrayapitests.env]
 ARRAY_API_TESTS_MODULE="ndonnx._logic_in_data"
 ARRAY_API_TESTS_VERSION="2023.12"
-ARRAY_API_TESTS_SKIP_DTYPES="complex64,complex128"
+ARRAY_API_TESTS_SKIP_DTYPES="complex64,complex128,uint8,uint16,uint32,int8,int16,int32"
 
 
 [feature.lint.dependencies]

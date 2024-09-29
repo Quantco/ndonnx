@@ -96,6 +96,6 @@ def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
         res = x2.__ndx_rmaximum__(x1)
     if res is NotImplemented:
         raise TypeError(
-            f"Unsupported operand data types for 'max': `{x1.dtype}` and `{x2.dtype}`"
+            f"Unsupported operand data types for 'maximum': `{x1.dtype}` and `{x2.dtype}`"
         )
     return res

@@ -181,6 +181,11 @@ class TyArrayBase(ABC):
     def floor(self) -> Self:
         raise _make_value_error("floor", self.dtype)
 
+    def mean(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        raise _make_value_error("mean", self.dtype)
+
     def log(self) -> Self:
         raise _make_value_error("log", self.dtype)
 

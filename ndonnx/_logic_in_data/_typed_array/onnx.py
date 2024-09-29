@@ -488,10 +488,16 @@ class TyArrayNumber(TyArray):
         return _promote_and_apply_op(self, lhs, operator.add, op.add, False)
 
     def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.ge, op.greater_or_equal, False)
+        return _promote_and_apply_op(self, rhs, operator.ge, op.greater_or_equal, True)
 
     def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.gt, op.greater, False)
+        return _promote_and_apply_op(self, rhs, operator.gt, op.greater, True)
+
+    def __le__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.le, op.less_or_equal, True)
+
+    def __lt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.lt, op.less, True)
 
     def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.truediv, op.div, True)
@@ -536,6 +542,18 @@ class TyArrayInteger(TyArrayNumber):
 
 class TyArrayFloating(TyArrayNumber):
     dtype: FloatingDTypes
+
+    def mean(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        if axis is None:
+            axes = None
+        elif isinstance(axis, int):
+            axes = op.const([axis], np.int64)
+        else:
+            axes = op.const(axis, np.int64)
+
+        return type(self)(op.reduce_mean(self.var, axes=axes, keepdims=keepdims))
 
     def isinf(self) -> TyArrayBool:
         return TyArrayBool(op.isinf(self.var))

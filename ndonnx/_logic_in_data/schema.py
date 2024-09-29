@@ -94,9 +94,9 @@ def var_to_primitive(var: Var) -> PrimitiveComponent:
     if dtype == np.float64:
         return "float64"
 
-    if dtype == str:
+    if dtype == np.str_:
         return "str"
-    if dtype == bool:
+    if dtype == np.bool:
         return "bool"
 
     raise ValueError(f"unexpected data type of 'var': `{dtype}`")
