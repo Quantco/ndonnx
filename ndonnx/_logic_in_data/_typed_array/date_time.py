@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 import numpy as np
 
-from ..dtypes import TY_ARRAY, DType
-from ..schema import DTypeInfo, flatten_components
+from .._dtypes import TY_ARRAY, DType
+from .._schema import DTypeInfo, flatten_components
 from . import onnx, py_scalars
 from .funcs import astyarray, where
 from .typed_array import TyArrayBase
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from ..array import OnnxShape
-    from ..schema import Components, Schema, StructComponent
+    from .._array import OnnxShape
+    from .._schema import Components, Schema, StructComponent
     from .indexing import (
         GetitemIndex,
         SetitemIndex,

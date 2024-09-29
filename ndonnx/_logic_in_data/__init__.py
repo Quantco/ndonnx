@@ -1,8 +1,8 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
-from .array import Array, asarray
-from .dtypes import DType
+from ._array import Array, asarray
+from ._dtypes import DType
 from ._typed_array.onnx import (
     int8,
     int16,
@@ -33,7 +33,8 @@ from ._typed_array.masked_onnx import (
     nstring,
     nbool,
 )
-from .funcs import (
+from ._typed_array.date_time import DateTime, TimeDelta
+from ._funcs import (
     all,
     any,
     arange,
@@ -56,7 +57,7 @@ from .funcs import (
     zeros,
     zeros_like,
 )
-from .elementwise import (
+from ._elementwise import (
     abs,
     acos,
     acosh,
@@ -120,9 +121,10 @@ from .elementwise import (
     tanh,
     trunc,
 )
-from .infos import finfo, iinfo
-from .namespace_info import __array_namespace_info__
-from .constants import e, inf, nan, pi, newaxis
+from ._infos import finfo, iinfo
+from ._namespace_info import __array_namespace_info__
+from ._constants import e, inf, nan, pi, newaxis
+from ._build import build
 
 _default_int = int64
 _default_float = float64
@@ -132,7 +134,6 @@ nutf8 = nstring
 
 __all__ = [
     "__array_namespace_info__",
-    "Array",
     "DType",
     # ONNX data types
     "int8",
@@ -257,4 +258,9 @@ __all__ = [
     "tan",
     "tanh",
     "trunc",
+    # Non-standard functions
+    "build",
+    "DateTime",
+    "TimeDelta",
+    "Array",
 ]

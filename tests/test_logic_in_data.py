@@ -6,11 +6,8 @@ import numpy as np
 import pytest
 
 import ndonnx._logic_in_data as ndx
-from ndonnx._logic_in_data import Array, dtypes, maximum, reshape, where
-from ndonnx._logic_in_data._typed_array.date_time import DateTime, TimeDelta
-from ndonnx._logic_in_data.array import asarray
-from ndonnx._logic_in_data.build import build
-from ndonnx._logic_in_data.schema import get_schemas
+from ndonnx._logic_in_data import _dtypes as dtypes
+from ndonnx._logic_in_data._schema import get_schemas
 
 
 def check_dtype_shape(arr, dtype, shape):
@@ -23,17 +20,20 @@ def build_and_run(fn, *np_args):
     import onnxruntime as ort
 
     ins_np = {f"in{i}": arr for i, arr in enumerate(np_args)}
-    ins = {k: Array(a.shape, dtypes.from_numpy(a.dtype)) for k, a in ins_np.items()}
+    ins = {
+        k: ndx.Array(shape=a.shape, dtype=dtypes.from_numpy(a.dtype))
+        for k, a in ins_np.items()
+    }
 
     out = {"out": fn(*ins.values())}
-    mp = build(ins, out)
+    mp = ndx.build(ins, out)
     session = ort.InferenceSession(mp.SerializeToString())
     (out,) = session.run(None, {f"{k}__var": a for k, a in ins_np.items()})
     return out
 
 
 def constant_prop(fn, *np_args):
-    return fn(*[asarray(a) for a in np_args]).unwrap_numpy()
+    return fn(*[ndx.asarray(a) for a in np_args]).unwrap_numpy()
 
 
 @pytest.fixture(autouse=True)
@@ -65,7 +65,7 @@ def error_when_prop_fails():
 )
 def test_add_pyscalar_coretypes(scalar, dtype, res_dtype, op):
     shape = ("N",)
-    arr = Array(shape, dtype)
+    arr = ndx.Array(shape=shape, dtype=dtype)
 
     check_dtype_shape(op(scalar, arr), res_dtype, shape)
     check_dtype_shape(op(arr, scalar), res_dtype, shape)
@@ -82,7 +82,7 @@ def test_add_pyscalar_coretypes(scalar, dtype, res_dtype, op):
 )
 def test_core_add(dtype1, dtype2, res_dtype):
     shape = ("N",)
-    res = Array(shape, dtype1) + Array(shape, dtype2)
+    res = ndx.Array(shape=shape, dtype=dtype1) + ndx.Array(shape=shape, dtype=dtype2)
 
     check_dtype_shape(res, res_dtype, shape)
 
@@ -97,17 +97,17 @@ def test_core_add(dtype1, dtype2, res_dtype):
 )
 def test_core_or(dtype1, dtype2, res_dtype):
     shape = ("N",)
-    res = Array(shape, dtype1) | Array(shape, dtype2)
+    res = ndx.Array(shape=shape, dtype=dtype1) | ndx.Array(shape=shape, dtype=dtype2)
 
     check_dtype_shape(res, res_dtype, shape)
 
 
 def test_value_prop():
-    arr = Array(value=1)
+    arr = ndx.Array(value=1)
     np.testing.assert_allclose((arr + arr).unwrap_numpy(), np.array(2))
 
     with pytest.raises(ValueError, match="no propagated value available"):
-        Array(("N",), ndx.int32).unwrap_numpy()
+        ndx.Array(shape=("N",), dtype=ndx.int32).unwrap_numpy()
 
 
 @pytest.mark.parametrize(
@@ -120,28 +120,28 @@ def test_value_prop():
 )
 def test_where(x_ty, y_ty, res_ty):
     shape = ("N", "M")
-    cond = Array(shape, ndx.bool)
-    x = Array(shape, x_ty)
-    y = Array(shape, y_ty)
+    cond = ndx.Array(shape=shape, dtype=ndx.bool)
+    x = ndx.Array(shape=shape, dtype=x_ty)
+    y = ndx.Array(shape=shape, dtype=y_ty)
 
-    res = where(cond, x, y)
+    res = ndx.where(cond, x, y)
 
     check_dtype_shape(res, res_ty, shape)
 
 
 def test_datetime():
-    arr = Array(("N",), DateTime("s"))
+    arr = ndx.Array(shape=("N",), dtype=ndx.DateTime("s"))
     one_s_td = (arr + 1) - arr
-    assert one_s_td.dtype == TimeDelta("s")
+    assert one_s_td.dtype == ndx.TimeDelta("s")
 
     ten_s_td = one_s_td * 10
 
     res = arr + ten_s_td
-    assert res.dtype == DateTime("s")
+    assert res.dtype == ndx.DateTime("s")
 
 
 def test_datetime_value_prop():
-    arr = asarray(np.asarray([1, 2])).astype(DateTime("s"))
+    arr = ndx.asarray(np.asarray([1, 2])).astype(ndx.DateTime("s"))
     np.testing.assert_equal(
         arr.unwrap_numpy(), np.asarray([1, 2], dtype="datetime64[s]")
     )
@@ -157,12 +157,13 @@ def test_datetime_value_prop():
 @pytest.mark.parametrize(
     "scalar, dtype, res_dtype",
     [
-        (1, DateTime("s"), DateTime("s")),
+        # TODO: Implement other units
+        (1, ndx.DateTime("s"), ndx.DateTime("s")),
     ],
 )
 def test_add_pyscalar_datetime(scalar, dtype, res_dtype, op):
     shape = ("N",)
-    arr = Array(shape, dtype)
+    arr = ndx.Array(shape=shape, dtype=dtype)
 
     check_dtype_shape(op(scalar, arr), res_dtype, shape)
     check_dtype_shape(op(arr, scalar), res_dtype, shape)
@@ -179,18 +180,18 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype, op):
 def test_add_pyscalar_timedelta(op):
     shape = ("N",)
     scalar = 1
-    arr = Array(shape, TimeDelta("s"))
+    arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
 
-    expected_dtype = TimeDelta("s")
+    expected_dtype = ndx.TimeDelta("s")
     check_dtype_shape(op(scalar, arr), expected_dtype, shape)
     check_dtype_shape(op(arr, scalar), expected_dtype, shape)
 
 
 def test_build():
-    a = Array(("N",), ndx.nint64)
+    a = ndx.Array(shape=("N",), dtype=ndx.nint64)
     b = a[0]
 
-    mp = build({"a": a}, {"b": b})
+    mp = ndx.build({"a": a}, {"b": b})
 
     schemas = get_schemas(mp)
 
@@ -238,7 +239,7 @@ def test_function(dtype, values, expect_ort_success):
 @pytest.mark.parametrize("dtype", [None, ndx.int32, ndx.float64])
 def test_ones(dtype):
     from ndonnx._logic_in_data import ones
-    from ndonnx._logic_in_data.dtypes import as_numpy
+    from ndonnx._logic_in_data._dtypes import as_numpy
 
     shape = (2,)
     candidate = ones(shape, dtype=dtype)
@@ -252,7 +253,7 @@ def test_ones(dtype):
 
 
 def test_indexing_shape():
-    arr = Array(("N", "M"), ndx.nint32)
+    arr = ndx.Array(shape=("N", "M"), dtype=ndx.nint32)
     assert arr[0, :]._data.shape == ("M",)
     assert arr[0, :].shape == (None,)
 
@@ -262,7 +263,7 @@ def test_indexing_shape():
 )
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
 def test_indexing_value_prop_scalar_index(np_array, idx):
-    arr = asarray(np_array)
+    arr = ndx.asarray(np_array)
     assert arr[idx].shape == np_array[idx].shape
     assert arr[idx].dtype == arr.dtype
     np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
@@ -270,7 +271,7 @@ def test_indexing_value_prop_scalar_index(np_array, idx):
 
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
 def test_indexing_value_prop_scalar_slice(np_array):
-    arr = asarray(np_array)
+    arr = ndx.asarray(np_array)
     idx = (slice(None, 1), ...)
     assert arr[idx].shape == np_array[idx].shape
     assert arr[idx].dtype == arr.dtype
@@ -279,7 +280,7 @@ def test_indexing_value_prop_scalar_slice(np_array):
 
 def test_indexing_value_prop_tuple_index():
     np_arr = np.asarray([[1, 2]])
-    arr = asarray(np_arr)
+    arr = ndx.asarray(np_arr)
     for idx in np.ndindex(arr.shape):  # type: ignore
         el = arr[idx]
         assert el.shape == ()
@@ -294,7 +295,7 @@ def test_indexing_value_prop_tuple_index():
 )
 def test_indexing_setitem_scalar(np_array, idx):
     np_array = np_array.copy()
-    arr = asarray(np_array.copy())
+    arr = ndx.asarray(np_array.copy())
     arr[idx] = -1
     np_array[idx] = -1
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)
@@ -313,7 +314,7 @@ def test_indexing_setitem_scalar(np_array, idx):
 )
 def test_more_slicing(np_array, idx):
     np_array = np_array.copy()
-    arr = asarray(np_array)
+    arr = ndx.asarray(np_array)
 
     np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
     arr[idx] = -1
@@ -323,11 +324,11 @@ def test_more_slicing(np_array, idx):
 
 def test_assign_to_zero_dim():
     np_array = np.array([])
-    arr = asarray(np_array)
+    arr = ndx.asarray(np_array)
 
     idx = ...
     np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
-    arr[idx] = asarray(np_array)
+    arr[idx] = ndx.asarray(np_array)
     np_array[idx] = np_array.copy()
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)
 
@@ -336,7 +337,7 @@ def test_assign_to_zero_dim():
     "np_dtype, ndx_dtype",
     [
         (np.dtype("int32"), ndx.int32),
-        (np.dtype("datetime64[s]"), DateTime("s")),
+        (np.dtype("datetime64[s]"), ndx.DateTime("s")),
     ],
 )
 @pytest.mark.parametrize(
@@ -346,10 +347,10 @@ def test_assign_to_zero_dim():
     ],
 )
 def test_min_max(ndx_dtype, np_dtype, np_array1, np_array2):
-    arr1 = asarray(np_array1).astype(ndx_dtype)
-    arr2 = asarray(np_array2).astype(ndx_dtype)
+    arr1 = ndx.asarray(np_array1).astype(ndx_dtype)
+    arr2 = ndx.asarray(np_array2).astype(ndx_dtype)
 
-    candidate = maximum(arr1, arr2).unwrap_numpy()
+    candidate = ndx.maximum(arr1, arr2).unwrap_numpy()
     expectation = np.maximum(np_array1.astype(np_dtype), np_array2.astype(np_dtype))
 
     np.testing.assert_array_equal(candidate, expectation)
@@ -358,12 +359,12 @@ def test_min_max(ndx_dtype, np_dtype, np_array1, np_array2):
 @pytest.mark.parametrize("value", ["foo", np.array("foo"), np.array(["foo"])])
 @pytest.mark.parametrize("string_dtype", [ndx.string, ndx.nstring])
 def test_string_arrays(value, string_dtype):
-    arr = asarray(value).astype(string_dtype)
+    arr = ndx.asarray(value).astype(string_dtype)
 
     assert "foobar" == (arr + "bar").unwrap_numpy()
     assert "barfoo" == ("bar" + arr).unwrap_numpy()
 
-    arr2 = reshape(arr, (1,))
+    arr2 = ndx.reshape(arr, (1,))
     if string_dtype == ndx.string:
         assert arr2[0] == arr
     else:
@@ -372,22 +373,24 @@ def test_string_arrays(value, string_dtype):
 
 
 def test_repr_eager():
-    assert "array(data: [1], shape=(1,), dtype=Int64)" == str(asarray(np.array([1])))
+    assert "array(data: [1], shape=(1,), dtype=Int64)" == str(
+        ndx.asarray(np.array([1]))
+    )
     assert "array(data: [1], mask: None, shape=(1,), dtype=NInt64)" == str(
-        asarray(np.ma.array([1]))
+        ndx.asarray(np.ma.array([1]))
     )
     assert "array(data: [1], mask: [True], shape=(1,), dtype=NInt64)" == str(
-        asarray(np.ma.array([1], mask=[True]))
+        ndx.asarray(np.ma.array([1], mask=[True]))
     )
 
 
 def test_repr_lazy():
     # TODO: Show dynamic shape parameters rather than `None`
     assert "array(data: *lazy*, shape=(None,), dtype=Int64)" == str(
-        Array(("N",), ndx.int64)
+        ndx.Array(shape=("N",), dtype=ndx.int64)
     )
     assert "array(data: *lazy*, mask: *lazy*, shape=(None,), dtype=NInt64)" == str(
-        Array(("N",), ndx.nint64)
+        ndx.Array(shape=("N",), dtype=ndx.nint64)
     )
 
 
@@ -401,7 +404,7 @@ def test_repr_lazy():
     ],
 )
 def test_concat(np_arrays, axis):
-    arrays = [asarray(arr) for arr in np_arrays]
+    arrays = [ndx.asarray(arr) for arr in np_arrays]
     expected = np.concat(np_arrays, axis=axis)
     candidate = ndx.concat(arrays, axis=axis).unwrap_numpy()
 

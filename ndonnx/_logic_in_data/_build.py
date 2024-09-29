@@ -7,8 +7,8 @@ import onnx
 from spox import Var
 from spox import build as spox_build
 
-from .array import Array
-from .schema import flatten_components
+from ._array import Array
+from ._schema import flatten_components
 
 
 def build(arguments: dict[str, Array], results: dict[str, Array]) -> onnx.ModelProto:

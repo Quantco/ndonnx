@@ -12,9 +12,9 @@ from typing import Any, Optional, Union, overload
 import numpy as np
 from spox import Var
 
+from ._dtypes import DType
 from ._typed_array import TyArrayBase
 from ._typed_array.funcs import astyarray
-from .dtypes import DType
 
 StrictShape = tuple[int, ...]
 StandardShape = int | tuple[int | None, ...]
@@ -38,19 +38,19 @@ class Array:
     _data: TyArrayBase
 
     @overload
-    def __init__(self, shape: OnnxShape, dtype: DType): ...
+    def __init__(self, *, shape: OnnxShape, dtype: DType): ...
 
     @overload
     def __init__(self, value: np.ndarray | float | int | bool): ...
 
-    def __init__(self, shape=None, dtype=None, value=None, var=None):
-        (is_shape, is_dtype, is_value, is_var) = (
-            item is not None for item in [shape, dtype, value, var]
+    def __init__(self, value=None, *, shape=None, dtype=None):
+        (is_shape, is_dtype, is_value) = (
+            item is not None for item in [shape, dtype, value]
         )
         if not (
-            (True, True, False, False) == (is_shape, is_dtype, is_value, is_var)
-            or (False, False, True, False) == (is_shape, is_dtype, is_value, is_var)
-            or (False, False, False, True) == (is_shape, is_dtype, is_value, is_var)
+            (True, True, False) == (is_shape, is_dtype, is_value)
+            or (False, False, True) == (is_shape, is_dtype, is_value)
+            or (False, False, False) == (is_shape, is_dtype, is_value)
         ):
             raise ValueError("Invalid arguments.")
 

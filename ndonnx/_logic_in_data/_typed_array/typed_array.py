@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING
 import numpy as np
 from typing_extensions import Self
 
-from ..dtypes import TY_ARRAY, DType
+from .._dtypes import TY_ARRAY, DType
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
-    from ..schema import Components, Schema
+    from .._array import OnnxShape
+    from .._schema import Components, Schema
     from . import TyArrayBool, TyArrayInt64
     from .indexing import GetitemIndex, SetitemIndex
 

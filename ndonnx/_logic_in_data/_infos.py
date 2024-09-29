@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from . import dtypes
+from . import _dtypes as dtypes
+from ._array import Array
+from ._dtypes import DType
 from ._typed_array import masked_onnx, onnx
-from .array import Array
-from .dtypes import DType
 
 
 @dataclass

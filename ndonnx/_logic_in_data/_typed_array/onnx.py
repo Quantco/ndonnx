@@ -18,16 +18,16 @@ from typing_extensions import Self
 
 from ndonnx._corearray import _CoreArray
 
-from .. import dtypes
-from ..dtypes import TY_ARRAY, DType, as_numpy, from_numpy
-from ..schema import DTypeInfo, Schema, var_to_primitive
+from .. import _dtypes as dtypes
+from .._dtypes import TY_ARRAY, DType, as_numpy, from_numpy
+from .._schema import DTypeInfo, Schema, var_to_primitive
 from .indexing import GetitemIndex, GetitemIndexStatic, SetitemIndex, SetitemIndexStatic
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
-    from ..schema import Components
+    from .._array import OnnxShape
+    from .._schema import Components
 
 
 TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
@@ -534,8 +534,8 @@ class TyArrayInteger(TyArrayNumber):
         return TyArrayBool(var)
 
     def isinf(self) -> TyArrayBool:
-        from ..array import Array
-        from ..funcs import full_like
+        from .._array import Array
+        from .._funcs import full_like
 
         return safe_cast(TyArrayBool, full_like(Array._from_data(self), False)._data)
 

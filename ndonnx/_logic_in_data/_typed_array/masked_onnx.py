@@ -11,16 +11,16 @@ from typing import TYPE_CHECKING, TypeVar
 import numpy as np
 from typing_extensions import Self
 
-from ..dtypes import TY_ARRAY, DType
-from ..schema import DTypeInfo, Schema, flatten_components
+from .._dtypes import TY_ARRAY, DType
+from .._schema import DTypeInfo, Schema, flatten_components
 from . import onnx
 from .funcs import astyarray
 from .typed_array import TyArrayBase
 from .utils import safe_cast
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
-    from ..schema import Components, StructComponent
+    from .._array import OnnxShape
+    from .._schema import Components, StructComponent
     from .indexing import GetitemIndex, SetitemIndex
 
 

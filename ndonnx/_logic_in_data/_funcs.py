@@ -8,9 +8,9 @@ import numpy as np
 import ndonnx._logic_in_data as ndx
 
 from . import DType
+from ._array import Array, asarray
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
-from .array import Array, asarray
 
 
 def all(

@@ -8,7 +8,7 @@ from spox import Var
 
 import ndonnx._logic_in_data as ndx
 
-from ..dtypes import DType
+from .._dtypes import DType
 from . import masked_onnx, onnx
 from .py_scalars import TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase

@@ -13,15 +13,15 @@ from typing_extensions import Self
 
 import ndonnx._logic_in_data as ndx
 
-from .. import dtypes
-from ..dtypes import TY_ARRAY, DType
+from .. import _dtypes as dtypes
+from .._dtypes import TY_ARRAY, DType
 from . import masked_onnx, onnx
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
-    from ..array import OnnxShape
-    from ..schema import Components, DTypeInfo, Schema
+    from .._array import OnnxShape
+    from .._schema import Components, DTypeInfo, Schema
     from .indexing import SetitemIndex
 
 

@@ -10,13 +10,12 @@ from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
 
-from .schema import DTypeInfo
+from ._schema import DTypeInfo
 
 if TYPE_CHECKING:
-    from . import _typed_array
+    from ._array import OnnxShape
+    from ._schema import DTypeInfo
     from ._typed_array import TyArrayBase, onnx
-    from .array import OnnxShape
-    from .schema import DTypeInfo
 
 
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArrayBase")
@@ -37,7 +36,7 @@ class DType(ABC, Generic[TY_ARRAY]):
         ...
 
     @abstractmethod
-    def __ndx_convert_tyarray__(self, arr: _typed_array.TyArrayBase) -> TY_ARRAY:
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_ARRAY:
         """Convert the given array to this data type.
 
         This function is used to implement ``TyArrayBase.astype`` and

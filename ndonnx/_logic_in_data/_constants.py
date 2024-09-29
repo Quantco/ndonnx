@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from .funcs import asarray
+from ._funcs import asarray
 
 e = asarray(np.e)
 inf = asarray(np.inf)

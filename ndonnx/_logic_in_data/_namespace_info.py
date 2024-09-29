@@ -3,8 +3,8 @@
 
 from typing import TypedDict
 
+from ._dtypes import DType
 from ._typed_array import onnx
-from .dtypes import DType
 
 DefaultDataTypes = TypedDict(
     "DefaultDataTypes",

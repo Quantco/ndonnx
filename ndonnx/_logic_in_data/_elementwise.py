@@ -5,8 +5,8 @@
 Each function directly dispatches to the inner typed array.
 """
 
+from ._array import Array
 from ._typed_array import funcs as tyfuncs
-from .array import Array
 
 
 def add(a: Array, b: Array) -> Array:
