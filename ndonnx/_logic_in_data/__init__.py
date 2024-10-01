@@ -1,6 +1,7 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+from ._compat import array
 from ._array import Array, asarray
 from ._dtypes import DType
 from ._typed_array.onnx import (
@@ -263,4 +264,5 @@ __all__ = [
     "DateTime",
     "TimeDelta",
     "Array",
+    "array",
 ]

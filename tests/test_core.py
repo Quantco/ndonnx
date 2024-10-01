@@ -9,8 +9,7 @@ import numpy as np
 import pytest
 import spox.opset.ai.onnx.v19 as op
 
-import ndonnx as ndx
-import ndonnx.additional as nda
+import ndonnx._logic_in_data as ndx
 from ndonnx import _data_types as dtypes
 from ndonnx._utility import promote
 
@@ -229,7 +228,7 @@ def test_indexing_on_scalar():
 def test_indexing_on_scalar_mask():
     res = ndx.asarray([])
     res = res[False]
-    assert_array_equal(nda.shape(res).to_numpy(), (0, 0))
+    assert_array_equal(np.asarray(res.shape), np.asarray([0, 0]))
 
 
 def test_indexing_with_mask(_a):
@@ -505,10 +504,13 @@ def test_creation_full():
     [
         ((ndx.int32, ndx.int64), ndx.int64),
         (
-            (ndx.asarray([1, 2, 3], ndx.int64), ndx.asarray([1, 2, 3], ndx.int32)),
+            (
+                ndx.asarray([1, 2, 3], dtype=ndx.int64),
+                ndx.asarray([1, 2, 3], dtype=ndx.int32),
+            ),
             ndx.int64,
         ),
-        ((ndx.int32, ndx.asarray([1, 2, 3], ndx.int64)), ndx.int64),
+        ((ndx.int32, ndx.asarray([1, 2, 3], dtype=ndx.int64)), ndx.int64),
         ((ndx.float32, ndx.float64), ndx.float64),
         ((ndx.float64, ndx.int32), ndx.float64),
     ],
@@ -911,15 +913,15 @@ def test_lazy_array_shape(x, expected_shape):
         ),
         (
             ndx.array(shape=("N", 1), dtype=ndx.utf8),
-            ndx.array(shape=("N"), dtype=ndx.int64),
+            ndx.array(shape=("N",), dtype=ndx.int64),
         ),
         (
             ndx.array(shape=(1,), dtype=ndx.utf8),
-            ndx.array(shape=("N"), dtype=ndx.int64),
+            ndx.array(shape=("N",), dtype=ndx.int64),
         ),
         (
             ndx.array(shape=(), dtype=ndx.utf8),
-            ndx.array(shape=("N"), dtype=ndx.int64),
+            ndx.array(shape=("N",), dtype=ndx.int64),
         ),
     ],
 )

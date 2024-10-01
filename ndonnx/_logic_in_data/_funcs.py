@@ -201,9 +201,18 @@ def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
     return Array._from_data(data)
 
 
-def reshape(x: Array, /, shape: tuple[int, ...], *, copy: bool | None = None) -> Array:
+def reshape(
+    x: Array, /, shape: tuple[int, ...] | Array, *, copy: bool | None = None
+) -> Array:
     if copy is not None:
         raise ValueError("'copy' semantics are not implemented, yet")
+    if isinstance(shape, Array):
+        shape_data = shape._data
+        if not isinstance(shape_data, onnx.TyArrayInt64):
+            raise TypeError(
+                "'shape' must be of data type int64 if provided as an Array"
+            )
+        return Array._from_data(x._data.reshape(shape_data))
     return Array._from_data(x._data.reshape(shape))
 
 

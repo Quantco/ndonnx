@@ -168,7 +168,7 @@ class TimeBaseArray(TyArrayBase):
 
         return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
 
-    def reshape(self, shape: tuple[int, ...]) -> Self:
+    def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         is_nat = self.is_nat.reshape(shape)
         data = self.data.reshape(shape)
 

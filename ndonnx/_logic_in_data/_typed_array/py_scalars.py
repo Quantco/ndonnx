@@ -126,7 +126,7 @@ class _ArrayPyScalar(TyArrayBase):
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         raise ValueError("'dynamic_shape' should never be called on Python scalar")
 
-    def reshape(self, shape: tuple[int, ...]) -> Self:
+    def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         raise ValueError("cannot reshape Python scalar")
 
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:

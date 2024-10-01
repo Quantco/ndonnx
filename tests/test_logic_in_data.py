@@ -409,3 +409,10 @@ def test_concat(np_arrays, axis):
     candidate = ndx.concat(arrays, axis=axis).unwrap_numpy()
 
     np.testing.assert_equal(expected, candidate)
+
+
+def test_reshape_with_array():
+    expected_shape = (2, 1)
+    new_shape = ndx.asarray(np.array(expected_shape))
+    candidate_shape = ndx.reshape(ndx.asarray(np.array([[1, 2]])), new_shape).shape
+    assert expected_shape == candidate_shape

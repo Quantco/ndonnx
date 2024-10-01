@@ -314,8 +314,11 @@ class TyArray(TyArrayBase):
         components = {"var": self.var}
         return components, schema
 
-    def reshape(self, shape: tuple[int, ...]) -> Self:
-        var = op.reshape(self.var, op.const(shape, np.int64), allowzero=True)
+    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+        if isinstance(shape, tuple):
+            var = op.reshape(self.var, op.const(shape, np.int64), allowzero=True)
+        else:
+            var = op.reshape(self.var, shape.var, allowzero=True)
         return type(self)(var)
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
