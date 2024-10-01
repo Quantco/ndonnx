@@ -500,6 +500,16 @@ def test_creation_full():
     )
 
 
+def test_creation_ones_like():
+    a = ndx.array(shape=("N",), dtype=ndx.int64)
+    b = ndx.ones_like(a)
+    model = ndx.build({"a": a}, {"b": b})
+    assert_array_equal(
+        run(model, {"a": np.array([1, 2, 3], dtype=np.int64)})["b"],
+        np.ones(3, dtype=np.int64),
+    )
+
+
 @pytest.mark.parametrize(
     "args, expected",
     [

@@ -13,6 +13,7 @@ Changelog
 **Bug fix**
 
 - Fixed a bug in the construction of nullable arrays using :func:`ndonnx.asarray` where the shape of the null field would not match the values field if the provided `np.ma.MaskedArray`'s mask was scalar.
+- Fixed a bug in the implementation of :func:`ndonnx.ones_like` where the static shape was being used to construct the array of ones.
 
 
 0.9.0 (2024-08-30)
