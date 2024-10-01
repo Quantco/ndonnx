@@ -106,11 +106,14 @@ class Array:
         """
         return self._data.unwrap_numpy()
 
-    def to_numpy(self) -> np.ndarray:
+    def to_numpy(self) -> np.ndarray | None:
         from warnings import warn
 
         warn("'to_numpy' is deprecated in favor of 'unwrap_numpy'", DeprecationWarning)
-        return self.unwrap_numpy()
+        try:
+            return self.unwrap_numpy()
+        except ValueError:
+            return None
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         from ._typed_array import TyArrayBool, TyArrayInteger

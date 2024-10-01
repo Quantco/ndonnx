@@ -18,13 +18,16 @@ def build(arguments: dict[str, Array], results: dict[str, Array]) -> onnx.ModelP
     mp = spox_build(ins, outs, drop_unused_inputs=True)
 
     metadata = {
-        "schemas": json.dumps(
+        "ndonnx": json.dumps(
             {
-                "arguments": json.loads(_json_schema(arguments)),
-                "results": json.loads(_json_schema(results)),
+                "schemas": {
+                    "arguments": json.loads(_json_schema(arguments)),
+                    "results": json.loads(_json_schema(results)),
+                },
+                # Version for how we organize our metadata in general
+                "metadata_version": "1",
             }
-        ),
-        "ndonnx_schema_version": "1",
+        )
     }
     onnx.helper.set_model_props(mp, metadata)
 

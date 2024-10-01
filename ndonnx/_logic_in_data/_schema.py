@@ -4,38 +4,46 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 import numpy as np
 import onnx
+from spox import Var
+from typing_extensions import Self
 
-if TYPE_CHECKING:
-    from spox import Var
-    from typing_extensions import Self
+Json = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
+"""A JSON serializable object."""
 
-    Json = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
-    PrimitiveComponent = Literal[
-        "float16",
-        "float32",
-        "float64",
-        "int8",
-        "int16",
-        "int32",
-        "int64",
-        "uint8",
-        "uint16",
-        "uint32",
-        "uint64",
-        "bool",
-        "str",
-    ]
-    StructComponent = dict[str, "Schema"]
-    Components = dict[str, Var]
+PrimitiveComponent = Literal[
+    "float16",
+    "float32",
+    "float64",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+    "bool",
+    "str",
+]
+"""Primitive type with an equivalent type in the ONNX standard."""
+
+StructComponent = dict[str, "Schema"]
+"""A composite type consisting of other ``StructComponents`` or ``PrimitiveTypes``."""
+
+Components = dict[str, Var]
+"""A flattened representation of the components of an array with arbitrary data type."""
 
 
 @dataclass
 class DTypeInfo:
+    """Class returned by ``DType._info`` describing the respective data type."""
+
     defining_library: str
+    # Version of this particular data type
     version: int
     dtype: str
     dtype_state: Json
@@ -43,6 +51,11 @@ class DTypeInfo:
 
 @dataclass
 class Schema:
+    """Schema describing a data type.
+
+    The names are suffixes of the names ultimately used in the model API.
+    """
+
     dtype_info: DTypeInfo
     components: PrimitiveComponent | StructComponent
 
@@ -110,7 +123,15 @@ class Schemas:
 
 def get_schemas(mp: onnx.ModelProto) -> Schemas:
     metadict = {el.key: el.value for el in mp.metadata_props}
-    schema_dict = json.loads(metadict["schemas"])
+    return _get_schemas(metadict)
+
+
+def _get_schemas(metadata: dict[str, str]) -> Schemas:
+    """Get ``Schemas`` from metadata dict.
+
+    This function is factored out from ``get_schemas`` for easier testing.
+    """
+    schema_dict = json.loads(metadata["ndonnx"])["schemas"]
 
     arguments = {k: Schema.from_json(v, 1) for k, v in schema_dict["arguments"].items()}
     results = {k: Schema.from_json(v, 1) for k, v in schema_dict["results"].items()}

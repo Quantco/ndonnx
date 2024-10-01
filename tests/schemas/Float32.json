@@ -1,0 +1,3 @@
+{
+    "ndonnx": "{\"schemas\": {\"arguments\": {\"a\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"Float32\", \"dtype_state\": null}, \"components\": \"float32\"}}, \"results\": {\"b\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"Float32\", \"dtype_state\": null}, \"components\": \"float32\"}}}, \"metadata_version\": \"1\"}"
+}

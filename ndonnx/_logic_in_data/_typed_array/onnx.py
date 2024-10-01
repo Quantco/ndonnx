@@ -260,7 +260,7 @@ class TyArray(TyArrayBase):
                 # TODO: Where does the "object" kind come from?
                 # Probably spox; we should have a more predictable
                 # upstream string support.
-                return np_arr
+                return np_arr.astype(str)
 
             # Should not happen
             raise ValueError("unexpected value data type")

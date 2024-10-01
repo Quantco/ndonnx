@@ -7,7 +7,7 @@ import pytest
 
 import ndonnx._logic_in_data as ndx
 from ndonnx._logic_in_data import _dtypes as dtypes
-from ndonnx._logic_in_data._schema import get_schemas
+from ndonnx._logic_in_data._schema import _get_schemas, get_schemas
 
 
 def check_dtype_shape(arr, dtype, shape):
@@ -187,17 +187,60 @@ def test_add_pyscalar_timedelta(op):
     check_dtype_shape(op(arr, scalar), expected_dtype, shape)
 
 
-def test_build():
-    a = ndx.Array(shape=("N",), dtype=ndx.nint64)
-    b = a[0]
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ndx.int8,
+        ndx.int16,
+        ndx.int32,
+        ndx.int64,
+        ndx.uint8,
+        ndx.uint16,
+        ndx.uint32,
+        ndx.uint64,
+        ndx.float32,
+        ndx.float64,
+        ndx.string,
+        ndx.bool,
+        ndx.nint8,
+        ndx.nint16,
+        ndx.nint32,
+        ndx.nint64,
+        ndx.nuint8,
+        ndx.nuint16,
+        ndx.nuint32,
+        ndx.nuint64,
+        ndx.nfloat32,
+        ndx.nfloat64,
+        ndx.nstring,
+        ndx.nbool,
+    ],
+)
+def test_build(dtype):
+    a = ndx.Array(shape=("N",), dtype=dtype)
+    b = a[0]  # make the build non-trivial
 
     mp = ndx.build({"a": a}, {"b": b})
 
-    schemas = get_schemas(mp)
+    # We must not break backwards compatibility. We test every type we
+    # support that it keeps producing the same schema.
+    import json
+    from pathlib import Path
+
+    fname = Path(__file__).parent / f"schemas/{dtype}.json"
+    with open(fname, "w+") as f:
+        json.dump({el.key: el.value for el in mp.metadata_props}, f, indent=4)
+        f.write("\n")  # Avoid pre-commit complaint about missing new lines
+
+    with open(fname) as f:
+        expected_schemas = _get_schemas(json.load(f))
+    candidate_schemas = get_schemas(mp)
+
+    assert expected_schemas == candidate_schemas
 
     # test json round trip of schema data
-    assert schemas.arguments["a"] == a._data.disassemble()[1]
-    assert schemas.results["b"] == b._data.disassemble()[1]
+    assert candidate_schemas.arguments["a"] == a._data.disassemble()[1]
+    assert candidate_schemas.results["b"] == b._data.disassemble()[1]
 
 
 @pytest.mark.parametrize(
