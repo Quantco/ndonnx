@@ -32,7 +32,7 @@ docs = "cd docs && make html"
 [feature.build.dependencies]
 python-build = "*"
 [feature.build.tasks]
-build-wheel = "python -m build --no-isolation --wheel ."
+build-wheel = "python -m build --no-isolation ."
 
 [feature.test.dependencies]
 pytest = ">=6"
@@ -51,9 +51,9 @@ test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
 [feature.test.tasks.arrayapitests]
 cmd = "pytest --max-examples 16 api-coverage-tests/array_api_tests/  -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg --skips-file=skips.txt --xfails-file=xfails.txt --hypothesis-seed=0"
 [feature.test.tasks.arrayapitests.env]
-ARRAY_API_TESTS_MODULE="ndonnx"
-ARRAY_API_TESTS_VERSION="2023.12"
-ARRAY_API_TESTS_SKIP_DTYPES="complex64,complex128"
+ARRAY_API_TESTS_MODULE = "ndonnx"
+ARRAY_API_TESTS_VERSION = "2023.12"
+ARRAY_API_TESTS_SKIP_DTYPES = "complex64,complex128"
 
 
 [feature.lint.dependencies]
