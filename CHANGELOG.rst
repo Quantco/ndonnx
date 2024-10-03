@@ -7,6 +7,12 @@
 Changelog
 =========
 
+0.9.2 (2024-10-03)
+------------------
+
+- Technical release with source distribution.
+
+
 0.9.1 (2024-10-01)
 ------------------
 
