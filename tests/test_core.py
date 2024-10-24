@@ -992,3 +992,48 @@ def test_no_unsafe_cumulative_sum_cast():
     ):
         a = ndx.asarray([1, 2, 3], ndx.int32)
         ndx.cumulative_sum(a, dtype=ndx.uint64)
+
+
+@pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize(
+    "func, x",
+    [
+        # (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int32)),
+        # (np.argmax, np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)),
+        # (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int8)),
+        # (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
+        # (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
+        # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
+        (np.argmin, np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32)),
+        # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
+        # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int16)),
+    ],
+)
+def test_argmaxmin(func, x, keepdims):
+    np_result = func(x, keepdims=keepdims)
+    ndx_result = getattr(ndx, func.__name__)(
+        ndx.asarray(x), keepdims=keepdims
+    ).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+# # Pending ORT 1.19 conda-forge release before this becomes supported:
+# # https://github.com/conda-forge/onnxruntime-feedstock/pull/128
+# @pytest.mark.parametrize(
+#     "func, x",
+#     [
+#         (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int64)),
+#         (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int64)),
+#     ],
+# )
+# def test_argmaxmin_unsupported_kernels(func, x):
+#     import onnxruntime as ort
+
+#     if ort.__version__.startswith("19"):
+#         warnings.warn(
+#             "Please remove this test and update `argmax` and `argmin` to reflect expanded kernel support.",
+#             Warning,
+#         )
+
+#     with pytest.raises(TypeError):
+#         getattr(ndx, func.__name__)(ndx.asarray(x))

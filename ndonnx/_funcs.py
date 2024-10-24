@@ -670,7 +670,7 @@ def argmax(x, axis=None, keepdims=False):
 
 def argmin(x, axis=None, keepdims=False):
     if (
-        out := x.dtype._ops.argmax(x, axis=axis, keepdims=keepdims)
+        out := x.dtype._ops.argmin(x, axis=axis, keepdims=keepdims)
     ) is not NotImplemented:
         return out
     raise UnsupportedOperationError(f"Unsupported operand type for argmin: '{x.dtype}'")
