@@ -7,7 +7,7 @@
 Changelog
 =========
 
-0.9.3 (unreleased)
+0.9.3 (2024-10-25)
 ------------------
 
 - Reduced the number of unnecessary casts in :func:`ndonnx.argmax` and :func:`ndonnx.argmin`.
