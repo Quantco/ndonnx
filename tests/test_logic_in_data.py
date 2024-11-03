@@ -1,5 +1,6 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
+import json
 import operator
 
 import numpy as np
@@ -7,7 +8,6 @@ import pytest
 
 import ndonnx._logic_in_data as ndx
 from ndonnx._logic_in_data import _dtypes as dtypes
-from ndonnx._logic_in_data._schema import _get_schemas, get_schemas
 
 
 def check_dtype_shape(arr, dtype, shape):
@@ -17,6 +17,7 @@ def check_dtype_shape(arr, dtype, shape):
 
 
 def build_and_run(fn, *np_args):
+    # Only works for core data types
     import onnxruntime as ort
 
     ins_np = {f"in{i}": arr for i, arr in enumerate(np_args)}
@@ -28,7 +29,7 @@ def build_and_run(fn, *np_args):
     out = {"out": fn(*ins.values())}
     mp = ndx.build(ins, out)
     session = ort.InferenceSession(mp.SerializeToString())
-    (out,) = session.run(None, {f"{k}__var": a for k, a in ins_np.items()})
+    (out,) = session.run(None, {f"{k}": a for k, a in ins_np.items()})
     return out
 
 
@@ -227,20 +228,31 @@ def test_build(dtype):
     import json
     from pathlib import Path
 
+    # These files should not be update automatically
     fname = Path(__file__).parent / f"schemas/{dtype}.json"
-    with open(fname, "w+") as f:
-        json.dump({el.key: el.value for el in mp.metadata_props}, f, indent=4)
-        f.write("\n")  # Avoid pre-commit complaint about missing new lines
+    update = True
+    if update:
+        with open(fname, "w+") as f:
+            json.dump(
+                json.loads(
+                    {el.key: el.value for el in mp.metadata_props}["ndonnx_schema"]
+                ),
+                f,
+                indent=4,
+            )
+            f.write("\n")  # Avoid pre-commit complaint about missing new lines
 
     with open(fname) as f:
-        expected_schemas = _get_schemas(json.load(f))
-    candidate_schemas = get_schemas(mp)
+        expected_schemas = json.load(f)
+    candidate_schemas = json.loads(
+        {el.key: el.value for el in mp.metadata_props}["ndonnx_schema"]
+    )
 
     assert expected_schemas == candidate_schemas
 
     # test json round trip of schema data
-    assert candidate_schemas.arguments["a"] == a._data.disassemble()[1]
-    assert candidate_schemas.results["b"] == b._data.disassemble()[1]
+    assert candidate_schemas["input_schema"]["a"] == a.dtype._infov1.__dict__
+    assert candidate_schemas["output_schema"]["b"] == b.dtype._infov1.__dict__
 
 
 @pytest.mark.parametrize(
@@ -459,3 +471,24 @@ def test_reshape_with_array():
     new_shape = ndx.asarray(np.array(expected_shape))
     candidate_shape = ndx.reshape(ndx.asarray(np.array([[1, 2]])), new_shape).shape
     assert expected_shape == candidate_shape
+
+
+def test_schema_v1():
+    a = ndx.array(shape=("N",), dtype=ndx.int64)
+    b = ndx.array(shape=("N",), dtype=ndx.nint64)
+    mp = ndx.build({"a": a, "b": b}, {"c": a + b})
+
+    meta = json.loads({el.key: el.value for el in mp.metadata_props}["ndonnx_schema"])
+
+    # Schema as used prior to the rewrite
+    expected = {
+        "input_schema": {
+            "a": {"author": "ndonnx", "meta": None, "type_name": "Int64"},
+            "b": {"author": "ndonnx", "meta": None, "type_name": "NInt64"},
+        },
+        "output_schema": {
+            "c": {"author": "ndonnx", "meta": None, "type_name": "NInt64"}
+        },
+        "version": 1,
+    }
+    assert meta == expected

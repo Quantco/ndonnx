@@ -7,14 +7,14 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Generic, TypeVar, overload
+from warnings import warn
 
 import numpy as np
 
-from ._schema import DTypeInfo
+from ._schema import DTypeInfoV1
 
 if TYPE_CHECKING:
     from ._array import OnnxShape
-    from ._schema import DTypeInfo
     from ._typed_array import TyArrayBase, onnx
 
 
@@ -49,7 +49,7 @@ class DType(ABC, Generic[TY_ARRAY]):
 
     @property
     @abstractmethod
-    def _info(self) -> DTypeInfo:
+    def _infov1(self) -> DTypeInfoV1:
         raise NotImplementedError
 
     def __eq__(self, other) -> bool:
@@ -62,6 +62,16 @@ class DType(ABC, Generic[TY_ARRAY]):
 
     def __repr__(self) -> str:
         return self.__class__.__name__
+
+    def to_numpy_dtype(self) -> np.dtype:
+        from ._typed_array import onnx
+
+        warn(
+            "'to_numpy_dtype' is deprecated. Use `unwarp_numpy` on the array object instead."
+        )
+        if isinstance(self, onnx._OnnxDType):
+            return as_numpy(self)
+        raise NotImplementedError
 
 
 # Helper functions

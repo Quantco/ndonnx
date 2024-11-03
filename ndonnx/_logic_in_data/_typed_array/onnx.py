@@ -20,14 +20,13 @@ from ndonnx._corearray import _CoreArray
 
 from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType, as_numpy, from_numpy
-from .._schema import DTypeInfo, Schema, var_to_primitive
+from .._schema import DTypeInfoV1
 from .indexing import GetitemIndex, GetitemIndexStatic, SetitemIndex, SetitemIndexStatic
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from .._array import OnnxShape
-    from .._schema import Components
 
 
 TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
@@ -51,12 +50,9 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
         return self._tyarr_class(var)
 
     @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state=None,
+    def _infov1(self) -> DTypeInfoV1:
+        return DTypeInfoV1(
+            author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
 
@@ -78,7 +74,7 @@ class String(_OnnxDType):
 
 
 # TODO: Should this be a subclass of _Number?
-class Bool(_OnnxDType):
+class Boolean(_OnnxDType):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         return NotImplemented
 
@@ -154,7 +150,7 @@ class Float64(_Number):
 
 
 # Non-nullable Singleton instances
-bool_ = Bool()
+bool_ = Boolean()
 
 float16 = Float16()
 float32 = Float32()
@@ -180,7 +176,7 @@ SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
 UnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
 IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
 NumericDTypes = FloatingDTypes | IntegerDTypes
-DTypes = Bool | NumericDTypes | String
+DTypes = Boolean | NumericDTypes | String
 
 
 class TyArray(TyArrayBase):
@@ -307,15 +303,11 @@ class TyArray(TyArrayBase):
         var = op.reduce_max(bools.astype(uint8).var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayUint8(var).astype(bool_))
 
-    def disassemble(self) -> tuple[Components, Schema]:
-        dtype_info = self.dtype._info
-        component_schema = var_to_primitive(self.var)
-        schema = Schema(dtype_info=dtype_info, components=component_schema)
-        components = {"var": self.var}
-        return components, schema
+    def disassemble(self) -> Var:
+        return self.var
 
     def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
-        if isinstance(shape, tuple):
+        if isinstance(shape, tuple | list):
             var = op.reshape(self.var, op.const(shape, np.int64), allowzero=True)
         else:
             var = op.reshape(self.var, shape.var, allowzero=True)

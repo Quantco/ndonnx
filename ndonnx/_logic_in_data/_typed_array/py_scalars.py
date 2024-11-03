@@ -12,6 +12,7 @@ import spox.opset.ai.onnx.v21 as op
 from typing_extensions import Self
 
 import ndonnx._logic_in_data as ndx
+from ndonnx._logic_in_data._schema import DTypeInfoV1
 
 from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType
@@ -20,8 +21,9 @@ from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
+    from spox import Var
+
     from .._array import OnnxShape
-    from .._schema import Components, DTypeInfo, Schema
     from .indexing import SetitemIndex
 
 
@@ -33,7 +35,7 @@ class _PyScalar(DType):
         raise ValueError("'{type(self)}' cannot be used as a model argument")
 
     @property
-    def _info(self) -> DTypeInfo:
+    def _infov1(self) -> DTypeInfoV1:
         raise ValueError("'_PyString' has not public schema information")
 
 
@@ -52,9 +54,9 @@ class PyInteger(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.NumericDTypes | masked_onnx.NCoreNumericDTypes):
             return other
-        if isinstance(other, onnx.Bool):
+        if isinstance(other, onnx.Boolean):
             return ndx._default_int
-        if isinstance(other, masked_onnx.NBool):
+        if isinstance(other, masked_onnx.NBoolean):
             return masked_onnx.as_nullable(ndx._default_int)
         return NotImplemented
 
@@ -109,7 +111,7 @@ class _ArrayPyScalar(TyArrayBase):
     ) -> None:
         raise NotImplementedError
 
-    def disassemble(self) -> tuple[Components, Schema]:
+    def disassemble(self) -> dict[str, Var] | Var:
         raise ValueError(
             "Python scalars cannot be disassembled into 'spox.Var' objects"
         )

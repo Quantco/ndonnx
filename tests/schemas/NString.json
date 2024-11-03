@@ -1,3 +1,17 @@
 {
-    "ndonnx": "{\"schemas\": {\"arguments\": {\"a\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"NString\", \"dtype_state\": null}, \"components\": {\"data\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"String\", \"dtype_state\": null}, \"components\": \"str\"}, \"mask\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"Bool\", \"dtype_state\": null}, \"components\": \"bool\"}}}}, \"results\": {\"b\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"NString\", \"dtype_state\": null}, \"components\": {\"data\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"String\", \"dtype_state\": null}, \"components\": \"str\"}, \"mask\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"Bool\", \"dtype_state\": null}, \"components\": \"bool\"}}}}}, \"metadata_version\": \"1\"}"
+    "input_schema": {
+        "a": {
+            "author": "ndonnx",
+            "type_name": "NString",
+            "meta": null
+        }
+    },
+    "output_schema": {
+        "b": {
+            "author": "ndonnx",
+            "type_name": "NString",
+            "meta": null
+        }
+    },
+    "version": 1
 }

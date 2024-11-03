@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 import numpy as np
 
 from .._dtypes import TY_ARRAY, DType
-from .._schema import DTypeInfo, flatten_components
+from .._schema import DTypeInfoV1
 from . import onnx, py_scalars
 from .funcs import astyarray, where
 from .typed_array import TyArrayBase
@@ -20,10 +20,10 @@ from .utils import safe_cast
 if TYPE_CHECKING:
     from types import NotImplementedType
 
+    from spox import Var
     from typing_extensions import Self
 
     from .._array import OnnxShape
-    from .._schema import Components, Schema, StructComponent
     from .indexing import (
         GetitemIndex,
         SetitemIndex,
@@ -56,12 +56,9 @@ class BaseTimeDType(DType):
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 
     @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state={"unit": self.unit},
+    def _infov1(self) -> DTypeInfoV1:
+        return DTypeInfoV1(
+            author="ndonnx", type_name=self.__class__.__name__, meta={"unit": self.unit}
         )
 
 
@@ -84,15 +81,6 @@ class DateTime(BaseTimeDType):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
 
-    @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state={"unit": self.unit},
-        )
-
 
 class TimeDelta(BaseTimeDType):
     @property
@@ -114,20 +102,12 @@ class TimeBaseArray(TyArrayBase):
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
         raise NotImplementedError
 
-    def disassemble(self) -> tuple[Components, Schema]:
-        dtype_info = self.dtype._info
-        component_schema: StructComponent = {
-            "data": self.data.disassemble()[1],
-            "is_nat": self.is_nat.disassemble()[1],
+    def disassemble(self) -> dict[str, Var]:
+        # TODO: What was the old schema here?
+        return {
+            "data": self.data.disassemble(),
+            "is_nat": self.is_nat.disassemble(),
         }
-        schema = Schema(dtype_info=dtype_info, components=component_schema)
-        components = flatten_components(
-            {
-                "data": self.data.disassemble()[0],
-                "is_nat": self.is_nat.disassemble()[0],
-            }
-        )
-        return components, schema
 
     def __ndx_value_repr__(self):
         return {

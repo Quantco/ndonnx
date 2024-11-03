@@ -1,3 +1,17 @@
 {
-    "ndonnx": "{\"schemas\": {\"arguments\": {\"a\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"Int64\", \"dtype_state\": null}, \"components\": \"int64\"}}, \"results\": {\"b\": {\"dtype_info\": {\"defining_library\": \"ndonnx\", \"version\": 1, \"dtype\": \"Int64\", \"dtype_state\": null}, \"components\": \"int64\"}}}, \"metadata_version\": \"1\"}"
+    "input_schema": {
+        "a": {
+            "author": "ndonnx",
+            "type_name": "Int64",
+            "meta": null
+        }
+    },
+    "output_schema": {
+        "b": {
+            "author": "ndonnx",
+            "type_name": "Int64",
+            "meta": null
+        }
+    },
+    "version": 1
 }

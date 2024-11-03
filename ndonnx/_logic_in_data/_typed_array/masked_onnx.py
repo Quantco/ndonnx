@@ -12,15 +12,16 @@ import numpy as np
 from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY, DType
-from .._schema import DTypeInfo, Schema, flatten_components
+from .._schema import DTypeInfoV1
 from . import onnx
 from .funcs import astyarray
 from .typed_array import TyArrayBase
 from .utils import safe_cast
 
 if TYPE_CHECKING:
+    from spox import Var
+
     from .._array import OnnxShape
-    from .._schema import Components, StructComponent
     from .indexing import GetitemIndex, SetitemIndex
 
 
@@ -48,12 +49,9 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         raise NotImplementedError
 
     @property
-    def _info(self):
-        return DTypeInfo(
-            defining_library="ndonnx",
-            version=1,
-            dtype=self.__class__.__name__,
-            dtype_state=None,
+    def _infov1(self) -> DTypeInfoV1:
+        return DTypeInfoV1(
+            author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
     def _argument(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
@@ -91,7 +89,7 @@ class NString(_MaOnnxDType):
         return TyMaArrayString
 
 
-class NBool(_MaOnnxDType):
+class NBoolean(_MaOnnxDType):
     _unmasked_dtype = onnx.bool_
 
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
@@ -191,7 +189,7 @@ class NFloat64(_NNumber):
 
 
 # Nullable Singleton instances
-nbool = NBool()
+nbool = NBoolean()
 
 nfloat16 = NFloat16()
 nfloat32 = NFloat32()
@@ -220,7 +218,7 @@ NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
 
 NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 
-NCoreDTypes = NBool | NCoreNumericDTypes | NString
+NCoreDTypes = NBoolean | NCoreNumericDTypes | NString
 
 
 class TyMaArrayBase(TyArrayBase):
@@ -228,27 +226,6 @@ class TyMaArrayBase(TyArrayBase):
 
     data: TyArrayBase
     mask: onnx.TyArrayBool | None
-
-    def disassemble(self) -> tuple[Components, Schema]:
-        dtype_info = self.dtype._info
-        component_schema: StructComponent = (
-            {
-                "data": self.data.disassemble()[1],
-            }
-            | {"mask": self.mask.disassemble()[1]}
-            if self.mask is not None
-            else {}
-        )
-        schema = Schema(dtype_info=dtype_info, components=component_schema)
-        components = flatten_components(
-            {
-                "data": self.data.disassemble()[0],
-            }
-            | {"mask": self.mask.disassemble()[0]}
-            if self.mask is not None
-            else {}
-        )
-        return components, schema
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         reps = {}
@@ -274,6 +251,17 @@ class TyMaArray(TyMaArrayBase):
         self.dtype = as_nullable(data.dtype)
         self.data = data
         self.mask = mask
+
+    def disassemble(self) -> dict[str, Var]:
+        return (
+            {
+                # Maintain compatibility with existing schema
+                "values": self.data.disassemble(),
+            }
+            | {"null": self.mask.disassemble()}
+            if self.mask is not None
+            else {}
+        )
 
     @property
     def shape(self) -> OnnxShape:

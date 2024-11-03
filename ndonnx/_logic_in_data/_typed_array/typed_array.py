@@ -13,8 +13,9 @@ from typing_extensions import Self
 from .._dtypes import TY_ARRAY, DType
 
 if TYPE_CHECKING:
+    from spox import Var
+
     from .._array import OnnxShape
-    from .._schema import Components, Schema
     from . import TyArrayBool, TyArrayInt64
     from .indexing import GetitemIndex, SetitemIndex
 
@@ -73,7 +74,8 @@ class TyArrayBase(ABC):
         raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
 
     @abstractmethod
-    def disassemble(self) -> tuple[Components, Schema]:
+    def disassemble(self) -> dict[str, Var] | Var:
+        """Disassemble ``self`` into a flat mapping of its constituents."""
         raise NotImplementedError
 
     def astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
