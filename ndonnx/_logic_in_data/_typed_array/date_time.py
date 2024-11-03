@@ -130,12 +130,19 @@ class TimeBaseArray(TyArrayBase):
         raise NotImplementedError
 
     @property
-    def shape(self) -> OnnxShape:
-        return self.data.shape
-
-    @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self.data.dynamic_shape
+
+    @property
+    def mT(self) -> Self:  # noqa: N802
+        data = self.data.mT
+        is_nat = self.is_nat.mT
+
+        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+
+    @property
+    def shape(self) -> OnnxShape:
+        return self.data.shape
 
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self.data.broadcast_to(shape)

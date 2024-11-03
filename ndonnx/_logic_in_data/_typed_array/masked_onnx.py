@@ -264,12 +264,18 @@ class TyMaArray(TyMaArrayBase):
         )
 
     @property
-    def shape(self) -> OnnxShape:
-        return self.data.shape
+    def mT(self) -> Self:  # noqa: N802
+        data = self.data.mT
+        mask = self.mask.mT if self.mask is not None else None
+        return type(self)(data=data, mask=mask)
 
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self.data.dynamic_shape
+
+    @property
+    def shape(self) -> OnnxShape:
+        return self.data.shape
 
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self.data.reshape(shape)

@@ -21,6 +21,8 @@ def astyarray(
     use_py_scalars=False,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array."""
+    from .onnx import TyArray
+
     if isinstance(val, TyArrayBase):
         return val
 
@@ -40,13 +42,15 @@ def astyarray(
     elif isinstance(val, Var):
         arr = onnx.ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):
-        data = onnx.ascoredata(op.const(val.data))
+        data = safe_cast(TyArray, astyarray(val.data))
         if val.mask is np.ma.nomask:
             mask = None
         else:
             mask = safe_cast(onnx.TyArrayBool, onnx.ascoredata(op.const(val.mask)))
         arr = masked_onnx.asncoredata(data, mask)
     elif isinstance(val, np.ndarray):
+        if val.dtype.kind == "O" and all(isinstance(el, str) for el in val.flat):
+            val = val.astype(str)
         arr = onnx.ascoredata(op.const(val))
     else:
         breakpoint()

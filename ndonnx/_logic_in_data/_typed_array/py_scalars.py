@@ -117,6 +117,10 @@ class _ArrayPyScalar(TyArrayBase):
         )
 
     @property
+    def mT(self) -> Self:  # noqa: N802
+        raise ValueError("Python scalars cannot be transposed")
+
+    @property
     def ndim(self) -> int:
         return len(self.shape)
 

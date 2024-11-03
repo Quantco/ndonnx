@@ -71,17 +71,12 @@ class Array:
         if not isinstance(data, TyArrayBase):
             raise TypeError(f"expected '_TypedArrayBase', found `{type(data)}`")
         inst = cls.__new__(cls)
-        inst._data = data
+        inst._data = std_copy(data)
         return inst
 
     @property
-    def shape(self) -> tuple[int | None, ...]:
-        shape = self._data.shape
-        return tuple(None if isinstance(item, str) else item for item in shape)
-
-    @property
-    def ndim(self) -> int:
-        return len(self.shape)
+    def dtype(self) -> DType:
+        return self._data.dtype
 
     @property
     def dynamic_shape(self) -> Array:
@@ -89,8 +84,21 @@ class Array:
         return Array._from_data(shape)
 
     @property
-    def dtype(self) -> DType:
-        return self._data.dtype
+    def mT(self) -> Array:  # noqa: N802
+        return Array._from_data(self._data.mT)
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def shape(self) -> tuple[int | None, ...]:
+        shape = self._data.shape
+        return tuple(None if isinstance(item, str) else item for item in shape)
+
+    @property
+    def T(self) -> Array:  # noqa: N802
+        return Array._from_data(self._data.T)
 
     def astype(self, dtype: DType) -> Array:
         new_data = self._data.astype(dtype)
@@ -105,6 +113,10 @@ class Array:
             If no propagated value is available.
         """
         return self._data.unwrap_numpy()
+
+    def copy(self) -> Array:
+        # TODO: do we need this?
+        return Array._from_data(std_copy(self._data))
 
     def to_numpy(self) -> np.ndarray | None:
         from warnings import warn
@@ -227,8 +239,11 @@ class Array:
     def __matmul__(self: Array, other: Array, /) -> Array:
         raise NotImplementedError
 
-    def __mod__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+    def __mod__(self: Array, rhs: Union[int, float, Array], /) -> Array:
+        return _apply_op(self, rhs, std_ops.mod)
+
+    def __rmod__(self: Array, lhs: Union[int, float, Array], /) -> Array:
+        return _apply_op(lhs, self, std_ops.mod)
 
     def __mul__(self, rhs: int | float | Array) -> Array:
         return _apply_op(self, rhs, std_ops.mul)
@@ -251,8 +266,11 @@ class Array:
     def __pos__(self: Array, /) -> Array:
         raise NotImplementedError
 
-    def __pow__(self: Array, other: Union[int, float, Array], /) -> Array:
-        raise NotImplementedError
+    def __pow__(self: Array, rhs: Union[int, float, Array], /) -> Array:
+        return _apply_op(self, rhs, std_ops.pow)
+
+    def __rpow__(self: Array, lhs: Union[int, float, Array], /) -> Array:
+        return _apply_op(lhs, self, std_ops.pow)
 
     def __rshift__(self: Array, other: Union[int, Array], /) -> Array:
         raise NotImplementedError
@@ -280,16 +298,20 @@ class Array:
 
 
 def asarray(
-    obj: Array | bool | int | float | np.ndarray | Sequence,
+    obj: Array | bool | int | float | np.ndarray | Sequence | Var,
     /,
     *,
     dtype: DType | None = None,
     device=None,
     copy: bool | None = None,
 ) -> Array:
+    if isinstance(obj, Var):
+        obj = Array._from_data(astyarray(obj))
     if isinstance(obj, Array):
         if copy:
-            return Array._from_data(std_copy(obj._data))
+            obj = Array._from_data(std_copy(obj._data))
+        if dtype:
+            return obj.astype(dtype)
         return obj
     elif isinstance(obj, bool | int | float):
         obj = np.array(obj)

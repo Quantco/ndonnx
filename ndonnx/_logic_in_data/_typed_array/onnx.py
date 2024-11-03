@@ -231,16 +231,27 @@ class TyArray(TyArrayBase):
         return
 
     @property
+    def dynamic_shape(self) -> TyArrayInt64:
+        var = op.shape(self.var)
+        return TyArrayInt64(var)
+
+    @property
+    def mT(self) -> Self:  # noqa: N802
+        if self.ndim < 2:
+            raise ValueError(
+                "array must have two or more dimensions, found `{self.ndim}`"
+            )
+        dims = list(range(self.ndim))
+        dims = dims[:-2] + dims[-2:][::-1]
+        var = op.transpose(self.var, perm=dims)
+        return type(self)(var)
+
+    @property
     def shape(self) -> OnnxShape:
         shape = self.var.unwrap_tensor().shape
         if shape is None:
             raise ValueError("Missing shape information")
         return shape
-
-    @property
-    def dynamic_shape(self) -> TyArrayInt64:
-        var = op.shape(self.var)
-        return TyArrayInt64(var)
 
     def unwrap_numpy(self) -> np.ndarray:
         if self.var._value is not None:
@@ -415,7 +426,9 @@ class TyArrayNumber(TyArray):
         else:
             dtype_ = self.dtype
         if self.dtype != dtype_:
-            return self.astype(dtype_).sum(axis=axis, include_initial=include_initial)
+            return self.astype(dtype_).cumulative_sum(
+                axis=axis, include_initial=include_initial
+            )
 
         if axis is None:
             if self.ndim > 1:
@@ -500,6 +513,12 @@ class TyArrayNumber(TyArray):
     def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.truediv, op.div, False)
 
+    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.mod, op.mod, True)
+
+    def __rmod__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.mod, op.mod, False)
+
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.mul, op.mul, True)
 
@@ -511,6 +530,12 @@ class TyArrayNumber(TyArray):
 
     def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.sub, op.sub, False)
+
+    def __pow__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.pow, op.pow, True)
+
+    def __rpow__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.pow, op.pow, False)
 
     # Element-wise functions
     def __abs__(self) -> Self:

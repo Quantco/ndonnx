@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from warnings import warn
+
 import numpy as np
 
 import ndonnx._logic_in_data as ndx
@@ -11,6 +14,9 @@ from . import DType
 from ._array import Array, asarray
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
+
+if TYPE_CHECKING:
+    from spox import Var
 
 
 def all(
@@ -178,6 +184,10 @@ def linspace(
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
 
 
+def matrix_transpose(x: Array, /) -> Array:
+    return Array._from_data(x._data.mT)
+
+
 def mean(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
@@ -242,3 +252,8 @@ def zeros(
 def zeros_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
     dtype = dtype or x.dtype
     return full_like(x, 0, dtype=dtype)
+
+
+def from_spox_var(var: Var) -> Array:
+    warn("'from_spox_var' is deprecated in favor of 'asarray'")
+    return asarray(var)

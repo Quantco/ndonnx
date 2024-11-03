@@ -492,3 +492,11 @@ def test_schema_v1():
         "version": 1,
     }
     assert meta == expected
+
+
+@pytest.mark.parametrize("np_arr2", [np.array([2]), np.array([-2])])
+def test_remainder(np_arr2):
+    np_arr1 = np.array([-3, -1, 2, 3])
+
+    candidate = ndx.asarray(np_arr1) % ndx.asarray(np_arr2)
+    np.testing.assert_equal(np_arr1 % np_arr2, candidate.unwrap_numpy())

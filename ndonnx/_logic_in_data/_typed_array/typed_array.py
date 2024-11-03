@@ -50,11 +50,22 @@ class TyArrayBase(ABC):
 
     @property
     @abstractmethod
-    def shape(self) -> OnnxShape: ...
+    def dynamic_shape(self) -> TyArrayInt64: ...
 
     @property
     @abstractmethod
-    def dynamic_shape(self) -> TyArrayInt64: ...
+    def mT(self) -> Self: ...  # noqa: N802
+
+    @property
+    @abstractmethod
+    def shape(self) -> OnnxShape: ...
+
+    @property
+    def T(self) -> Self:  # noqa: N802
+        if self.ndim != 2:
+            raise ValueError("array must have two dimensions, found `{self.ndim}`")
+
+        return self.mT
 
     @abstractmethod
     def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...

@@ -10,16 +10,18 @@ from ._array import Array
 from ._schema import SchemaV1
 
 
-def build(arguments: dict[str, Array], results: dict[str, Array]) -> onnx.ModelProto:
-    ins = _arrays_to_vars(arguments)
-    outs = _arrays_to_vars(results)
+def build(
+    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=True
+) -> onnx.ModelProto:
+    ins = _arrays_to_vars(inputs)
+    outs = _arrays_to_vars(outputs)
 
-    mp = spox_build(ins, outs, drop_unused_inputs=True)
+    mp = spox_build(ins, outs, drop_unused_inputs=drop_unused)
 
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
-            input_schema={k: v.dtype._infov1 for k, v in arguments.items()},
-            output_schema={k: v.dtype._infov1 for k, v in results.items()},
+            input_schema={k: v.dtype._infov1 for k, v in inputs.items()},
+            output_schema={k: v.dtype._infov1 for k, v in outputs.items()},
             version=1,
         ).to_json()
     }

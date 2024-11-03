@@ -57,6 +57,7 @@ from ._funcs import (
     where,
     zeros,
     zeros_like,
+    matrix_transpose,
 )
 from ._elementwise import (
     abs,
@@ -239,6 +240,7 @@ __all__ = [
     "logical_not",
     "logical_or",
     "logical_xor",
+    "matrix_transpose",
     "maximum",
     "minimum",
     "multiply",
