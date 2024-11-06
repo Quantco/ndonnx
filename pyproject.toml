@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm", "wheel"]
+requires = ["setuptools", "setuptools-scm"]
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
@@ -23,11 +23,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = ["numpy", "spox>=0.10", "typing_extensions"]
-keywords = [
-  "numpy",
-  "onnx",
-  "array-api",
-]
+keywords = ["numpy", "onnx", "array-api"]
 
 [project.urls]
 repository = "https://github.com/quantco/ndonnx"
@@ -88,9 +84,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--ignore=api-coverage-tests"
-filterwarnings = [
-    "ignore:.*google.protobuf.pyext.*:DeprecationWarning",
-]
+filterwarnings = ["ignore:.*google.protobuf.pyext.*:DeprecationWarning"]
 
 [tool.typos.default]
 extend-ignore-identifiers-re = ["scatter_nd", "arange"]
