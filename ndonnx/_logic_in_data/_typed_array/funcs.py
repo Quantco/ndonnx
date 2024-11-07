@@ -75,13 +75,16 @@ def concat(
 
 
 def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType:
+    from .. import _dtypes
+
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
     return reduce(
-        lambda a, b: a._result_type(b), (get_dtype(el) for el in chain([first], others))
+        lambda a, b: _dtypes.result_type(a, b),
+        (get_dtype(el) for el in chain([first], others)),
     )
 
 

@@ -187,6 +187,8 @@ class TyArray(TyArrayBase):
     def __init__(self, var: Var):
         if from_numpy(var.unwrap_tensor().dtype) != self.dtype:
             raise ValueError(f"data type of 'var' is incompatible with `{type(self)}`")
+        if var.unwrap_tensor().shape is None:
+            raise ValueError("'var' has no shape information")
         self.var = var
 
     def __ndx_value_repr__(self) -> dict[str, str]:

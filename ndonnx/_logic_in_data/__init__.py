@@ -33,6 +33,8 @@ from ._typed_array.masked_onnx import (
     nfloat64,
     nstring,
     nbool,
+    as_nullable,
+    as_non_nullable,
 )
 from ._typed_array.date_time import DateTime, TimeDelta
 from ._funcs import (
@@ -275,4 +277,6 @@ __all__ = [
     "from_spox_var",
     "Nullable",
     "Floating",
+    "as_nullable",
+    "as_non_nullable",
 ]

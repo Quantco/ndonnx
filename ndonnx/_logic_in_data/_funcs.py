@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import builtins
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -236,6 +237,14 @@ def reshape(
         if not isinstance(shape_data, onnx.TyArrayInt64):
             raise TypeError(
                 "'shape' must be of data type int64 if provided as an Array"
+            )
+        if not shape.ndim == 1 or not builtins.all(
+            isinstance(el, int) for el in shape.shape
+        ):
+            # Otherwise, we lose the rank information which we assume
+            # to always be available.
+            raise ValueError(
+                "'shape' must be a 1D tensor of static shape if provided as an 'Array'"
             )
         return Array._from_data(x._data.reshape(shape_data))
     return Array._from_data(x._data.reshape(shape))

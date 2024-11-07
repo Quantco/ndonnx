@@ -637,7 +637,7 @@ def test_prod(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=dtype.values.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=ndx.as_non_nullable(dtype).to_numpy_dtype())
         input = np.ma.masked_array(input, mask=False)
     else:
         input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
@@ -661,7 +661,7 @@ def test_prod_unsigned(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=dtype.values.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=ndx.as_non_nullable(dtype).to_numpy_dtype())
         input = np.ma.masked_array(input, mask=False)
     else:
         input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
@@ -939,7 +939,10 @@ def test_lazy_array_shape(x, expected_shape):
     ],
 )
 def test_dynamic_reshape_has_no_static_shape(x, shape):
-    with pytest.raises(ValueError, match="Could not determine static shape"):
+    with pytest.raises(
+        ValueError,
+        match="'shape' must be a 1D tensor of static shape if provided as an 'Array'",
+    ):
         ndx.reshape(x, shape).shape
 
 

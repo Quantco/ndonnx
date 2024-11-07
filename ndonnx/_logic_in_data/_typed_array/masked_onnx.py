@@ -280,8 +280,8 @@ class TyMaArray(TyMaArrayBase):
     def fill_null(self, value: int | float | bool | str) -> onnx.TyArray:
         value_arr = astyarray(value, use_py_scalars=True)
         if self.mask is None:
-            dtype = result_type(self.dtype, value_arr.dtype)
-            return self.astype(dtype)
+            dtype = result_type(self.data.dtype, value_arr.dtype)
+            return self.data.astype(dtype)
         return safe_cast(onnx.TyArray, where(self.mask, value_arr, self.data))
 
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
