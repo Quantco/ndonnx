@@ -5,6 +5,8 @@
 Each function directly dispatches to the inner typed array.
 """
 
+import builtins
+
 from ._array import Array
 from ._typed_array import funcs as tyfuncs
 
@@ -14,7 +16,7 @@ def add(a: Array, b: Array) -> Array:
 
 
 def abs(array: Array, /) -> Array:
-    return Array._from_data(array._data.__abs__())
+    return Array._from_data(builtins.abs(array._data))
 
 
 def acos(array: Array, /) -> Array:
@@ -79,11 +81,11 @@ def clip(
 
 
 def cos(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.cos())
 
 
 def cosh(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.cosh())
 
 
 def copysign(x1: Array, x2: Array, /) -> Array:
@@ -171,7 +173,7 @@ def logical_and(x1: Array, x2: Array, /) -> Array:
 
 
 def logical_not(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.logical_not())
 
 
 def logical_or(x1: Array, x2: Array, /) -> Array:
@@ -195,7 +197,7 @@ def multiply(x1: Array, x2: Array, /) -> Array:
 
 
 def negative(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(-x._data)
 
 
 def not_equal(x1: Array, x2: Array, /) -> Array:
@@ -203,7 +205,7 @@ def not_equal(x1: Array, x2: Array, /) -> Array:
 
 
 def positive(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(+x._data)
 
 
 def pow(x1: Array, x2: Array, /) -> Array:
@@ -215,7 +217,7 @@ def real(x: Array, /) -> Array:
 
 
 def remainder(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x1._data % x2._data)
 
 
 def round(x: Array, /) -> Array:
@@ -223,7 +225,7 @@ def round(x: Array, /) -> Array:
 
 
 def sign(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.sign())
 
 
 def signbit(x: Array, /) -> Array:
@@ -231,19 +233,19 @@ def signbit(x: Array, /) -> Array:
 
 
 def sin(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.sin())
 
 
 def sinh(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.sinh())
 
 
 def square(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data * x._data)
 
 
 def sqrt(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.sqrt())
 
 
 def subtract(x1: Array, x2: Array, /) -> Array:
@@ -251,12 +253,12 @@ def subtract(x1: Array, x2: Array, /) -> Array:
 
 
 def tan(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.tan())
 
 
 def tanh(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.tanh())
 
 
 def trunc(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.trunc())

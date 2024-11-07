@@ -7,7 +7,7 @@ import operator
 from abc import abstractmethod
 from collections.abc import Callable, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, TypeGuard, TypeVar, overload
+from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, overload
 
 import numpy as np
 import spox
@@ -21,6 +21,7 @@ from ndonnx._corearray import _CoreArray
 from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType, as_numpy, from_numpy
 from .._schema import DTypeInfoV1
+from . import ort_compat
 from .indexing import GetitemIndex, GetitemIndexStatic, SetitemIndex, SetitemIndexStatic
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
@@ -290,9 +291,10 @@ class TyArray(TyArrayBase):
 
         axes = op.const(list(axis), np.int64) if axis else None
 
-        # max int8 is returned if dimensions are empty
-        var = op.reduce_min(bools.astype(int8).var, axes=axes, keepdims=keepdims)
-        return safe_cast(TyArrayBool, TyArrayInt8(var).astype(bool_))
+        # Note: reduce_min, which would support uint8s, appears to be buggy on the onnxruntime
+        # side. Thus we use reduce_prod for now.
+        var = op.reduce_prod(bools.astype(int32).var, axes=axes, keepdims=keepdims)
+        return safe_cast(TyArrayBool, TyArrayInt32(var).astype(bool_))
 
     def any(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
@@ -314,15 +316,8 @@ class TyArray(TyArrayBase):
         var = op.reduce_max(bools.astype(uint8).var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayUint8(var).astype(bool_))
 
-    def disassemble(self) -> Var:
-        return self.var
-
-    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
-        if isinstance(shape, tuple | list):
-            var = op.reshape(self.var, op.const(shape, np.int64), allowzero=True)
-        else:
-            var = op.reshape(self.var, shape.var, allowzero=True)
-        return type(self)(var)
+    def as_core_dtype(self, dtype: DTypes) -> TyArray:
+        raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         if isinstance(shape, tuple):
@@ -331,17 +326,6 @@ class TyArray(TyArrayBase):
             shape_var = shape.var
         var = op.expand(self.var, shape_var)
         return type(self)(var)
-
-    def permute_dims(self, axes: tuple[int, ...]) -> Self:
-        var = op.transpose(self.var, perm=axes)
-        return type(self)(var)
-
-    def as_core_dtype(self, dtype: DTypes) -> TyArray:
-        raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
-
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
-        # TODO: How did this not show up earlier?
-        return NotImplemented
 
     def concat(self, others: list[Self], axis: None | int) -> Self:
         var = op.concat(
@@ -352,6 +336,64 @@ class TyArray(TyArrayBase):
             # Flatten the result. It is ok to concat first on the 0th axis.
             res = res.reshape((-1,))
         return res
+
+    def disassemble(self) -> Var:
+        return self.var
+
+    def permute_dims(self, axes: tuple[int, ...]) -> Self:
+        var = op.transpose(self.var, perm=axes)
+        return type(self)(var)
+
+    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+        if isinstance(shape, tuple | list):
+            var = op.reshape(self.var, op.const(shape, np.int64), allowzero=True)
+        else:
+            var = op.reshape(self.var, shape.var, allowzero=True)
+        return type(self)(var)
+
+    def searchsorted(
+        self,
+        x2: Self,
+        /,
+        *,
+        side: Literal["left", "right"] = "left",
+        sorter: TyArrayInteger | None = None,
+    ) -> TyArrayInt64:
+        x1 = self
+        if x1.ndim != 1:
+            raise TypeError("x1 must be a 1-dimensional array")
+        if sorter is not None:
+            raise NotImplementedError(
+                "'sorter' argument of 'searchsorted' is not implemented, yet"
+            )
+            # x1 = x1.take(sorter)
+
+        if side not in ("left", "right"):
+            raise ValueError("side must be 'left' or 'right'")
+
+        x1 = x1[:, None]
+        x2 = x2[None, :]
+        if side == "left":
+            indices = (x1 < x2).astype(int64).sum(axis=0)
+        else:
+            indices = (x1 <= x2).astype(int64).sum(axis=0)
+
+        return indices
+
+    def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
+        flattened = self.reshape((-1,))
+        values, indices, inverse_indices, counts = op.unique(flattened.var, sorted=True)
+
+        return (
+            type(self)(values),
+            TyArrayInt64(indices),
+            TyArrayInt64(inverse_indices),
+            TyArrayInt64(counts),
+        )
+
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+        # TODO: How is this never hit?
+        return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, op.equal, True)
@@ -424,10 +466,10 @@ class TyArrayNumber(TyArray):
             else:
                 dtype_ = self.dtype
         else:
-            dtype_ = self.dtype
+            dtype_ = dtype
         if self.dtype != dtype_:
             return self.astype(dtype_).cumulative_sum(
-                axis=axis, include_initial=include_initial
+                axis=axis, include_initial=include_initial, dtype=dtype_
             )
 
         if axis is None:
@@ -439,12 +481,15 @@ class TyArrayNumber(TyArray):
         else:
             axis_ = axis
 
-        out = ascoredata(
-            op.cumsum(
-                self.var,
-                op.const(axis_, np.int64),
-                exclusive=False,
-            )
+        out = safe_cast(
+            type(self),
+            ascoredata(
+                ort_compat.cumsum(
+                    self.var,
+                    op.const(axis_, np.int64),
+                    exclusive=False,
+                )
+            ),
         )
         if include_initial:
             out_shape = out.dynamic_shape
@@ -452,11 +497,13 @@ class TyArrayNumber(TyArray):
             zeros = safe_cast(
                 type(self), astyarray(0, out.dtype).broadcast_to(out_shape)
             )
-            out = out.concat([zeros], axis=axis_)
+            out = zeros.concat([out], axis=axis_)
         return out
 
-    def sum(
+    def _reduce(
         self,
+        pub_name: str,
+        var_op: Callable[..., Var],
         /,
         *,
         axis: int | tuple[int, ...] | None = None,
@@ -471,9 +518,10 @@ class TyArrayNumber(TyArray):
             else:
                 dtype_ = self.dtype
         else:
-            dtype_ = self.dtype
+            dtype_ = dtype
         if self.dtype != dtype_:
-            return self.astype(dtype_).sum(axis=axis, keepdims=keepdims)
+            member_after_cast = getattr(self.astype(dtype_), pub_name)
+            return member_after_cast(axis=axis, keepdims=keepdims, dtype=dtype)
 
         if axis is None:
             axis_ = None
@@ -481,7 +529,7 @@ class TyArrayNumber(TyArray):
             axis_ = op.const([axis], dtype=np.int64)
         else:
             axis_ = op.const(axis, dtype=np.int64)
-        var = op.reduce_sum(
+        var = var_op(
             self.var,
             axis_,
             keepdims=keepdims,
@@ -489,11 +537,35 @@ class TyArrayNumber(TyArray):
         )
         return ascoredata(var)
 
+    def prod(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase:
+        return self._reduce(
+            "prod", ort_compat.reduce_prod, axis=axis, dtype=dtype, keepdims=keepdims
+        )
+
+    def sum(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase:
+        return self._reduce(
+            "sum", op.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
+        )
+
     def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.add, op.add, True)
+        return _promote_and_apply_op(self, rhs, operator.add, ort_compat.add, True)
 
     def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.add, op.add, False)
+        return _promote_and_apply_op(self, lhs, operator.add, ort_compat.add, False)
 
     def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.ge, op.greater_or_equal, True)
@@ -512,12 +584,6 @@ class TyArrayNumber(TyArray):
 
     def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, lhs, operator.truediv, op.div, False)
-
-    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.mod, op.mod, True)
-
-    def __rmod__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.mod, op.mod, False)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.mul, op.mul, True)
@@ -546,8 +612,23 @@ class TyArrayNumber(TyArray):
 class TyArrayInteger(TyArrayNumber):
     dtype: IntegerDTypes
 
+    def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
+        # Casting rules are implementation defined. We default to float64 like NumPy
+        lhs = self.astype(float64)
+        return lhs / rhs
+
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
+
+    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, rhs, operator.mod, lambda a, b: op.mod(a, b, fmod=0), True
+        )
+
+    def __rmod__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, lhs, operator.mod, lambda a, b: op.mod(a, b, fmod=0), False
+        )
 
     def isnan(self) -> TyArrayBool:
         var = op.constant_of_shape(op.shape(self.var), value=np.array(False))
@@ -562,6 +643,16 @@ class TyArrayInteger(TyArrayNumber):
 
 class TyArrayFloating(TyArrayNumber):
     dtype: FloatingDTypes
+
+    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, rhs, operator.mod, lambda a, b: op.mod(a, b, fmod=1), True
+        )
+
+    def __rmod__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, lhs, operator.mod, lambda a, b: op.mod(a, b, fmod=1), False
+        )
 
     def mean(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False

@@ -1,10 +1,13 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+# Copyright (c) QuantCo 2023-2024
+# SPDX-License-Identifier: BSD-3-Clause
+
 from __future__ import annotations
 
 import operator as std_ops
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from copy import copy as std_copy
 from types import EllipsisType, NotImplementedType
 from typing import Any, Optional, Union, overload
@@ -104,16 +107,6 @@ class Array:
         new_data = self._data.astype(dtype)
         return Array._from_data(new_data)
 
-    def unwrap_numpy(self) -> np.ndarray:
-        """Return the propagated value as a NumPy array if available.
-
-        Raises
-        ------
-        ValueError:
-            If no propagated value is available.
-        """
-        return self._data.unwrap_numpy()
-
     def copy(self) -> Array:
         # TODO: do we need this?
         return Array._from_data(std_copy(self._data))
@@ -126,6 +119,32 @@ class Array:
             return self.unwrap_numpy()
         except ValueError:
             return None
+
+    def unwrap_numpy(self) -> np.ndarray:
+        """Return the propagated value as a NumPy array if available.
+
+        Raises
+        ------
+        ValueError:
+            If no propagated value is available.
+        """
+        return self._data.unwrap_numpy()
+
+    def disassemble(self) -> Mapping[str, Var] | Var:
+        """Disassemble into the constituent ``spox.Var`` objects.
+
+        The particular layout depends on the data type.
+        """
+        return self._data.disassemble()
+
+    @property
+    def values(self) -> Array:
+        # TODO: is this really the best name?
+        from ._typed_array.masked_onnx import TyMaArray
+
+        if isinstance(self._data, TyMaArray):
+            return Array._from_data(self._data.data)
+        raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         from ._typed_array import TyArrayBool, TyArrayInteger

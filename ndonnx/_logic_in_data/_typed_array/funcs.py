@@ -1,6 +1,8 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 from functools import reduce
+from itertools import chain
+from typing import Literal
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -12,7 +14,7 @@ from .._dtypes import DType
 from . import masked_onnx, onnx
 from .py_scalars import TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase
-from .utils import safe_cast
+from .utils import promote, safe_cast
 
 
 def astyarray(
@@ -72,16 +74,37 @@ def concat(
     return arrays[0].concat(arrays[1:], axis=axis)
 
 
+def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType:
+    def get_dtype(obj: TyArrayBase | DType) -> DType:
+        if isinstance(obj, TyArrayBase):
+            return obj.dtype
+        return obj
+
+    return reduce(
+        lambda a, b: a._result_type(b), (get_dtype(el) for el in chain([first], others))
+    )
+
+
+def searchsorted(
+    x1: TyArrayBase,
+    x2: TyArrayBase,
+    /,
+    *,
+    side: Literal["left", "right"] = "left",
+    sorter: onnx.TyArrayInteger | None = None,
+) -> onnx.TyArrayInt64:
+    x1, x2 = promote(x1, x2)
+    return x1.searchsorted(x2, side=side, sorter=sorter)
+
+
 #########################################################################
 # Free functions implemented via `__ndx_*__` methods on the typed array #
 #########################################################################
 
 
-def where(cond: TyArrayBase, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
-    from . import TyArrayBool
-
-    # TODO: Masked condition
-    if not isinstance(cond, TyArrayBool):
+def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
+    # TODO: Masked condition?
+    if not isinstance(cond, onnx.TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 
     ret = x.__ndx_where__(cond, y)

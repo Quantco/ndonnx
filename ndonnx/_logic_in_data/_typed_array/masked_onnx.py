@@ -14,7 +14,7 @@ from typing_extensions import Self
 from .._dtypes import TY_ARRAY, DType
 from .._schema import DTypeInfoV1
 from . import onnx
-from .funcs import astyarray
+from .funcs import astyarray, result_type, where
 from .typed_array import TyArrayBase
 from .utils import safe_cast
 
@@ -277,6 +277,13 @@ class TyMaArray(TyMaArrayBase):
     def shape(self) -> OnnxShape:
         return self.data.shape
 
+    def fill_null(self, value: int | float | bool | str) -> onnx.TyArray:
+        value_arr = astyarray(value, use_py_scalars=True)
+        if self.mask is None:
+            dtype = result_type(self.dtype, value_arr.dtype)
+            return self.astype(dtype)
+        return safe_cast(onnx.TyArray, where(self.mask, value_arr, self.data))
+
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self.data.reshape(shape)
         mask = self.mask.reshape(shape) if self.mask is not None else None
@@ -304,7 +311,6 @@ class TyMaArray(TyMaArrayBase):
         new_mask = _merge_masks(
             None if self.mask is None else self.mask[index], value.mask
         )
-        breakpoint
         if new_mask is None:
             return
         if self.mask is None:
@@ -393,6 +399,16 @@ class TyMaArrayString(TyMaArray):
 
 class TyMaArrayNumber(TyMaArray):
     dtype: NCoreNumericDTypes
+
+    def prod(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase:
+        return self.fill_null(1).prod(axis=axis, dtype=dtype, keepdims=keepdims)
 
     def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
         if isinstance(rhs, onnx.TyArray):

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from types import NotImplementedType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from typing_extensions import Self
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from spox import Var
 
     from .._array import OnnxShape
-    from . import TyArrayBool, TyArrayInt64
+    from . import TyArrayBool, TyArrayInt64, TyArrayInteger
     from .indexing import GetitemIndex, SetitemIndex
 
 
@@ -126,12 +126,12 @@ class TyArrayBase(ABC):
     def all(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBase:
-        raise _make_value_error("all", self.dtype)
+        raise _make_type_error("all", self.dtype)
 
     def any(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBase:
-        raise _make_value_error("any", self.dtype)
+        raise _make_type_error("any", self.dtype)
 
     def cumulative_sum(
         self,
@@ -141,7 +141,27 @@ class TyArrayBase(ABC):
         dtype: DType | None = None,
         include_initial: bool = False,
     ) -> TyArrayBase:
-        raise _make_value_error("cumulative_sum", self.dtype)
+        raise _make_type_error("cumulative_sum", self.dtype)
+
+    def prod(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase:
+        raise _make_type_error("prod", self.dtype)
+
+    def searchsorted(
+        self,
+        x2: Self,
+        /,
+        *,
+        side: Literal["left", "right"] = "left",
+        sorter: TyArrayInteger | None = None,
+    ) -> TyArrayInt64:
+        raise _make_type_error("searchsorted", self.dtype)
 
     def sum(
         self,
@@ -151,66 +171,114 @@ class TyArrayBase(ABC):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        raise _make_value_error("sum", self.dtype)
+        raise _make_type_error("sum", self.dtype)
+
+    def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
+        raise _make_type_error("unique_all", self.dtype)
 
     # Element-wise functions without additional arguments
 
     def isnan(self) -> TyArrayBase:
-        raise _make_value_error("isnan", self.dtype)
+        raise _make_type_error("isnan", self.dtype)
 
     def isfinite(self) -> TyArrayBase:
-        raise _make_value_error("isfinite", self.dtype)
+        raise _make_type_error("isfinite", self.dtype)
 
     def isinf(self) -> TyArrayBase:
-        raise _make_value_error("isinf", self.dtype)
+        raise _make_type_error("isinf", self.dtype)
 
     def acos(self) -> Self:
-        raise _make_value_error("acos", self.dtype)
+        raise _make_type_error("acos", self.dtype)
 
     def acosh(self) -> Self:
-        raise _make_value_error("acosh", self.dtype)
+        raise _make_type_error("acosh", self.dtype)
 
     def asin(self) -> Self:
-        raise _make_value_error("asin", self.dtype)
+        raise _make_type_error("asin", self.dtype)
 
     def asinh(self) -> Self:
-        raise _make_value_error("asinh", self.dtype)
+        raise _make_type_error("asinh", self.dtype)
 
     def atan(self) -> Self:
-        raise _make_value_error("atan", self.dtype)
+        raise _make_type_error("atan", self.dtype)
 
     def atanh(self) -> Self:
-        raise _make_value_error("atanh", self.dtype)
+        raise _make_type_error("atanh", self.dtype)
+
+    def cos(self) -> Self:
+        raise _make_type_error("cos", self.dtype)
+
+    def cosh(self) -> Self:
+        raise _make_type_error("cosh", self.dtype)
 
     def ceil(self) -> Self:
-        raise _make_value_error("ceil", self.dtype)
+        raise _make_type_error("ceil", self.dtype)
 
     def exp(self) -> Self:
-        raise _make_value_error("exp", self.dtype)
+        raise _make_type_error("exp", self.dtype)
 
     def expm1(self) -> Self:
-        raise _make_value_error("expm1", self.dtype)
+        raise _make_type_error("expm1", self.dtype)
 
     def floor(self) -> Self:
-        raise _make_value_error("floor", self.dtype)
+        raise _make_type_error("floor", self.dtype)
 
     def mean(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
-        raise _make_value_error("mean", self.dtype)
+        raise _make_type_error("mean", self.dtype)
 
     def log(self) -> Self:
-        raise _make_value_error("log", self.dtype)
+        raise _make_type_error("log", self.dtype)
 
     def log1p(self) -> Self:
-        raise _make_value_error("log1p", self.dtype)
+        raise _make_type_error("log1p", self.dtype)
 
     def log2(self) -> Self:
-        raise _make_value_error("log2", self.dtype)
+        raise _make_type_error("log2", self.dtype)
+
+    def log10(self) -> Self:
+        raise _make_type_error("log10", self.dtype)
+
+    def logical_not(self) -> Self:
+        raise _make_type_error("logical_not", self.dtype)
+
+    def round(self) -> Self:
+        raise _make_type_error("round", self.dtype)
+
+    def sign(self) -> Self:
+        raise _make_type_error("sign", self.dtype)
+
+    def signbit(self) -> Self:
+        raise _make_type_error("signbit", self.dtype)
+
+    def sin(self) -> Self:
+        raise _make_type_error("sin", self.dtype)
+
+    def sinh(self) -> Self:
+        raise _make_type_error("sinh", self.dtype)
+
+    def sqrt(self) -> Self:
+        raise _make_type_error("sqrt", self.dtype)
+
+    def tan(self) -> Self:
+        raise _make_type_error("tan", self.dtype)
+
+    def tanh(self) -> Self:
+        raise _make_type_error("tanh", self.dtype)
+
+    def trunc(self) -> Self:
+        raise _make_type_error("trunc", self.dtype)
 
     # Dunder-functions
-    def __abs__(self) -> TyArrayBase:
-        raise _make_value_error("__abs__", self.dtype)
+    def __abs__(self) -> Self:
+        raise _make_type_error("__abs__", self.dtype)
+
+    def __neg__(self) -> TyArrayBase:
+        raise _make_type_error("__neg__", self.dtype)
+
+    def __pos__(self) -> TyArrayBase:
+        raise _make_type_error("__pos__", self.dtype)
 
     def __add__(self, other: TyArrayBase) -> TyArrayBase:
         return NotImplemented
@@ -251,6 +319,9 @@ class TyArrayBase(ABC):
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return NotImplemented
 
+    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return NotImplemented
+
     def __ne__(self, other: TyArrayBase) -> TyArrayBase:  # type: ignore
         return NotImplemented
 
@@ -284,5 +355,5 @@ class TyArrayBase(ABC):
         return NotImplemented
 
 
-def _make_value_error(fn_name, dtype: DType) -> ValueError:
-    return ValueError(f"`{fn_name}` is not implemented for data type `{dtype}`")
+def _make_type_error(fn_name, dtype: DType) -> TypeError:
+    return TypeError(f"`{fn_name}` is not implemented for data type `{dtype}`")

@@ -3,20 +3,19 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-from warnings import warn
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
 import ndonnx._logic_in_data as ndx
 
-from . import DType
 from ._array import Array, asarray
+from ._dtypes import DType
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
 
 if TYPE_CHECKING:
-    from spox import Var
+    pass
 
 
 def all(
@@ -135,14 +134,17 @@ def flip(x: Array, /, *, axis: int | tuple[int, ...] | None = None) -> Array:
 
 
 def full(
-    shape: int | tuple[int, ...],
-    fill_value: bool | int | float,
+    shape: int | tuple[int, ...] | Array,
+    fill_value: bool | int | float | str,
     *,
     dtype: DType | None = None,
     device=None,
 ) -> Array:
     if isinstance(shape, int):
         shape = (shape,)
+    if isinstance(shape, Array) and shape.ndim == 0:
+        # Ensure shape is 1D
+        shape = shape[None]
     if dtype is None:
         if isinstance(fill_value, bool):
             dtype = ndx.bool
@@ -150,6 +152,8 @@ def full(
             dtype = ndx._default_int
         elif isinstance(fill_value, float):
             dtype = ndx._default_float
+        elif isinstance(fill_value, str):
+            dtype = ndx.utf8
         else:
             raise TypeError(f"Unexpected 'fill_value' type `{type(fill_value)}`")
     return broadcast_to(asarray(fill_value, dtype=dtype), shape)
@@ -211,6 +215,17 @@ def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
     return Array._from_data(data)
 
 
+def prod(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    dtype: DType | None = None,
+    keepdims: bool = False,
+) -> Array:
+    return Array._from_data(x._data.prod(axis=axis, dtype=dtype, keepdims=keepdims))
+
+
 def reshape(
     x: Array, /, shape: tuple[int, ...] | Array, *, copy: bool | None = None
 ) -> Array:
@@ -226,6 +241,39 @@ def reshape(
     return Array._from_data(x._data.reshape(shape))
 
 
+def result_type(*arrays_and_dtypes: Array | DType) -> DType:
+    if len(arrays_and_dtypes) == 0:
+        ValueError("at least one array or dtype is required")
+
+    def get_dtype(obj: Array | DType) -> DType:
+        if isinstance(obj, Array):
+            return obj.dtype
+        return obj
+
+    return tyfuncs.result_type(*(get_dtype(el) for el in arrays_and_dtypes))
+
+
+def searchsorted(
+    x1: Array,
+    x2: Array,
+    /,
+    *,
+    side: Literal["left", "right"] = "left",
+    sorter: Array | None = None,
+) -> Array:
+    if sorter is None:
+        sorter_ = None
+    elif not isinstance(sorter._data, onnx.TyArrayInteger):
+        raise TypeError(
+            f"'sorter' must have an integer data type, found `{sorter.dtype}`"
+        )
+    else:
+        sorter_ = sorter._data
+    return Array._from_data(
+        tyfuncs.searchsorted(x1._data, x2._data, side=side, sorter=sorter_)
+    )
+
+
 def sum(
     x: Array,
     /,
@@ -238,6 +286,8 @@ def sum(
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:
+    if not isinstance(cond._data, onnx.TyArrayBool):
+        raise TypeError("'cond' must be of data type 'bool'")
     data = tyfuncs.where(cond._data, a._data, b._data)
     return Array._from_data(data)
 
@@ -252,8 +302,3 @@ def zeros(
 def zeros_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
     dtype = dtype or x.dtype
     return full_like(x, 0, dtype=dtype)
-
-
-def from_spox_var(var: Var) -> Array:
-    warn("'from_spox_var' is deprecated in favor of 'asarray'")
-    return asarray(var)
