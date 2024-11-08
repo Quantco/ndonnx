@@ -243,8 +243,7 @@ class Array:
         return _apply_op(self, other, std_ops.gt)
 
     def __invert__(self: Array, /) -> Array:
-        data = self._data.__invert__()
-        return Array._from_data(data)
+        return Array._from_data(~self._data)
 
     def __le__(self: Array, other: Union[int, float, Array], /) -> Array:
         return _apply_op(self, other, std_ops.le)

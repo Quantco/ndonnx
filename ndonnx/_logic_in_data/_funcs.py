@@ -109,6 +109,13 @@ def equal(x1: Array, x2: Array, /) -> Array:
     return x1 == x2
 
 
+def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
+    if axis < 0:
+        axis = x.ndim + axis
+    key = tuple(None if el == axis else slice(None, None) for el in range(axis + 1))
+    return x[key]
+
+
 def eye(
     n_rows: int,
     n_cols: int | None = None,

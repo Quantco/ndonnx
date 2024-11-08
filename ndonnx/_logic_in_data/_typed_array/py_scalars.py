@@ -175,16 +175,16 @@ class _ArrayPyScalarNumber(_ArrayPyScalar):
         return _promote_and_apply_op(self, lhs, operator.add, False)
 
     def __le__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.le, False)
+        return _promote_and_apply_op(self, rhs, operator.le, True)
 
     def __lt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.lt, False)
+        return _promote_and_apply_op(self, rhs, operator.lt, True)
 
     def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.ge, False)
+        return _promote_and_apply_op(self, rhs, operator.ge, True)
 
     def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.gt, False)
+        return _promote_and_apply_op(self, rhs, operator.gt, True)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.mul, True)

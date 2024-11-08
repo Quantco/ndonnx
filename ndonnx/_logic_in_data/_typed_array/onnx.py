@@ -400,7 +400,7 @@ class TyArray(TyArrayBase):
         return NotImplemented
 
     def _eqcomp(self, other) -> TyArrayBase:
-        return _promote_and_apply_op(self, other, operator.eq, op.equal, True)
+        return _promote_and_apply_op(self, other, operator.eq, ort_compat.equal, True)
 
     @overload
     def __ndx_where__(
@@ -572,40 +572,44 @@ class TyArrayNumber(TyArray):
         return _promote_and_apply_op(self, lhs, operator.add, ort_compat.add, False)
 
     def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.ge, op.greater_or_equal, True)
+        return _promote_and_apply_op(
+            self, rhs, operator.ge, ort_compat.greater_or_equal, True
+        )
 
     def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.gt, op.greater, True)
+        return _promote_and_apply_op(self, rhs, operator.gt, ort_compat.greater, True)
 
     def __le__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.le, op.less_or_equal, True)
+        return _promote_and_apply_op(
+            self, rhs, operator.le, ort_compat.less_or_equal, True
+        )
 
     def __lt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.lt, op.less, True)
+        return _promote_and_apply_op(self, rhs, operator.lt, ort_compat.less, True)
 
     def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.truediv, op.div, True)
+        return _promote_and_apply_op(self, rhs, operator.truediv, ort_compat.div, True)
 
     def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.truediv, op.div, False)
+        return _promote_and_apply_op(self, lhs, operator.truediv, ort_compat.div, False)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.mul, op.mul, True)
+        return _promote_and_apply_op(self, rhs, operator.mul, ort_compat.mul, True)
 
     def __rmul__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.mul, op.mul, False)
+        return _promote_and_apply_op(self, lhs, operator.mul, ort_compat.mul, False)
 
     def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.sub, op.sub, True)
+        return _promote_and_apply_op(self, rhs, operator.sub, ort_compat.sub, True)
 
     def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.sub, op.sub, False)
+        return _promote_and_apply_op(self, lhs, operator.sub, ort_compat.sub, False)
 
     def __pow__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.pow, op.pow, True)
+        return _promote_and_apply_op(self, rhs, operator.pow, ort_compat.pow, True)
 
     def __rpow__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.pow, op.pow, False)
+        return _promote_and_apply_op(self, lhs, operator.pow, ort_compat.pow, False)
 
     # Element-wise functions
     def __abs__(self) -> Self:
@@ -618,8 +622,9 @@ class TyArrayInteger(TyArrayNumber):
 
     def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
-        lhs = self.astype(float64)
-        return lhs / rhs
+        if isinstance(rhs, TyArrayInteger):
+            return self.astype(float64) / rhs.astype(float64)
+        return _promote_and_apply_op(self, rhs, operator.truediv, ort_compat.div, True)
 
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
@@ -633,6 +638,10 @@ class TyArrayInteger(TyArrayNumber):
         return _promote_and_apply_op(
             self, lhs, operator.mod, lambda a, b: op.mod(a, b, fmod=0), False
         )
+
+    def __invert__(self) -> Self:
+        var = op.bitwise_not(self.var)
+        return type(self)(var)
 
     def isnan(self) -> TyArrayBool:
         var = op.constant_of_shape(op.shape(self.var), value=np.array(False))

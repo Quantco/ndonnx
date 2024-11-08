@@ -314,7 +314,7 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __invert__(self) -> TyArrayBase:
-        return NotImplemented
+        raise _make_type_error("__invert__", self.dtype)
 
     def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
         return NotImplemented

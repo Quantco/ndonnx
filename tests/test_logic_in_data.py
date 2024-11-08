@@ -256,36 +256,45 @@ def test_build(dtype):
 
 
 @pytest.mark.parametrize(
-    "dtype, expect_ort_success",
+    "fun",
     [
-        (np.float16, True),
-        (np.float32, True),
-        (np.float64, True),
-        (np.int8, False),
-        (np.int16, False),
-        (np.int32, True),
-        (np.int64, True),
-        (np.uint8, False),
-        (np.uint16, False),
-        (np.uint32, False),
-        (np.uint64, False),
+        operator.add,
+        operator.eq,
+        operator.ge,
+        operator.gt,
+        operator.le,
+        operator.lt,
+        operator.mod,
+        operator.mul,
+        operator.ne,
+        operator.pow,
+        operator.sub,
+        operator.truediv,
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.float32,
+        np.float64,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
     ],
 )
 @pytest.mark.parametrize("values", [[], 1, [1], [1, 2], [[1], [2]]])
-def test_function(dtype, values, expect_ort_success):
-    np_arr = np.asarray([1, 2], dtype=dtype)
-    fun = operator.add
+def test_ops_with_ort_compat(dtype, values, fun):
+    np_arr = np.asarray(values, dtype=dtype)
 
     expected = fun(np_arr, np_arr)
 
-    if expect_ort_success:
-        candidate = build_and_run(fun, np_arr, np_arr)
-        np.testing.assert_equal(expected, candidate)
-    else:
-        import onnxruntime as ort
-
-        with pytest.raises(ort.capi.onnxruntime_pybind11_state.NotImplemented):
-            build_and_run(fun, np_arr, np_arr)
+    candidate = build_and_run(fun, np_arr, np_arr)
+    np.testing.assert_equal(candidate, expected)
 
     candidate = constant_prop(fun, np_arr, np_arr)
     np.testing.assert_equal(expected, candidate)
