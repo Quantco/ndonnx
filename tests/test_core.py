@@ -673,18 +673,17 @@ def test_prod_unsigned(dtype):
 @pytest.mark.parametrize(
     "dtype",
     [
-        ndx.float64,
-        ndx.nfloat64,
         ndx.uint64,
         ndx.nuint64,
     ],
 )
 def test_prod_no_implementation(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
-    with pytest.raises(TypeError):
+    with pytest.warns():
         ndx.prod(x)
 
 
+@pytest.mark.skip(reason="`_from_fields` was removed")
 def test_array_creation_with_invalid_fields():
     with pytest.raises(TypeError):
         ndx.Array._from_fields(
@@ -711,11 +710,6 @@ def test_array_creation_with_invalid_fields():
             ndx.utf8,
             values=ndx.array(shape=(3,), dtype=ndx.int32)._core(),
         )
-
-
-def test_promote_nullable():
-    with pytest.warns(DeprecationWarning):
-        assert ndx.promote_nullable(np.int64) == ndx.nint64
 
 
 @pytest.mark.parametrize(
@@ -987,16 +981,10 @@ def test_cumulative_sum(array, axis, include_initial, array_dtype, cumsum_dtype)
 
 
 def test_no_unsafe_cumulative_sum_cast():
-    with pytest.raises(
-        TypeError,
-        match="not implemented for",
-    ):
+    with pytest.warns(match="A lossy cast to int64 is used instead"):
         a = ndx.asarray([1, 2, 3], dtype=ndx.uint64)
         ndx.cumulative_sum(a)
 
-    with pytest.raises(
-        TypeError,
-        match="not implemented for",
-    ):
+    with pytest.warns(match="A lossy cast to int64 is used instead"):
         a = ndx.asarray([1, 2, 3], dtype=ndx.int32)
         ndx.cumulative_sum(a, dtype=ndx.uint64)

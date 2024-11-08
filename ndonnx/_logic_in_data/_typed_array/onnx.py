@@ -67,6 +67,8 @@ class _Number(_OnnxDType):
 
 class String(_OnnxDType):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        if self == rhs:
+            return self
         return NotImplemented
 
     @property

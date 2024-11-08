@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from functools import reduce
 from itertools import chain
-from typing import Literal
+from typing import Literal, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -68,24 +68,49 @@ def concat(
 ) -> TyArrayBase:
     first, *others = arrays
     dtype = reduce(
-        lambda dtype, arr: dtype._result_type(arr.dtype), others, first.dtype
+        lambda dtype, arr: result_type(dtype, arr.dtype), others, first.dtype
     )
     arrays = [arr.astype(dtype) for arr in arrays]
     return arrays[0].concat(arrays[1:], axis=axis)
 
 
-def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType:
-    from .. import _dtypes
+@overload
+def result_type(
+    first: onnx.NumericDTypes, *others: onnx.NumericDTypes
+) -> onnx.NumericDTypes: ...
 
+
+@overload
+def result_type(first: onnx.DTypes, *others: onnx.DTypes) -> onnx.DTypes: ...
+
+
+@overload
+def result_type(first: DType, *others: DType) -> DType: ...
+
+
+def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType:
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
     return reduce(
-        lambda a, b: _dtypes.result_type(a, b),
+        lambda a, b: _result_dtype(a, b),
         (get_dtype(el) for el in chain([first], others)),
     )
+
+
+def _result_dtype(first: DType, *others: DType) -> DType:
+    def result_binary(a: DType, b: DType) -> DType:
+        res1 = a._result_type(b)
+        if res1 != NotImplemented:
+            return res1
+        return b._result_type(a)
+
+    res = reduce(result_binary, others, first)
+    if res == NotImplemented:
+        raise TypeError("No common type found")
+    return res
 
 
 def searchsorted(

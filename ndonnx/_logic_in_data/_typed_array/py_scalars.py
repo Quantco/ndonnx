@@ -73,7 +73,7 @@ class PyFloat(_PyScalar):
             return masked_onnx.nfloat64
         if isinstance(other, onnx.FloatingDTypes | masked_onnx.NCoreFloatingDTypes):
             return other
-        raise ValueError
+        return NotImplemented
 
     @property
     def _tyarr_class(self) -> type[TyArrayPyFloat]:
@@ -152,7 +152,7 @@ class _ArrayPyScalar(TyArrayBase):
         # built-in typed arrays do not know about it. Thus, we define
         # the mapping from this class into those classes **here**.
         if isinstance(dtype, onnx.DTypes):
-            np_arr = np.array(self.value, dtypes.as_numpy(dtype))
+            np_arr = np.array(self.value).astype(dtypes.as_numpy(dtype))
             return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
         if isinstance(dtype, masked_onnx.NCoreDTypes):
             unmasked_typed_arr = self.__ndx_astype__(dtype._unmasked_dtype)

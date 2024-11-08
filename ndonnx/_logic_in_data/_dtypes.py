@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from functools import reduce
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, TypeVar
 from warnings import warn
 
 import numpy as np
@@ -75,33 +74,6 @@ class DType(ABC, Generic[TY_ARRAY]):
 
 
 # Helper functions
-
-
-@overload
-def result_type(
-    first: onnx.NumericDTypes, *others: onnx.NumericDTypes
-) -> onnx.NumericDTypes: ...
-
-
-@overload
-def result_type(first: onnx.DTypes, *others: onnx.DTypes) -> onnx.DTypes: ...
-
-
-@overload
-def result_type(first: DType, *others: DType) -> DType: ...
-
-
-def result_type(first: DType, *others: DType) -> DType:
-    def result_binary(a: DType, b: DType) -> DType:
-        res1 = a._result_type(b)
-        if res1 != NotImplemented:
-            return res1
-        return b._result_type(a)
-
-    res = reduce(result_binary, others, first)
-    if res == NotImplemented:
-        raise TypeError("No common type found")
-    return res
 
 
 def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
