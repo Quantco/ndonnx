@@ -102,6 +102,8 @@ def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DTy
 
 def _result_dtype(first: DType, *others: DType) -> DType:
     def result_binary(a: DType, b: DType) -> DType:
+        if a == b:
+            return a
         res1 = a._result_type(b)
         if res1 != NotImplemented:
             return res1

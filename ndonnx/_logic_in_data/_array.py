@@ -74,7 +74,7 @@ class Array:
         if not isinstance(data, TyArrayBase):
             raise TypeError(f"expected '_TypedArrayBase', found `{type(data)}`")
         inst = cls.__new__(cls)
-        inst._data = std_copy(data)
+        inst._data = data
         return inst
 
     @property
@@ -103,8 +103,8 @@ class Array:
     def T(self) -> Array:  # noqa: N802
         return Array._from_data(self._data.T)
 
-    def astype(self, dtype: DType) -> Array:
-        new_data = self._data.astype(dtype)
+    def astype(self, dtype: DType, *, copy=True) -> Array:
+        new_data = self._data.astype(dtype, copy=copy)
         return Array._from_data(new_data)
 
     def copy(self) -> Array:
@@ -326,10 +326,14 @@ def asarray(
     if isinstance(obj, Var):
         obj = Array._from_data(astyarray(obj))
     if isinstance(obj, Array):
+        if copy is None:
+            # We try to copy if possible.
+            # TODO: Implement stricter failures cases according to standard
+            copy = False
         if copy:
             obj = Array._from_data(std_copy(obj._data))
         if dtype:
-            return obj.astype(dtype)
+            return obj.astype(dtype, copy=copy)
         return obj
     elif isinstance(obj, bool | int | float):
         obj = np.array(obj)

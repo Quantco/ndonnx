@@ -238,7 +238,7 @@ def test_indexing_on_scalar():
 def test_indexing_on_scalar_mask():
     res = ndx.asarray([])
     res = res[False]
-    assert_array_equal(np.asarray(res.shape), np.asarray([0, 0]))
+    assert_array_equal(res.unwrap_numpy().shape, np.asarray([0, 0]))
 
 
 def test_indexing_with_mask(_a):
@@ -330,7 +330,7 @@ def test_indexing_none(_c):
 def test_illegal_indexing(_a):
     a = numpy_to_graph_input(_a)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(IndexError):
         a["invalid", ...]
 
 

@@ -10,8 +10,12 @@ from warnings import warn
 from ._array import Array
 from ._dtypes import DType
 from ._funcs import asarray
-from ._typed_array.masked_onnx import NCoreDTypes
-from ._typed_array.onnx import FloatingDTypes
+from ._typed_array.masked_onnx import (
+    NCoreDTypes,
+    NCoreFloatingDTypes,
+    NCoreIntegerDTypes,
+)
+from ._typed_array.onnx import FloatingDTypes, IntegerDTypes
 
 if TYPE_CHECKING:
     from spox import Var
@@ -31,4 +35,6 @@ def from_spox_var(var: Var) -> Array:
 
 
 Nullable = NCoreDTypes
-Floating = FloatingDTypes
+Floating = FloatingDTypes | NCoreFloatingDTypes
+Integer = IntegerDTypes | NCoreIntegerDTypes
+Numeric = Floating | Integer

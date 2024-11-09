@@ -89,8 +89,10 @@ class TyArrayBase(ABC):
         """Disassemble ``self`` into a flat mapping of its constituents."""
         raise NotImplementedError
 
-    def astype(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+    def astype(self, dtype: DType[TY_ARRAY], /, *, copy=True) -> TY_ARRAY:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
+        if self.dtype == dtype and not copy:
+            return self  # type: ignore
         res = self.__ndx_astype__(dtype)
         if res is NotImplemented:
             # `type(self._data)` does not know about the target `dtype`
@@ -260,6 +262,9 @@ class TyArrayBase(ABC):
 
     def sqrt(self) -> Self:
         raise _make_type_error("sqrt", self.dtype)
+
+    def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        raise _make_type_error("take", self.dtype)
 
     def tan(self) -> Self:
         raise _make_type_error("tan", self.dtype)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import builtins
+import math
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -74,6 +75,14 @@ def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
     return Array._from_data(x._data.broadcast_to(shape))
 
 
+def can_cast(from_: DType | Array, to: DType, /) -> bool:
+    try:
+        result_type(from_, to)
+        return True
+    except TypeError:
+        return False
+
+
 def concat(
     arrays: tuple[Array, ...] | list[Array], /, *, axis: None | int = 0
 ) -> Array:
@@ -110,9 +119,13 @@ def equal(x1: Array, x2: Array, /) -> Array:
 
 
 def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
+    if not -x.ndim - 1 <= axis <= x.ndim:
+        raise IndexError(
+            "'axis' must be within `[-{x.ndim}-1, {x.ndim}]`, found `{axis}`"
+        )
     if axis < 0:
-        axis = x.ndim + axis
-    key = tuple(None if el == axis else slice(None, None) for el in range(axis + 1))
+        axis = x.ndim + axis + 1
+    key = tuple(None if el == axis else slice(None, None) for el in range(x.ndim + 1))
     return x[key]
 
 
@@ -148,11 +161,6 @@ def full(
     dtype: DType | None = None,
     device=None,
 ) -> Array:
-    if isinstance(shape, int):
-        shape = (shape,)
-    if isinstance(shape, Array) and shape.ndim == 0:
-        # Ensure shape is 1D
-        shape = shape[None]
     if dtype is None:
         if isinstance(fill_value, bool):
             dtype = ndx.bool
@@ -164,7 +172,22 @@ def full(
             dtype = ndx.utf8
         else:
             raise TypeError(f"Unexpected 'fill_value' type `{type(fill_value)}`")
-    return broadcast_to(asarray(fill_value, dtype=dtype), shape)
+
+    if isinstance(shape, int):
+        shape = (shape,)
+    elif isinstance(shape, Array) and shape.ndim == 0:
+        # Ensure shape is 1D
+        shape = shape[None]
+
+    if isinstance(shape, tuple):
+        if len(shape) == 0:
+            return asarray(fill_value, dtype=dtype)
+        if math.prod(shape) == 0:
+            # using `broadcast_to` to create an array with fewer elements
+            # is technically supported by the ONNX standard, but quite odd
+            # and seemingly broken in the onnxruntime.
+            return reshape(asarray([], dtype=dtype), shape=shape)
+    return broadcast_to(asarray([fill_value], dtype=dtype), shape)
 
 
 def full_like(
@@ -178,6 +201,30 @@ def full_like(
     shape = x.dynamic_shape
     fill = asarray(fill_value, dtype=dtype or x.dtype)
     return broadcast_to(fill, shape)
+
+
+def isdtype(dtype: DType, kind: DType | str | tuple[DType | str, ...]) -> bool:
+    if isinstance(kind, str):
+        if kind == "bool":
+            return dtype == ndx.bool
+        elif kind == "signed integer":
+            return dtype in (ndx.int8, ndx.int16, ndx.int32, ndx.int64)
+        elif kind == "unsigned integer":
+            return dtype in (ndx.uint8, ndx.uint16, ndx.uint32, ndx.uint64)
+        elif kind == "integral":
+            return isinstance(dtype, ndx.Integer)
+        elif kind == "real floating":
+            return isinstance(dtype, ndx.Floating)
+        elif kind == "complex floating":
+            # 'complex floating' is not supported"
+            return False
+        elif kind == "numeric":
+            return isinstance(dtype, ndx.Numeric)
+    elif isinstance(kind, DType):
+        return dtype == kind
+    elif isinstance(kind, tuple):
+        return builtins.any(isdtype(dtype, k) for k in kind)
+    raise TypeError(f"kind must be a string or a dtype, not {type(kind)}")
 
 
 def linspace(
@@ -299,6 +346,16 @@ def sum(
     keepdims: bool = False,
 ) -> Array:
     return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
+
+
+def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
+    from ._typed_array import TyArrayInt64
+
+    if not isinstance(indices._data, TyArrayInt64):
+        raise TypeError(
+            "'indices' must be of data type 'int64' found `{indices.dtype}`"
+        )
+    return Array._from_data(x._data.take(indices._data, axis=axis))
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:

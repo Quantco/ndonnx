@@ -6,8 +6,8 @@ from __future__ import annotations
 import operator
 from abc import abstractmethod
 from collections.abc import Callable, Sequence
-from types import NotImplementedType
-from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, overload
+from types import EllipsisType, NotImplementedType
+from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
 
 import numpy as np
 import spox
@@ -200,6 +200,13 @@ class TyArray(TyArrayBase):
             return {"data": "*lazy*"}
 
     def __getitem__(self, key: GetitemIndex) -> Self:
+        _validate_getitem_index(key)
+        if isinstance(key, bool):
+            key = TyArrayBool(op.const(key))
+        if not isinstance(key, TyArray):
+            return self._getitem_static(key)
+        if isinstance(key, TyArrayBool):
+            return self._getitem_boolmask(key)
         if isinstance(key, TyArrayInt64):
             raise NotImplementedError
 
@@ -214,6 +221,111 @@ class TyArray(TyArrayBase):
             key_ = key
 
         return type(self)(ca[key_].var)
+
+    def _getitem_static(self, key: GetitemIndexStatic) -> Self:
+        if isinstance(key, list):
+            # Technically not supported, but a common pattern
+            key = tuple(key)
+        if isinstance(key, int | slice | EllipsisType | None):
+            key = (key,)
+
+        # Validation
+        if key.count(...) > 1:
+            raise IndexError("more than one ellipsis (`...`) in index tuple")
+
+        cnt_slice_or_idx = len(list(el for el in key if isinstance(el, int | slice)))
+
+        if key.count(...) == 0:
+            if self.ndim != cnt_slice_or_idx:
+                raise IndexError(
+                    "length of 'key' excluding 'None' values must match array's rank or contain an ellipsis (`...`)"
+                )
+            # Ensure that we always have a tailing ellipsis to have fewer special cases
+            key = tuple(list(key) + [...])
+
+        cnt_ellipsis_fills = self.ndim - cnt_slice_or_idx
+
+        ellipsis_pos = key.index(...)
+        pre_ellipsis = list(key[:ellipsis_pos])
+        post_ellipsis = list(key[ellipsis_pos + 1 :])
+        no_more_ellipsis = cast(
+            list[int | slice | None],
+            pre_ellipsis
+            + [slice(None, None) for _ in range(cnt_ellipsis_fills)]
+            + post_ellipsis,
+        )
+
+        new_axis_positions = [i for i, el in enumerate(no_more_ellipsis) if el is None]
+
+        var = self.var
+        if new_axis_positions:
+            var = op.unsqueeze(self.var, op.const(new_axis_positions, np.int64))
+
+        # Remove `None` values
+        indices_and_slices_only = [
+            slice(None) if el is None else el for el in no_more_ellipsis
+        ]
+        if all(el == slice(None) for el in indices_and_slices_only):
+            # Early return if we only expanded some dims
+            return type(self)(var)
+
+        starts = []
+        ends = []
+        axes = []
+        steps = []
+
+        _MAX = int(np.iinfo(np.int64).max)
+        for axis, el in enumerate(indices_and_slices_only):
+            if el == slice(None):
+                continue
+            elif isinstance(el, int):
+                starts.append(el)
+                ends.append(_compute_end_single_idx(el))
+                axes.append(axis)
+                steps.append(1)
+                continue
+            # Non-trivial slice
+            step = el.step or 1
+            starts.append(el.start or (0 if step > 0 else _MAX))
+            ends.append(_compute_end_slice(el.stop, step))
+            axes.append(axis)
+            steps.append(el.step or 1)
+
+        var = op.slice(
+            var,
+            starts=op.const(starts, np.int64),
+            ends=op.const(ends, np.int64),
+            steps=op.const(steps, np.int64),
+            axes=op.const(axes, np.int64),
+        )
+
+        # Squeeze index positions
+        indices_pos = [
+            i for i, el in enumerate(indices_and_slices_only) if isinstance(el, int)
+        ]
+        if indices_pos:
+            var = op.squeeze(var, op.const(indices_pos, np.int64))
+
+        return type(self)(var)
+
+    def _getitem_boolmask(self, key: TyArrayBool) -> Self:
+        if key.ndim > self.ndim:
+            raise IndexError(
+                "rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
+            )
+        if key.ndim == 0:
+            key = key[None, ...]
+            x = self[None, ...]
+            res = op.compress(x.var, key.var, axis=0)
+            return type(self)(res)
+
+        in_shape = TyArrayInt64(op.const([-1])).concat(
+            [self.dynamic_shape[key.ndim :]], axis=0
+        )
+        var = op.reshape(self.var, in_shape.var)
+
+        res = op.compress(var, key.reshape((-1,)).var, axis=0)
+        return type(self)(res)
 
     def __setitem__(
         self,
@@ -332,14 +444,15 @@ class TyArray(TyArrayBase):
         return type(self)(var)
 
     def concat(self, others: list[Self], axis: None | int) -> Self:
-        var = op.concat(
-            [self.var] + [el.var for el in others], axis=0 if axis is None else axis
-        )
-        res = type(self)(var)
-        if axis is None and res.ndim != 1:
-            # Flatten the result. It is ok to concat first on the 0th axis.
-            res = res.reshape((-1,))
-        return res
+        arrays = [self] + others
+        if axis is None:
+            arrays = [a if a.ndim == 1 else a.reshape((-1,)) for a in arrays]
+            axis = 0
+
+        if len({a.ndim for a in arrays}) != 1:
+            raise ValueError("concatenated arrays must all have the same rank")
+        var = op.concat([a.var for a in arrays], axis=0 if axis is None else axis)
+        return type(self)(var)
 
     def disassemble(self) -> Var:
         return self.var
@@ -383,6 +496,11 @@ class TyArray(TyArrayBase):
             indices = (x1 <= x2).astype(int64).sum(axis=0)
 
         return indices
+
+    def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        axis = axis or 0
+        var = op.gather(self.var, indices.var, axis=axis)
+        return type(self)(var)
 
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         flattened = self.reshape((-1,))
@@ -917,6 +1035,11 @@ _mixed_integers: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
 }
 
 _floating_floating: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
+    (float16, float16): float16,
+    (float16, float32): float32,
+    (float32, float16): float32,
+    (float16, float64): float64,
+    (float64, float16): float64,
     (float32, float32): float32,
     (float32, float64): float64,
     (float64, float32): float64,
@@ -967,3 +1090,38 @@ def _result_type_core_numeric(a: NumericDTypes, b: NumericDTypes) -> NumericDTyp
     # TODO: Do bools and strings
 
     raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")
+
+
+def _compute_end_slice(stop: int | None, step: int) -> int:
+    if isinstance(stop, int):
+        return stop
+    # Iterate "to the end"
+    if step < 1:
+        return int(np.iinfo(np.int64).min)
+    return int(np.iinfo(np.int64).max)
+
+
+def _compute_end_single_idx(start: int):
+    end = start + 1
+    if end == 0:
+        return np.iinfo(np.int64).max
+    return end
+
+
+def _validate_getitem_index(key: GetitemIndex):
+    if isinstance(key, None | int | slice | EllipsisType):
+        return
+    elif isinstance(key, tuple):
+        if not all(isinstance(el, None | int | slice | EllipsisType) for el in key):
+            raise IndexError(
+                f"elements of tuple index must be of type 'None | int | slice | ...', but tuple is `{key}`"
+            )
+    elif isinstance(key, TyArrayBase):
+        if not isinstance(key, TyArrayBool | TyArrayInt64):
+            raise IndexError(
+                f"Array index must be of type 'bool' or 'int64' found `{key.dtype}`"
+            )
+    elif isinstance(key, list):
+        raise TypeError("indexing with lists is not supported")
+    else:
+        raise IndexError(f"unexpected key: `{key}`")

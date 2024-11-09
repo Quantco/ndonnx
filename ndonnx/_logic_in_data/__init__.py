@@ -1,7 +1,7 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
-from ._compat import array, from_spox_var, Nullable, Floating
+from ._compat import array, from_spox_var, Nullable, Floating, Integer, Numeric
 from ._array import Array, asarray
 from ._dtypes import DType
 from ._typed_array.onnx import (
@@ -44,6 +44,7 @@ from ._funcs import (
     astype,
     broadcast_to,
     concat,
+    can_cast,
     cumulative_sum,
     empty,
     empty_like,
@@ -52,6 +53,7 @@ from ._funcs import (
     flip,
     full,
     full_like,
+    isdtype,
     linspace,
     matrix_transpose,
     mean,
@@ -62,6 +64,7 @@ from ._funcs import (
     prod,
     sum,
     searchsorted,
+    take,
     where,
     zeros,
     zeros_like,
@@ -199,6 +202,7 @@ __all__ = [
     "copysign",
     "cos",
     "cosh",
+    "can_cast",
     "cumulative_sum",
     "divide",
     "e",
@@ -225,6 +229,7 @@ __all__ = [
     "isnan",
     "less",
     "less_equal",
+    "isdtype",
     "linspace",
     "log",
     "log10",
@@ -270,6 +275,7 @@ __all__ = [
     "zeros_like",
     "prod",
     "searchsorted",
+    "take",
     # Non-standard items
     "build",
     "DateTime",
@@ -279,6 +285,8 @@ __all__ = [
     "from_spox_var",
     "Nullable",
     "Floating",
+    "Integer",
+    "Numeric",
     "as_nullable",
     "as_non_nullable",
 ]
