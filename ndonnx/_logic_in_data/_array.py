@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 import operator as std_ops
 from collections.abc import Callable, Mapping, Sequence
 from copy import copy as std_copy
@@ -89,6 +90,13 @@ class Array:
     @property
     def mT(self) -> Array:  # noqa: N802
         return Array._from_data(self._data.mT)
+
+    @property
+    def size(self) -> int | None:
+        static_dims = [el for el in self.shape if el is not None]
+        if static_dims:
+            return math.prod(static_dims)
+        return None
 
     @property
     def ndim(self) -> int:
