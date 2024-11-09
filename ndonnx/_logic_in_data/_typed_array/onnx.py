@@ -497,6 +497,24 @@ class TyArray(TyArrayBase):
 
         return indices
 
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
+        def ensure_positive(el: int):
+            if el < 0:
+                el = self.ndim + el
+            return el
+
+        if isinstance(axis, int):
+            axis = (axis,)
+        try:
+            res = op.squeeze(self.var, op.const(axis, np.int64))
+        except Exception as e:
+            if "inference error" in str(e).lower():
+                raise ValueError(
+                    f"cannot squeeze array of shape `{self.shape}` on axis `{axis}`"
+                )
+            raise e
+        return type(self)(res)
+
     def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
         axis = axis or 0
         var = op.gather(self.var, indices.var, axis=axis)

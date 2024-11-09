@@ -70,6 +70,9 @@ class TyArrayBase(ABC):
     @abstractmethod
     def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
 
+    @abstractmethod
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self: ...
+
     @property
     def ndim(self) -> int:
         return len(self.shape)

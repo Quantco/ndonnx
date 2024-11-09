@@ -289,6 +289,11 @@ class TyMaArray(TyMaArrayBase):
         mask = self.mask.reshape(shape) if self.mask is not None else None
         return type(self)(data=data, mask=mask)
 
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
+        data = self.data.squeeze(axis=axis)
+        mask = None if self.mask is None else self.mask.squeeze(axis=axis)
+        return type(self)(data=data, mask=mask)
+
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self.data.broadcast_to(shape)
         mask = self.mask.broadcast_to(shape) if self.mask else None

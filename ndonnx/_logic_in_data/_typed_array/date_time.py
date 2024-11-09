@@ -161,6 +161,12 @@ class TimeBaseArray(TyArrayBase):
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
+        is_nat = self.is_nat.squeeze(axis)
+        data = self.data.squeeze(axis)
+
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
     def _eqcomp(self, other) -> TyArrayBase:
         raise NotImplementedError
 

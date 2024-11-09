@@ -348,6 +348,10 @@ def sum(
     return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
 
 
+def squeeze(x: Array, /, axis: int | tuple[int, ...]) -> Array:
+    return Array._from_data(x._data.squeeze(axis))
+
+
 def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
     from ._typed_array import TyArrayInt64
 

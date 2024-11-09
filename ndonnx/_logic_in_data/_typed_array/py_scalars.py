@@ -133,10 +133,13 @@ class _ArrayPyScalar(TyArrayBase):
         raise ValueError("'dynamic_shape' should never be called on Python scalar")
 
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        raise ValueError("cannot reshape Python scalar")
+        raise ValueError("cannot 'reshape' Python scalar")
+
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
+        raise ValueError("cannot 'squeeze' Python scalar")
 
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        raise ValueError("cannot broadcast Python scalar")
+        raise ValueError("cannot 'broadcast_to' Python scalar")
 
     def where(self, cond: onnx.TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
