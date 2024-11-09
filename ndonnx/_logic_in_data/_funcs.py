@@ -348,6 +348,11 @@ def sum(
     return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
 
 
+def stack(arrays: tuple[Array, ...] | list[Array], /, *, axis: int = 0) -> Array:
+    arrays = [expand_dims(x, axis=axis) for x in arrays]
+    return concat(arrays, axis=axis)
+
+
 def squeeze(x: Array, /, axis: int | tuple[int, ...]) -> Array:
     return Array._from_data(x._data.squeeze(axis))
 
