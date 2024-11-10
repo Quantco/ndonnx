@@ -76,8 +76,7 @@ class String(_OnnxDType):
         return TyArrayString
 
 
-# TODO: Should this be a subclass of _Number?
-class Boolean(_OnnxDType):
+class Boolean(_Number):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         return NotImplemented
 
@@ -762,6 +761,12 @@ class TyArrayInteger(TyArrayNumber):
             return self.astype(float64) / rhs.astype(float64)
         return _promote_and_apply_op(self, rhs, operator.truediv, ort_compat.div, True)
 
+    def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, rhs, operator.and_, op.bitwise_and, True)
+
+    def __rand__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.and_, op.bitwise_and, False)
+
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
 
@@ -867,8 +872,14 @@ class TyArrayBool(TyArray):
     def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.or_, op.or_, True)
 
+    def __ror__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.or_, op.or_, False)
+
     def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
         return _promote_and_apply_op(self, rhs, operator.and_, op.and_, True)
+
+    def __rand__(self, lhs: TyArrayBase) -> TyArrayBase:
+        return _promote_and_apply_op(self, lhs, operator.and_, op.and_, False)
 
     def __invert__(self) -> TyArrayBool:
         var = op.not_(self.var)

@@ -65,6 +65,17 @@ class PyInteger(_PyScalar):
         return TyArrayPyInt
 
 
+class PyBool(PyInteger):
+    def _result_type(self, other: DType) -> DType | NotImplementedType:
+        if isinstance(other, onnx.Boolean):
+            return ndx.bool
+        return super()._result_type(other)
+
+    @property
+    def _tyarr_class(self) -> type[TyArrayPyBool]:
+        return TyArrayPyBool
+
+
 class PyFloat(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.IntegerDTypes):
@@ -84,6 +95,7 @@ class PyFloat(_PyScalar):
 pyint = PyInteger()
 pyfloat = PyFloat()
 pystring = PyString()
+pybool = PyBool()
 
 
 class _ArrayPyScalar(TyArrayBase):
@@ -211,10 +223,24 @@ class TyArrayPyInt(_ArrayPyScalarNumber):
             raise TypeError(f"expected 'int' or 'bool' found `{type(value)}`")
         self.value = value
 
+    def __and__(self, rhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
+        if isinstance(rhs, onnx.TyArrayInteger | onnx.TyArrayBool):
+            return _promote_and_apply_op(self, rhs, operator.and_, True)
+        return NotImplemented
+
+    def __rand__(self, lhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
+        if isinstance(lhs, onnx.TyArrayInteger | onnx.TyArrayBool):
+            return _promote_and_apply_op(self, lhs, operator.and_, False)
+        return NotImplemented
+
     def __or__(self, rhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
         if isinstance(rhs, onnx.TyArrayInteger):
             return _promote_and_apply_op(self, rhs, operator.or_, True)
         return NotImplemented
+
+
+class TyArrayPyBool(TyArrayPyInt):
+    dtype = pybool
 
 
 class TyArrayPyFloat(_ArrayPyScalarNumber):

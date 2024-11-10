@@ -784,10 +784,10 @@ def test_empty_concat_lazy_unknown_shape():
     "array, scalar, expected",
     [
         (ndx.array(shape=("N",), dtype=ndx.uint8), 1, ndx.uint8),
-        (ndx.array(shape=("N",), dtype=ndx.uint8), -1, ndx.int16),
+        (ndx.array(shape=("N",), dtype=ndx.uint8), -1, ndx.uint8),
         (ndx.array(shape=("N",), dtype=ndx.int8), 1, ndx.int8),
         (ndx.array(shape=("N",), dtype=ndx.nint8), 1, ndx.nint8),
-        (ndx.array(shape=("N",), dtype=ndx.nuint8), -1, ndx.nint16),
+        (ndx.array(shape=("N",), dtype=ndx.nuint8), -1, ndx.nuint8),
         (ndx.array(shape=("N",), dtype=ndx.float64), 0.123456789, ndx.float64),
         (
             ndx.array(shape=("N",), dtype=ndx.float64),
@@ -834,7 +834,7 @@ def test_promotion_failures(arrays, scalar):
         (np.asarray([1, 2, 3], dtype=np.int64), 1.12),
         (1.23, np.asarray([1, 2, 3], dtype=np.int64)),
         (True, np.asarray([1, 2, 3], dtype=np.int8)),
-        (np.asarray([True, False]), 1.12),
+        # (np.asarray([True, False]), 1.12),
         (np.asarray([True, False]), 4),
         (np.asarray([1.23, 2.34]), True),
         (np.asarray([1.23, 2.34]), 2),

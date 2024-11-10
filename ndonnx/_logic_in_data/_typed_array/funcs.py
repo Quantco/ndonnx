@@ -12,13 +12,13 @@ import ndonnx._logic_in_data as ndx
 
 from .._dtypes import DType
 from . import masked_onnx, onnx
-from .py_scalars import TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
+from .py_scalars import TyArrayPyBool, TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 
 def astyarray(
-    val: int | float | str | np.ndarray | TyArrayBase | Var,
+    val: bool | int | float | str | np.ndarray | TyArrayBase | Var,
     dtype: None | DType = None,
     use_py_scalars=False,
 ) -> TyArrayBase:
@@ -30,7 +30,7 @@ def astyarray(
 
     arr: TyArrayBase
     if isinstance(val, bool):
-        arr = TyArrayPyInt(val)
+        arr = TyArrayPyBool(val)
         arr = arr if use_py_scalars else arr.astype(ndx.bool)
     elif isinstance(val, int):
         arr = TyArrayPyInt(val)
