@@ -113,7 +113,7 @@ def floor(array: Array, /) -> Array:
 
 
 def floor_divide(x1: Array, x2: Array, /) -> Array:
-    return x1 / x2
+    return x1 // x2
 
 
 def greater(x1: Array, x2: Array, /) -> Array:
@@ -157,15 +157,15 @@ def log1p(x: Array, /) -> Array:
 
 
 def log2(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.log2())
 
 
 def log10(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.log10())
 
 
 def logaddexp(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return log(exp(x1) + exp(x2))
 
 
 def logical_and(x1: Array, x2: Array, /) -> Array:
@@ -181,7 +181,7 @@ def logical_or(x1: Array, x2: Array, /) -> Array:
 
 
 def logical_xor(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x1._data or x2._data)
 
 
 def maximum(x1: Array, x2: Array, /) -> Array:
@@ -221,7 +221,7 @@ def remainder(x1: Array, x2: Array, /) -> Array:
 
 
 def round(x: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.round())
 
 
 def sign(x: Array, /) -> Array:

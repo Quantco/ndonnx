@@ -158,6 +158,30 @@ atanh = _wrap_element_wise(op.atanh, _mapping_float_only)
 cos = _wrap_element_wise(op.cos, _mapping_float_only)
 cosh = _wrap_element_wise(op.cosh, _mapping_float_only)
 
+_mapping_float_double: _MappingDictType = {
+    (np.uint8, np.int8, np.int16, np.uint16): np.float32,
+    (np.uint32, np.int32): np.float64,
+    (np.uint64, np.int64): Warn(np.float64),
+}
+ceil = _wrap_element_wise(op.ceil, _mapping_float_double)
+floor = _wrap_element_wise(op.floor, _mapping_float_double)
+# T: tensor(double), tensor(float), tensor(int32), tensor(int64), tensor(int8)
+neg = _wrap_element_wise(
+    op.neg,
+    {
+        (np.uint8, np.int16, np.uint16): np.int32,
+        (np.uint32,): np.int64,
+        (np.uint64,): Warn(np.int64),
+    },
+)
+round = _wrap_element_wise(op.floor, _mapping_float_double)
+# T tensor(bfloat16), tensor(double), tensor(float), tensor(float16), tensor(int16), tensor(int32), tensor(int64), tensor(int8), tensor(uint16), tensor(uint32), tensor(uint64), tensor(uint8)
+sign = op.sign
+sin = _wrap_element_wise(op.sin, _mapping_float_double)
+sinh = _wrap_element_wise(op.sinh, _mapping_float_only)
+tan = _wrap_element_wise(op.tan, _mapping_float_only)
+tanh = _wrap_element_wise(op.tanh, _mapping_float_double)
+
 
 def pow(a: Var, b: Var, /) -> Var:
     compat_args = []

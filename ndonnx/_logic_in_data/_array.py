@@ -272,10 +272,10 @@ class Array:
         return Array._from_data(~self._data)
 
     def __neg__(self, /) -> Array:
-        raise NotImplementedError
+        return Array._from_data(-self._data)
 
     def __pos__(self, /) -> Array:
-        raise NotImplementedError
+        return Array._from_data(+self._data)
 
     def __repr__(self) -> str:
         value_repr = ", ".join(

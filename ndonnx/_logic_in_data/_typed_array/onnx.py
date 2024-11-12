@@ -85,6 +85,8 @@ class String(_OnnxDType):
 
 class Boolean(_Number):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+        if self == rhs:
+            return self
         return NotImplemented
 
     @property
@@ -709,6 +711,15 @@ class TyArrayNumber(TyArray):
             "sum", op.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
         )
 
+    def __abs__(self) -> Self:
+        return type(self)(op.abs(self.var))
+
+    def __neg__(self) -> Self:
+        return type(self)(ort_compat.neg(self.var))
+
+    def __pos__(self) -> Self:
+        return self
+
     def __add__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
             self, other, operator.add, ort_compat.add, forward=True
@@ -779,8 +790,25 @@ class TyArrayNumber(TyArray):
             self, other, operator.truediv, ort_compat.div, forward=False
         )
 
-    def __abs__(self) -> Self:
-        return type(self)(op.abs(self.var))
+    def __floordiv__(self, other) -> TyArrayBase:
+        promo_result, _ = promote(self, other)
+        return (self / other).floor().astype(promo_result.dtype)
+
+    def __rfloordiv__(self, other) -> TyArrayBase:
+        promo_result, _ = promote(self, other)
+        return (other / self).floor().astype(promo_result.dtype)
+
+    def ceil(self) -> Self:
+        return type(self)(ort_compat.ceil(self.var))
+
+    def floor(self) -> Self:
+        return type(self)(ort_compat.floor(self.var))
+
+    def round(self) -> Self:
+        return type(self)(ort_compat.round(self.var))
+
+    def sign(self) -> Self:
+        return type(self)(ort_compat.sign(self.var))
 
 
 class TyArrayInteger(TyArrayNumber):
@@ -878,15 +906,17 @@ class TyArrayInteger(TyArrayNumber):
         res = op.bitwise_not(self.var)
         return type(self)(res)
 
+    def isfinite(self) -> TyArrayBool:  # type: ignore
+        return TyArrayBool(op.const(True)).reshape(self.dynamic_shape)
+
     def isnan(self) -> TyArrayBool:  # type: ignore
-        var = op.constant_of_shape(op.shape(self.var), value=np.array(False))
-        return TyArrayBool(var)
+        return TyArrayBool(op.const(False)).reshape(self.dynamic_shape)
 
     def isinf(self) -> TyArrayBool:  # type: ignore
-        from .._array import Array
-        from .._funcs import full_like
+        return TyArrayBool(op.const(False)).reshape(self.dynamic_shape)
 
-        return safe_cast(TyArrayBool, full_like(Array._from_data(self), False)._data)
+    def trunc(self) -> Self:
+        return self
 
 
 class TyArrayFloating(TyArrayNumber):
@@ -914,6 +944,9 @@ class TyArrayFloating(TyArrayNumber):
 
         return type(self)(op.reduce_mean(self.var, axes=axes, keepdims=keepdims))
 
+    def isfinite(self) -> TyArrayBool:
+        return safe_cast(TyArrayBool, ~(self.isinf() | self.isnan()))
+
     def isinf(self) -> TyArrayBool:
         return TyArrayBool(op.isinf(self.var))
 
@@ -939,14 +972,14 @@ class TyArrayFloating(TyArrayNumber):
     def atanh(self) -> Self:
         return type(self)(ort_compat.atanh(self.var))
 
-    def ceil(self) -> Self:
-        return type(self)(op.ceil(self.var))
+    def cos(self) -> Self:
+        return type(self)(ort_compat.cos(self.var))
+
+    def cosh(self) -> Self:
+        return type(self)(ort_compat.cosh(self.var))
 
     def exp(self) -> Self:
         return type(self)(op.exp(self.var))
-
-    def floor(self) -> Self:
-        return type(self)(op.floor(self.var))
 
     def log(self) -> Self:
         return type(self)(op.log(self.var))
@@ -957,7 +990,32 @@ class TyArrayFloating(TyArrayNumber):
         res = self.log() / TyArrayPyFloat(float(np.log(2)))
         return safe_cast(type(self), res)
 
-    # TODO: remaining element-wise functions
+    def log10(self) -> Self:
+        from .py_scalars import TyArrayPyFloat
+
+        res = self.log() / TyArrayPyFloat(float(np.log(10)))
+        return safe_cast(type(self), res)
+
+    def sin(self) -> Self:
+        return type(self)(ort_compat.sin(self.var))
+
+    def sinh(self) -> Self:
+        return type(self)(ort_compat.sinh(self.var))
+
+    def tan(self) -> Self:
+        return type(self)(ort_compat.tan(self.var))
+
+    def tanh(self) -> Self:
+        return type(self)(ort_compat.tanh(self.var))
+
+    def trunc(self) -> Self:
+        from .funcs import astyarray, where
+
+        zero = astyarray(0, use_py_scalars=True)
+        return safe_cast(
+            type(self),
+            where(safe_cast(TyArrayBool, self < zero), self.ceil(), self.floor()),
+        )
 
 
 class TyArrayBool(TyArray):
@@ -983,6 +1041,9 @@ class TyArrayBool(TyArray):
 
     def __invert__(self) -> Self:
         return type(self)(op.not_(self.var))
+
+    def logical_not(self) -> Self:
+        return ~self
 
 
 class TyArrayInt8(TyArrayInteger):
