@@ -35,6 +35,21 @@ SetitemIndex = Union[
 ]
 
 
+_BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
+
+
+def _make_binary(
+    tyarr_op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
+) -> tuple[_BinaryOp, _BinaryOp]:
+    def binary_op_forward(self, other):
+        return _apply_op(self, other, tyarr_op)
+
+    def binary_op_backward(self, other):
+        return _apply_op(other, self, tyarr_op)
+
+    return binary_op_forward, binary_op_backward
+
+
 class Array:
     """User-facing objects that makes no assumption about any data type related
     logic."""
@@ -176,7 +191,7 @@ class Array:
         return type(self)._from_data(data)
 
     def __setitem__(
-        self: Array,
+        self,
         key: SetitemIndex,
         value: Union[int, float, bool, Array],
         /,
@@ -196,16 +211,16 @@ class Array:
         # Specs say that the data type of self must not be changed.
         self._data[idx] = asarray(value, dtype=self.dtype)._data
 
-    def __bool__(self: Array, /) -> bool:
+    def __bool__(self, /) -> bool:
         return bool(self.unwrap_numpy())
 
-    def __float__(self: Array, /) -> float:
+    def __float__(self, /) -> float:
         return float(self.unwrap_numpy())
 
-    def __index__(self: Array, /) -> int:
+    def __index__(self, /) -> int:
         return self.unwrap_numpy().__index__()
 
-    def __int__(self: Array, /) -> int:
+    def __int__(self, /) -> int:
         return int(self.unwrap_numpy())
 
     ##################################################################
@@ -214,106 +229,52 @@ class Array:
     # dispatch between different `_TypedArray` subclasses.           #
     ##################################################################
 
-    def __abs__(self: Array, /) -> Array:
-        data = self._data.__abs__()
-        return Array._from_data(data)
-
-    def __add__(self: Array, rhs: int | float | str | Array, /) -> Array:
-        return _apply_op(self, rhs, std_ops.add)
-
-    def __radd__(self, lhs: int | float | str | Array, /) -> Array:
-        return _apply_op(lhs, self, std_ops.add)
-
-    def __and__(self: Array, other: Union[int, bool, Array], /) -> Array:
-        return _apply_op(self, other, std_ops.and_)
-
-    def __array_namespace__(
-        self: Array, /, *, api_version: Optional[str] = None
-    ) -> Any:
+    def __array_namespace__(self, /, *, api_version: Optional[str] = None) -> Any:
         # TODO: Version namespace
         import ndonnx._logic_in_data as ndx
 
         return ndx
 
-    def __complex__(self: Array, /) -> complex:
-        raise NotImplementedError
-
-    def __eq__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
+    # We spell out __eq__ and __ne__ so that mypy may pick up the
+    # change in return type (Array rather than bool)
+    def __eq__(self, other) -> Array:  # type: ignore[override]
         return _apply_op(self, other, std_ops.eq)
 
-    def __floordiv__(self: Array, other: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, other, std_ops.floordiv)
+    def __ne__(self, other) -> Array:  # type: ignore[override]
+        return _apply_op(self, other, std_ops.ne)
 
-    def __ge__(self: Array, other: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, other, std_ops.ge)
+    __add__, __radd__ = _make_binary(std_ops.add)
+    __and__, __rand__ = _make_binary(std_ops.and_)
+    __floordiv__, __rfloordiv__ = _make_binary(std_ops.floordiv)
+    __ge__, _ = _make_binary(std_ops.ge)
+    __gt__, __rgt__ = _make_binary(std_ops.gt)
+    __le__, _ = _make_binary(std_ops.le)
+    __lshift__, __rlshift__ = _make_binary(std_ops.lshift)
+    __lt__, _ = _make_binary(std_ops.lt)
+    __matmul__, __rmatmul__ = _make_binary(std_ops.matmul)
+    __mod__, __rmod__ = _make_binary(std_ops.mod)
+    __mul__, __rmul__ = _make_binary(std_ops.mul)
+    __or__, __ror__ = _make_binary(std_ops.or_)
+    __pow__, __rpow__ = _make_binary(std_ops.pow)
+    __rshift__, __rrshift__ = _make_binary(std_ops.rshift)
+    __sub__, __rsub__ = _make_binary(std_ops.sub)
+    __truediv__, __rtruediv__ = _make_binary(std_ops.truediv)
+    __xor__, __rxor__ = _make_binary(std_ops.xor)
 
-    def __gt__(self: Array, other: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, other, std_ops.gt)
+    def __abs__(self, /) -> Array:
+        data = self._data.__abs__()
+        return Array._from_data(data)
 
-    def __invert__(self: Array, /) -> Array:
+    def __complex__(self, /) -> complex:
+        raise NotImplementedError
+
+    def __invert__(self, /) -> Array:
         return Array._from_data(~self._data)
 
-    def __le__(self: Array, other: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, other, std_ops.le)
-
-    def __lshift__(self: Array, other: Union[int, Array], /) -> Array:
+    def __neg__(self, /) -> Array:
         raise NotImplementedError
 
-    def __lt__(self: Array, other: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, other, std_ops.lt)
-
-    def __matmul__(self: Array, other: Array, /) -> Array:
-        raise NotImplementedError
-
-    def __mod__(self: Array, rhs: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, rhs, std_ops.mod)
-
-    def __rmod__(self: Array, lhs: Union[int, float, Array], /) -> Array:
-        return _apply_op(lhs, self, std_ops.mod)
-
-    def __mul__(self, rhs: int | float | Array) -> Array:
-        return _apply_op(self, rhs, std_ops.mul)
-
-    def __rmul__(self, lhs: int | float | Array) -> Array:
-        return _apply_op(lhs, self, std_ops.mul)
-
-    def __ne__(self: Array, other: Union[int, float, bool, Array], /) -> Array:  # type: ignore
-        return ~(self == other)
-
-    def __neg__(self: Array, /) -> Array:
-        raise NotImplementedError
-
-    def __or__(self, rhs: int | bool | Array, /) -> Array:
-        return _apply_op(self, rhs, std_ops.or_)
-
-    def __ror__(self, lhs: int | float | Array) -> Array:
-        return _apply_op(lhs, self, std_ops.or_)
-
-    def __pos__(self: Array, /) -> Array:
-        raise NotImplementedError
-
-    def __pow__(self: Array, rhs: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, rhs, std_ops.pow)
-
-    def __rpow__(self: Array, lhs: Union[int, float, Array], /) -> Array:
-        return _apply_op(lhs, self, std_ops.pow)
-
-    def __rshift__(self: Array, other: Union[int, Array], /) -> Array:
-        raise NotImplementedError
-
-    def __sub__(self, rhs: int | float | Array) -> Array:
-        return _apply_op(self, rhs, std_ops.sub)
-
-    def __rsub__(self, lhs: int | float | Array) -> Array:
-        return _apply_op(lhs, self, std_ops.sub)
-
-    def __truediv__(self: Array, rhs: Union[int, float, Array], /) -> Array:
-        return _apply_op(self, rhs, std_ops.truediv)
-
-    def __rtruediv__(self: Array, lhs: Union[int, float, Array], /) -> Array:
-        return _apply_op(lhs, self, std_ops.truediv)
-
-    def __xor__(self: Array, other: Union[int, bool, Array], /) -> Array:
+    def __pos__(self, /) -> Array:
         raise NotImplementedError
 
     def __repr__(self) -> str:

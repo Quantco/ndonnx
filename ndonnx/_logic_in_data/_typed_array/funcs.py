@@ -55,7 +55,6 @@ def astyarray(
             val = val.astype(str)
         arr = onnx.ascoredata(op.const(val))
     else:
-        breakpoint()
         raise ValueError
 
     if dtype is not None:

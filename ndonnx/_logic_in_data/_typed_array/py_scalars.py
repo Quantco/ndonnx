@@ -98,6 +98,21 @@ pystring = PyString()
 pybool = PyBool()
 
 
+_BinaryOp = Callable[[TyArrayBase, TyArrayBase], TyArrayBase]
+
+
+def _make_binary(
+    op: _BinaryOp,
+) -> tuple[_BinaryOp, _BinaryOp]:
+    def binary_op_forward(self, other):
+        return _promote_and_apply_op(self, other, op, True)
+
+    def binary_op_backward(self, other):
+        return _promote_and_apply_op(self, other, op, False)
+
+    return binary_op_forward, binary_op_backward
+
+
 class _ArrayPyScalar(TyArrayBase):
     """Array representing a Python scalar.
 
@@ -183,35 +198,20 @@ class _ArrayPyScalar(TyArrayBase):
 
 
 class _ArrayPyScalarNumber(_ArrayPyScalar):
-    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.add, True)
-
-    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.add, False)
-
-    def __le__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.le, True)
-
-    def __lt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.lt, True)
-
-    def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.ge, True)
-
-    def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.gt, True)
-
-    def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.mul, True)
-
-    def __rmul__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.mul, False)
-
-    def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.sub, True)
-
-    def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.sub, False)
+    __add__, __radd__ = _make_binary(operator.add)
+    __eq__, _ = _make_binary(operator.eq)  # type: ignore
+    __floordiv__, __rfloordiv__ = _make_binary(operator.floordiv)
+    __ge__, _ = _make_binary(operator.ge)
+    __gt__, __rgt__ = _make_binary(operator.gt)
+    __le__, _ = _make_binary(operator.le)
+    __lt__, _ = _make_binary(operator.lt)
+    __matmul__, __rmatmul__ = _make_binary(operator.matmul)
+    __mod__, __rmod__ = _make_binary(operator.mod)
+    __mul__, __rmul__ = _make_binary(operator.mul)
+    __ne__, _ = _make_binary(operator.ne)  # type: ignore
+    __pow__, __rpow__ = _make_binary(operator.pow)
+    __sub__, __rsub__ = _make_binary(operator.sub)
+    __truediv__, __rtruediv__ = _make_binary(operator.truediv)
 
 
 class TyArrayPyInt(_ArrayPyScalarNumber):
@@ -223,20 +223,11 @@ class TyArrayPyInt(_ArrayPyScalarNumber):
             raise TypeError(f"expected 'int' or 'bool' found `{type(value)}`")
         self.value = value
 
-    def __and__(self, rhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
-        if isinstance(rhs, onnx.TyArrayInteger | onnx.TyArrayBool):
-            return _promote_and_apply_op(self, rhs, operator.and_, True)
-        return NotImplemented
-
-    def __rand__(self, lhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
-        if isinstance(lhs, onnx.TyArrayInteger | onnx.TyArrayBool):
-            return _promote_and_apply_op(self, lhs, operator.and_, False)
-        return NotImplemented
-
-    def __or__(self, rhs: TyArrayBase) -> onnx.TyArray | masked_onnx.TyMaArray:
-        if isinstance(rhs, onnx.TyArrayInteger):
-            return _promote_and_apply_op(self, rhs, operator.or_, True)
-        return NotImplemented
+    __and__, __rand__ = _make_binary(operator.and_)
+    __lshift__, __rlshift__ = _make_binary(operator.lshift)
+    __or__, __ror__ = _make_binary(operator.or_)
+    __rshift__, __rrshift__ = _make_binary(operator.rshift)
+    __xor__, __rxor__ = _make_binary(operator.xor)
 
 
 class TyArrayPyBool(TyArrayPyInt):

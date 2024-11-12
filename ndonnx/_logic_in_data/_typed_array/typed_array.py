@@ -181,6 +181,14 @@ class TyArrayBase(ABC):
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         raise _make_type_error("unique_all", self.dtype)
 
+    def mean(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        raise _make_type_error("mean", self.dtype)
+
+    def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        raise _make_type_error("take", self.dtype)
+
     # Element-wise functions without additional arguments
 
     def isnan(self) -> TyArrayBase:
@@ -228,11 +236,6 @@ class TyArrayBase(ABC):
     def floor(self) -> Self:
         raise _make_type_error("floor", self.dtype)
 
-    def mean(
-        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
-    ) -> Self:
-        raise _make_type_error("mean", self.dtype)
-
     def log(self) -> Self:
         raise _make_type_error("log", self.dtype)
 
@@ -266,9 +269,6 @@ class TyArrayBase(ABC):
     def sqrt(self) -> Self:
         raise _make_type_error("sqrt", self.dtype)
 
-    def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
-        raise _make_type_error("take", self.dtype)
-
     def tan(self) -> Self:
         raise _make_type_error("tan", self.dtype)
 
@@ -278,7 +278,6 @@ class TyArrayBase(ABC):
     def trunc(self) -> Self:
         raise _make_type_error("trunc", self.dtype)
 
-    # Dunder-functions
     def __abs__(self) -> Self:
         raise _make_type_error("__abs__", self.dtype)
 
@@ -288,11 +287,95 @@ class TyArrayBase(ABC):
     def __pos__(self) -> TyArrayBase:
         raise _make_type_error("__pos__", self.dtype)
 
-    def __add__(self, other: TyArrayBase) -> TyArrayBase:
+    def __invert__(self) -> Self:
+        raise _make_type_error("__invert__", self.dtype)
+
+    def __add__(self, other) -> TyArrayBase:
         return NotImplemented
 
-    def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
+    def __radd__(self, other) -> TyArrayBase:
         return NotImplemented
+
+    def __and__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rand__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __floordiv__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rfloordiv__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __ge__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __gt__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __le__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __lshift__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rlshift__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __lt__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __mod__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rmod__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __mul__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rmul__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __or__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __ror__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __pow__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rpow__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rshift__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rrshift__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __sub__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rsub__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __truediv__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rtruediv__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __xor__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __rxor__(self, other) -> TyArrayBase:
+        return NotImplemented
+
+    def __ne__(self, other) -> TyArrayBase:  # type: ignore
+        return ~(self == other)
 
     # mypy believes that __eq__ should return a `bool` but the docs say we can return whatever:
     # https://docs.python.org/3/reference/datamodel.html#object.__eq__
@@ -314,30 +397,6 @@ class TyArrayBase(ABC):
         https://docs.python.org/3/reference/datamodel.html#object.__eq__
         """
         ...
-
-    def __ge__(self, other: TyArrayBase, /) -> TyArrayBase:
-        return NotImplemented
-
-    def __gt__(self, other: TyArrayBase, /) -> TyArrayBase:
-        return NotImplemented
-
-    def __invert__(self) -> TyArrayBase:
-        raise _make_type_error("__invert__", self.dtype)
-
-    def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return NotImplemented
-
-    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return NotImplemented
-
-    def __ne__(self, other: TyArrayBase) -> TyArrayBase:  # type: ignore
-        return NotImplemented
-
-    def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return NotImplemented
-
-    def __sub__(self, other: TyArrayBase) -> TyArrayBase:
-        return NotImplemented
 
     # Functions which may return `NotImplemented`
     # Note: Prefixed with `__ndx_` to avoid naming collisions with

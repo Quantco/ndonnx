@@ -7,7 +7,14 @@ import operator
 from abc import abstractmethod
 from collections.abc import Callable, Sequence
 from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    TypeGuard,
+    TypeVar,
+    cast,
+    overload,
+)
 
 import numpy as np
 import spox
@@ -497,11 +504,6 @@ class TyArray(TyArrayBase):
         return indices
 
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
-        def ensure_positive(el: int):
-            if el < 0:
-                el = self.ndim + el
-            return el
-
         if isinstance(axis, int):
             axis = (axis,)
         try:
@@ -533,6 +535,14 @@ class TyArray(TyArrayBase):
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # TODO: How is this never hit?
         return NotImplemented
+
+    def __eq__(self, other) -> TyArrayBool | NotImplementedType:  # type: ignore[override]
+        res = _promote_and_apply_op(
+            self, other, operator.eq, ort_compat.equal, forward=True
+        )
+        if isinstance(res, NotImplementedType):
+            return res
+        return safe_cast(TyArrayBool, res)
 
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, ort_compat.equal, True)
@@ -577,11 +587,10 @@ class TyArray(TyArrayBase):
 class TyArrayString(TyArray):
     dtype = string
 
-    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.add, op.string_concat, True)
-
-    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.add, op.string_concat, False)
+    def __add__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.add, op.string_concat, forward=True
+        )
 
 
 class TyArrayNumber(TyArray):
@@ -700,95 +709,180 @@ class TyArrayNumber(TyArray):
             "sum", op.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
         )
 
-    def __add__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.add, ort_compat.add, True)
-
-    def __radd__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.add, ort_compat.add, False)
-
-    def __ge__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+    def __add__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
-            self, rhs, operator.ge, ort_compat.greater_or_equal, True
+            self, other, operator.add, ort_compat.add, forward=True
         )
 
-    def __gt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.gt, ort_compat.greater, True)
-
-    def __le__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+    def __radd__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
-            self, rhs, operator.le, ort_compat.less_or_equal, True
+            self, other, operator.add, ort_compat.add, forward=False
         )
 
-    def __lt__(self, rhs: TyArrayBase, /) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.lt, ort_compat.less, True)
+    def __ge__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.ge, ort_compat.greater_or_equal, forward=True
+        )
 
-    def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.truediv, ort_compat.div, True)
+    def __gt__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.gt, ort_compat.greater, forward=True
+        )
 
-    def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.truediv, ort_compat.div, False)
+    def __le__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.le, ort_compat.less_or_equal, forward=True
+        )
 
-    def __mul__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.mul, ort_compat.mul, True)
+    def __lt__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.lt, ort_compat.less, forward=True
+        )
 
-    def __rmul__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.mul, ort_compat.mul, False)
+    def __mul__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.mul, ort_compat.mul, forward=True
+        )
 
-    def __sub__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.sub, ort_compat.sub, True)
+    def __rmul__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.mul, ort_compat.mul, forward=False
+        )
 
-    def __rsub__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.sub, ort_compat.sub, False)
+    def __pow__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.pow, ort_compat.pow, forward=True
+        )
 
-    def __pow__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.pow, ort_compat.pow, True)
+    def __rpow__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.pow, ort_compat.pow, forward=False
+        )
 
-    def __rpow__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.pow, ort_compat.pow, False)
+    def __sub__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.sub, ort_compat.sub, forward=True
+        )
 
-    # Element-wise functions
+    def __rsub__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.sub, ort_compat.sub, forward=False
+        )
+
+    def __truediv__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.truediv, ort_compat.div, forward=True
+        )
+
+    def __rtruediv__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.truediv, ort_compat.div, forward=False
+        )
+
     def __abs__(self) -> Self:
-        # ORT supports all data types
         return type(self)(op.abs(self.var))
 
 
 class TyArrayInteger(TyArrayNumber):
     dtype: IntegerDTypes
 
-    def __truediv__(self, rhs: TyArrayBase) -> TyArrayBase:
+    def __truediv__(self, rhs, /) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
         if isinstance(rhs, TyArrayInteger):
             return self.astype(float64) / rhs.astype(float64)
-        return _promote_and_apply_op(self, rhs, operator.truediv, ort_compat.div, True)
+        return super().__truediv__(rhs)
 
-    def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.and_, op.bitwise_and, True)
+    def __rtruediv__(self, lhs, /) -> TyArrayBase:
+        # Casting rules are implementation defined. We default to float64 like NumPy
+        if isinstance(lhs, TyArrayInteger):
+            return lhs.astype(float64) / self.astype(float64)
+        return super().__rtruediv__(lhs)
 
-    def __rand__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.and_, op.bitwise_and, False)
-
-    def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.or_, op.bitwise_or, True)
-
-    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
+    def __and__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
-            self, rhs, operator.mod, lambda a, b: op.mod(a, b, fmod=0), True
+            self, other, operator.and_, op.bitwise_and, forward=True
         )
 
-    def __rmod__(self, lhs: TyArrayBase) -> TyArrayBase:
+    def __rand__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
-            self, lhs, operator.mod, lambda a, b: op.mod(a, b, fmod=0), False
+            self, other, operator.and_, op.bitwise_and, forward=False
+        )
+
+    def __or__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.or_, op.bitwise_or, forward=True
+        )
+
+    def __ror__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.or_, op.bitwise_or, forward=False
+        )
+
+    def __mod__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.mod, lambda a, b: op.mod(a, b, fmod=0), forward=True
+        )
+
+    def __rmod__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.mod, lambda a, b: op.mod(a, b, fmod=0), forward=False
+        )
+
+    def __xor__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.xor, op.bitwise_xor, forward=True
+        )
+
+    def __rxor__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self, other, operator.xor, op.bitwise_xor, forward=False
+        )
+
+    def __lshift__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self,
+            other,
+            operator.lshift,
+            lambda a, b: op.bit_shift(a, b, direction="LEFT"),
+            forward=True,
+        )
+
+    def __rlshift__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self,
+            other,
+            operator.lshift,
+            lambda a, b: op.bit_shift(a, b, direction="LEFT"),
+            forward=False,
+        )
+
+    def __rshift__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self,
+            other,
+            operator.lshift,
+            lambda a, b: op.bit_shift(a, b, direction="RIGHT"),
+            forward=True,
+        )
+
+    def __rrshift__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(
+            self,
+            other,
+            operator.lshift,
+            lambda a, b: op.bit_shift(a, b, direction="RIGHT"),
+            forward=False,
         )
 
     def __invert__(self) -> Self:
-        var = op.bitwise_not(self.var)
-        return type(self)(var)
+        res = op.bitwise_not(self.var)
+        return type(self)(res)
 
-    def isnan(self) -> TyArrayBool:
+    def isnan(self) -> TyArrayBool:  # type: ignore
         var = op.constant_of_shape(op.shape(self.var), value=np.array(False))
         return TyArrayBool(var)
 
-    def isinf(self) -> TyArrayBool:
+    def isinf(self) -> TyArrayBool:  # type: ignore
         from .._array import Array
         from .._funcs import full_like
 
@@ -798,14 +892,14 @@ class TyArrayInteger(TyArrayNumber):
 class TyArrayFloating(TyArrayNumber):
     dtype: FloatingDTypes
 
-    def __mod__(self, rhs: TyArrayBase) -> TyArrayBase:
+    def __mod__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
-            self, rhs, operator.mod, lambda a, b: op.mod(a, b, fmod=1), True
+            self, other, operator.mod, lambda a, b: op.mod(a, b, fmod=1), forward=True
         )
 
-    def __rmod__(self, lhs: TyArrayBase) -> TyArrayBase:
+    def __rmod__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
-            self, lhs, operator.mod, lambda a, b: op.mod(a, b, fmod=1), False
+            self, other, operator.mod, lambda a, b: op.mod(a, b, fmod=1), forward=False
         )
 
     def mean(
@@ -823,39 +917,39 @@ class TyArrayFloating(TyArrayNumber):
     def isinf(self) -> TyArrayBool:
         return TyArrayBool(op.isinf(self.var))
 
-    # Element-wise for floating point
-    def acos(self) -> Self:
-        return _element_wise(self, op.acos, float32)
-
-    def acosh(self) -> Self:
-        return _element_wise(self, op.acosh, float32)
-
-    def asin(self) -> Self:
-        return _element_wise(self, op.asin, float32)
-
-    def asinh(self) -> Self:
-        return _element_wise(self, op.asinh, float32)
-
-    def atan(self) -> Self:
-        return _element_wise(self, op.atan, float32)
-
-    def atanh(self) -> Self:
-        return _element_wise(self, op.atanh, float32)
-
-    def ceil(self) -> Self:
-        return _element_wise(self, op.ceil, float64)
-
-    def exp(self) -> Self:
-        return _element_wise(self, op.exp)
-
-    def floor(self) -> Self:
-        return _element_wise(self, op.floor, float64)
-
     def isnan(self) -> TyArrayBool:
         return TyArrayBool(op.isnan(self.var))
 
+    # Element-wise for floating point
+    def acos(self) -> Self:
+        return type(self)(ort_compat.acos(self.var))
+
+    def acosh(self) -> Self:
+        return type(self)(ort_compat.acosh(self.var))
+
+    def asin(self) -> Self:
+        return type(self)(ort_compat.asin(self.var))
+
+    def asinh(self) -> Self:
+        return type(self)(ort_compat.asinh(self.var))
+
+    def atan(self) -> Self:
+        return type(self)(ort_compat.atan(self.var))
+
+    def atanh(self) -> Self:
+        return type(self)(ort_compat.atanh(self.var))
+
+    def ceil(self) -> Self:
+        return type(self)(op.ceil(self.var))
+
+    def exp(self) -> Self:
+        return type(self)(op.exp(self.var))
+
+    def floor(self) -> Self:
+        return type(self)(op.floor(self.var))
+
     def log(self) -> Self:
-        return _element_wise(self, op.log, float64)
+        return type(self)(op.log(self.var))
 
     def log2(self) -> Self:
         from .py_scalars import TyArrayPyFloat
@@ -869,21 +963,26 @@ class TyArrayFloating(TyArrayNumber):
 class TyArrayBool(TyArray):
     dtype = bool_
 
-    def __or__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.or_, op.or_, True)
+    def __or__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.or_, op.or_, forward=True)
 
-    def __ror__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.or_, op.or_, False)
+    def __ror__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.or_, op.or_, forward=False)
 
-    def __and__(self, rhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, rhs, operator.and_, op.and_, True)
+    def __xor__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.xor, op.xor, forward=True)
 
-    def __rand__(self, lhs: TyArrayBase) -> TyArrayBase:
-        return _promote_and_apply_op(self, lhs, operator.and_, op.and_, False)
+    def __rxor__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.xor, op.xor, forward=False)
 
-    def __invert__(self) -> TyArrayBool:
-        var = op.not_(self.var)
-        return type(self)(var)
+    def __and__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.and_, op.and_, forward=True)
+
+    def __rand__(self, other) -> TyArrayBase:
+        return _promote_and_apply_op(self, other, operator.and_, op.and_, forward=False)
+
+    def __invert__(self) -> Self:
+        return type(self)(op.not_(self.var))
 
 
 class TyArrayInt8(TyArrayInteger):
@@ -971,10 +1070,10 @@ def _element_wise(x: T, op: Callable[[Var], Var], via: _OnnxDType | None = None)
 def _promote_and_apply_op(
     this: TyArray,
     other: TyArrayBase,
-    arr_op: Callable[[TyArray, TyArray], TyArray],
+    arr_op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
     spox_op: Callable[[Var, Var], Var],
     forward: bool,
-) -> TyArray:
+) -> TyArrayBase | NotImplementedType:
     """Promote and apply an operation by passing it through to the data member."""
     if isinstance(other, TyArray):
         if this.dtype != other.dtype:

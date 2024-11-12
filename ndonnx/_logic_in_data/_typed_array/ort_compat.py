@@ -75,6 +75,27 @@ class Warn:
 _MappingDictType = Mapping[tuple[type[np.generic], ...], Warn | type[np.generic]]
 
 
+def _wrap_element_wise(
+    fun: Callable[[Var], Var], mapping: _MappingDictType, cast_output=True
+) -> Callable[[Var], Var]:
+    def wrapped(a: Var) -> Var:
+        dtype_in = a.unwrap_tensor().dtype
+
+        for unsupported_types, via_dtype in mapping.items():
+            if dtype_in in unsupported_types:
+                if isinstance(via_dtype, Warn):
+                    _warn_lossy(fun.__name__, dtype_in, via_dtype.ty)
+                    via_dtype = via_dtype.ty
+                a = op.cast(a, to=via_dtype)
+                res = fun(a)
+                if cast_output:
+                    return op.cast(res, to=dtype_in)
+                return res
+        return fun(a)
+
+    return wrapped
+
+
 def _wrap_binary(
     fun: Callable[[Var, Var], Var], mapping: _MappingDictType, cast_output=True
 ) -> Callable[[Var, Var], Var]:
@@ -125,6 +146,17 @@ div = _wrap_binary(
         (np.uint8, np.int8, np.int16, np.uint16): np.int32,
     },
 )
+
+_mapping_float_only: _MappingDictType = {(np.float64,): Warn(np.float32)}
+abs = op.abs
+acos = _wrap_element_wise(op.acos, _mapping_float_only)
+acosh = _wrap_element_wise(op.acosh, _mapping_float_only)
+asin = _wrap_element_wise(op.asin, _mapping_float_only)
+asinh = _wrap_element_wise(op.asinh, _mapping_float_only)
+atan = _wrap_element_wise(op.atan, _mapping_float_only)
+atanh = _wrap_element_wise(op.atanh, _mapping_float_only)
+cos = _wrap_element_wise(op.cos, _mapping_float_only)
+cosh = _wrap_element_wise(op.cosh, _mapping_float_only)
 
 
 def pow(a: Var, b: Var, /) -> Var:
