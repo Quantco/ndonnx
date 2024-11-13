@@ -10,6 +10,7 @@ import math
 import operator as std_ops
 from collections.abc import Callable, Mapping, Sequence
 from copy import copy as std_copy
+from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import Any, Optional, Union, overload
 
@@ -94,6 +95,10 @@ class Array:
         return inst
 
     @property
+    def device(self) -> None:
+        raise NotImplementedError("ONNX provides no control over the used device")
+
+    @property
     def dtype(self) -> DType:
         return self._data.dtype
 
@@ -143,6 +148,9 @@ class Array:
         except ValueError:
             return None
 
+    def to_device(self, device: Any, /, *, stream: int | Any | None = None) -> Array:
+        raise ValueError("ONNX provides no control over the used device")
+
     def unwrap_numpy(self) -> np.ndarray:
         """Return the propagated value as a NumPy array if available.
 
@@ -168,6 +176,19 @@ class Array:
         if isinstance(self._data, TyMaArray):
             return Array._from_data(self._data.data)
         raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
+
+    def __dlpack__(
+        self,
+        *,
+        stream: int | Any | None = None,
+        max_version: tuple[int, int] | None = None,
+        dl_device: tuple[Enum, int] | None = None,
+        copy: bool | None = None,
+    ) -> Any:
+        raise BufferError("ndonnx does not (yet) support the export of array data")
+
+    def __dlpack_device__(self) -> tuple[Enum, int]:
+        raise ValueError("ONNX provides no control over the used device")
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         from ._typed_array import TyArrayBool, TyArrayInteger

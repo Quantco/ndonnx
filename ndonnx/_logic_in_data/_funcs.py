@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import builtins
 import math
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -18,6 +19,12 @@ from ._typed_array import onnx
 
 if TYPE_CHECKING:
     pass
+
+
+def from_dlpack(
+    x: object, /, *, device: None = None, copy: bool | None = None
+) -> Array:
+    raise BufferError("ndonnx does not (yet) support the export of array data")
 
 
 def all(
@@ -57,10 +64,32 @@ def arange(
     return asarray(np.arange(start, stop, step), dtype=dtype)
 
 
+def argmax(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
+    raise NotImplementedError
+
+
+def argmin(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
+    raise NotImplementedError
+
+
+def argsort(
+    x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
+) -> Array:
+    raise NotImplementedError
+
+
+def nonzero(x: Array, /) -> tuple[Array, ...]:
+    raise NotImplementedError
+
+
 def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Array:
     if not copy and x.dtype == dtype:
         return x
     return x.astype(dtype)
+
+
+def broadcast_arrays(*arrays: Array) -> list[Array]:
+    raise NotImplementedError
 
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
@@ -104,6 +133,84 @@ def cumulative_sum(
     return Array._from_data(data)
 
 
+def max(
+    x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+) -> Array:
+    raise NotImplementedError
+
+
+def mean(
+    x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+) -> Array:
+    return Array._from_data(x._data.mean())
+
+
+def meshgrid(*Arrays: Array, indexing: str = "xy") -> list[Array]:
+    raise NotImplementedError
+
+
+def moveaxis(
+    x: Array, source: int | tuple[int, ...], destination: int | tuple[int, ...], /
+) -> Array:
+    raise NotImplementedError
+
+
+def min(
+    x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+) -> Array:
+    raise NotImplementedError
+
+
+def prod(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    dtype: DType | None = None,
+    keepdims: bool = False,
+) -> Array:
+    return Array._from_data(x._data.prod(axis=axis, dtype=dtype, keepdims=keepdims))
+
+
+def sort(
+    x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
+) -> Array:
+    raise NotImplementedError
+
+
+def std(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    correction: int | float = 0.0,
+    keepdims: bool = False,
+) -> Array:
+    raise NotImplementedError
+
+
+def sum(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    dtype: DType | None = None,
+    keepdims: bool = False,
+) -> Array:
+    return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
+
+
+def var(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    correction: int | float = 0.0,
+    keepdims: bool = False,
+) -> Array:
+    raise NotImplementedError
+
+
 def empty(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:
@@ -127,6 +234,31 @@ def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
         axis = x.ndim + axis + 1
     key = tuple(None if el == axis else slice(None, None) for el in range(x.ndim + 1))
     return x[key]
+
+
+def expm1(x: Array, /) -> Array:
+    # Requires special operator to meet standards precision requirements
+    raise NotImplementedError
+
+
+def log1p(x: Array, /) -> Array:
+    # Requires special operator to meet standards precision requirements
+    raise NotImplementedError
+
+
+def atan2(x1: Array, x2: Array, /) -> Array:
+    # Requires special operator to meet standards precision requirements
+    raise NotImplementedError
+
+
+def conj(x: Array, /) -> Array:
+    # Support for complex numbers is very broken in the ONNX standard
+    raise NotImplementedError
+
+
+def imag(x: Array, /) -> Array:
+    # Support for complex numbers is very broken in the ONNX standard
+    raise NotImplementedError
 
 
 def eye(
@@ -243,14 +375,12 @@ def linspace(
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
 
 
+def matmul(x1: Array, x2: Array, /) -> Array:
+    return x1 @ x2
+
+
 def matrix_transpose(x: Array, /) -> Array:
     return Array._from_data(x._data.mT)
-
-
-def mean(
-    x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
-) -> Array:
-    return Array._from_data(x._data.mean())
 
 
 def ones(
@@ -268,17 +398,6 @@ def ones_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
 def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
     data = x._data.permute_dims(axes=axes)
     return Array._from_data(data)
-
-
-def prod(
-    x: Array,
-    /,
-    *,
-    axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
-    keepdims: bool = False,
-) -> Array:
-    return Array._from_data(x._data.prod(axis=axis, dtype=dtype, keepdims=keepdims))
 
 
 def reshape(
@@ -304,6 +423,10 @@ def reshape(
     return Array._from_data(x._data.reshape(shape))
 
 
+def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Array:
+    raise NotImplementedError
+
+
 def result_type(*arrays_and_dtypes: Array | DType) -> DType:
     if len(arrays_and_dtypes) == 0:
         ValueError("at least one array or dtype is required")
@@ -314,6 +437,16 @@ def result_type(*arrays_and_dtypes: Array | DType) -> DType:
         return obj
 
     return tyfuncs.result_type(*(get_dtype(el) for el in arrays_and_dtypes))
+
+
+def roll(
+    x: Array,
+    /,
+    shift: int | tuple[int, ...],
+    *,
+    axis: int | tuple[int, ...] | None = None,
+) -> Array:
+    raise NotImplementedError
 
 
 def searchsorted(
@@ -337,17 +470,6 @@ def searchsorted(
     )
 
 
-def sum(
-    x: Array,
-    /,
-    *,
-    axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
-    keepdims: bool = False,
-) -> Array:
-    return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
-
-
 def stack(arrays: tuple[Array, ...] | list[Array], /, *, axis: int = 0) -> Array:
     arrays = [expand_dims(x, axis=axis) for x in arrays]
     return concat(arrays, axis=axis)
@@ -365,6 +487,48 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
             "'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
     return Array._from_data(x._data.take(indices._data, axis=axis))
+
+
+def tile(x: Array, repetitions: tuple[int, ...], /) -> Array:
+    raise NotImplementedError
+
+
+def tril(x: Array, /, *, k: int = 0) -> Array:
+    raise NotImplementedError
+
+
+def triu(x: Array, /, *, k: int = 0) -> Array:
+    raise NotImplementedError
+
+
+def tensordot(
+    x1: Array, x2: Array, /, *, axes: int | tuple[Sequence[int], Sequence[int]] = 2
+) -> Array:
+    raise NotImplementedError
+
+
+def unique_all(x: Array, /) -> tuple[Array, Array, Array, Array]:
+    raise NotImplementedError
+
+
+def unique_counts(x: Array, /) -> tuple[Array, Array]:
+    raise NotImplementedError
+
+
+def unique_inverse(x: Array, /) -> tuple[Array, Array]:
+    raise NotImplementedError
+
+
+def unique_values(x: Array, /) -> Array:
+    raise NotImplementedError
+
+
+def unstack(x: Array, /, *, axis: int = 0) -> tuple[Array, ...]:
+    raise NotImplementedError
+
+
+def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
+    raise NotImplementedError
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:
