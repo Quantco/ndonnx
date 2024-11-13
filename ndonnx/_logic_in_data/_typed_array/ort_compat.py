@@ -8,7 +8,7 @@ https://github.com/microsoft/onnxruntime/blob/v1.19.2/docs/OperatorKernels.md
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from warnings import warn
 
 import numpy as np
@@ -75,22 +75,30 @@ class Warn:
 _MappingDictType = Mapping[tuple[type[np.generic], ...], Warn | type[np.generic]]
 
 
+def _detour_type(
+    dtype: np.dtype, mapping: _MappingDictType
+) -> type[np.generic] | Warn | None:
+    for unsupported_types, via_dtype in mapping.items():
+        if dtype in unsupported_types:
+            return via_dtype
+    return None
+
+
 def _wrap_element_wise(
     fun: Callable[[Var], Var], mapping: _MappingDictType, cast_output=True
 ) -> Callable[[Var], Var]:
     def wrapped(a: Var) -> Var:
         dtype_in = a.unwrap_tensor().dtype
 
-        for unsupported_types, via_dtype in mapping.items():
-            if dtype_in in unsupported_types:
-                if isinstance(via_dtype, Warn):
-                    _warn_lossy(fun.__name__, dtype_in, via_dtype.ty)
-                    via_dtype = via_dtype.ty
-                a = op.cast(a, to=via_dtype)
-                res = fun(a)
-                if cast_output:
-                    return op.cast(res, to=dtype_in)
-                return res
+        if via_dtype := _detour_type(dtype_in, mapping):
+            if isinstance(via_dtype, Warn):
+                _warn_lossy(fun.__name__, dtype_in, via_dtype.ty)
+                via_dtype = via_dtype.ty
+            a = op.cast(a, to=via_dtype)
+            res = fun(a)
+            if cast_output:
+                return op.cast(res, to=dtype_in)
+            return res
         return fun(a)
 
     return wrapped
@@ -101,18 +109,17 @@ def _wrap_binary(
 ) -> Callable[[Var, Var], Var]:
     def wrapped(a: Var, b: Var) -> Var:
         dtype_in = a.unwrap_tensor().dtype
+        if via_dtype := _detour_type(dtype_in, mapping):
+            if isinstance(via_dtype, Warn):
+                _warn_lossy(fun.__name__, dtype_in, via_dtype.ty)
+                via_dtype = via_dtype.ty
 
-        for unsupported_types, via_dtype in mapping.items():
-            if dtype_in in unsupported_types:
-                if isinstance(via_dtype, Warn):
-                    _warn_lossy(fun.__name__, dtype_in, via_dtype.ty)
-                    via_dtype = via_dtype.ty
-                a = op.cast(a, to=via_dtype)
-                b = op.cast(b, to=via_dtype)
-                res = fun(a, b)
-                if cast_output:
-                    return op.cast(res, to=dtype_in)
-                return res
+            a = op.cast(a, to=via_dtype)
+            b = op.cast(b, to=via_dtype)
+            res = fun(a, b)
+            if cast_output:
+                return op.cast(res, to=dtype_in)
+            return res
         return fun(a, b)
 
     return wrapped
@@ -179,6 +186,7 @@ round = _wrap_element_wise(op.floor, _mapping_float_double)
 sign = op.sign
 sin = _wrap_element_wise(op.sin, _mapping_float_double)
 sinh = _wrap_element_wise(op.sinh, _mapping_float_only)
+sqrt = _wrap_element_wise(op.sqrt, _mapping_float_double)
 tan = _wrap_element_wise(op.tan, _mapping_float_only)
 tanh = _wrap_element_wise(op.tanh, _mapping_float_double)
 
@@ -213,4 +221,48 @@ def pow(a: Var, b: Var, /) -> Var:
     a_ty = a.unwrap_tensor().dtype
     if res.unwrap_tensor().dtype != a_ty:
         return op.cast(res, to=a_ty)
+    return res
+
+
+_min_max_mapping: _MappingDictType = {
+    (np.int8, np.int16, np.uint8, np.uint16): np.int32,
+}
+
+
+# tensor(double), tensor(float), tensor(float16), tensor(int32),
+# tensor(int64), tensor(uint32), tensor(uint64)
+def max(data_0: Sequence[Var], /) -> Var:
+    xs = list(data_0)
+    dtype_in = xs[0].unwrap_tensor().dtype
+    if via_dtype := _detour_type(dtype_in, _min_max_mapping):
+        if isinstance(via_dtype, Warn):
+            _warn_lossy("max", dtype_in, via_dtype.ty)
+            via_dtype = via_dtype.ty
+        xs = [op.cast(x, to=via_dtype) for x in xs]
+        out = op.max(xs)
+        return op.cast(out, to=dtype_in)
+    return op.max(xs)
+
+
+def min(data_0: Sequence[Var], /) -> Var:
+    xs = list(data_0)
+    dtype_in = xs[0].unwrap_tensor().dtype
+    if via_dtype := _detour_type(dtype_in, _min_max_mapping):
+        if isinstance(via_dtype, Warn):
+            _warn_lossy("max", dtype_in, via_dtype.ty)
+            via_dtype = via_dtype.ty
+        xs = [op.cast(x, to=via_dtype) for x in xs]
+        out = op.min(xs)
+        return op.cast(out, to=dtype_in)
+    return op.min(xs)
+
+
+def clip(input_: Var, min_: Var | None = None, max_: Var | None = None, /) -> Var:
+    # Implement clip as a combination of minimum and maximum since the
+    # broadcasting semantics of clip are a bit unclear in the standard/ORT
+    res = input_
+    if min_ is not None:
+        res = max([res, min_])
+    if max_ is not None:
+        res = min([res, max_])
     return res

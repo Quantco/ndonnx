@@ -10,14 +10,6 @@ array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack_device__
 array_api_tests/test_has_names.py::test_has_names[array_method-to_device]
 array_api_tests/test_has_names.py::test_has_names[creation-from_dlpack]
 array_api_tests/test_has_names.py::test_has_names[creation-meshgrid]
-array_api_tests/test_has_names.py::test_has_names[elementwise-conj]
-array_api_tests/test_has_names.py::test_has_names[elementwise-copysign]
-array_api_tests/test_has_names.py::test_has_names[elementwise-hypot]
-array_api_tests/test_has_names.py::test_has_names[elementwise-imag]
-array_api_tests/test_has_names.py::test_has_names[elementwise-maximum]
-array_api_tests/test_has_names.py::test_has_names[elementwise-minimum]
-array_api_tests/test_has_names.py::test_has_names[elementwise-real]
-array_api_tests/test_has_names.py::test_has_names[elementwise-signbit]
 array_api_tests/test_has_names.py::test_has_names[fft-fft]
 array_api_tests/test_has_names.py::test_has_names[fft-fftfreq]
 array_api_tests/test_has_names.py::test_has_names[fft-fftn]
@@ -72,24 +64,6 @@ array_api_tests/test_manipulation_functions.py::test_repeat
 array_api_tests/test_manipulation_functions.py::test_squeeze
 array_api_tests/test_manipulation_functions.py::test_tile
 array_api_tests/test_manipulation_functions.py::test_unstack
-array_api_tests/test_operators_and_elementwise_functions.py::test_acosh
-array_api_tests/test_operators_and_elementwise_functions.py::test_asinh
-array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
-array_api_tests/test_operators_and_elementwise_functions.py::test_clip
-array_api_tests/test_operators_and_elementwise_functions.py::test_conj
-array_api_tests/test_operators_and_elementwise_functions.py::test_copysign
-array_api_tests/test_operators_and_elementwise_functions.py::test_cos
-array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
-array_api_tests/test_operators_and_elementwise_functions.py::test_imag
-array_api_tests/test_operators_and_elementwise_functions.py::test_maximum
-array_api_tests/test_operators_and_elementwise_functions.py::test_minimum
-array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__ipow__(x, s)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_pow[__pow__(x, s)]
-array_api_tests/test_operators_and_elementwise_functions.py::test_real
-array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
-array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
-array_api_tests/test_operators_and_elementwise_functions.py::test_sqrt
-array_api_tests/test_operators_and_elementwise_functions.py::test_tan
 array_api_tests/test_searching_functions.py::test_argmax
 array_api_tests/test_searching_functions.py::test_argmin
 array_api_tests/test_searching_functions.py::test_nonzero_zerodim_error

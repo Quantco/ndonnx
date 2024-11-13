@@ -77,7 +77,9 @@ def clip(
     min: None | int | float | Array = None,
     max: None | int | float | Array = None,
 ) -> Array:
-    raise NotImplementedError
+    min_ = None if min is None else tyfuncs.astyarray(min, use_py_scalars=True)
+    max_ = None if max is None else tyfuncs.astyarray(max, use_py_scalars=True)
+    return Array._from_data(x._data.clip(min=min_, max=max_))
 
 
 def cos(x: Array, /) -> Array:
@@ -189,7 +191,7 @@ def maximum(x1: Array, x2: Array, /) -> Array:
 
 
 def minimum(x1: Array, x2: Array, /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(tyfuncs.minimum(x1._data, x2._data))
 
 
 def multiply(x1: Array, x2: Array, /) -> Array:

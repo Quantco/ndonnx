@@ -1,8 +1,10 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 from functools import reduce
 from itertools import chain
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -16,17 +18,24 @@ from .py_scalars import TyArrayPyBool, TyArrayPyFloat, TyArrayPyInt, TyArrayPySt
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
+if TYPE_CHECKING:
+    from .. import Array
+
 
 def astyarray(
-    val: bool | int | float | str | np.ndarray | TyArrayBase | Var,
+    val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
     dtype: None | DType = None,
     use_py_scalars=False,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array."""
+    from .. import Array
     from .onnx import TyArray
 
     if isinstance(val, TyArrayBase):
         return val
+
+    if isinstance(val, Array):
+        return val._data
 
     arr: TyArrayBase
     if isinstance(val, bool):
@@ -153,5 +162,16 @@ def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     if res is NotImplemented:
         raise TypeError(
             f"Unsupported operand data types for 'maximum': `{x1.dtype}` and `{x2.dtype}`"
+        )
+    return res
+
+
+def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
+    res = x1.__ndx_minimum__(x2)
+    if res is NotImplemented:
+        res = x2.__ndx_rminimum__(x1)
+    if res is NotImplemented:
+        raise TypeError(
+            f"Unsupported operand data types for 'minimum': `{x1.dtype}` and `{x2.dtype}`"
         )
     return res

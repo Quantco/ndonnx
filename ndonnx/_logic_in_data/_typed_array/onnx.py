@@ -6,6 +6,7 @@ from __future__ import annotations
 import operator
 from abc import abstractmethod
 from collections.abc import Callable, Sequence
+from copy import copy
 from types import EllipsisType, NotImplementedType
 from typing import (
     TYPE_CHECKING,
@@ -549,6 +550,52 @@ class TyArray(TyArrayBase):
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, ort_compat.equal, True)
 
+    def clip(
+        self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
+    ) -> Self:
+        if min is None and max is None:
+            return copy(self)
+
+        # The standard says that min/max must not change the output type.
+        min_ = None if min is None else min.astype(self.dtype).var
+        max_ = None if max is None else max.astype(self.dtype).var
+
+        var = ort_compat.clip(self.var, min_, max_)
+
+        return type(self)(var)
+
+    @overload
+    def __ndx_maximum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_maximum__(
+        self, rhs: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
+    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(rhs, TyArray):
+            lhs, rhs = promote(self, rhs)
+            var = ort_compat.max([lhs.var, rhs.var])
+            return type(lhs)(var)
+
+        return NotImplemented
+
+    @overload
+    def __ndx_minimum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_minimum__(
+        self, rhs: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
+    def __ndx_minimum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(rhs, TyArray):
+            lhs, rhs = promote(self, rhs)
+            var = ort_compat.min([lhs.var, rhs.var])
+            return type(lhs)(var)
+
+        return NotImplemented
+
     @overload
     def __ndx_where__(
         self, cond: TyArrayBool, y: TyArray, /
@@ -566,22 +613,6 @@ class TyArray(TyArrayBase):
             x, y = promote(self, y)
             var = op.where(cond.var, x.var, y.var)
             return type(x)(var)
-
-        return NotImplemented
-
-    @overload
-    def __ndx_maximum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
-
-    @overload
-    def __ndx_maximum__(
-        self, rhs: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType: ...
-
-    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(rhs, TyArray):
-            lhs, rhs = promote(self, rhs)
-            var = op.max([lhs.var, rhs.var])
-            return type(lhs)(var)
 
         return NotImplemented
 
@@ -809,6 +840,9 @@ class TyArrayNumber(TyArray):
 
     def sign(self) -> Self:
         return type(self)(ort_compat.sign(self.var))
+
+    def sqrt(self) -> Self:
+        return type(self)(ort_compat.sqrt(self.var))
 
 
 class TyArrayInteger(TyArrayNumber):

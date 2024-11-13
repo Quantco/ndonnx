@@ -148,6 +148,11 @@ class TyArrayBase(ABC):
     ) -> TyArrayBase:
         raise _make_type_error("cumulative_sum", self.dtype)
 
+    def clip(
+        self, /, min: TyArrayBase | None = None, max: TyArrayBase | None = None
+    ) -> Self:
+        raise _make_type_error("clip", self.dtype)
+
     def prod(
         self,
         /,
@@ -417,6 +422,16 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __ndx_rmaximum__(
+        self, other: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_minimum__(
+        self, other: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_rminimum__(
         self, other: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
