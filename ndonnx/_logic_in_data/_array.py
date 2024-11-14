@@ -235,6 +235,9 @@ class Array:
     def __bool__(self, /) -> bool:
         return bool(self.unwrap_numpy())
 
+    def __complex__(self, /) -> complex:
+        return self.unwrap_numpy().__complex__()
+
     def __float__(self, /) -> float:
         return float(self.unwrap_numpy())
 
@@ -285,9 +288,6 @@ class Array:
     def __abs__(self, /) -> Array:
         data = self._data.__abs__()
         return Array._from_data(data)
-
-    def __complex__(self, /) -> complex:
-        raise NotImplementedError
 
     def __invert__(self, /) -> Array:
         return Array._from_data(~self._data)

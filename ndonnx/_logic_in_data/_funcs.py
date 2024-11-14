@@ -79,7 +79,7 @@ def argsort(
 
 
 def nonzero(x: Array, /) -> tuple[Array, ...]:
-    raise NotImplementedError
+    return tuple(Array._from_data(el) for el in x._data.nonzero())
 
 
 def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Array:
@@ -136,13 +136,13 @@ def cumulative_sum(
 def max(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.max(axis=axis, keepdims=keepdims))
 
 
 def mean(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.mean())
+    return Array._from_data(x._data.mean(axis=axis, keepdims=keepdims))
 
 
 def meshgrid(*Arrays: Array, indexing: str = "xy") -> list[Array]:
@@ -158,7 +158,7 @@ def moveaxis(
 def min(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.min(axis=axis, keepdims=keepdims))
 
 
 def prod(
@@ -186,7 +186,7 @@ def std(
     correction: int | float = 0.0,
     keepdims: bool = False,
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.std())
 
 
 def sum(
@@ -208,7 +208,9 @@ def var(
     correction: int | float = 0.0,
     keepdims: bool = False,
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(
+        x._data.variance(axis=axis, correction=correction, keepdims=keepdims)
+    )
 
 
 def empty(

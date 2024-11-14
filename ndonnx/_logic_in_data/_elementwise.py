@@ -119,11 +119,11 @@ def floor_divide(x1: Array, x2: Array, /) -> Array:
 
 
 def greater(x1: Array, x2: Array, /) -> Array:
-    return x1 < x2
+    return x1 > x2
 
 
 def greater_equal(x1: Array, x2: Array, /) -> Array:
-    return x1 <= x2
+    return x1 >= x2
 
 
 def hypot(x1: Array, x2: Array, /) -> Array:

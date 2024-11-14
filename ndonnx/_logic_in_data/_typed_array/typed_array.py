@@ -186,13 +186,44 @@ class TyArrayBase(ABC):
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         raise _make_type_error("unique_all", self.dtype)
 
+    def max(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        raise _make_type_error("max", self.dtype)
+
+    def min(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        raise _make_type_error("min", self.dtype)
+
     def mean(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
         raise _make_type_error("mean", self.dtype)
 
+    def nonzero(self) -> tuple[TyArrayInt64, ...]:
+        raise _make_type_error("nonzero", self.dtype)
+
     def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
         raise _make_type_error("take", self.dtype)
+
+    def std(
+        self,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        correction: int | float = 0.0,
+        keepdims: bool = False,
+    ) -> Self:
+        raise _make_type_error("std", self.dtype)
+
+    def variance(
+        self,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        correction: int | float = 0.0,
+        keepdims: bool = False,
+    ) -> Self:
+        raise _make_type_error("var", self.dtype)
 
     # Element-wise functions without additional arguments
 
@@ -272,6 +303,9 @@ class TyArrayBase(ABC):
         raise _make_type_error("sinh", self.dtype)
 
     def sqrt(self) -> Self:
+        raise _make_type_error("sqrt", self.dtype)
+
+    def square(self) -> TyArrayBase:
         raise _make_type_error("sqrt", self.dtype)
 
     def tan(self) -> Self:

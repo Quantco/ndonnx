@@ -186,9 +186,9 @@ string = String()
 FloatingDTypes = Float16 | Float32 | Float64
 SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
 UnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
-IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
+IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes | Boolean
 NumericDTypes = FloatingDTypes | IntegerDTypes
-DTypes = Boolean | NumericDTypes | String
+DTypes = NumericDTypes | String
 
 
 class TyArray(TyArrayBase):
@@ -331,7 +331,7 @@ class TyArray(TyArrayBase):
         in_shape = TyArrayInt64(op.const([-1])).concat(
             [self.dynamic_shape[key.ndim :]], axis=0
         )
-        var = op.reshape(self.var, in_shape.var)
+        var = self.reshape(in_shape).var
 
         res = op.compress(var, key.reshape((-1,)).var, axis=0)
         return type(self)(res)
@@ -362,6 +362,11 @@ class TyArray(TyArrayBase):
         return TyArrayInt64(var)
 
     @property
+    def dynamic_size(self) -> TyArrayInt64:
+        var = op.size(self.var)
+        return TyArrayInt64(var)
+
+    @property
     def mT(self) -> Self:  # noqa: N802
         if self.ndim < 2:
             raise ValueError(
@@ -377,6 +382,22 @@ class TyArray(TyArrayBase):
         shape = self.var.unwrap_tensor().shape
         if shape is None:
             raise ValueError("Missing shape information")
+        if any(isinstance(el, None | str) for el in shape):
+            try:
+                np_arr = self.unwrap_numpy()
+            except ValueError:
+                return shape
+            # check that things are compatible
+            static_shape = []
+            for np_el, ndx_el in zip(np_arr.shape, shape):
+                if isinstance(ndx_el, None | str):
+                    static_shape.append(np_el)
+                    continue
+                elif np_el != ndx_el:
+                    raise ValueError("propagated shape disagrees with propagated value")
+                static_shape.append(np_el)
+            return tuple(static_shape)
+
         return shape
 
     def unwrap_numpy(self) -> np.ndarray:
@@ -639,15 +660,7 @@ class TyArrayNumber(TyArray):
     ) -> TyArrayBase:
         from .funcs import astyarray
 
-        if dtype is None:
-            if isinstance(self.dtype, SignedIntegerDTypes):
-                dtype_: DType = int64
-            elif isinstance(self.dtype, UnsignedIntegerDTypes):
-                dtype_ = uint64
-            else:
-                dtype_ = self.dtype
-        else:
-            dtype_ = dtype
+        dtype_ = self._accumulation_dtype(dtype)
         if self.dtype != dtype_:
             return self.astype(dtype_).cumulative_sum(
                 axis=axis, include_initial=include_initial, dtype=dtype_
@@ -681,6 +694,18 @@ class TyArrayNumber(TyArray):
             out = zeros.concat([out], axis=axis_)
         return out
 
+    def _accumulation_dtype(self, dtype: DType | None = None) -> DType:
+        if dtype is None:
+            if isinstance(self.dtype, SignedIntegerDTypes):
+                dtype_: DType = int64
+            elif isinstance(self.dtype, UnsignedIntegerDTypes):
+                dtype_ = uint64
+            else:
+                dtype_ = self.dtype
+        else:
+            dtype_ = dtype
+        return dtype_
+
     def _reduce(
         self,
         pub_name: str,
@@ -691,25 +716,12 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        if dtype is None:
-            if isinstance(self.dtype, SignedIntegerDTypes):
-                dtype_: DType = int64
-            elif isinstance(self.dtype, UnsignedIntegerDTypes):
-                dtype_ = uint64
-            else:
-                dtype_ = self.dtype
-        else:
-            dtype_ = dtype
+        dtype_ = self._accumulation_dtype(dtype)
         if self.dtype != dtype_:
             member_after_cast = getattr(self.astype(dtype_), pub_name)
             return member_after_cast(axis=axis, keepdims=keepdims, dtype=dtype)
 
-        if axis is None:
-            axis_ = None
-        elif isinstance(axis, int):
-            axis_ = op.const([axis], dtype=np.int64)
-        else:
-            axis_ = op.const(axis, dtype=np.int64)
+        axis_ = _axis_var(axis)
         var = var_op(
             self.var,
             axis_,
@@ -717,6 +729,18 @@ class TyArrayNumber(TyArray):
             noop_with_empty_axes=axis is not None,
         )
         return ascoredata(var)
+
+    def max(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        axes = _axis_var(axis)
+        return type(self)(ort_compat.reduce_max(self.var, axes=axes, keepdims=keepdims))
+
+    def min(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        axes = _axis_var(axis)
+        return type(self)(ort_compat.reduce_min(self.var, axes=axes, keepdims=keepdims))
 
     def prod(
         self,
@@ -739,8 +763,48 @@ class TyArrayNumber(TyArray):
         keepdims: bool = False,
     ) -> TyArrayBase:
         return self._reduce(
-            "sum", op.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
+            "sum", ort_compat.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
         )
+
+    def std(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        correction: int | float = 0.0,
+        keepdims: bool = False,
+    ) -> Self:
+        res = self.variance(axis=axis, correction=correction, keepdims=keepdims).sqrt()
+        return res
+
+    def variance(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        correction: int | float = 0.0,
+        keepdims: bool = False,
+    ) -> Self:
+        from .funcs import astyarray
+
+        if axis is None:
+            size: TyArrayBase = self.dynamic_size
+            means = self.mean()
+        else:
+            means = self.mean(axis=axis, keepdims=True)
+            if isinstance(axis, int):
+                axis_ = op.const([axis], np.int64)
+            else:
+                axis_ = op.const(axis, np.int64)
+
+            ax_indices = TyArrayInt64(axis_).reshape((-1,))
+            size = safe_cast(TyArray, self.dynamic_shape.take(ax_indices).prod())
+
+        nom = (self - means).square().sum(axis=axis, keepdims=keepdims)
+
+        if correction != 0:
+            size = size - astyarray(correction, use_py_scalars=True)
+        return safe_cast(type(self), nom / size)
 
     def __abs__(self) -> Self:
         return type(self)(op.abs(self.var))
@@ -835,6 +899,16 @@ class TyArrayNumber(TyArray):
     def floor(self) -> Self:
         return type(self)(ort_compat.floor(self.var))
 
+    def nonzero(self) -> tuple[TyArrayInt64, ...]:
+        if self.ndim == 0:
+            raise ValueError("'nonzero' is not defined for scalar arrays")
+
+        res = TyArrayInt64(op.non_zero(self.var))
+        out = []
+        for i in range(self.ndim):
+            out.append(res[i, :])
+        return tuple(out)
+
     def round(self) -> Self:
         return type(self)(ort_compat.round(self.var))
 
@@ -843,6 +917,12 @@ class TyArrayNumber(TyArray):
 
     def sqrt(self) -> Self:
         return type(self)(ort_compat.sqrt(self.var))
+
+    def square(self) -> TyArray:
+        from .funcs import astyarray
+
+        two = astyarray(2, use_py_scalars=True)
+        return safe_cast(TyArray, self**two)
 
 
 class TyArrayInteger(TyArrayNumber):
@@ -905,7 +985,7 @@ class TyArrayInteger(TyArrayNumber):
             self,
             other,
             operator.lshift,
-            lambda a, b: op.bit_shift(a, b, direction="LEFT"),
+            lambda a, b: ort_compat.bit_shift(a, b, direction="LEFT"),
             forward=True,
         )
 
@@ -914,7 +994,7 @@ class TyArrayInteger(TyArrayNumber):
             self,
             other,
             operator.lshift,
-            lambda a, b: op.bit_shift(a, b, direction="LEFT"),
+            lambda a, b: ort_compat.bit_shift(a, b, direction="LEFT"),
             forward=False,
         )
 
@@ -922,8 +1002,8 @@ class TyArrayInteger(TyArrayNumber):
         return _promote_and_apply_op(
             self,
             other,
-            operator.lshift,
-            lambda a, b: op.bit_shift(a, b, direction="RIGHT"),
+            operator.rshift,
+            lambda a, b: ort_compat.bit_shift(a, b, direction="RIGHT"),
             forward=True,
         )
 
@@ -931,8 +1011,8 @@ class TyArrayInteger(TyArrayNumber):
         return _promote_and_apply_op(
             self,
             other,
-            operator.lshift,
-            lambda a, b: op.bit_shift(a, b, direction="RIGHT"),
+            operator.rshift,
+            lambda a, b: ort_compat.bit_shift(a, b, direction="RIGHT"),
             forward=False,
         )
 
@@ -941,13 +1021,13 @@ class TyArrayInteger(TyArrayNumber):
         return type(self)(res)
 
     def isfinite(self) -> TyArrayBool:  # type: ignore
-        return TyArrayBool(op.const(True)).reshape(self.dynamic_shape)
+        return TyArrayBool(op.const(True)).broadcast_to(self.dynamic_shape)
 
     def isnan(self) -> TyArrayBool:  # type: ignore
-        return TyArrayBool(op.const(False)).reshape(self.dynamic_shape)
+        return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def isinf(self) -> TyArrayBool:  # type: ignore
-        return TyArrayBool(op.const(False)).reshape(self.dynamic_shape)
+        return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def trunc(self) -> Self:
         return self
@@ -969,14 +1049,10 @@ class TyArrayFloating(TyArrayNumber):
     def mean(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
-        if axis is None:
-            axes = None
-        elif isinstance(axis, int):
-            axes = op.const([axis], np.int64)
-        else:
-            axes = op.const(axis, np.int64)
-
-        return type(self)(op.reduce_mean(self.var, axes=axes, keepdims=keepdims))
+        axes = _axis_var(axis)
+        return type(self)(
+            ort_compat.reduce_mean(self.var, axes=axes, keepdims=keepdims)
+        )
 
     def isfinite(self) -> TyArrayBool:
         return safe_cast(TyArrayBool, ~(self.isinf() | self.isnan()))
@@ -1052,7 +1128,7 @@ class TyArrayFloating(TyArrayNumber):
         )
 
 
-class TyArrayBool(TyArray):
+class TyArrayBool(TyArrayInteger):
     dtype = bool_
 
     def __or__(self, other) -> TyArrayBase:
@@ -1348,3 +1424,15 @@ def _validate_getitem_index(key: GetitemIndex):
         raise TypeError("indexing with lists is not supported")
     else:
         raise IndexError(f"unexpected key: `{key}`")
+
+
+def _axis_var(axis: int | tuple[int, ...] | None) -> Var | None:
+    """Construct an `axis` var for reduction operations such as `mean`."""
+    if axis is None:
+        axes = None
+    elif isinstance(axis, int):
+        axes = op.const([axis], np.int64)
+    else:
+        axes = op.const(axis, np.int64)
+
+    return axes
