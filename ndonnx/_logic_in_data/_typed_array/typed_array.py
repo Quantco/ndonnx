@@ -138,6 +138,21 @@ class TyArrayBase(ABC):
     ) -> TyArrayBase:
         raise _make_type_error("any", self.dtype)
 
+    def argmax(
+        self, /, *, axis: int | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        raise _make_type_error("argmax", self.dtype)
+
+    def argmin(
+        self, /, *, axis: int | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        raise _make_type_error("argmin", self.dtype)
+
+    def argsort(
+        self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
+    ) -> TyArrayInt64:
+        raise _make_type_error("argsort", self.dtype)
+
     def cumulative_sum(
         self,
         /,
@@ -162,6 +177,11 @@ class TyArrayBase(ABC):
         keepdims: bool = False,
     ) -> TyArrayBase:
         raise _make_type_error("prod", self.dtype)
+
+    def sort(
+        self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
+    ) -> Self:
+        raise _make_type_error("sort", self.dtype)
 
     def searchsorted(
         self,

@@ -55,13 +55,13 @@ class Info:
         raise ValueError("ndonnx does not define a default device")
         ...
 
-    def default_dtypes(self, *, device: None) -> DefaultDataTypes:
+    def default_dtypes(self, *, device=None) -> DefaultDataTypes:
         # TODO: We are not standard compliant until we support complex numbers
         return {  # type: ignore
-            "real floating": onnx.default_float,
+            "real floating": onnx.float64,
             # "complex floating": onnx.complex128,
-            "integral": onnx.default_int,
-            "indexing": onnx.default_int,
+            "integral": onnx.int64,
+            "indexing": onnx.int64,
         }
 
     def devices(self) -> list[None]:

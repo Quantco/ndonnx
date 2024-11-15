@@ -65,17 +65,19 @@ def arange(
 
 
 def argmax(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.argmax(axis=axis, keepdims=keepdims))
 
 
 def argmin(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.argmin(axis=axis, keepdims=keepdims))
 
 
 def argsort(
     x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(
+        x._data.argsort(axis=axis, descending=descending, stable=stable)
+    )
 
 
 def nonzero(x: Array, /) -> tuple[Array, ...]:
@@ -175,7 +177,9 @@ def prod(
 def sort(
     x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(
+        x._data.sort(axis=axis, descending=descending, stable=stable)
+    )
 
 
 def std(

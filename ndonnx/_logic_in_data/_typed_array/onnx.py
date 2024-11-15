@@ -510,10 +510,7 @@ class TyArray(TyArrayBase):
         if x1.ndim != 1:
             raise TypeError("x1 must be a 1-dimensional array")
         if sorter is not None:
-            raise NotImplementedError(
-                "'sorter' argument of 'searchsorted' is not implemented, yet"
-            )
-            # x1 = x1.take(sorter)
+            x1 = x1.take(sorter.astype(int64, copy=False))
 
         if side not in ("left", "right"):
             raise ValueError("side must be 'left' or 'right'")
@@ -653,6 +650,44 @@ class TyArrayNumber(TyArray):
     # numberi/int and bool. (see `isdtype` for details).
     dtype: NumericDTypes | Boolean
 
+    def _arg_minmax(
+        self, spox_op, /, *, axis: int | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        x = self
+        axis_ = axis
+        if axis_ is None:
+            x = x.reshape((-1,))
+            axis_ = 0
+        res = TyArrayInt64(spox_op(x.var, axis=axis_, keepdims=keepdims))
+        if axis is None:
+            if keepdims:
+                res = res.reshape(tuple(1 for _ in range(self.ndim)))
+            # else:
+            #     res = res.squeeze(0)
+
+        return res
+
+    def argmax(
+        self, /, *, axis: int | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        return self._arg_minmax(op.arg_max, axis=axis, keepdims=keepdims)
+
+    def argmin(
+        self, /, *, axis: int | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        return self._arg_minmax(op.arg_min, axis=axis, keepdims=keepdims)
+
+    def argsort(
+        self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
+    ) -> TyArrayInt64:
+        if axis < 0:
+            axis += self.ndim
+        k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
+        _values, indices = op.top_k(
+            self.var, k, axis=axis, largest=descending, sorted=stable
+        )
+        return TyArrayInt64(indices)
+
     def cumulative_sum(
         self,
         /,
@@ -756,6 +791,17 @@ class TyArrayNumber(TyArray):
         return self._reduce(
             "prod", ort_compat.reduce_prod, axis=axis, dtype=dtype, keepdims=keepdims
         )
+
+    def sort(
+        self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
+    ) -> Self:
+        if axis < 0:
+            axis += self.ndim
+        k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
+        values, _indices = op.top_k(
+            self.var, k, axis=axis, largest=descending, sorted=stable
+        )
+        return type(self)(values)
 
     def sum(
         self,
