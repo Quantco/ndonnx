@@ -186,9 +186,9 @@ string = String()
 FloatingDTypes = Float16 | Float32 | Float64
 SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
 UnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
-IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes | Boolean
+IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
 NumericDTypes = FloatingDTypes | IntegerDTypes
-DTypes = NumericDTypes | String
+DTypes = NumericDTypes | String | Boolean
 
 
 class TyArray(TyArrayBase):
@@ -648,7 +648,10 @@ class TyArrayString(TyArray):
 
 
 class TyArrayNumber(TyArray):
-    dtype: NumericDTypes
+    # We piggyback here on the numeric implementations for booleans
+    # even though the standard does not use this relation ship between
+    # numberi/int and bool. (see `isdtype` for details).
+    dtype: NumericDTypes | Boolean
 
     def cumulative_sum(
         self,
@@ -926,7 +929,7 @@ class TyArrayNumber(TyArray):
 
 
 class TyArrayInteger(TyArrayNumber):
-    dtype: IntegerDTypes
+    dtype: IntegerDTypes | Boolean
 
     def __truediv__(self, rhs, /) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
@@ -1151,6 +1154,36 @@ class TyArrayBool(TyArrayInteger):
 
     def __invert__(self) -> Self:
         return type(self)(op.not_(self.var))
+
+    def __ndx_logical_and__(self, rhs: TyArrayBase, /) -> Self:
+        if isinstance(rhs, TyArrayBool):
+            return type(self)(op.and_(self.var, rhs.var))
+        return NotImplemented
+
+    def __ndx_rlogical_and__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+        if isinstance(lhs, TyArrayBool):
+            return type(self)(op.and_(lhs.var, self.var))
+        return NotImplemented
+
+    def __ndx_logical_xor__(self, rhs: TyArrayBase, /) -> Self:
+        if isinstance(rhs, TyArrayBool):
+            return type(self)(op.xor(self.var, rhs.var))
+        return NotImplemented
+
+    def __ndx_rlogical_xor__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+        if isinstance(lhs, TyArrayBool):
+            return type(self)(op.xor(lhs.var, self.var))
+        return NotImplemented
+
+    def __ndx_logical_or__(self, rhs: TyArrayBase, /) -> Self:
+        if isinstance(rhs, TyArrayBool):
+            return type(self)(op.or_(self.var, rhs.var))
+        return NotImplemented
+
+    def __ndx_rlogical_or__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+        if isinstance(lhs, TyArrayBool):
+            return type(self)(op.or_(lhs.var, self.var))
+        return NotImplemented
 
     def logical_not(self) -> Self:
         return ~self

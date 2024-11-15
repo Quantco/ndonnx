@@ -1,26 +1,38 @@
-array_api_tests/test_creation_functions.py::test_meshgrid
-array_api_tests/test_inspection_functions.py::test_array_namespace_info
-array_api_tests/test_inspection_functions.py::test_array_namespace_info_dtypes
-array_api_tests/test_linalg.py::test_matrix_transpose
-array_api_tests/test_linalg.py::test_tensordot
-array_api_tests/test_linalg.py::test_vecdot
-array_api_tests/test_manipulation_functions.py::test_moveaxis
-array_api_tests/test_manipulation_functions.py::test_repeat
-array_api_tests/test_manipulation_functions.py::test_tile
-array_api_tests/test_manipulation_functions.py::test_unstack
-array_api_tests/test_searching_functions.py::test_argmax
-array_api_tests/test_searching_functions.py::test_argmin
-array_api_tests/test_searching_functions.py::test_searchsorted
-array_api_tests/test_set_functions.py::test_unique_all
-array_api_tests/test_set_functions.py::test_unique_counts
-array_api_tests/test_set_functions.py::test_unique_inverse
-array_api_tests/test_set_functions.py::test_unique_values
 
-array_api_tests/test_sorting_functions.py::test_argsort
-array_api_tests/test_special_cases.py::test_unary[acos(x_i > 1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[asin(x_i > 1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[acosh(x_i < 1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[asinh(x_i < 1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[acos(x_i < -1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[sqrt(x_i < 0) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[asin(x_i < -1) -> NaN]
+# array_api_tests/test_inspection_functions.py::test_array_namespace_info
+# array_api_tests/test_inspection_functions.py::test_array_namespace_info_dtypes
+# array_api_tests/test_linalg.py::test_matrix_transpose
+# array_api_tests/test_linalg.py::test_tensordot
+# array_api_tests/test_linalg.py::test_vecdot
+# array_api_tests/test_manipulation_functions.py::test_moveaxis
+# array_api_tests/test_manipulation_functions.py::test_repeat
+# array_api_tests/test_manipulation_functions.py::test_tile
+# array_api_tests/test_manipulation_functions.py::test_unstack
+# array_api_tests/test_searching_functions.py::test_argmax
+# array_api_tests/test_searching_functions.py::test_argmin
+# array_api_tests/test_searching_functions.py::test_searchsorted
+# array_api_tests/test_set_functions.py::test_unique_all
+# array_api_tests/test_set_functions.py::test_unique_counts
+# array_api_tests/test_set_functions.py::test_unique_inverse
+# array_api_tests/test_set_functions.py::test_unique_values
+
+# array_api_tests/test_sorting_functions.py::test_argsort
+# array_api_tests/test_special_cases.py::test_unary[acos(x_i > 1) -> NaN]
+# array_api_tests/test_special_cases.py::test_unary[asin(x_i > 1) -> NaN]
+# array_api_tests/test_special_cases.py::test_unary[acosh(x_i < 1) -> NaN]
+# array_api_tests/test_special_cases.py::test_unary[asinh(x_i < 1) -> NaN]
+# array_api_tests/test_special_cases.py::test_unary[acos(x_i < -1) -> NaN]
+# array_api_tests/test_special_cases.py::test_unary[sqrt(x_i < 0) -> NaN]
+# array_api_tests/test_special_cases.py::test_unary[asin(x_i < -1) -> NaN]
+
+array_api_tests/test_operators_and_elementwise_functions.py::test_cos
+array_api_tests/test_operators_and_elementwise_functions.py::test_tan
+array_api_tests/test_operators_and_elementwise_functions.py::test_cosh
+array_api_tests/test_operators_and_elementwise_functions.py::test_tanh
+array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
+array_api_tests/test_operators_and_elementwise_functions.py::test_asin
+array_api_tests/test_operators_and_elementwise_functions.py::test_acos
+array_api_tests/test_operators_and_elementwise_functions.py::test_atan
+array_api_tests/test_operators_and_elementwise_functions.py::test_acosh
+array_api_tests/test_operators_and_elementwise_functions.py::test_atanh
+array_api_tests/test_operators_and_elementwise_functions.py::test_asinh

@@ -171,7 +171,7 @@ def logaddexp(x1: Array, x2: Array, /) -> Array:
 
 
 def logical_and(x1: Array, x2: Array, /) -> Array:
-    return Array._from_data(x1._data and x2._data)
+    return Array._from_data(tyfuncs.logical_and(x1._data, x2._data))
 
 
 def logical_not(x: Array, /) -> Array:
@@ -179,11 +179,11 @@ def logical_not(x: Array, /) -> Array:
 
 
 def logical_or(x1: Array, x2: Array, /) -> Array:
-    return Array._from_data(x1._data or x2._data)
+    return Array._from_data(tyfuncs.logical_or(x1._data, x2._data))
 
 
 def logical_xor(x1: Array, x2: Array, /) -> Array:
-    return Array._from_data(x1._data or x2._data)
+    return Array._from_data(tyfuncs.logical_xor(x1._data, x2._data))
 
 
 def maximum(x1: Array, x2: Array, /) -> Array:

@@ -440,6 +440,25 @@ class TyArrayBase(ABC):
     # Functions which may return `NotImplemented`
     # Note: Prefixed with `__ndx_` to avoid naming collisions with
     # possible future Python dunder methods
+
+    def __ndx_logical_and__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __ndx_rlogical_and__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __ndx_logical_or__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __ndx_rlogical_or__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __ndx_logical_xor__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __ndx_rlogical_xor__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+        return NotImplemented
+
     def __ndx_where__(
         self, cond: TyArrayBool, y: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:

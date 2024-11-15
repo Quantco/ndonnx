@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from functools import reduce
 from itertools import chain
-from typing import TYPE_CHECKING, Literal, overload
+from types import NotImplementedType
+from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
 import numpy as np
 import spox.opset.ai.onnx.v21 as op
@@ -139,39 +140,60 @@ def searchsorted(
 # Free functions implemented via `__ndx_*__` methods on the typed array #
 #########################################################################
 
+T = TypeVar("T")
+
+
+def _validate(
+    x1: TyArrayBase, x2: TyArrayBase, result: T | NotImplementedType, func_name: str
+) -> T:
+    if result is NotImplemented:
+        raise TypeError(
+            f"Unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
+        )
+    return result
+
 
 def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
     # TODO: Masked condition?
     if not isinstance(cond, onnx.TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 
-    ret = x.__ndx_where__(cond, y)
-    if ret is NotImplemented:
-        ret = y.__ndx_rwhere__(cond, x)
-        if ret is NotImplemented:
-            raise TypeError(
-                f"Unsupported operand data types for 'where': `{x.dtype}` and `{y.dtype}`"
-            )
-    return ret
+    res = x.__ndx_where__(cond, y)
+    if res is NotImplemented:
+        res = y.__ndx_rwhere__(cond, x)
+    return _validate(x, y, res, "where")
+
+
+def logical_and(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
+    res = x1.__ndx_logical_and__(x2)
+    if res is NotImplemented:
+        res = x2.__ndx_rlogical_and__(x1)
+    return _validate(x1, x2, res, "logical_and")
+
+
+def logical_or(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
+    res = x1.__ndx_logical_or__(x2)
+    if res is NotImplemented:
+        res = x2.__ndx_rlogical_or__(x1)
+    return _validate(x1, x2, res, "logical_or")
+
+
+def logical_xor(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
+    res = x1.__ndx_logical_xor__(x2)
+    if res is NotImplemented:
+        res = x2.__ndx_rlogical_xor__(x1)
+    return _validate(x1, x2, res, "logical_xor")
 
 
 def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     res = x1.__ndx_maximum__(x2)
     if res is NotImplemented:
         res = x2.__ndx_rmaximum__(x1)
-    if res is NotImplemented:
-        raise TypeError(
-            f"Unsupported operand data types for 'maximum': `{x1.dtype}` and `{x2.dtype}`"
-        )
-    return res
+    return _validate(x1, x2, res, "maximum")
 
 
 def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     res = x1.__ndx_minimum__(x2)
     if res is NotImplemented:
         res = x2.__ndx_rminimum__(x1)
-    if res is NotImplemented:
-        raise TypeError(
-            f"Unsupported operand data types for 'minimum': `{x1.dtype}` and `{x2.dtype}`"
-        )
-    return res
+    return _validate(x1, x2, res, "minimum")
