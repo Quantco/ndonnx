@@ -1,6 +1,8 @@
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
+import spox
+
 from ._compat import array, from_spox_var, Nullable, Floating, Integer, Numeric
 from ._array import Array, asarray
 from ._dtypes import DType
@@ -169,6 +171,10 @@ from ._infos import finfo, iinfo
 from ._namespace_info import __array_namespace_info__
 from ._constants import e, inf, nan, pi, newaxis
 from ._build import build
+
+# TODO: Find nicer way/more reliable way to set ORT backend
+spox._value_prop._VALUE_PROP_BACKEND = spox._value_prop.ValuePropBackend.ONNXRUNTIME
+
 
 _default_int = int64
 _default_float = float64
