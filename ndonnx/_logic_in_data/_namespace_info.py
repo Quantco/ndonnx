@@ -67,7 +67,7 @@ class Info:
     def devices(self) -> list[None]:
         raise ValueError("ndonnx does not define devices")
 
-    def dtypes(self, *, device: None, kind: None | str | tuple[str, ...]) -> DataTypes:
+    def dtypes(self, *, device=None, kind: None | str | tuple[str, ...]) -> DataTypes:
         return {
             "bool": onnx.bool_,
             "float32": onnx.float32,

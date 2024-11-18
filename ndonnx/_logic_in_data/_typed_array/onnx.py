@@ -683,7 +683,7 @@ class TyArrayNumber(TyArray):
         if axis < 0:
             axis += self.ndim
         k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
-        _values, indices = op.top_k(
+        _values, indices = ort_compat.top_k(
             self.var, k, axis=axis, largest=descending, sorted=stable
         )
         return TyArrayInt64(indices)
@@ -764,21 +764,38 @@ class TyArrayNumber(TyArray):
             self.var,
             axis_,
             keepdims=keepdims,
-            noop_with_empty_axes=axis is not None,
+            noop_with_empty_axes=False,
         )
         return ascoredata(var)
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
+        if axis == ():
+            # TODO: File bug:
+            # `reduce_max`'s ORT implementation differs from onnx-shape
+            # inference for keepdims=False AND noop_with_empty_axes=True.
+            return copy(self)
+
         axes = _axis_var(axis)
-        return type(self)(ort_compat.reduce_max(self.var, axes=axes, keepdims=keepdims))
+        return type(self)(
+            ort_compat.reduce_max(
+                self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+            )
+        )
 
     def min(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
+        if axis == ():
+            return copy(self)
+
         axes = _axis_var(axis)
-        return type(self)(ort_compat.reduce_min(self.var, axes=axes, keepdims=keepdims))
+        return type(self)(
+            ort_compat.reduce_min(
+                self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+            )
+        )
 
     def prod(
         self,
@@ -788,6 +805,9 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
+        if axis == ():
+            return copy(self)
+
         return self._reduce(
             "prod", ort_compat.reduce_prod, axis=axis, dtype=dtype, keepdims=keepdims
         )
@@ -798,7 +818,7 @@ class TyArrayNumber(TyArray):
         if axis < 0:
             axis += self.ndim
         k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
-        values, _indices = op.top_k(
+        values, _indices = ort_compat.top_k(
             self.var, k, axis=axis, largest=descending, sorted=stable
         )
         return type(self)(values)
@@ -1098,9 +1118,13 @@ class TyArrayFloating(TyArrayNumber):
     def mean(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
+        if axis == ():
+            return copy(self)
         axes = _axis_var(axis)
         return type(self)(
-            ort_compat.reduce_mean(self.var, axes=axes, keepdims=keepdims)
+            ort_compat.reduce_mean(
+                self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+            )
         )
 
     def isfinite(self) -> TyArrayBool:

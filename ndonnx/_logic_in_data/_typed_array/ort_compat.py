@@ -17,31 +17,6 @@ import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
 
-def cumsum(
-    x: Var,
-    axis: Var,
-    *,
-    exclusive: int = 0,
-    reverse: int = 0,
-) -> Var:
-    dtype = x.unwrap_tensor().dtype
-    # Unsigned are supported in 1.19.2
-    if dtype in (np.uint8, np.int8, np.int16, np.uint16):
-        x = op.cast(x, to=np.int32)
-    elif dtype == np.uint32:
-        x = op.cast(x, to=np.int64)
-    elif dtype == np.uint64:
-        warn(
-            "'cumsum' is not implemented for 'uint64' in onnxruntime. A lossy cast to int64 is used instead"
-        )
-        x = op.cast(x, to=np.int64)
-
-    res = op.cumsum(x, axis, exclusive=exclusive, reverse=reverse)
-    if res.unwrap_tensor().dtype != dtype:
-        return op.cast(res, to=dtype)
-    return res
-
-
 class Warn:
     def __init__(self, ty: type[np.generic]):
         self.ty = ty
@@ -179,7 +154,7 @@ def reduce_op(
     spox_op: Callable,
     mapping: _MappingDictType,
 ) -> Var:
-    return _wrap_unary(
+    fun = _wrap_unary(
         partial(
             spox_op,
             axes=axes,
@@ -188,13 +163,14 @@ def reduce_op(
         ),
         mapping,
         fun_name=spox_op.__name__,
-    )(data)
+    )
+    return fun(data)
 
 
 # tensor(double), tensor(float), tensor(float16), tensor(int32)
 _mapping_reduce_prod: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
-    (np.uint64, np.int64): Warn(np.int32),
+    (np.uint64, np.int64): Warn(np.float64),
 }
 reduce_prod = partial(reduce_op, spox_op=op.reduce_prod, mapping=_mapping_reduce_prod)
 
@@ -202,7 +178,7 @@ reduce_prod = partial(reduce_op, spox_op=op.reduce_prod, mapping=_mapping_reduce
 # tensor(int32), tensor(int64)
 _mapping_reduce_sum: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
-    (np.uint64,): Warn(np.int32),
+    (np.uint64,): Warn(np.float64),
 }
 reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_sum)
 
@@ -210,7 +186,7 @@ reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_s
 # tensor(int64)
 _mapping_reduce_max: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
-    (np.uint64,): Warn(np.int32),
+    (np.uint64,): Warn(np.float64),
 }
 reduce_max = partial(reduce_op, spox_op=op.reduce_max, mapping=_mapping_reduce_max)
 
@@ -218,16 +194,49 @@ reduce_max = partial(reduce_op, spox_op=op.reduce_max, mapping=_mapping_reduce_m
 # tensor(int64), tensor(int8), tensor(uint8)
 _mapping_reduce_min: _MappingDictType = {
     (np.int16, np.uint16): np.int32,
-    (np.uint32, np.uint64): Warn(np.int32),
+    (np.uint32, np.uint64): Warn(np.float64),
 }
 reduce_min = partial(reduce_op, spox_op=op.reduce_min, mapping=_mapping_reduce_min)
 
 # tensor(double), tensor(float), tensor(float16), tensor(int32)
 _mapping_reduce_mean: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
-    (np.uint64, np.int64): Warn(np.int32),
+    (np.uint64, np.int64): Warn(np.float64),
 }
 reduce_mean = partial(reduce_op, spox_op=op.reduce_mean, mapping=_mapping_reduce_mean)
+
+
+def cumsum(
+    x: Var,
+    axis: Var,
+    *,
+    exclusive: int = 0,
+    reverse: int = 0,
+) -> Var:
+    # It seems that ORT 1.19.2 already supports float64 in practice,
+    # but this is not reflected in the OperatorKernels.md file which reads for 1.19.2:
+    # tensor(float), tensor(float16), tensor(int32), tensor(int64),
+    # tensor(uint32), tensor(uint64)
+
+    # ORT always returns 64bit integer types. Spox detects the
+    # standard violation and aborts the value propagation. Thus, we
+    # always cast to 64bit types.
+    mapping: _MappingDictType = {
+        (np.uint8, np.int8, np.int16, np.uint16): np.int64,
+        (np.uint32,): np.int64,
+        (np.uint64,): Warn(np.float64),
+    }
+    fun = _wrap_unary(
+        partial(
+            op.cum_sum,
+            axis=axis,
+            exclusive=exclusive,
+            reverse=reverse,
+        ),
+        mapping,
+        fun_name=op.cum_sum.__name__,
+    )
+    return fun(x)
 
 
 def bit_shift(
@@ -328,3 +337,29 @@ def clip(input_: Var, min_: Var | None = None, max_: Var | None = None, /) -> Va
     if max_ is not None:
         res = min([res, max_])
     return res
+
+
+def top_k(
+    X: Var,
+    K: Var,
+    *,
+    axis: int = -1,
+    largest: int = 1,
+    sorted: int = 1,
+) -> tuple[Var, Var]:
+    # tensor(double), tensor(float), tensor(int32), tensor(int64)
+    mapping = _common_mapping
+    # ORT only implements sorted=1
+    sorted = 1
+    dtype_in = X.unwrap_tensor().dtype
+
+    kwargs = {"axis": axis, "largest": largest, "sorted": sorted}
+
+    if via_dtype := _detour_type(dtype_in, mapping):
+        if isinstance(via_dtype, Warn):
+            _warn_lossy("top_k", dtype_in, via_dtype.ty)
+            via_dtype = via_dtype.ty
+        values, indices = op.top_k(op.cast(X, to=via_dtype), K, **kwargs)
+        return op.cast(values, to=dtype_in), indices
+
+    return op.top_k(X, K, **kwargs)

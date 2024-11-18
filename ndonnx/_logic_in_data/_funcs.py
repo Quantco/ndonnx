@@ -30,13 +30,13 @@ def from_dlpack(
 def all(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.all())
+    return Array._from_data(x._data.all(axis=axis, keepdims=keepdims))
 
 
 def any(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.any())
+    return Array._from_data(x._data.any(axis=axis, keepdims=keepdims))
 
 
 def arange(
