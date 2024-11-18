@@ -171,6 +171,9 @@ class _ArrayPyScalar(TyArrayBase):
     def where(self, cond: onnx.TyArrayBool, y: TyArrayBase) -> TyArrayBase:
         raise NotImplementedError
 
+    def permute_dims(self, axes: tuple[int, ...]) -> Self:
+        raise ValueError("cannot 'permute_dims' on Python scalar")
+
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
         from . import asncoredata
 

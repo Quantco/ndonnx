@@ -167,6 +167,12 @@ class TimeBaseArray(TyArrayBase):
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
+    def permute_dims(self, axes: tuple[int, ...]) -> Self:
+        is_nat = self.is_nat.permute_dims(axes)
+        data = self.data.permute_dims(axes)
+
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
     def _eqcomp(self, other) -> TyArrayBase:
         raise NotImplementedError
 

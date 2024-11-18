@@ -79,6 +79,25 @@ def _wrap_binary(
     return wrapped
 
 
+def _mitigate_segfault_from_zero_dims(
+    fun: Callable[[Var, Var], Var],
+) -> Callable[[Var, Var], Var]:
+    """ORT crashes for mut/mat/mul if one of the terms is a rank-1 with zero
+    elements."""
+
+    def wrapped(a: Var, b: Var) -> Var:
+        a_shape = a.unwrap_tensor().shape or ()
+        b_shape = b.unwrap_tensor().shape or ()
+        if len(a_shape) == 1 or len(b_shape):
+            a = op.unsqueeze(a, op.const([-1]))
+            b = op.unsqueeze(b, op.const([-1]))
+            res = fun(a, b)
+            return op.squeeze(res, op.const([-1]))
+        return fun(a, b)
+
+    return wrapped
+
+
 def _warn_lossy(fun_name: str, unsupported: np.dtype, via: type[np.generic]):
     warn(
         f"'{fun_name}' is not implemented for '{unsupported}' in onnxruntime. A lossy cast to '{via}' is used instead"
@@ -92,14 +111,14 @@ _common_mapping: _MappingDictType = {
     (np.uint32,): np.int64,
     (np.uint64,): Warn(np.int64),
 }
-add = _wrap_binary(op.add, _common_mapping)
+add = _mitigate_segfault_from_zero_dims(_wrap_binary(op.add, _common_mapping))
 equal = _wrap_binary(op.equal, _common_mapping, cast_output=False)
 greater = _wrap_binary(op.greater, _common_mapping, cast_output=False)
 greater_or_equal = _wrap_binary(op.greater_or_equal, _common_mapping, cast_output=False)
 less = _wrap_binary(op.less, _common_mapping, cast_output=False)
 less_or_equal = _wrap_binary(op.less_or_equal, _common_mapping, cast_output=False)
-mul = _wrap_binary(op.mul, _common_mapping)
-sub = _wrap_binary(op.sub, _common_mapping)
+mul = _mitigate_segfault_from_zero_dims(_wrap_binary(op.mul, _common_mapping))
+sub = _mitigate_segfault_from_zero_dims(_wrap_binary(op.sub, _common_mapping))
 
 div = _wrap_binary(
     op.div,
@@ -167,10 +186,10 @@ def reduce_op(
     return fun(data)
 
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32)
+# tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_prod: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
-    (np.uint64, np.int64): Warn(np.float64),
+    (np.uint64,): Warn(np.float32),
 }
 reduce_prod = partial(reduce_op, spox_op=op.reduce_prod, mapping=_mapping_reduce_prod)
 

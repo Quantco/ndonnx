@@ -54,3 +54,10 @@ def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:
     if isinstance(a, ty):
         return a
     raise TypeError(f"Expected `{ty}` found `{type(a)}`")
+
+
+def normalize_axes_tuple(axes: int | tuple[int, ...], rank: int) -> tuple[int, ...]:
+    if isinstance(axes, int):
+        axes = (axes,)
+
+    return tuple(el if el >= 0 else rank + el for el in axes)

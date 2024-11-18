@@ -154,7 +154,7 @@ def meshgrid(*Arrays: Array, indexing: str = "xy") -> list[Array]:
 def moveaxis(
     x: Array, source: int | tuple[int, ...], destination: int | tuple[int, ...], /
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.moveaxis(source, destination))
 
 
 def min(
@@ -452,7 +452,7 @@ def roll(
     *,
     axis: int | tuple[int, ...] | None = None,
 ) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.roll(shift=shift, axis=axis))
 
 
 def searchsorted(
@@ -534,7 +534,8 @@ def unstack(x: Array, /, *, axis: int = 0) -> tuple[Array, ...]:
 
 
 def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
-    raise NotImplementedError
+    prod = x1 * x2
+    return sum(prod, axis=axis, dtype=prod.dtype)
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:

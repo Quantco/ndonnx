@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import copy
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal
 
@@ -11,6 +12,7 @@ import numpy as np
 from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY, DType
+from .utils import normalize_axes_tuple
 
 if TYPE_CHECKING:
     from spox import Var
@@ -63,7 +65,7 @@ class TyArrayBase(ABC):
     @property
     def T(self) -> Self:  # noqa: N802
         if self.ndim != 2:
-            raise ValueError("array must have two dimensions, found `{self.ndim}`")
+            raise ValueError(f"array must have two dimensions, found `{self.ndim}`")
 
         return self.mT
 
@@ -120,9 +122,60 @@ class TyArrayBase(ABC):
     @abstractmethod
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
 
-    def permute_dims(self, axes: tuple[int, ...]) -> Self:
-        # TODO: Make abstract
-        raise NotImplementedError
+    @abstractmethod
+    def permute_dims(self, axes: tuple[int, ...]) -> Self: ...
+
+    def moveaxis(
+        self, source: int | tuple[int, ...], destination: int | tuple[int, ...], /
+    ) -> Self:
+        source = normalize_axes_tuple(source, self.ndim)
+        destination = normalize_axes_tuple(destination, self.ndim)
+
+        if source == destination:
+            return copy(self)
+
+        axes = [n for n in range(self.ndim) if n not in source]
+
+        for dest, src in sorted(zip(destination, source)):
+            axes.insert(dest, src)
+
+        return self.permute_dims(axes=tuple(axes))
+
+    def roll(
+        self,
+        shift: int | tuple[int, ...],
+        *,
+        axis: int | tuple[int, ...] | None = None,
+    ) -> Self:
+        x = self
+        axis_ = axis
+        if isinstance(shift, int):
+            shift = (shift,)
+        if axis_ is None:
+            x = x.reshape((-1,))
+            axis_ = 0
+        axis_ = normalize_axes_tuple(axis_, x.ndim)
+
+        if len(shift) != len(axis_):
+            raise ValueError("'shift' and 'axis' must be tuples of equal length")
+
+        def _roll(x: Self, shift: int, axis: int, /) -> Self:
+            indices_a = [slice(None) for i in range(x.ndim)]
+            indices_b = [slice(None) for i in range(x.ndim)]
+
+            indices_a[axis] = slice(shift, None, 1)
+            indices_b[axis] = slice(None, shift, 1)
+
+            return x[tuple(indices_a)].concat([x[tuple(indices_b)]], axis=axis)
+
+        for sh, ax in zip(shift, axis_):
+            if sh == 0:
+                continue
+            x = _roll(x, sh, ax)
+
+        if axis is None:
+            return x.reshape(self.dynamic_shape)
+        return x
 
     ################################################################
     # Member functions that reflect free functions of the standard #

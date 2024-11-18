@@ -284,6 +284,11 @@ class TyMaArray(TyMaArrayBase):
             return self.data.astype(dtype)
         return safe_cast(onnx.TyArray, where(self.mask, value_arr, self.data))
 
+    def permute_dims(self, axes: tuple[int, ...]) -> Self:
+        data = self.data.permute_dims(axes)
+        mask = self.mask.permute_dims(axes) if self.mask is not None else None
+        return type(self)(data=data, mask=mask)
+
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self.data.reshape(shape)
         mask = self.mask.reshape(shape) if self.mask is not None else None

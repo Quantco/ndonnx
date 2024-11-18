@@ -30,7 +30,13 @@ from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType, as_numpy, from_numpy
 from .._schema import DTypeInfoV1
 from . import ort_compat
-from .indexing import GetitemIndex, GetitemIndexStatic, SetitemIndex, SetitemIndexStatic
+from .indexing import (
+    FancySlice,
+    GetitemIndex,
+    GetitemIndexStatic,
+    SetitemIndex,
+    SetitemIndexStatic,
+)
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
@@ -278,42 +284,14 @@ class TyArray(TyArrayBase):
             # Early return if we only expanded some dims
             return type(self)(var)
 
-        starts = []
-        ends = []
-        axes = []
-        steps = []
+        fancy_slices = [FancySlice(el) for el in indices_and_slices_only]
+        kwargs = _to_slice_kwargs(fancy_slices)
 
-        _MAX = int(np.iinfo(np.int64).max)
-        for axis, el in enumerate(indices_and_slices_only):
-            if el == slice(None):
-                continue
-            elif isinstance(el, int):
-                starts.append(el)
-                ends.append(_compute_end_single_idx(el))
-                axes.append(axis)
-                steps.append(1)
-                continue
-            # Non-trivial slice
-            step = el.step or 1
-            starts.append(el.start or (0 if step > 0 else _MAX))
-            ends.append(_compute_end_slice(el.stop, step))
-            axes.append(axis)
-            steps.append(el.step or 1)
+        var = op.slice(var, **kwargs)
+        squeeze_positions = [i for i, s in enumerate(fancy_slices) if s.squeeze]
 
-        var = op.slice(
-            var,
-            starts=op.const(starts, np.int64),
-            ends=op.const(ends, np.int64),
-            steps=op.const(steps, np.int64),
-            axes=op.const(axes, np.int64),
-        )
-
-        # Squeeze index positions
-        indices_pos = [
-            i for i, el in enumerate(indices_and_slices_only) if isinstance(el, int)
-        ]
-        if indices_pos:
-            var = op.squeeze(var, op.const(indices_pos, np.int64))
+        if squeeze_positions:
+            var = op.squeeze(var, op.const(squeeze_positions, np.int64))
 
         return type(self)(var)
 
@@ -473,15 +451,39 @@ class TyArray(TyArrayBase):
         var = op.expand(self.var, shape_var)
         return type(self)(var)
 
-    def concat(self, others: list[Self], axis: None | int) -> Self:
+    def concat(self, others: Sequence[Self], axis: None | int) -> Self:
+        others = list(others)
         arrays = [self] + others
         if axis is None:
             arrays = [a if a.ndim == 1 else a.reshape((-1,)) for a in arrays]
             axis = 0
 
-        if len({a.ndim for a in arrays}) != 1:
+        seen_ranks = {a.ndim for a in arrays}
+        if len(seen_ranks) != 1:
             raise ValueError("concatenated arrays must all have the same rank")
-        var = op.concat([a.var for a in arrays], axis=0 if axis is None else axis)
+        (rank,) = seen_ranks
+        if rank == 0:
+            raise ValueError("zero-dimensional arrays cannot be concatenated")
+
+        if len(arrays) == 1:
+            return copy(arrays[0])
+
+        # It seems that there is currently a bug(?) in the type/shape
+        # inference in ONNX which prohibits us from concatenating
+        # empty 1D int32 and int64 arrays (see test case). We therefor
+        # do some hacky special-casing here for those types and those
+        # types only. Other data types are fine.
+        #
+        # TODO: File upstream bug; this may also be what caused the
+        # segfaults in onnxruntime in the past!
+        if self.dtype in (int32, int64) and self.ndim == 1:
+            axis_ = axis if axis is None else axis
+            dummy_axis = op.const([axis_ + 1], dtype=np.int64)
+            vars = [op.unsqueeze(a.var, dummy_axis) for a in arrays]
+            var = op.concat(vars, axis=axis_)
+            var = op.squeeze(var, dummy_axis)
+        else:
+            var = op.concat([a.var for a in arrays], axis=0 if axis is None else axis)
         return type(self)(var)
 
     def disassemble(self) -> Var:
@@ -527,9 +529,12 @@ class TyArray(TyArrayBase):
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
         if isinstance(axis, int):
             axis = (axis,)
+        if axis == ():
+            return copy(self)
         try:
             res = op.squeeze(self.var, op.const(axis, np.int64))
         except Exception as e:
+            # Error in shape inference caught via static shape parameters
             if "inference error" in str(e).lower():
                 raise ValueError(
                     f"cannot squeeze array of shape `{self.shape}` on axis `{axis}`"
@@ -759,7 +764,7 @@ class TyArrayNumber(TyArray):
             member_after_cast = getattr(self.astype(dtype_), pub_name)
             return member_after_cast(axis=axis, keepdims=keepdims, dtype=dtype)
 
-        axis_ = _axis_var(axis)
+        axis_ = _axis_var(axis, self.ndim)
         var = var_op(
             self.var,
             axis_,
@@ -777,7 +782,7 @@ class TyArrayNumber(TyArray):
             # inference for keepdims=False AND noop_with_empty_axes=True.
             return copy(self)
 
-        axes = _axis_var(axis)
+        axes = _axis_var(axis, self.ndim)
         return type(self)(
             ort_compat.reduce_max(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
@@ -790,7 +795,7 @@ class TyArrayNumber(TyArray):
         if axis == ():
             return copy(self)
 
-        axes = _axis_var(axis)
+        axes = _axis_var(axis, self.ndim)
         return type(self)(
             ort_compat.reduce_min(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
@@ -1120,7 +1125,7 @@ class TyArrayFloating(TyArrayNumber):
     ) -> Self:
         if axis == ():
             return copy(self)
-        axes = _axis_var(axis)
+        axes = _axis_var(axis, self.ndim)
         return type(self)(
             ort_compat.reduce_mean(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
@@ -1529,13 +1534,34 @@ def _validate_getitem_index(key: GetitemIndex):
         raise IndexError(f"unexpected key: `{key}`")
 
 
-def _axis_var(axis: int | tuple[int, ...] | None) -> Var | None:
-    """Construct an `axis` var for reduction operations such as `mean`."""
+def _axis_var(axis: int | tuple[int, ...] | None, rank: int) -> Var | None:
+    """Construct an `axis` var for reduction operations such as `mean` and normalize it
+    to positive values."""
     if axis is None:
-        axes = None
-    elif isinstance(axis, int):
-        axes = op.const([axis], np.int64)
+        return None
     else:
-        axes = op.const(axis, np.int64)
+        if isinstance(axis, int):
+            axis = (axis,)
+        axes = [ax if ax >= 0 else ax + rank for ax in axis]
 
-    return axes
+    return op.const(axes, np.int64)
+
+
+def _to_slice_kwargs(slices: list[FancySlice]) -> dict[str, Var]:
+    # TODO: shouldn't use `Array`-functions here, but astyarray can't
+    # deal with `Sequence[TyArrayInt64]`.
+    # from .. import asarray
+    transposed = zip(
+        *[(el.start, el.stop, el.step) for el in slices if not el.is_noop()]
+    )
+
+    # We can't concat 0-D arrays, thus the reshape
+    dict_of_lists = {
+        k: [el.reshape((-1,)) for el in lst]
+        for k, lst in zip(["starts", "ends", "steps"], transposed)
+    }
+    kw = {k: v[0].concat(v[1:], axis=0).var for k, v in dict_of_lists.items()}
+    kw["axes"] = TyArrayInt64(
+        op.const([i for i, el in enumerate(slices) if not el.is_noop()], np.int64)
+    ).var
+    return kw
