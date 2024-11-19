@@ -196,6 +196,17 @@ class Array:
     def __dlpack_device__(self) -> tuple[Enum, int]:
         raise ValueError("ONNX provides no control over the used device")
 
+    def __iter__(self):
+        try:
+            n, *_ = self.shape
+        except IndexError:
+            raise ValueError("iteration over 0-d array")
+        if isinstance(n, int):
+            return (self[i, ...] for i in range(n))
+        raise ValueError(
+            "iteration requires dimension of static length, but dimension 0 is dynamic."
+        )
+
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         idx = normalize_getitem_key(key)
         data = self._data[idx]

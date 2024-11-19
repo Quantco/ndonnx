@@ -352,6 +352,13 @@ def test_indexing_value_prop_tuple_index():
         np.testing.assert_equal(el.unwrap_numpy(), np_arr[idx])
 
 
+def test_iteration():
+    np_arr = np.asarray([1, 2])
+    arr = ndx.asarray(np_arr)
+    for npa, nda in zip(np_arr, arr):
+        np.testing.assert_array_equal(npa, nda.unwrap_numpy())
+
+
 @pytest.mark.parametrize("idx", [(0, 1), (-1, ...), (..., 1), (-1, ..., 1)])
 @pytest.mark.parametrize(
     "np_array",

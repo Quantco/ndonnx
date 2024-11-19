@@ -565,7 +565,12 @@ def unique_values(x: Array, /) -> Array:
 
 
 def unstack(x: Array, /, *, axis: int = 0) -> tuple[Array, ...]:
-    raise NotImplementedError
+    # Only possible for statically known dimensions
+    if not isinstance(x.shape[axis], int):
+        raise ValueError(
+            f"'unstack' can only be applied to statically known dimensions, but axis `{axis}` has dynamic length."
+        )
+    return tuple(el for el in moveaxis(x, axis, 0))
 
 
 def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
