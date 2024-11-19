@@ -12,7 +12,7 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import copy as std_copy
 from enum import Enum
 from types import EllipsisType, NotImplementedType
-from typing import Any, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 import numpy as np
 from spox import Var
@@ -20,6 +20,11 @@ from spox import Var
 from ._dtypes import DType
 from ._typed_array import TyArrayBase
 from ._typed_array.funcs import astyarray
+from ._typed_array.indexing import normalize_getitem_key
+
+if TYPE_CHECKING:
+    from ._typed_array import TyArrayBool, TyArrayInteger
+    from ._typed_array.indexing import SetitemIndexStatic
 
 StrictShape = tuple[int, ...]
 StandardShape = int | tuple[int | None, ...]
@@ -96,7 +101,8 @@ class Array:
 
     @property
     def device(self) -> None:
-        raise NotImplementedError("ONNX provides no control over the used device")
+        # TODO: Should we raise instead or is returning `None` more in line with the standard?
+        return None
 
     @property
     def dtype(self) -> DType:
@@ -191,23 +197,7 @@ class Array:
         raise ValueError("ONNX provides no control over the used device")
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
-        from ._typed_array import TyArrayBool, TyArrayInteger
-        from ._typed_array.indexing import GetitemIndexStatic
-
-        if isinstance(key, Array):
-            if key.ndim > self.ndim:
-                raise IndexError(
-                    "Rank of 'key' must be less or equal to rank of 'self'"
-                )
-            elif not all(ks in (xs, 0) for xs, ks in zip(self.shape, key.shape)):
-                raise IndexError("Shape of 'key' is incompatible with shape of 'self'")
-            if not isinstance(key._data, TyArrayInteger | TyArrayBool):
-                raise TypeError(
-                    f"indexing array must have integer or boolean data type; found `{key.dtype}`"
-                )
-            idx: GetitemIndexStatic | TyArrayInteger | TyArrayBool = key._data
-        else:
-            idx = key
+        idx = normalize_getitem_key(key)
         data = self._data[idx]
         return type(self)._from_data(data)
 
@@ -218,7 +208,6 @@ class Array:
         /,
     ) -> None:
         from ._typed_array import TyArrayBool, TyArrayInteger
-        from ._typed_array.indexing import SetitemIndexStatic
 
         if isinstance(key, Array):
             if not isinstance(key._data, TyArrayInteger | TyArrayBool):

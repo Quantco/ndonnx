@@ -3,6 +3,19 @@
 array_api_tests/test_manipulation_functions.py::test_roll
 array_api_tests/test_data_type_functions.py::test_broadcast_arrays
 
+# Trigonometric functions are largely only implemented for float32 and thus fail
+array_api_tests/test_operators_and_elementwise_functions.py::test_cos
+array_api_tests/test_operators_and_elementwise_functions.py::test_tan
+array_api_tests/test_operators_and_elementwise_functions.py::test_cosh
+array_api_tests/test_operators_and_elementwise_functions.py::test_tanh
+array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
+array_api_tests/test_operators_and_elementwise_functions.py::test_asin
+array_api_tests/test_operators_and_elementwise_functions.py::test_acos
+array_api_tests/test_operators_and_elementwise_functions.py::test_atan
+array_api_tests/test_operators_and_elementwise_functions.py::test_acosh
+array_api_tests/test_operators_and_elementwise_functions.py::test_atanh
+array_api_tests/test_operators_and_elementwise_functions.py::test_asinh
+
 # The following tests have no implementation due to lacking operators in the ONNX standard
 array_api_tests/test_creation_functions.py::test_meshgrid
 

@@ -52,8 +52,8 @@ class Info:
         }
 
     def default_device(self) -> None:
-        raise ValueError("ndonnx does not define a default device")
-        ...
+        # TODO: Should we raise instead or is returning `None` more in line with the standard?
+        return None
 
     def default_dtypes(self, *, device=None) -> DefaultDataTypes:
         # TODO: We are not standard compliant until we support complex numbers

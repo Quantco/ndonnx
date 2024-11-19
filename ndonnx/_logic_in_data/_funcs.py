@@ -6,7 +6,7 @@ from __future__ import annotations
 import builtins
 import math
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import numpy as np
 
@@ -430,7 +430,19 @@ def reshape(
 
 
 def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Array:
-    raise NotImplementedError
+    from ._typed_array import TyArrayInt64
+
+    repeats_: int | TyArrayInt64
+    if isinstance(repeats, int):
+        repeats_ = repeats
+    elif isinstance(repeats._data, TyArrayInt64):
+        repeats_ = repeats._data
+    else:
+        raise TypeError(
+            "'repeats' must be of type 'int' or an array with data type 'int64'"
+        )
+
+    return Array._from_data(x._data.repeat(repeats_, axis=axis))
 
 
 def result_type(*arrays_and_dtypes: Array | DType) -> DType:
@@ -496,7 +508,7 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
 
 
 def tile(x: Array, repetitions: tuple[int, ...], /) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.tile(repetitions))
 
 
 def tril(x: Array, /, *, k: int = 0) -> Array:
@@ -513,20 +525,43 @@ def tensordot(
     raise NotImplementedError
 
 
-def unique_all(x: Array, /) -> tuple[Array, Array, Array, Array]:
-    raise NotImplementedError
+class UniqueAll(NamedTuple):
+    values: Array
+    indices: Array
+    inverse_indices: Array
+    counts: Array
 
 
-def unique_counts(x: Array, /) -> tuple[Array, Array]:
-    raise NotImplementedError
+def unique_all(x: Array, /) -> UniqueAll:
+    values, indices, inverse_indices, counts = (
+        Array._from_data(tyarr) for tyarr in x._data.unique_all()
+    )
+    return UniqueAll(values, indices, inverse_indices, counts)
 
 
-def unique_inverse(x: Array, /) -> tuple[Array, Array]:
-    raise NotImplementedError
+class UniqueCounts(NamedTuple):
+    values: Array
+    counts: Array
+
+
+def unique_counts(x: Array, /) -> UniqueCounts:
+    uall = unique_all(x)
+    return UniqueCounts(uall.values, uall.counts)
+
+
+class UniqueInverse(NamedTuple):
+    values: Array
+    inverse_indices: Array
+
+
+def unique_inverse(x: Array, /) -> UniqueInverse:
+    uall = unique_all(x)
+    return UniqueInverse(uall.values, uall.inverse_indices)
 
 
 def unique_values(x: Array, /) -> Array:
-    raise NotImplementedError
+    uall = unique_all(x)
+    return uall.values
 
 
 def unstack(x: Array, /, *, axis: int = 0) -> tuple[Array, ...]:

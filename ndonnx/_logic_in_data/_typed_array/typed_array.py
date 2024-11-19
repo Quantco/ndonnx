@@ -96,8 +96,13 @@ class TyArrayBase(ABC):
 
     def astype(self, dtype: DType[TY_ARRAY], /, *, copy=True) -> TY_ARRAY:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
-        if self.dtype == dtype and not copy:
-            return self  # type: ignore
+        if self.dtype == dtype:
+            if copy:
+                import copy
+
+                return copy.copy(self)  # type: ignore
+            else:
+                return self  # type: ignore
         res = self.__ndx_astype__(dtype)
         if res is NotImplemented:
             # `type(self._data)` does not know about the target `dtype`
@@ -160,11 +165,15 @@ class TyArrayBase(ABC):
             raise ValueError("'shift' and 'axis' must be tuples of equal length")
 
         def _roll(x: Self, shift: int, axis: int, /) -> Self:
+            from .funcs import astyarray
+
             indices_a = [slice(None) for i in range(x.ndim)]
             indices_b = [slice(None) for i in range(x.ndim)]
 
-            indices_a[axis] = slice(shift, None, 1)
-            indices_b[axis] = slice(None, shift, 1)
+            dim = x.dynamic_shape[axis]
+            shift_ = astyarray(shift) % dim
+            indices_a[axis] = slice(shift_, None, 1)
+            indices_b[axis] = slice(None, shift_, 1)
 
             return x[tuple(indices_a)].concat([x[tuple(indices_b)]], axis=axis)
 
@@ -297,6 +306,14 @@ class TyArrayBase(ABC):
         keepdims: bool = False,
     ) -> Self:
         raise _make_type_error("var", self.dtype)
+
+    def repeat(
+        self, repeats: int | TyArrayInt64, /, *, axis: int | None = None
+    ) -> Self:
+        raise _make_type_error("repeat", self.dtype)
+
+    def tile(self, repetitions: tuple[int, ...], /) -> Self:
+        raise _make_type_error("tile", self.dtype)
 
     # Element-wise functions without additional arguments
 

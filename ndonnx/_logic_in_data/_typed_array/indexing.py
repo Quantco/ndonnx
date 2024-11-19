@@ -3,23 +3,26 @@
 from __future__ import annotations
 
 from types import EllipsisType
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, TypeAlias, Union
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from .._array import Array
+    from .._array import GetitemIndex as GetitemIndexPub
     from . import TyArrayBool, TyArrayInt64, TyArrayInteger
 
+    GetitemScalarPub: TypeAlias = int | slice | EllipsisType | None | Array
 
-GetitemIndexStatic = Union[
-    int | slice | EllipsisType | None, tuple[int | slice | EllipsisType | None, ...]
-]
-GetitemIndex = Union[GetitemIndexStatic, "TyArrayInteger", "TyArrayBool"]
+    GetitemScalar: TypeAlias = int | slice | EllipsisType | None | TyArrayInt64
+    GetitemTuple: TypeAlias = tuple[GetitemScalar, ...]
+    GetitemIndexStatic: TypeAlias = GetitemScalar | GetitemTuple
+    GetitemIndex: TypeAlias = GetitemIndexStatic | TyArrayInteger | TyArrayBool
 
-SetitemIndexStatic = Union[
-    int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...]
-]
-SetitemIndex = Union[SetitemIndexStatic, "TyArrayInteger", "TyArrayBool"]
+    SetitemIndexStatic: TypeAlias = Union[
+        int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...]
+    ]
+    SetitemIndex: TypeAlias = Union[SetitemIndexStatic, TyArrayInteger, TyArrayBool]
 
 
 class FancySlice:
@@ -28,6 +31,7 @@ class FancySlice:
     In the latter case, the result needs to be squeezed after the indexing operation.
     """
 
+    # 1D arrays with a single element so that concatenating them later is cheaper
     start: TyArrayInt64
     stop: TyArrayInt64
     step: TyArrayInt64
@@ -73,7 +77,8 @@ def _asidx(obj: int | TyArrayInt64) -> TyArrayInt64:
     from . import TyArrayInt64
     from .funcs import astyarray, safe_cast
 
-    arr = safe_cast(TyArrayInt64, astyarray(obj))
+    obj_ = np.array(obj, np.int64) if isinstance(obj, int) else obj
+    arr = safe_cast(TyArrayInt64, astyarray(obj_))
 
     if arr.ndim != 0:
         raise IndexError(f"expected scalar array but found array of rank `{arr.ndim}`")
@@ -87,11 +92,11 @@ _MIN = np.iinfo(np.int64).min
 
 def _compute_end_single_idx(start: TyArrayInt64 | int) -> TyArrayInt64:
     from . import TyArrayBool, TyArrayInt64
-    from .funcs import astyarray, safe_cast, where
+    from .funcs import safe_cast, where
 
     start = _asidx(start)
     end = start + _asidx(1)
-    end_is_zero = safe_cast(TyArrayBool, end == astyarray(0))
+    end_is_zero = safe_cast(TyArrayBool, end == _asidx(0))
     return safe_cast(TyArrayInt64, where(end_is_zero, _asidx(_MAX), end))
 
 
@@ -131,3 +136,62 @@ def _compute_stop_slice(
 
     is_reverse = safe_cast(TyArrayBool, step < _asidx(1))
     return safe_cast(TyArrayInt64, where(is_reverse, _asidx(_MIN), _asidx(_MAX)))
+
+
+def normalize_getitem_key(
+    key: GetitemIndexPub | GetitemIndex,
+) -> GetitemTuple | TyArrayBool:
+    from .. import Array
+    from . import TyArrayBool, TyArrayInt64
+
+    # Fish out the boolean masks before normalizing to tuples
+    if isinstance(key, Array) and isinstance(key._data, TyArrayBool):
+        return key._data
+    if isinstance(key, TyArrayBool):
+        return key
+
+    if isinstance(key, int | slice | EllipsisType | None | Array | TyArrayInt64):
+        return (_normalize_getitem_key_item(key),)
+
+    if isinstance(key, tuple):
+        if key.count(...) > 1:
+            raise IndexError("more than one ellipsis (`...`) in index tuple")
+
+        return tuple(_normalize_getitem_key_item(el) for el in key)
+
+    raise IndexError(f"unexpected key `{key}`")
+
+
+def _normalize_getitem_key_item(key: GetitemScalarPub | GetitemScalar) -> GetitemScalar:
+    from .. import Array
+    from .onnx import TyArrayBase, TyArrayInt64, int32, int64
+
+    if isinstance(key, Array):
+        if key.ndim != 0:
+            raise IndexError(f"Index array must be a scalar but has rank `{key.ndim}`")
+        if isinstance(key._data, TyArrayInt64):
+            return key._data
+        raise IndexError(
+            f"indexing array must have integer or boolean data type; found `{key.dtype}`"
+        )
+
+    if isinstance(key, slice):
+        slice_kwargs = {"start": key.start, "stop": key.stop, "step": key.step}
+        out: dict[str, int | None | TyArrayInt64] = {}
+        for k, arg in slice_kwargs.items():
+            if not isinstance(arg, Array | None | int | TyArrayInt64):
+                raise IndexError(f"slice argument `{k}` has invalid type `{type(arg)}`")
+            if isinstance(arg, Array | TyArrayBase):
+                if arg.dtype not in (int32, int64) or arg.ndim != 0:
+                    raise IndexError(
+                        f"array-slice argument must be be an int64 scalar. Found `{arg}`"
+                    )
+                ty_arr = arg._data if isinstance(arg, Array) else arg
+                out[k] = ty_arr.astype(int64)
+            else:
+                out[k] = arg
+        return slice(*out.values())  # Beware that we use the dict order here!
+
+    if isinstance(key, int | None | type(...)):
+        return key
+    raise IndexError(f"unexpected index element `{key}`")

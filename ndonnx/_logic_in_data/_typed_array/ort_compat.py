@@ -59,13 +59,17 @@ def _wrap_unary(
 
 
 def _wrap_binary(
-    fun: Callable[[Var, Var], Var], mapping: _MappingDictType, cast_output=True
+    fun: Callable[[Var, Var], Var],
+    mapping: _MappingDictType,
+    cast_output=True,
+    fun_name: str | None = None,
 ) -> Callable[[Var, Var], Var]:
     def wrapped(a: Var, b: Var) -> Var:
         dtype_in = a.unwrap_tensor().dtype
         if via_dtype := _detour_type(dtype_in, mapping):
             if isinstance(via_dtype, Warn):
-                _warn_lossy(fun.__name__, dtype_in, via_dtype.ty)
+                fname = fun_name or fun.__name__
+                _warn_lossy(fname, dtype_in, via_dtype.ty)
                 via_dtype = via_dtype.ty
 
             a = op.cast(a, to=via_dtype)
@@ -154,7 +158,7 @@ neg = _wrap_unary(
         (np.uint64,): Warn(np.int64),
     },
 )
-round = _wrap_unary(op.floor, _mapping_float_double)
+round = _wrap_unary(op.round, _mapping_float_double)
 # T tensor(bfloat16), tensor(double), tensor(float), tensor(float16), tensor(int16), tensor(int32), tensor(int64), tensor(int8), tensor(uint16), tensor(uint32), tensor(uint64), tensor(uint8)
 sign = op.sign
 sin = _wrap_unary(op.sin, _mapping_float_double)
@@ -189,14 +193,15 @@ def reduce_op(
 # tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_prod: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
-    (np.uint64,): Warn(np.float32),
+    (np.uint32,): np.int64,
+    (np.uint64, np.float64): Warn(np.float32),
 }
 reduce_prod = partial(reduce_op, spox_op=op.reduce_prod, mapping=_mapping_reduce_prod)
 
 # tensor(bfloat16), tensor(double), tensor(float), tensor(float16),
 # tensor(int32), tensor(int64)
 _mapping_reduce_sum: _MappingDictType = {
-    (np.int8, np.int16, np.uint8, np.uint16): np.int32,
+    (np.bool_, np.int8, np.int16, np.uint8, np.uint16): np.int32,
     (np.uint64,): Warn(np.float64),
 }
 reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_sum)
@@ -382,3 +387,130 @@ def top_k(
         return op.cast(values, to=dtype_in), indices
 
     return op.top_k(X, K, **kwargs)
+
+
+def arg_min(
+    data: Var,
+    *,
+    axis: int = 0,
+    keepdims: int = 1,
+    select_last_index: int = 0,
+) -> Var:
+    fun = _wrap_unary(
+        partial(
+            op.arg_min,
+            axis=axis,
+            keepdims=keepdims,
+            select_last_index=select_last_index,
+        ),
+        cast_output=False,
+        # tensor(double), tensor(float), tensor(int32)
+        mapping={
+            (
+                np.int8,
+                np.int16,
+                np.uint8,
+                np.uint16,
+            ): np.int32,
+            (np.int64, np.uint32, np.uint64): Warn(np.float64),
+        },
+        fun_name="argmin",
+    )
+    return fun(data)
+
+
+def arg_max(
+    data: Var,
+    *,
+    axis: int = 0,
+    keepdims: int = 1,
+    select_last_index: int = 0,
+) -> Var:
+    fun = _wrap_unary(
+        partial(
+            op.arg_max,
+            axis=axis,
+            keepdims=keepdims,
+            select_last_index=select_last_index,
+        ),
+        cast_output=False,
+        # tensor(double), tensor(float), tensor(int32)
+        mapping={
+            (
+                np.int8,
+                np.int16,
+                np.uint8,
+                np.uint16,
+            ): np.int32,
+            (np.int64, np.uint32, np.uint64): Warn(np.float64),
+        },
+        fun_name="argmax",
+    )
+    return fun(data)
+
+
+# tensor(bool), tensor(float), tensor(int32), tensor(int64), tensor(uint8)
+def non_zero(
+    X: Var,
+) -> Var:
+    dtype = X.unwrap_tensor().dtype
+    if dtype == np.float64:
+        # is_not_nan = op.not_(op.isnan(X))
+        is_ne_0 = op.not_(op.equal(X, op.const(0.0, dtype=dtype)))
+        return op.non_zero(is_ne_0)
+    mapping: _MappingDictType = {
+        (np.int8, np.int16, np.uint16): np.int32,
+        (np.uint32, np.uint64): np.float32,
+    }
+    if via_dtype := _detour_type(dtype, mapping):
+        X = op.cast(X, to=via_dtype)  # type: ignore
+    return op.non_zero(X)
+
+
+# tensor(double), tensor(float), tensor(int32), tensor(int64), tensor(string), tensor(uint8)
+def where(
+    condition: Var,
+    X: Var,
+    Y: Var,
+) -> Var:
+    fun = _wrap_binary(
+        lambda x, y: op.where(condition, x, y),
+        mapping={
+            (np.bool,): np.uint8,
+            (np.int8, np.int16, np.uint16): np.int32,
+            (np.uint32,): np.int64,
+            (np.uint64,): Warn(np.float64),
+        },
+        fun_name="where",
+    )
+    return fun(X, Y)
+
+
+def unique(
+    X: Var,
+    *,
+    axis: int | None = None,
+    sorted: int = 1,
+) -> tuple[Var, Var, Var, Var]:
+    # tensor(double), tensor(float), tensor(int64), tensor(int8), tensor(string)
+    dtype = X.unwrap_tensor().dtype
+    via_dtype = _detour_type(
+        dtype,
+        {
+            (np.bool,): np.int8,
+            (np.int16, np.int32, np.uint8, np.uint16, np.uint32): np.int64,
+            (np.uint64,): Warn(np.float64),
+        },
+    )
+    x = X
+    if via_dtype is not None:
+        if isinstance(via_dtype, Warn):
+            via_dtype = via_dtype.ty
+            _warn_lossy("unique", dtype, via_dtype)
+        x = op.cast(x, to=via_dtype)
+
+    values, indices, inverse_indices, counts = op.unique(x, axis=axis, sorted=sorted)
+
+    if via_dtype is not None:
+        values = op.cast(values, to=dtype)
+    return (values, indices, inverse_indices, counts)

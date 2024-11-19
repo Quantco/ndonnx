@@ -30,19 +30,19 @@ from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType, as_numpy, from_numpy
 from .._schema import DTypeInfoV1
 from . import ort_compat
-from .indexing import (
-    FancySlice,
-    GetitemIndex,
-    GetitemIndexStatic,
-    SetitemIndex,
-    SetitemIndexStatic,
-)
+from .indexing import FancySlice, normalize_getitem_key
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from .._array import OnnxShape
-
+    from .indexing import (
+        GetitemIndex,
+        GetitemIndexStatic,
+        GetitemTuple,
+        SetitemIndex,
+        SetitemIndexStatic,
+    )
 
 TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
 
@@ -202,8 +202,11 @@ class TyArray(TyArrayBase):
     var: Var
 
     def __init__(self, var: Var):
-        if from_numpy(var.unwrap_tensor().dtype) != self.dtype:
-            raise ValueError(f"data type of 'var' is incompatible with `{type(self)}`")
+        var_dtype = var.unwrap_tensor().dtype
+        if from_numpy(var_dtype) != self.dtype:
+            raise ValueError(
+                f"data type of 'var' (`{var_dtype}`) is incompatible with `{type(self)}`"
+            )
         if var.unwrap_tensor().shape is None:
             raise ValueError("'var' has no shape information")
         self.var = var
@@ -215,7 +218,8 @@ class TyArray(TyArrayBase):
             return {"data": "*lazy*"}
 
     def __getitem__(self, key: GetitemIndex) -> Self:
-        _validate_getitem_index(key)
+        key = normalize_getitem_key(key)
+
         if isinstance(key, bool):
             key = TyArrayBool(op.const(key))
         if not isinstance(key, TyArray):
@@ -237,7 +241,7 @@ class TyArray(TyArrayBase):
 
         return type(self)(ca[key_].var)
 
-    def _getitem_static(self, key: GetitemIndexStatic) -> Self:
+    def _getitem_static(self, key: GetitemTuple) -> Self:
         if isinstance(key, list):
             # Technically not supported, but a common pattern
             key = tuple(key)
@@ -245,9 +249,6 @@ class TyArray(TyArrayBase):
             key = (key,)
 
         # Validation
-        if key.count(...) > 1:
-            raise IndexError("more than one ellipsis (`...`) in index tuple")
-
         cnt_slice_or_idx = len(list(el for el in key if isinstance(el, int | slice)))
 
         if key.count(...) == 0:
@@ -286,16 +287,19 @@ class TyArray(TyArrayBase):
 
         fancy_slices = [FancySlice(el) for el in indices_and_slices_only]
         kwargs = _to_slice_kwargs(fancy_slices)
+        if kwargs:
+            # Some slices are not noops, so we do the slicing
+            var = op.slice(var, **kwargs)
+            squeeze_positions = [i for i, s in enumerate(fancy_slices) if s.squeeze]
 
-        var = op.slice(var, **kwargs)
-        squeeze_positions = [i for i, s in enumerate(fancy_slices) if s.squeeze]
-
-        if squeeze_positions:
-            var = op.squeeze(var, op.const(squeeze_positions, np.int64))
+            if squeeze_positions:
+                var = op.squeeze(var, op.const(squeeze_positions, np.int64))
 
         return type(self)(var)
 
     def _getitem_boolmask(self, key: TyArrayBool) -> Self:
+        if not all(ks in (xs, 0) for xs, ks in zip(self.shape, key.shape)):
+            raise IndexError("Shape of 'key' is incompatible with shape of 'self'")
         if key.ndim > self.ndim:
             raise IndexError(
                 "rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
@@ -402,6 +406,9 @@ class TyArray(TyArrayBase):
     def all(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBool:
+        if axis == ():
+            return self.astype(bool_)
+
         if isinstance(axis, int):
             axis = (axis,)
 
@@ -417,12 +424,16 @@ class TyArray(TyArrayBase):
 
         # Note: reduce_min, which would support uint8s, appears to be buggy on the onnxruntime
         # side. Thus we use reduce_prod for now.
-        var = op.reduce_prod(bools.astype(int32).var, axes=axes, keepdims=keepdims)
+        var = ort_compat.reduce_prod(
+            bools.astype(int32).var, axes=axes, keepdims=keepdims
+        )
         return safe_cast(TyArrayBool, TyArrayInt32(var).astype(bool_))
 
     def any(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBool:
+        if axis == ():
+            return self.astype(bool_)
         if isinstance(axis, int):
             axis = (axis,)
 
@@ -436,9 +447,11 @@ class TyArray(TyArrayBase):
 
         axes = op.const(list(axis), np.int64) if axis else None
 
-        # min uint8 is returned if dimensions are empty
-        var = op.reduce_max(bools.astype(uint8).var, axes=axes, keepdims=keepdims)
-        return safe_cast(TyArrayBool, TyArrayUint8(var).astype(bool_))
+        # Accumulate in float32 to avoid possible overflowing issues
+        var = ort_compat.reduce_sum(
+            bools.astype(float32).var, axes=axes, keepdims=keepdims
+        )
+        return safe_cast(TyArrayBool, TyArrayFloat32(var).astype(bool_))
 
     def as_core_dtype(self, dtype: DTypes) -> TyArray:
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
@@ -500,6 +513,21 @@ class TyArray(TyArrayBase):
             var = op.reshape(self.var, shape.var, allowzero=True)
         return type(self)(var)
 
+    def repeat(
+        self, repeats: int | TyArrayInt64, /, *, axis: int | None = None
+    ) -> Self:
+        x = self
+        if axis is not None:
+            x = x.moveaxis(axis, -1)
+        x_2d = x.reshape((-1,))[:, None]
+
+        if isinstance(repeats, int):
+            x_2d = x_2d.tile((repeats,))
+            if axis is None:
+                return x_2d.reshape((-1,))
+
+        raise NotImplementedError
+
     def searchsorted(
         self,
         x2: Self,
@@ -547,16 +575,32 @@ class TyArray(TyArrayBase):
         var = op.gather(self.var, indices.var, axis=axis)
         return type(self)(var)
 
+    def tile(self, repetitions: tuple[int, ...], /) -> Self:
+        n = self.ndim
+        m = len(repetitions)
+        x = self
+        if n > m:
+            repetitions = tuple([1] * (n - m) + list(repetitions))
+        elif n < m:
+            x = self[tuple([None] * (m - n) + [...])]
+
+        var = op.tile(x.var, op.const(repetitions, np.int64))
+        return type(self)(var)
+
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         flattened = self.reshape((-1,))
-        values, indices, inverse_indices, counts = op.unique(flattened.var, sorted=True)
-
-        return (
-            type(self)(values),
-            TyArrayInt64(indices),
-            TyArrayInt64(inverse_indices),
-            TyArrayInt64(counts),
+        res = ort_compat.unique(flattened.var, sorted=True)
+        values, indices, inverse_indices, counts = (
+            type(self)(res[0]),
+            TyArrayInt64(res[1]),
+            TyArrayInt64(res[2]),
+            TyArrayInt64(res[3]),
         )
+
+        inverse_indices = inverse_indices.reshape(self.dynamic_shape)
+        counts = counts.reshape(values.dynamic_shape)
+
+        return (values, indices, inverse_indices, counts)
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # TODO: How is this never hit?
@@ -634,7 +678,7 @@ class TyArray(TyArrayBase):
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(y, TyArray):
             x, y = promote(self, y)
-            var = op.where(cond.var, x.var, y.var)
+            var = ort_compat.where(cond.var, x.var, y.var)
             return type(x)(var)
 
         return NotImplemented
@@ -675,12 +719,12 @@ class TyArrayNumber(TyArray):
     def argmax(
         self, /, *, axis: int | None = None, keepdims: bool = False
     ) -> TyArrayInt64:
-        return self._arg_minmax(op.arg_max, axis=axis, keepdims=keepdims)
+        return self._arg_minmax(ort_compat.arg_max, axis=axis, keepdims=keepdims)
 
     def argmin(
         self, /, *, axis: int | None = None, keepdims: bool = False
     ) -> TyArrayInt64:
-        return self._arg_minmax(op.arg_min, axis=axis, keepdims=keepdims)
+        return self._arg_minmax(ort_compat.arg_min, axis=axis, keepdims=keepdims)
 
     def argsort(
         self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
@@ -977,7 +1021,7 @@ class TyArrayNumber(TyArray):
         if self.ndim == 0:
             raise ValueError("'nonzero' is not defined for scalar arrays")
 
-        res = TyArrayInt64(op.non_zero(self.var))
+        res = TyArrayInt64(ort_compat.non_zero(self.var))
         out = []
         for i in range(self.ndim):
             out.append(res[i, :])
@@ -1120,17 +1164,55 @@ class TyArrayFloating(TyArrayNumber):
             self, other, operator.mod, lambda a, b: op.mod(a, b, fmod=1), forward=False
         )
 
+    def max(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        # ONNX standard does not define nan handling so we have to do
+        # some special handling for floating points
+        from .funcs import astyarray, where
+
+        res = super().max(axis=axis, keepdims=keepdims)
+
+        is_nan = self.isnan().any(axis=axis, keepdims=keepdims)
+        return safe_cast(
+            type(self), where(is_nan, astyarray(float("nan"), dtype=res.dtype), res)
+        )
+
+    def min(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        # ONNX standard does not define nan handling so we have to do
+        # some special handling for floating points
+        from .funcs import astyarray, where
+
+        res = super().min(axis=axis, keepdims=keepdims)
+
+        is_nan = self.isnan().any(axis=axis, keepdims=keepdims)
+        return safe_cast(
+            type(self), where(is_nan, astyarray(float("nan"), dtype=res.dtype), res)
+        )
+
     def mean(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
         if axis == ():
             return copy(self)
         axes = _axis_var(axis, self.ndim)
-        return type(self)(
-            ort_compat.reduce_mean(
+
+        summed = type(self)(
+            # TODO: File bug:
+            # ONNX is unclear about the semantics for `reduce_mean` for empty arrays
+            ort_compat.reduce_sum(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
+        in_shape = self.dynamic_shape
+        axis_ = _axis_array(axis, in_shape.ndim)
+        if axis_ is None:
+            n_elements = in_shape.prod()
+        else:
+            n_elements = in_shape.take(axis_).prod()
+        return (summed / n_elements).astype(self.dtype)
 
     def isfinite(self) -> TyArrayBool:
         return safe_cast(TyArrayBool, ~(self.isinf() | self.isnan()))
@@ -1499,44 +1581,9 @@ def _result_type_core_numeric(a: NumericDTypes, b: NumericDTypes) -> NumericDTyp
     raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")
 
 
-def _compute_end_slice(stop: int | None, step: int) -> int:
-    if isinstance(stop, int):
-        return stop
-    # Iterate "to the end"
-    if step < 1:
-        return int(np.iinfo(np.int64).min)
-    return int(np.iinfo(np.int64).max)
-
-
-def _compute_end_single_idx(start: int):
-    end = start + 1
-    if end == 0:
-        return np.iinfo(np.int64).max
-    return end
-
-
-def _validate_getitem_index(key: GetitemIndex):
-    if isinstance(key, None | int | slice | EllipsisType):
-        return
-    elif isinstance(key, tuple):
-        if not all(isinstance(el, None | int | slice | EllipsisType) for el in key):
-            raise IndexError(
-                f"elements of tuple index must be of type 'None | int | slice | ...', but tuple is `{key}`"
-            )
-    elif isinstance(key, TyArrayBase):
-        if not isinstance(key, TyArrayBool | TyArrayInt64):
-            raise IndexError(
-                f"Array index must be of type 'bool' or 'int64' found `{key.dtype}`"
-            )
-    elif isinstance(key, list):
-        raise TypeError("indexing with lists is not supported")
-    else:
-        raise IndexError(f"unexpected key: `{key}`")
-
-
-def _axis_var(axis: int | tuple[int, ...] | None, rank: int) -> Var | None:
-    """Construct an `axis` var for reduction operations such as `mean` and normalize it
-    to positive values."""
+def _axis_array(axis: int | tuple[int, ...] | None, rank: int) -> TyArrayInt64 | None:
+    """Construct an `axis` array for reduction operations such as `mean` and normalize
+    it to positive values."""
     if axis is None:
         return None
     else:
@@ -1544,23 +1591,40 @@ def _axis_var(axis: int | tuple[int, ...] | None, rank: int) -> Var | None:
             axis = (axis,)
         axes = [ax if ax >= 0 else ax + rank for ax in axis]
 
-    return op.const(axes, np.int64)
+    return TyArrayInt64(op.const(axes, np.int64))
+
+
+def _axis_var(axis: int | tuple[int, ...] | None, rank: int) -> Var | None:
+    res = _axis_array(axis, rank)
+    if res is None:
+        return None
+    return res.var
 
 
 def _to_slice_kwargs(slices: list[FancySlice]) -> dict[str, Var]:
-    # TODO: shouldn't use `Array`-functions here, but astyarray can't
-    # deal with `Sequence[TyArrayInt64]`.
-    # from .. import asarray
+    if all(el.is_noop() for el in slices):
+        return {}
+
     transposed = zip(
         *[(el.start, el.stop, el.step) for el in slices if not el.is_noop()]
     )
 
+    def concat(lst: tuple[TyArrayInt64, ...]) -> TyArrayInt64:
+        # This concatenation is a bit of a hot spot in the test suite.
+        # Thus, we use some hack constant folding here to skip some
+        # value prop overhead.
+        try:
+            # fast path
+            np_arrays = [el.unwrap_numpy() for el in lst]
+            return TyArrayInt64(op.const(np.asarray(np_arrays)))
+        except ValueError:
+            pass
+        arrays_1d = [el.reshape((-1,)) for el in lst]
+        return arrays_1d[0].concat(arrays_1d[1:], axis=0)
+
     # We can't concat 0-D arrays, thus the reshape
-    dict_of_lists = {
-        k: [el.reshape((-1,)) for el in lst]
-        for k, lst in zip(["starts", "ends", "steps"], transposed)
-    }
-    kw = {k: v[0].concat(v[1:], axis=0).var for k, v in dict_of_lists.items()}
+    kw = {k: concat(lst).var for k, lst in zip(["starts", "ends", "steps"], transposed)}
+
     kw["axes"] = TyArrayInt64(
         op.const([i for i, el in enumerate(slices) if not el.is_noop()], np.int64)
     ).var
