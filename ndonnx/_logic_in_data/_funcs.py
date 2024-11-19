@@ -430,16 +430,16 @@ def reshape(
 
 
 def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Array:
-    from ._typed_array import TyArrayInt64
+    from ._typed_array.onnx import TyArrayInt64, TyArrayInteger, int64
 
     repeats_: int | TyArrayInt64
     if isinstance(repeats, int):
         repeats_ = repeats
-    elif isinstance(repeats._data, TyArrayInt64):
-        repeats_ = repeats._data
+    elif isinstance(repeats._data, TyArrayInteger):
+        repeats_ = repeats._data.astype(int64)
     else:
         raise TypeError(
-            "'repeats' must be of type 'int' or an array with data type 'int64'"
+            f"'repeats' argument must be of type 'int' or an array with an integer data type, found `{repeats}`"
         )
 
     return Array._from_data(x._data.repeat(repeats_, axis=axis))
@@ -574,6 +574,8 @@ def unstack(x: Array, /, *, axis: int = 0) -> tuple[Array, ...]:
 
 
 def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
+    if x1._data.shape[axis] != x2._data.shape[axis]:
+        raise ValueError("summed over dimensions must match")
     prod = x1 * x2
     return sum(prod, axis=axis, dtype=prod.dtype)
 

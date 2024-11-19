@@ -13,7 +13,7 @@ from spox import Var
 
 import ndonnx._logic_in_data as ndx
 
-from .._dtypes import DType
+from .._dtypes import TY_ARRAY, DType
 from . import masked_onnx, onnx
 from .py_scalars import TyArrayPyBool, TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase
@@ -23,9 +23,25 @@ if TYPE_CHECKING:
     from .. import Array
 
 
+@overload
+def astyarray(
+    val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
+    dtype: DType[TY_ARRAY],
+    use_py_scalars=False,
+) -> TY_ARRAY: ...
+
+
+@overload
 def astyarray(
     val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
     dtype: None | DType = None,
+    use_py_scalars=False,
+) -> TyArrayBase: ...
+
+
+def astyarray(
+    val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
+    dtype: None | DType[TY_ARRAY] = None,
     use_py_scalars=False,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array."""

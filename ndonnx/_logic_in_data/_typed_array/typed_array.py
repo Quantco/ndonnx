@@ -164,23 +164,27 @@ class TyArrayBase(ABC):
         if len(shift) != len(axis_):
             raise ValueError("'shift' and 'axis' must be tuples of equal length")
 
-        def _roll(x: Self, shift: int, axis: int, /) -> Self:
+        def _roll_axis(x: Self, shift: int, axis: int, /) -> Self:
             from .funcs import astyarray
+
+            if shift == 0:
+                return x
 
             indices_a = [slice(None) for i in range(x.ndim)]
             indices_b = [slice(None) for i in range(x.ndim)]
 
             dim = x.dynamic_shape[axis]
             shift_ = astyarray(shift) % dim
-            indices_a[axis] = slice(shift_, None, 1)
-            indices_b[axis] = slice(None, shift_, 1)
+            # pre roll: |----a------|---b---|
+            # postroll: |---b---|----a------|
+            #           |-shift-|
 
-            return x[tuple(indices_a)].concat([x[tuple(indices_b)]], axis=axis)
+            indices_a[axis] = slice(None, -shift_, 1)
+            indices_b[axis] = slice(-shift_, None, 1)
+            return x[tuple(indices_b)].concat([x[tuple(indices_a)]], axis=axis)
 
         for sh, ax in zip(shift, axis_):
-            if sh == 0:
-                continue
-            x = _roll(x, sh, ax)
+            x = _roll_axis(x, sh, ax)
 
         if axis is None:
             return x.reshape(self.dynamic_shape)

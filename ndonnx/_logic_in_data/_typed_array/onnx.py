@@ -516,16 +516,6 @@ class TyArray(TyArrayBase):
     def repeat(
         self, repeats: int | TyArrayInt64, /, *, axis: int | None = None
     ) -> Self:
-        x = self
-        if axis is not None:
-            x = x.moveaxis(axis, -1)
-        x_2d = x.reshape((-1,))[:, None]
-
-        if isinstance(repeats, int):
-            x_2d = x_2d.tile((repeats,))
-            if axis is None:
-                return x_2d.reshape((-1,))
-
         raise NotImplementedError
 
     def searchsorted(
@@ -586,6 +576,20 @@ class TyArray(TyArrayBase):
 
         var = op.tile(x.var, op.const(repetitions, np.int64))
         return type(self)(var)
+
+    def _tile_array(self, repetitions: TyArrayInt64, /) -> Self:
+        if not repetitions.ndim == 1:
+            raise ValueError(
+                f"'repetitions' has rank `{repetitions.ndim}` but must be '1'"
+            )
+
+        try:
+            reps = repetitions.unwrap_numpy()
+            return self.tile(tuple(reps))
+        except ValueError:
+            raise NotImplementedError(
+                "'tile' does not yet support repetition via dynamic arrays "
+            )
 
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         flattened = self.reshape((-1,))
@@ -1522,6 +1526,7 @@ _mixed_integers: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (int64, uint32): int64,
     # NOTE: Standard does not define interaction with uint64!
 }
+_mixed_integers |= {(k[1], k[0]): v for k, v in _mixed_integers.items()}
 
 _floating_floating: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
     (float16, float16): float16,
@@ -1544,11 +1549,10 @@ _non_standard: dict[tuple[NumericDTypes, NumericDTypes], NumericDTypes] = {
 }
 
 # Mixed integers and floating point numbers are not
-# strictly defined, but generally we want to cast the
-# integer to a floating point and then try again.
+# strictly defined.
 _int_to_floating: dict[NumericDTypes, NumericDTypes] = {
-    int8: float16,
-    uint8: float16,
+    int8: float32,
+    uint8: float32,
     int16: float32,
     uint16: float32,
     int32: float64,
