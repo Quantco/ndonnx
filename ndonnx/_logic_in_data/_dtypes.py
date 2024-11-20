@@ -63,14 +63,12 @@ class DType(ABC, Generic[TY_ARRAY]):
         return self.__class__.__name__
 
     def to_numpy_dtype(self) -> np.dtype:
-        from ._typed_array import onnx
+        warn("'to_numpy_dtype' is deprecated. Use `unwarp_numpy` method instead")
 
-        warn(
-            "'to_numpy_dtype' is deprecated. Use `unwarp_numpy` on the array object instead."
-        )
-        if isinstance(self, onnx._OnnxDType):
-            return as_numpy(self)
-        raise NotImplementedError
+        return self.unwrap_numpy()
+
+    def unwrap_numpy(self) -> np.dtype:
+        raise ValueError(f"`{self}` provides no corresponding NumPy data type")
 
 
 # Helper functions

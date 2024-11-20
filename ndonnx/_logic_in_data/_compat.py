@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
 from warnings import warn
 
 from ._array import Array
@@ -15,7 +15,7 @@ from ._typed_array.masked_onnx import (
     NCoreFloatingDTypes,
     NCoreIntegerDTypes,
 )
-from ._typed_array.onnx import FloatingDTypes, IntegerDTypes
+from ._typed_array.onnx import DTypes, FloatingDTypes, IntegerDTypes
 
 if TYPE_CHECKING:
     from spox import Var
@@ -34,7 +34,11 @@ def from_spox_var(var: Var) -> Array:
     return asarray(var)
 
 
+class UnsupportedOperationError(TypeError): ...
+
+
 Nullable = NCoreDTypes
 Floating = FloatingDTypes | NCoreFloatingDTypes
 Integer = IntegerDTypes | NCoreIntegerDTypes
 Numeric = Floating | Integer
+CoreType: TypeAlias = DTypes

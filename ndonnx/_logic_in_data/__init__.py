@@ -3,7 +3,16 @@
 
 import spox
 
-from ._compat import array, from_spox_var, Nullable, Floating, Integer, Numeric
+from ._compat import (
+    array,
+    from_spox_var,
+    Nullable,
+    Floating,
+    Integer,
+    Numeric,
+    CoreType,
+    UnsupportedOperationError,
+)
 from ._array import Array, asarray
 from ._dtypes import DType
 from ._typed_array.onnx import (
@@ -359,4 +368,6 @@ __all__ = [
     "Numeric",
     "as_nullable",
     "as_non_nullable",
+    "CoreType",
+    "UnsupportedOperationError",
 ]

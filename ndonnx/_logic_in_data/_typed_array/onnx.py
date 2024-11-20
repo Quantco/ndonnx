@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import operator
 from abc import abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from copy import copy
 from types import EllipsisType, NotImplementedType
 from typing import (
@@ -38,17 +38,21 @@ if TYPE_CHECKING:
     from .._array import OnnxShape
     from .indexing import (
         GetitemIndex,
-        GetitemIndexStatic,
         GetitemTuple,
         SetitemIndex,
         SetitemIndexStatic,
     )
 
 TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
+KEY = TypeVar("KEY", int, float, str)
+VALUE = TypeVar("VALUE", int, float, str)
 
 
 class _OnnxDType(DType[TY_ARRAY_ONNX]):
     """Data types with a direct representation in the ONNX standard."""
+
+    def unwrap_numpy(self) -> np.dtype:
+        return as_numpy(self)
 
     @property
     @abstractmethod
@@ -168,23 +172,23 @@ class Float64(_Number):
 
 
 # Non-nullable Singleton instances
-bool_ = Boolean()
+bool_: Boolean = Boolean()
 
-float16 = Float16()
-float32 = Float32()
-float64 = Float64()
+float16: Float16 = Float16()
+float32: Float32 = Float32()
+float64: Float64 = Float64()
 
-int16 = Int16()
-int32 = Int32()
-int64 = Int64()
-int8 = Int8()
+int16: Int16 = Int16()
+int32: Int32 = Int32()
+int64: Int64 = Int64()
+int8: Int8 = Int8()
 
-uint8 = Uint8()
-uint16 = Uint16()
-uint32 = Uint32()
-uint64 = Uint64()
+uint8: Uint8 = Uint8()
+uint16: Uint16 = Uint16()
+uint32: Uint32 = Uint32()
+uint64: Uint64 = Uint64()
 
-string = String()
+string: String = String()
 
 # Union types
 #
@@ -226,20 +230,7 @@ class TyArray(TyArrayBase):
             return self._getitem_static(key)
         if isinstance(key, TyArrayBool):
             return self._getitem_boolmask(key)
-        if isinstance(key, TyArrayInt64):
-            raise NotImplementedError
-
-        ca = _as_old_corarray(self)
-        if isinstance(key, TyArrayBool):
-            # Let's be defensive here: Bool arrays may become a
-            # subclass of int array
-            key_: GetitemIndexStatic | _CoreArray = _as_old_corarray(key)
-        elif isinstance(key, TyArrayInteger):
-            key_ = _as_old_corarray(key.astype(int64))
-        else:
-            key_ = key
-
-        return type(self)(ca[key_].var)
+        raise IndexError(f"Cannot index with key `{key}`")
 
     def _getitem_static(self, key: GetitemTuple) -> Self:
         if isinstance(key, list):
@@ -399,7 +390,7 @@ class TyArray(TyArrayBase):
                 return np_arr.astype(str)
 
             # Should not happen
-            raise ValueError("unexpected value data type")
+            raise ValueError(f"unexpected value data type: `{np_arr.dtype}`")
 
         raise ValueError("no propagated value available")
 
@@ -634,6 +625,39 @@ class TyArray(TyArrayBase):
         var = ort_compat.clip(self.var, min_, max_)
 
         return type(self)(var)
+
+    def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+        """Map values in ``self`` based on the static ``mapping``.
+
+        Parameters
+        ----------
+        mapping
+            A mapping from keys to values. The keys must be of the
+            same type as the values in ``x``. NaN-keys compare true to
+            values in ``self``.
+        default
+            The default value to use when a key is not found in the mapping.
+
+        Returns
+        -------
+        A new Array with the values mapped according to the mapping.
+        """
+        np_dtype = self.dtype.unwrap_numpy()
+        keys = np.array(list(mapping.keys()), dtype=np_dtype)
+        values = np.array(list(mapping.values()))
+        if values.dtype.kind in ("O", "U"):
+            values = values.astype(str)
+            # Don't use values.dtype to cast the default since it may
+            # have a length associated with it!
+            default_ = np.array([default], dtype=str)
+        else:
+            default_ = np.array([default], dtype=values.dtype)
+
+        var = ort_compat.label_encoder(
+            self.var, keys_tensor=keys, values_tensor=values, default_tensor=default_
+        )
+
+        return ascoredata(var)
 
     @overload
     def __ndx_maximum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
@@ -1381,6 +1405,18 @@ class TyArrayBool(TyArrayInteger):
 
     def logical_not(self) -> Self:
         return ~self
+
+    def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+        from .funcs import astyarray, where
+
+        mapping_ = {bool(k): v for k, v in mapping.items()}
+
+        true_val = mapping_.get(True, default)
+        false_val = mapping_.get(False, default)
+
+        return safe_cast(
+            TyArray, where(self, astyarray(true_val), astyarray(false_val))
+        )
 
 
 class TyArrayInt8(TyArrayInteger):

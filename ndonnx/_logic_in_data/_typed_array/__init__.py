@@ -39,6 +39,7 @@ from .masked_onnx import (
     TyMaArrayString,
     asncoredata,
 )
+from .funcs import astyarray
 
 from .py_scalars import TyArrayPyInt, TyArrayPyFloat, TyArrayPyString
 
@@ -79,4 +80,5 @@ __all__ = [
     "TyArrayPyString",
     "asncoredata",
     "ascoredata",
+    "astyarray",
 ]

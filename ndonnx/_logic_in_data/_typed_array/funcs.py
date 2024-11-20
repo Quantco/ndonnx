@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from copy import copy as copy_
 from functools import reduce
 from itertools import chain
 from types import NotImplementedType
@@ -44,15 +45,21 @@ def astyarray(
     dtype: None | DType[TY_ARRAY] = None,
     use_py_scalars=False,
 ) -> TyArrayBase:
-    """Conversion of values of various types into a built-in typed array."""
+    """Conversion of values of various types into a built-in typed array.
+
+    This function always copies
+    """
     from .. import Array
     from .onnx import TyArray
 
+    if isinstance(val, np.generic):
+        val = np.array(val)
+
     if isinstance(val, TyArrayBase):
-        return val
+        return copy_(val)
 
     if isinstance(val, Array):
-        return val._data
+        return copy_(val._data)
 
     arr: TyArrayBase
     if isinstance(val, bool):
@@ -84,7 +91,7 @@ def astyarray(
         raise ValueError
 
     if dtype is not None:
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=True)
     return arr
 
 

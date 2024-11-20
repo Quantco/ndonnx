@@ -13,6 +13,7 @@ from functools import partial
 from warnings import warn
 
 import numpy as np
+import spox.opset.ai.onnx.ml.v4 as ml
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
@@ -514,3 +515,59 @@ def unique(
     if via_dtype is not None:
         values = op.cast(values, to=dtype)
     return (values, indices, inverse_indices, counts)
+
+
+def label_encoder(
+    X: Var,
+    *,
+    default_tensor: np.ndarray,
+    keys_tensor: np.ndarray,
+    values_tensor: np.ndarray,
+) -> Var:
+    # T1 = tensor(double), tensor(float), tensor(int64),
+    # tensor(string)
+    # T2 = tensor(double), tensor(float), tensor(int16),
+    # tensor(int64), tensor(string)
+    dtype_in = X.unwrap_tensor().dtype
+    t1 = _detour_type(
+        dtype_in,
+        {
+            (
+                np.bool,
+                np.int8,
+                np.int16,
+                np.int32,
+                np.uint8,
+                np.uint16,
+                np.uint32,
+            ): np.int64,
+            (np.float32,): np.float64,
+            (
+                np.uint64,
+            ): np.int64,  # We also cast the key/values, so we don't lose precision.
+        },
+    )
+    t1 = t1.ty if isinstance(t1, Warn) else t1
+
+    t2 = _detour_type(
+        values_tensor.dtype,
+        {
+            (np.bool, np.int8, np.int32, np.uint8, np.uint16, np.uint32): np.int64,
+            (np.float32,): np.float64,
+            (
+                np.uint64,
+            ): np.int64,  # We also cast the key/values, so we don't lose precision.
+        },
+    )
+    t2 = t2.ty if isinstance(t2, Warn) else t2
+
+    res = ml.label_encoder(
+        op.cast(X, to=t1) if t1 else X,
+        keys_tensor=keys_tensor.astype(t1) if t1 else keys_tensor,
+        values_tensor=values_tensor.astype(t2) if t2 else values_tensor,
+        default_tensor=default_tensor.astype(t2) if t2 else default_tensor,
+    )
+
+    if t2:
+        return op.cast(res, to=values_tensor.dtype)
+    return res
