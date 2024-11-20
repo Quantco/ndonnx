@@ -807,10 +807,15 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        dtype_ = self._accumulation_dtype(dtype)
+        dtype_ = dtype or self._accumulation_dtype(dtype)
         if self.dtype != dtype_:
             member_after_cast = getattr(self.astype(dtype_), pub_name)
-            return member_after_cast(axis=axis, keepdims=keepdims, dtype=dtype)
+            return member_after_cast(axis=axis, keepdims=keepdims, dtype=dtype_)
+
+        # Early return if there is nothing left to do. We deliberately
+        # do this after the casting.
+        if axis == ():
+            return copy(self)
 
         axis_ = _axis_var(axis, self.ndim)
         var = var_op(
@@ -850,6 +855,26 @@ class TyArrayNumber(TyArray):
             )
         )
 
+    @overload
+    def prod(
+        self,
+        /,
+        *,
+        dtype: DType[TY_ARRAY_ONNX],
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+    ) -> TY_ARRAY_ONNX: ...
+
+    @overload
+    def prod(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase: ...
+
     def prod(
         self,
         /,
@@ -858,9 +883,6 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         keepdims: bool = False,
     ) -> TyArrayBase:
-        if axis == ():
-            return copy(self)
-
         return self._reduce(
             "prod", ort_compat.reduce_prod, axis=axis, dtype=dtype, keepdims=keepdims
         )
@@ -907,10 +929,10 @@ class TyArrayNumber(TyArray):
         correction: int | float = 0.0,
         keepdims: bool = False,
     ) -> Self:
-        from .funcs import astyarray
+        from .funcs import astyarray, where
 
         if axis is None:
-            size: TyArrayBase = self.dynamic_size
+            size = self.dynamic_size
             means = self.mean()
         else:
             means = self.mean(axis=axis, keepdims=True)
@@ -920,13 +942,23 @@ class TyArrayNumber(TyArray):
                 axis_ = op.const(axis, np.int64)
 
             ax_indices = TyArrayInt64(axis_).reshape((-1,))
-            size = safe_cast(TyArray, self.dynamic_shape.take(ax_indices).prod())
+            size = self.dynamic_shape.take(ax_indices).prod(dtype=int64)
 
         nom = (self - means).square().sum(axis=axis, keepdims=keepdims)
 
         if correction != 0:
-            size = size - astyarray(correction, use_py_scalars=True)
-        return safe_cast(type(self), nom / size)
+            size = size - astyarray(correction, dtype=int64)
+        res = (nom / size).astype(self.dtype)
+
+        # There is an uncanny corner case here: If self is 0-sized,
+        # means is NaN, however, the sum over a zero-sized array is
+        # `0`! I.e. we lose the NaN information. We recover it with
+        # the `where` call later.
+        nan = astyarray(np.nan, dtype=self.dtype)
+        is_zero_sized = self.dynamic_shape.prod(dtype=int64) == astyarray(
+            0, dtype=int64
+        )
+        return safe_cast(type(self), where(is_zero_sized, nan, res))
 
     def __abs__(self) -> Self:
         return type(self)(op.abs(self.var))

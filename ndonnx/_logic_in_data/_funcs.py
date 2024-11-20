@@ -190,7 +190,9 @@ def std(
     correction: int | float = 0.0,
     keepdims: bool = False,
 ) -> Array:
-    return Array._from_data(x._data.std())
+    return Array._from_data(
+        x._data.std(axis=axis, correction=correction, keepdims=keepdims)
+    )
 
 
 def sum(

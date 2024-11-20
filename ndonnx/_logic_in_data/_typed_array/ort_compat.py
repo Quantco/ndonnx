@@ -104,7 +104,7 @@ def _mitigate_segfault_from_zero_dims(
 
 def _warn_lossy(fun_name: str, unsupported: np.dtype, via: type[np.generic]):
     warn(
-        f"'{fun_name}' is not implemented for '{unsupported}' in onnxruntime. A lossy cast to '{via}' is used instead"
+        f"'{fun_name}' is not implemented for '{unsupported}' in onnxruntime. A lossy cast to '{np.dtype(via)}' is used instead"
     )
 
 
@@ -198,10 +198,10 @@ _mapping_reduce_prod: _MappingDictType = {
 }
 reduce_prod = partial(reduce_op, spox_op=op.reduce_prod, mapping=_mapping_reduce_prod)
 
-# tensor(bfloat16), tensor(double), tensor(float), tensor(float16),
-# tensor(int32), tensor(int64)
+# tensor(double), tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_sum: _MappingDictType = {
     (np.bool_, np.int8, np.int16, np.uint8, np.uint16): np.int32,
+    (np.uint32,): np.int64,
     (np.uint64,): Warn(np.float64),
 }
 reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_sum)
