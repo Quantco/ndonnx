@@ -1,9 +1,16 @@
 # The following tests cause segfaults
 
-array_api_tests/test_manipulation_functions.py::test_roll
 array_api_tests/test_data_type_functions.py::test_broadcast_arrays
 
-# Trigonometric functions are largely only implemented for float32 and thus fail
+# Missing implementations which should be perfectly doable
+array_api_tests/test_linalg.py::test_tensordot
+array_api_tests/test_manipulation_functions.py::test_repeat
+
+# Tests that fail due to lossy ORT workarounds, which are tested elsewhere
+array_api_tests/test_statistical_functions.py::test_sum
+array_api_tests/test_statistical_functions.py::test_prod
+
+# Trigonometric functions are largely only implemented for float32 and thus fail. They are tested elsewhere.
 array_api_tests/test_operators_and_elementwise_functions.py::test_cos
 array_api_tests/test_operators_and_elementwise_functions.py::test_tan
 array_api_tests/test_operators_and_elementwise_functions.py::test_cosh
