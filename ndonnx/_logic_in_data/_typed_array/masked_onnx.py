@@ -6,7 +6,7 @@ from __future__ import annotations
 import operator
 from collections.abc import Callable
 from types import NotImplementedType
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 from typing_extensions import Self
@@ -221,6 +221,40 @@ NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 NCoreDTypes = NBoolean | NCoreNumericDTypes | NString
 
 
+def _make_binary_pair(fun: Callable[[Any, Any], Any]):
+    """Helper to define dunder methods.
+
+    Does not work with proper type hints, though.
+    """
+
+    def forward(self, rhs) -> TyArrayBase:
+        return _apply_op(self, rhs, fun, True)
+
+    def backward(self, lhs) -> TyArrayBase:
+        return _apply_op(self, lhs, fun, False)
+
+    return forward, backward
+
+
+def _make_unary_member_promoted_type(fun_name: str):
+    def impl(self, fun_name: str) -> TyMaArray:
+        data = getattr(self.data, fun_name)()
+        return asncoredata(data, self.mask)
+
+
+def _make_unary_member_same_type(fun_name: str):
+    """Helper to define dunder methods.
+
+    Does not work with proper type hints, though.
+    """
+
+    def impl(self: TyMaArray) -> TyArrayBase:
+        data = getattr(self.data, fun_name)()
+        return type(self)(data=data, mask=self.mask)
+
+    return impl
+
+
 class TyMaArrayBase(TyArrayBase):
     """Typed masked array object."""
 
@@ -277,6 +311,11 @@ class TyMaArray(TyMaArrayBase):
     def shape(self) -> OnnxShape:
         return self.data.shape
 
+    def _pass_through_same_type(self, fun_name: str, **kwargs) -> Self:
+        data = getattr(self.data, fun_name)(**kwargs)
+        mask = getattr(self.mask, fun_name)(**kwargs) if self.mask is not None else None
+        return type(self)(data=data, mask=mask)
+
     def fill_null(self, value: int | float | bool | str) -> onnx.TyArray:
         value_arr = astyarray(value, use_py_scalars=True)
         if self.mask is None:
@@ -285,24 +324,16 @@ class TyMaArray(TyMaArrayBase):
         return safe_cast(onnx.TyArray, where(self.mask, value_arr, self.data))
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
-        data = self.data.permute_dims(axes)
-        mask = self.mask.permute_dims(axes) if self.mask is not None else None
-        return type(self)(data=data, mask=mask)
+        return self._pass_through_same_type("permute_dims", axes=axes)
 
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        data = self.data.reshape(shape)
-        mask = self.mask.reshape(shape) if self.mask is not None else None
-        return type(self)(data=data, mask=mask)
+        return self._pass_through_same_type("reshape", shape=shape)
 
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
-        data = self.data.squeeze(axis=axis)
-        mask = None if self.mask is None else self.mask.squeeze(axis=axis)
-        return type(self)(data=data, mask=mask)
+        return self._pass_through_same_type("squeeze", axis=axis)
 
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        data = self.data.broadcast_to(shape)
-        mask = self.mask.broadcast_to(shape) if self.mask else None
-        return type(self)(data=data, mask=mask)
+        return self._pass_through_same_type("broadcast_to", shape=shape)
 
     def unwrap_numpy(self) -> np.ndarray:
         return np.ma.MaskedArray(
@@ -310,11 +341,8 @@ class TyMaArray(TyMaArrayBase):
             mask=None if self.mask is None else self.mask.unwrap_numpy(),
         )
 
-    def __getitem__(self, index: GetitemIndex) -> Self:
-        new_data = self.data[index]
-        new_mask = self.mask[index] if self.mask is not None else None
-
-        return type(self)(data=new_data, mask=new_mask)
+    def __getitem__(self, key: GetitemIndex) -> Self:
+        return self._pass_through_same_type("__getitem__", key=key)
 
     def __setitem__(self, index: SetitemIndex, value: Self) -> None:
         self.data[index] = value.data
@@ -358,7 +386,7 @@ class TyMaArray(TyMaArrayBase):
             mask = safe_cast(onnx.TyArrayBool, masks[0].concat(masks[1:], axis))
         return safe_cast(type(self), asncoredata(data, mask))
 
-    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+    def _eqcomp(self, other) -> TyArrayBase | NotImplementedType:
         raise NotImplementedError()
 
     def __ndx_where__(
@@ -400,11 +428,7 @@ class TyMaArray(TyMaArrayBase):
 class TyMaArrayString(TyMaArray):
     dtype = nstring
 
-    def __add__(self, rhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, rhs, operator.add, True)
-
-    def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, lhs, operator.add, False)
+    __add__, __radd__ = _make_binary_pair(operator.add)  # type: ignore
 
 
 class TyMaArrayNumber(TyMaArray):
@@ -442,36 +466,74 @@ class TyMaArrayNumber(TyMaArray):
     # We don't differentiate between the different subclasses since we
     # always just pass through to the underlying non-masked typed. We
     # will get an error from there if appropriate.
+    __add__, __radd__ = _make_binary_pair(operator.add)  # type: ignore
+    __sub__, __rsub__ = _make_binary_pair(operator.sub)  # type: ignore
+    __mod__, __rmod__ = _make_binary_pair(operator.mod)  # type: ignore
+    __mul__, __rmul__ = _make_binary_pair(operator.mul)  # type: ignore
+    __truediv__, __rtruedive__ = _make_binary_pair(operator.truediv)  # type: ignore
+    __ge__, _ = _make_binary_pair(operator.ge)  # type: ignore
+    __le__, _ = _make_binary_pair(operator.le)  # type: ignore
+    __gt__, _ = _make_binary_pair(operator.gt)  # type: ignore
+    __lt__, _ = _make_binary_pair(operator.lt)  # type: ignore
+    __pow__, __rpow__ = _make_binary_pair(operator.pow)  # type: ignore
+    __floordiv__, __rfloordiv__ = _make_binary_pair(operator.floordiv)  # type: ignore
 
-    def __add__(self, rhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, rhs, operator.add, True)
+    __neg__ = _make_unary_member_promoted_type("__neg__")  # type: ignore
 
-    def __radd__(self, lhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, lhs, operator.add, False)
-
-    def __sub__(self, rhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, rhs, operator.sub, True)
-
-    def __rsub__(self, lhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, lhs, operator.sub, False)
-
-    def __mul__(self, rhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, rhs, operator.mul, True)
-
-    def __rmul__(self, lhs: TyArrayBase) -> TyMaArray:
-        return _apply_op(self, lhs, operator.mul, False)
+    __abs__ = _make_unary_member_same_type("__abs__")  # type: ignore
+    __pos__ = _make_unary_member_same_type("__pos__")  # type: ignore
+    ceil = _make_unary_member_same_type("ceil")  # type: ignore
+    floor = _make_unary_member_same_type("floor")  # type: ignore
+    isfinite = _make_unary_member_same_type("isfinite")  # type: ignore
+    isinf = _make_unary_member_same_type("isinf")  # type: ignore
+    isnan = _make_unary_member_same_type("isnan")  # type: ignore
+    round = _make_unary_member_same_type("round")  # type: ignore
+    sign = _make_unary_member_same_type("sign")  # type: ignore
+    sqrt = _make_unary_member_same_type("sqrt")  # type: ignore
+    square = _make_unary_member_same_type("square")  # type: ignore
+    trunc = _make_unary_member_same_type("trunc")  # type: ignore
 
 
 class TyMaArrayInteger(TyMaArrayNumber):
     dtype: NCoreIntegerDTypes
 
+    __and__, __rand__ = _make_binary_pair(operator.and_)  # type: ignore
+    __or__, __ror__ = _make_binary_pair(operator.or_)  # type: ignore
+    __xor__, __rxor__ = _make_binary_pair(operator.xor)  # type: ignore
+    __lshift__, __rlshift__ = _make_binary_pair(operator.lshift)  # type: ignore
+    __rshift__, __rrshift__ = _make_binary_pair(operator.rshift)  # type: ignore
+    __invert__ = _make_unary_member_same_type("__invert__")  # type: ignore
+
 
 class TyMaArrayFloating(TyMaArrayNumber):
     dtype: NCoreFloatingDTypes
 
+    acos = _make_unary_member_same_type("acos")  # type: ignore
+    acosh = _make_unary_member_same_type("acosh")  # type: ignore
+    asin = _make_unary_member_same_type("asin")  # type: ignore
+    asinh = _make_unary_member_same_type("asinh")  # type: ignore
+    atan = _make_unary_member_same_type("atan")  # type: ignore
+    atanh = _make_unary_member_same_type("atanh")  # type: ignore
+    cos = _make_unary_member_same_type("cos")  # type: ignore
+    cosh = _make_unary_member_same_type("cosh")  # type: ignore
+    exp = _make_unary_member_same_type("exp")  # type: ignore
+    log = _make_unary_member_same_type("log")  # type: ignore
+    log2 = _make_unary_member_same_type("log2")  # type: ignore
+    log10 = _make_unary_member_same_type("log10")  # type: ignore
+    sin = _make_unary_member_same_type("sin")  # type: ignore
+    sinh = _make_unary_member_same_type("sinh")  # type: ignore
+    tan = _make_unary_member_same_type("tan")  # type: ignore
+    tanh = _make_unary_member_same_type("tanh")  # type: ignore
+
 
 class TyMaArrayBool(TyMaArray):
     dtype = nbool
+
+    __and__, __rand__ = _make_binary_pair(operator.and_)  # type: ignore
+    __or__, __ror__ = _make_binary_pair(operator.or_)  # type: ignore
+    __xor__, __rxor__ = _make_binary_pair(operator.xor)  # type: ignore
+    __lshift__, __rlshift__ = _make_binary_pair(operator.lshift)  # type: ignore
+    __rshift__, __rrshift__ = _make_binary_pair(operator.rshift)  # type: ignore
 
 
 class TyMaArrayInt8(TyMaArrayInteger):

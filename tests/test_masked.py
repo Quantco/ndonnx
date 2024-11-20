@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 import pytest
 
-import ndonnx as ndx
+import ndonnx._logic_in_data as ndx
 import ndonnx.additional as nda
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
@@ -40,8 +40,8 @@ def test_arithmetic_none_propagation(fn_name):
     b = ndx.array(shape=(3,), dtype=ndx.nfloat64)
     c = fn(a, b)
 
-    a_val = np.ma.masked_array([-1, 2.0, 3.0], mask=[1, 0, 0])
-    b_val = np.ma.masked_array([2.0, 1.0, -1], mask=[0, 0, 1])
+    a_val = np.ma.MaskedArray([-1, 2.0, 3.0], mask=[1, 0, 0])
+    b_val = np.ma.MaskedArray([2.0, 1.0, -1], mask=[0, 0, 1])
 
     model = ndx.build({"a": a, "b": b}, {"c": c})
 

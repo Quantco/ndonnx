@@ -964,6 +964,7 @@ class TyArrayNumber(TyArray):
         return type(self)(op.abs(self.var))
 
     def __neg__(self) -> Self:
+        # TODO: Test with unsigned!
         return type(self)(ort_compat.neg(self.var))
 
     def __pos__(self) -> Self:
@@ -1184,7 +1185,7 @@ class TyArrayInteger(TyArrayNumber):
         return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def trunc(self) -> Self:
-        return self
+        return copy(self)
 
 
 class TyArrayFloating(TyArrayNumber):
