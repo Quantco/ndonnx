@@ -142,7 +142,17 @@ def normalize_getitem_key(
     key: GetitemIndexPub | GetitemIndex,
 ) -> GetitemTuple | TyArrayBool:
     from .. import Array
-    from . import TyArrayBool, TyArrayInt64
+    from . import TyArrayBool, TyArrayInt64, onnx
+    from .funcs import astyarray
+
+    if isinstance(key, bool):
+        return astyarray(key, dtype=onnx.bool_)
+    if (
+        isinstance(key, tuple)
+        and len(key) > 0
+        and all(isinstance(el, bool) for el in key)
+    ):
+        key = astyarray(np.array(key), dtype=onnx.bool_)  # type: ignore
 
     # Fish out the boolean masks before normalizing to tuples
     if isinstance(key, Array) and isinstance(key._data, TyArrayBool):
@@ -154,7 +164,9 @@ def normalize_getitem_key(
         return (_normalize_getitem_key_item(key),)
 
     if isinstance(key, tuple):
-        if key.count(...) > 1:
+        # Cannot use `count` since that will trigger an __eq__ call
+        # with type promotion against `...`
+        if sum(isinstance(el, type(...)) for el in key) > 1:
             raise IndexError("more than one ellipsis (`...`) in index tuple")
 
         return tuple(_normalize_getitem_key_item(el) for el in key)

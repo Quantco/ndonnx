@@ -283,8 +283,8 @@ def test_indexing_with_tuple_of_array(_a):
     index = numpy_to_graph_input(np.array([0, 2]))
 
     with pytest.raises(
-        TypeError,
-        match=re.escape(f"Index {index} for type {type(index)} not supported"),
+        IndexError,
+        match=re.escape("Index array must be a scalar but has rank"),
     ):
         a[(index,)]
 
@@ -301,7 +301,7 @@ def test_slicing(_a):
 def test_indexing_list(_a):
     a = numpy_to_graph_input(_a)
 
-    with pytest.raises(TypeError, match="not supported"):
+    with pytest.raises(IndexError, match="unexpected key"):
         a[[0, 2]]
 
 
@@ -981,10 +981,10 @@ def test_cumulative_sum(array, axis, include_initial, array_dtype, cumsum_dtype)
 
 
 def test_no_unsafe_cumulative_sum_cast():
-    with pytest.warns(match="A lossy cast to int64 is used instead"):
+    with pytest.warns(match="A lossy cast to 'float64' is used instead"):
         a = ndx.asarray([1, 2, 3], dtype=ndx.uint64)
         ndx.cumulative_sum(a)
 
-    with pytest.warns(match="A lossy cast to int64 is used instead"):
+    with pytest.warns(match="A lossy cast to 'float64' is used instead"):
         a = ndx.asarray([1, 2, 3], dtype=ndx.int32)
         ndx.cumulative_sum(a, dtype=ndx.uint64)

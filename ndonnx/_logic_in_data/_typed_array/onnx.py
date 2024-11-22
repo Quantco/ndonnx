@@ -94,7 +94,7 @@ class String(_OnnxDType):
         return TyArrayString
 
 
-class Boolean(_Number):
+class Boolean(_OnnxDType):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         if self == rhs:
             return self
@@ -1349,7 +1349,7 @@ class TyArrayFloating(TyArrayNumber):
         )
 
 
-class TyArrayBool(TyArrayInteger):
+class TyArrayBool(TyArray):
     dtype = bool_
 
     def __or__(self, other) -> TyArrayBase:
