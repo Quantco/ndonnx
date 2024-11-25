@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from copy import copy
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, overload
 
 import numpy as np
 from typing_extensions import Self
@@ -234,6 +234,26 @@ class TyArrayBase(ABC):
     ) -> Self:
         raise _make_type_error("clip", self.dtype)
 
+    @overload
+    def prod(
+        self,
+        /,
+        *,
+        dtype: DType[TY_ARRAY],
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+    ) -> TY_ARRAY: ...
+
+    @overload
+    def prod(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase: ...
+
     def prod(
         self,
         /,
@@ -258,6 +278,26 @@ class TyArrayBase(ABC):
         sorter: TyArrayInteger | None = None,
     ) -> TyArrayInt64:
         raise _make_type_error("searchsorted", self.dtype)
+
+    @overload
+    def sum(
+        self,
+        /,
+        *,
+        dtype: DType[TY_ARRAY],
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+    ) -> TY_ARRAY: ...
+
+    @overload
+    def sum(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase: ...
 
     def sum(
         self,

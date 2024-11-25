@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
     from .._array import OnnxShape
     from .indexing import SetitemIndex
+    from .onnx import TyArrayInt64
 
 
 class _PyScalar(DType):
@@ -37,6 +38,30 @@ class _PyScalar(DType):
     @property
     def _infov1(self) -> DTypeInfoV1:
         raise ValueError("'_PyString' has not public schema information")
+
+    def _arange(
+        self,
+        start: int | float,
+        stop: int | float,
+        step: int | float = 1,
+    ) -> TyArrayBase:
+        raise ValueError("'arange' should never be called on Python scalar")
+
+    def _eye(
+        self,
+        n_rows: int,
+        n_cols: int | None = None,
+        /,
+        *,
+        k: int = 0,
+    ) -> TyArrayBase:
+        raise ValueError("'eye' should never be called on Python scalar")
+
+    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayBase:
+        raise ValueError("'ones' should never be called on Python scalar")
+
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayBase:
+        raise ValueError("'zeros' should never be called on Python scalar")
 
 
 class PyString(_PyScalar):
@@ -184,10 +209,10 @@ class _ArrayPyScalar(TyArrayBase):
         # We implement this class under the assumption that the other
         # built-in typed arrays do not know about it. Thus, we define
         # the mapping from this class into those classes **here**.
-        if isinstance(dtype, onnx.DTypes):
+        if isinstance(dtype, onnx._OnnxDType):
             np_arr = np.array(self.value).astype(dtypes.as_numpy(dtype))
             return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
-        if isinstance(dtype, masked_onnx.NCoreDTypes):
+        if isinstance(dtype, masked_onnx._MaOnnxDType):
             unmasked_typed_arr = self.__ndx_astype__(dtype._unmasked_dtype)
             return safe_cast(res_ty, asncoredata(unmasked_typed_arr, None))
         return NotImplemented

@@ -14,7 +14,7 @@ from ._schema import DTypeInfoV1
 
 if TYPE_CHECKING:
     from ._array import OnnxShape
-    from ._typed_array import TyArrayBase, onnx
+    from ._typed_array import TyArrayBase, TyArrayInt64, onnx
 
 
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArrayBase")
@@ -27,7 +27,7 @@ class DType(ABC, Generic[TY_ARRAY]):
     @property
     @abstractmethod
     def _tyarr_class(self) -> type[TY_ARRAY]:
-        """Consider using  ``TyArrayBase.astype`` or ``_argument`` instead of.
+        """Consider using  ``TyArrayBase.astype`` or ``_argument`` instead.
 
         Those functions better provide the dtype instance (with it's state) to the newly
         instantiated array.
@@ -50,6 +50,31 @@ class DType(ABC, Generic[TY_ARRAY]):
     @abstractmethod
     def _infov1(self) -> DTypeInfoV1:
         raise NotImplementedError
+
+    # Construction functions
+    @abstractmethod
+    def _arange(
+        self,
+        start: int | float,
+        stop: int | float,
+        step: int | float = 1,
+    ) -> TY_ARRAY: ...
+
+    @abstractmethod
+    def _eye(
+        self,
+        n_rows: int,
+        n_cols: int | None = None,
+        /,
+        *,
+        k: int = 0,
+    ) -> TY_ARRAY: ...
+
+    @abstractmethod
+    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY: ...
+
+    @abstractmethod
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY: ...
 
     def __eq__(self, other) -> bool:
         if type(self) is not type(other):

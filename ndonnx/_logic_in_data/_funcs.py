@@ -58,10 +58,12 @@ def arange(
         else:
             dtype = ndx._default_float
     dtype = dtype or ndx._default_float
-    if not isinstance(dtype, onnx.DTypes):
-        raise ValueError(f"Only core data types are supported, found `{dtype}`")
 
-    return asarray(np.arange(start, stop, step), dtype=dtype)
+    if stop is None:
+        stop = start
+        start = 0
+
+    return Array._from_data(dtype._arange(start, stop, step))
 
 
 def argmax(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
@@ -395,7 +397,8 @@ def ones(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:
     dtype = dtype or ndx._default_float
-    return full(shape, 1, dtype=dtype)
+    shape = (shape,) if isinstance(shape, int) else shape
+    return Array._from_data(dtype._ones(shape))
 
 
 def ones_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
@@ -593,7 +596,8 @@ def zeros(
     shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
 ) -> Array:
     dtype = dtype or ndx._default_float
-    return full(shape, 0, dtype=dtype)
+    shape = (shape,) if isinstance(shape, int) else shape
+    return Array._from_data(dtype._zeros(shape))
 
 
 def zeros_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:

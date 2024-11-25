@@ -33,9 +33,10 @@ if TYPE_CHECKING:
 Unit = Literal["ns", "s"]
 
 _NAT_SENTINEL = py_scalars.TyArrayPyInt(np.iinfo(np.int64).min)
+BASE_DT_ARRAY = TypeVar("BASE_DT_ARRAY", bound="TimeBaseArray")
 
 
-class BaseTimeDType(DType):
+class BaseTimeDType(DType[BASE_DT_ARRAY]):
     def __init__(self, unit: Unit):
         self.unit = unit
 
@@ -44,13 +45,13 @@ class BaseTimeDType(DType):
             return self
         return NotImplemented
 
-    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TimeBaseArray:
+    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:
         raise NotImplementedError
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
 
-    def _argument(self, shape: OnnxShape) -> TimeBaseArray:
+    def _argument(self, shape: OnnxShape) -> BASE_DT_ARRAY:
         data = onnx.int64._argument(shape)
         is_nat = onnx.bool_._argument(shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
@@ -60,6 +61,46 @@ class BaseTimeDType(DType):
         return DTypeInfoV1(
             author="ndonnx", type_name=self.__class__.__name__, meta={"unit": self.unit}
         )
+
+    def _arange(
+        self,
+        start: int | float,
+        stop: int | float,
+        step: int | float = 1,
+    ) -> BASE_DT_ARRAY:
+        from .funcs import astyarray
+
+        data = onnx.int64._arange(start, stop, step)
+        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
+        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+
+    def _eye(
+        self,
+        n_rows: int,
+        n_cols: int | None = None,
+        /,
+        *,
+        k: int = 0,
+    ) -> BASE_DT_ARRAY:
+        from .funcs import astyarray
+
+        data = onnx.int64._eye(n_rows, n_cols, k=k)
+        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
+        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+
+    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> BASE_DT_ARRAY:
+        from .funcs import astyarray
+
+        data = onnx.int64._ones(shape)
+        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
+        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+
+    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> BASE_DT_ARRAY:
+        from .funcs import astyarray
+
+        data = onnx.int64._zeros(shape)
+        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
+        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 
 
 class DateTime(BaseTimeDType):

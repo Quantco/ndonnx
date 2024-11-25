@@ -6,7 +6,7 @@ from __future__ import annotations
 import operator
 from collections.abc import Callable
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 import numpy as np
 from typing_extensions import Self
@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
     from .._array import OnnxShape
     from .indexing import GetitemIndex, SetitemIndex
+    from .onnx import TyArrayInt64
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -37,7 +38,7 @@ TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
-    _unmasked_dtype: onnx.DTypes
+    _unmasked_dtype: onnx._OnnxDType
 
     def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
         if isinstance(arr, onnx.TyArray):
@@ -58,6 +59,36 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         data = as_non_nullable(self)._argument(shape)
         mask = onnx.bool_._argument(shape)
         return self._tyarr_class(data=data, mask=mask)
+
+    def _arange(
+        self,
+        start: int | float,
+        stop: int | float,
+        step: int | float = 1,
+    ) -> TY_MA_ARRAY_ONNX:
+        # Get everything onto the same type
+        data = self._unmasked_dtype._arange(start, stop, step)
+        return self._tyarr_class(data=data, mask=None)
+
+    def _eye(
+        self,
+        n_rows: int,
+        n_cols: int | None = None,
+        /,
+        *,
+        k: int = 0,
+    ) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype._eye(n_rows, n_cols, k=k)
+
+        return self._tyarr_class(data=data, mask=None)
+
+    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype._ones(shape)
+        return self._tyarr_class(data=data, mask=None)
+
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype._zeros(shape)
+        return self._tyarr_class(data=data, mask=None)
 
 
 class _NNumber(_MaOnnxDType):
@@ -277,7 +308,7 @@ class TyMaArray(TyMaArrayBase):
     know about `_ArrayCoreType`s, but not `_PyScalar`s.
     """
 
-    dtype: NCoreDTypes
+    dtype: _MaOnnxDType
     # Specialization of data from `Data` to `_ArrayCoreType`
     data: onnx.TyArray
 
@@ -362,11 +393,11 @@ class TyMaArray(TyMaArrayBase):
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
         # Implemented under the assumption that we know about core, but not py_scalars
-        if isinstance(dtype, onnx.DTypes):
+        if isinstance(dtype, onnx._OnnxDType):
             # TODO: Not clear what the behavior should be if we have a mask
             # TODO: There is currently no way to get the mask through the public `Array` class!
             raise NotImplementedError
-        elif isinstance(dtype, NCoreDTypes):
+        elif isinstance(dtype, _MaOnnxDType):
             new_data = self.data.astype(dtype._unmasked_dtype)
             dtype._tyarr_class(data=new_data, mask=self.mask)
         return NotImplemented
@@ -433,6 +464,26 @@ class TyMaArrayString(TyMaArray):
 
 class TyMaArrayNumber(TyMaArray):
     dtype: NCoreNumericDTypes
+
+    @overload
+    def prod(
+        self,
+        /,
+        *,
+        dtype: DType[TY_ARRAY],
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+    ) -> TY_ARRAY: ...
+
+    @overload
+    def prod(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase: ...
 
     def prod(
         self,
@@ -627,7 +678,7 @@ def _apply_op(
 # Conversion Table #
 ####################
 
-_core_to_nullable_core: dict[onnx.DTypes, NCoreDTypes] = {
+_core_to_nullable_core: dict[onnx._OnnxDType, NCoreDTypes] = {
     onnx.bool_: nbool,
     onnx.int8: nint8,
     onnx.int16: nint16,
@@ -644,12 +695,12 @@ _core_to_nullable_core: dict[onnx.DTypes, NCoreDTypes] = {
 }
 
 
-def as_nullable(dtype: onnx.DTypes) -> NCoreDTypes:
+def as_nullable(dtype: onnx._OnnxDType) -> NCoreDTypes:
     return _core_to_nullable_core[dtype]
 
 
-def as_non_nullable(dtype: _MaOnnxDType) -> onnx.DTypes:
-    mapping: dict[_MaOnnxDType, onnx.DTypes] = {
+def as_non_nullable(dtype: _MaOnnxDType) -> onnx._OnnxDType:
+    mapping: dict[_MaOnnxDType, onnx._OnnxDType] = {
         v: k for k, v in _core_to_nullable_core.items()
     }
     return mapping[dtype]

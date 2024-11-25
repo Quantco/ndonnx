@@ -8,14 +8,7 @@ from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from copy import copy
 from types import EllipsisType, NotImplementedType
-from typing import (
-    TYPE_CHECKING,
-    Literal,
-    TypeGuard,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
 
 import numpy as np
 import spox
@@ -74,8 +67,48 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
+    def _arange(
+        self,
+        start: int | float,
+        stop: int | float,
+        step: int | float = 1,
+    ) -> TY_ARRAY_ONNX:
+        # Get everything onto the same type
+        start_, stop_, step_ = np.array([start, stop, step])
+        # TODO: ort compat
+        var = op.range(op.const(start_), op.const(stop_), op.const(step_))
 
-class _Number(_OnnxDType):
+        return self._tyarr_class(var)
+
+    def _eye(
+        self,
+        n_rows: int,
+        n_cols: int | None = None,
+        /,
+        *,
+        k: int = 0,
+    ) -> TY_ARRAY_ONNX:
+        n_cols = n_rows if n_cols is None else n_cols
+        # There is no adequate ONNX operator
+        mat = np.eye(n_rows, n_cols, k=k)
+        var = op.const(mat)
+
+        return self._tyarr_class(var)
+
+    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_ONNX:
+        np_dtype = self.unwrap_numpy()
+        scalar = self._tyarr_class(op.const(1, np_dtype))
+
+        return scalar.broadcast_to(shape)
+
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_ONNX:
+        np_dtype = self.unwrap_numpy()
+        scalar = self._tyarr_class(op.const(0, np_dtype))
+
+        return scalar.broadcast_to(shape)
+
+
+class _Number(_OnnxDType[TY_ARRAY_ONNX]):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         if isinstance(self, NumericDTypes) and isinstance(rhs, NumericDTypes):
             return _result_type_core_numeric(self, rhs)
@@ -83,7 +116,7 @@ class _Number(_OnnxDType):
         return NotImplemented
 
 
-class String(_OnnxDType):
+class String(_OnnxDType["TyArrayString"]):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         if self == rhs:
             return self
@@ -93,8 +126,16 @@ class String(_OnnxDType):
     def _tyarr_class(self) -> type[TyArrayString]:
         return TyArrayString
 
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayString:
+        # NumPy returns empty strings for `zeros` with string data
+        # types. We follow that lead.
+        np_dtype = self.unwrap_numpy()
+        scalar = self._tyarr_class(op.const("", np_dtype))
 
-class Boolean(_OnnxDType):
+        return scalar.broadcast_to(shape)
+
+
+class Boolean(_OnnxDType["TyArrayBool"]):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         if self == rhs:
             return self
@@ -105,67 +146,70 @@ class Boolean(_OnnxDType):
         return TyArrayBool
 
 
-class Int8(_Number):
+class Int8(_Number["TyArrayInt8"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt8]:
         return TyArrayInt8
 
 
-class Int16(_Number):
+class Int16(_Number["TyArrayInt16"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt16]:
         return TyArrayInt16
 
 
-class Int32(_Number):
+class Int32(_Number["TyArrayInt32"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt32]:
         return TyArrayInt32
 
 
-class Int64(_Number):
+class Int64(_Number["TyArrayInt64"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt64]:
         return TyArrayInt64
 
 
-class Uint8(_Number):
+class Uint8(_Number["TyArrayUint8"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint8]:
         return TyArrayUint8
 
 
-class Uint16(_Number):
+class Uint16(_Number["TyArrayUint16"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint16]:
         return TyArrayUint16
 
 
-class Uint32(_Number):
+class Uint32(_Number["TyArrayUint32"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint32]:
         return TyArrayUint32
 
 
-class Uint64(_Number):
+class Uint64(_Number["TyArrayUint64"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint64]:
         return TyArrayUint64
 
 
-class Float16(_Number):
+class Floating(_Number[TY_ARRAY_ONNX]): ...
+
+
+class Float16(Floating["TyArrayFloat16"]):
     @property
     def _tyarr_class(self) -> type[TyArrayFloat16]:
         return TyArrayFloat16
 
 
-class Float32(_Number):
+class Float32(Floating["TyArrayFloat32"]):
     @property
     def _tyarr_class(self) -> type[TyArrayFloat32]:
         return TyArrayFloat32
 
 
-class Float64(_Number):
+class Float64(Floating["TyArrayFloat64"]):
     @property
     def _tyarr_class(self) -> type[TyArrayFloat64]:
         return TyArrayFloat64
@@ -202,7 +246,7 @@ DTypes = NumericDTypes | String | Boolean
 
 
 class TyArray(TyArrayBase):
-    dtype: DTypes
+    dtype: _OnnxDType
     var: Var
 
     def __init__(self, var: Var):
@@ -528,10 +572,11 @@ class TyArray(TyArrayBase):
 
         x1 = x1[:, None]
         x2 = x2[None, :]
+
         if side == "left":
-            indices = (x1 < x2).astype(int64).sum(axis=0)
+            indices = (x1 < x2).sum(axis=0, dtype=int64)
         else:
-            indices = (x1 <= x2).astype(int64).sum(axis=0)
+            indices = (x1 <= x2).sum(axis=0, dtype=int64)
 
         return indices
 
@@ -724,8 +769,8 @@ class TyArrayString(TyArray):
 class TyArrayNumber(TyArray):
     # We piggyback here on the numeric implementations for booleans
     # even though the standard does not use this relation ship between
-    # numberi/int and bool. (see `isdtype` for details).
-    dtype: NumericDTypes | Boolean
+    # number/int and bool. (see `isdtype` for details).
+    dtype: _Number | Boolean
 
     def _arg_minmax(
         self, spox_op, /, *, axis: int | None = None, keepdims: bool = False
@@ -884,10 +929,10 @@ class TyArrayNumber(TyArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY_ONNX],
+        dtype: DType[TY_ARRAY],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY_ONNX: ...
+    ) -> TY_ARRAY: ...
 
     @overload
     def prod(
@@ -921,6 +966,26 @@ class TyArrayNumber(TyArray):
             self.var, k, axis=axis, largest=descending, sorted=stable
         )
         return type(self)(values)
+
+    @overload
+    def sum(
+        self,
+        /,
+        *,
+        dtype: DType[TY_ARRAY],
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+    ) -> TY_ARRAY: ...
+
+    @overload
+    def sum(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: DType | None = None,
+        keepdims: bool = False,
+    ) -> TyArrayBase: ...
 
     def sum(
         self,
@@ -971,7 +1036,7 @@ class TyArrayNumber(TyArray):
         nom = (self - means).square().sum(axis=axis, keepdims=keepdims)
 
         if correction != 0:
-            size = size - astyarray(correction, dtype=int64)
+            size = safe_cast(TyArrayInt64, size - astyarray(correction, dtype=int64))
         res = (nom / size).astype(self.dtype)
 
         # There is an uncanny corner case here: If self is 0-sized,
@@ -1213,7 +1278,7 @@ class TyArrayInteger(TyArrayNumber):
 
 
 class TyArrayFloating(TyArrayNumber):
-    dtype: FloatingDTypes
+    dtype: Floating
 
     def __mod__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(

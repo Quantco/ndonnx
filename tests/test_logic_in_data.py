@@ -64,7 +64,7 @@ def error_when_prop_fails():
         (1.0, ndx.nint32, ndx.nfloat64),
     ],
 )
-def test_add_pyscalar_coretypes(scalar, dtype, res_dtype, op):
+def test_ops_pyscalar_coretypes(scalar, dtype, res_dtype, op):
     shape = ("N",)
     arr = ndx.Array(shape=shape, dtype=dtype)
 
