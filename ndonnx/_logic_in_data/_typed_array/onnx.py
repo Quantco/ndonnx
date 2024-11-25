@@ -574,11 +574,11 @@ class TyArray(TyArrayBase):
         x2 = x2[None, :]
 
         if side == "left":
-            indices = (x1 < x2).sum(axis=0, dtype=int64)
+            indices = (x1 < x2).astype(int64).sum(axis=0)
         else:
-            indices = (x1 <= x2).sum(axis=0, dtype=int64)
+            indices = (x1 <= x2).astype(int64).sum(axis=0)
 
-        return indices
+        return safe_cast(TyArrayInt64, indices)
 
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
         if isinstance(axis, int):
@@ -999,62 +999,13 @@ class TyArrayNumber(TyArray):
             "sum", ort_compat.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
         )
 
-    def std(
-        self,
-        /,
-        *,
-        axis: int | tuple[int, ...] | None = None,
-        correction: int | float = 0.0,
-        keepdims: bool = False,
-    ) -> Self:
-        res = self.variance(axis=axis, correction=correction, keepdims=keepdims).sqrt()
-        return res
-
-    def variance(
-        self,
-        /,
-        *,
-        axis: int | tuple[int, ...] | None = None,
-        correction: int | float = 0.0,
-        keepdims: bool = False,
-    ) -> Self:
-        from .funcs import astyarray, where
-
-        if axis is None:
-            size = self.dynamic_size
-            means = self.mean()
-        else:
-            means = self.mean(axis=axis, keepdims=True)
-            if isinstance(axis, int):
-                axis_ = op.const([axis], np.int64)
-            else:
-                axis_ = op.const(axis, np.int64)
-
-            ax_indices = TyArrayInt64(axis_).reshape((-1,))
-            size = self.dynamic_shape.take(ax_indices).prod(dtype=int64)
-
-        nom = (self - means).square().sum(axis=axis, keepdims=keepdims)
-
-        if correction != 0:
-            size = safe_cast(TyArrayInt64, size - astyarray(correction, dtype=int64))
-        res = (nom / size).astype(self.dtype)
-
-        # There is an uncanny corner case here: If self is 0-sized,
-        # means is NaN, however, the sum over a zero-sized array is
-        # `0`! I.e. we lose the NaN information. We recover it with
-        # the `where` call later.
-        nan = astyarray(np.nan, dtype=self.dtype)
-        is_zero_sized = self.dynamic_shape.prod(dtype=int64) == astyarray(
-            0, dtype=int64
-        )
-        return safe_cast(type(self), where(is_zero_sized, nan, res))
-
     def __abs__(self) -> Self:
         return type(self)(op.abs(self.var))
 
-    def __neg__(self) -> Self:
-        # TODO: Test with unsigned!
-        return type(self)(ort_compat.neg(self.var))
+    def __neg__(self) -> TyArray:
+        from .funcs import astyarray
+
+        return safe_cast(TyArray, self * astyarray(-1, dtype=int8))
 
     def __pos__(self) -> Self:
         return self
@@ -1137,12 +1088,6 @@ class TyArrayNumber(TyArray):
         promo_result, _ = promote(self, other)
         return (other / self).floor().astype(promo_result.dtype)
 
-    def ceil(self) -> Self:
-        return type(self)(ort_compat.ceil(self.var))
-
-    def floor(self) -> Self:
-        return type(self)(ort_compat.floor(self.var))
-
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         if self.ndim == 0:
             raise ValueError("'nonzero' is not defined for scalar arrays")
@@ -1152,9 +1097,6 @@ class TyArrayNumber(TyArray):
         for i in range(self.ndim):
             out.append(res[i, :])
         return tuple(out)
-
-    def round(self) -> Self:
-        return type(self)(ort_compat.round(self.var))
 
     def sign(self) -> Self:
         return type(self)(ort_compat.sign(self.var))
@@ -1170,7 +1112,7 @@ class TyArrayNumber(TyArray):
 
 
 class TyArrayInteger(TyArrayNumber):
-    dtype: IntegerDTypes | Boolean
+    dtype: IntegerDTypes
 
     def __truediv__(self, rhs, /) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
@@ -1264,6 +1206,15 @@ class TyArrayInteger(TyArrayNumber):
         res = op.bitwise_not(self.var)
         return type(self)(res)
 
+    def ceil(self) -> Self:
+        return copy(self)
+
+    def floor(self) -> Self:
+        return copy(self)
+
+    def round(self) -> Self:
+        return copy(self)
+
     def isfinite(self) -> TyArrayBool:  # type: ignore
         return TyArrayBool(op.const(True)).broadcast_to(self.dynamic_shape)
 
@@ -1274,6 +1225,17 @@ class TyArrayInteger(TyArrayNumber):
         return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def trunc(self) -> Self:
+        return copy(self)
+
+
+class TyArraySignedInteger(TyArrayInteger): ...
+
+
+class TyArrayUnsignedInteger(TyArrayInteger):
+    def __abs__(self) -> Self:
+        return copy(self)
+
+    def __pos__(self) -> Self:
         return copy(self)
 
 
@@ -1289,6 +1251,15 @@ class TyArrayFloating(TyArrayNumber):
         return _promote_and_apply_op(
             self, other, operator.mod, lambda a, b: op.mod(a, b, fmod=1), forward=False
         )
+
+    def ceil(self) -> Self:
+        return type(self)(ort_compat.ceil(self.var))
+
+    def floor(self) -> Self:
+        return type(self)(ort_compat.floor(self.var))
+
+    def round(self) -> Self:
+        return type(self)(ort_compat.round(self.var))
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
@@ -1339,6 +1310,56 @@ class TyArrayFloating(TyArrayNumber):
         else:
             n_elements = in_shape.take(axis_).prod()
         return (summed / n_elements).astype(self.dtype)
+
+    def std(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        correction: int | float = 0.0,
+        keepdims: bool = False,
+    ) -> Self:
+        res = self.variance(axis=axis, correction=correction, keepdims=keepdims).sqrt()
+        return res
+
+    def variance(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        correction: int | float = 0.0,
+        keepdims: bool = False,
+    ) -> Self:
+        from .funcs import astyarray, where
+
+        if axis is None:
+            size = self.dynamic_size
+            means = self.mean()
+        else:
+            means = self.mean(axis=axis, keepdims=True)
+            if isinstance(axis, int):
+                axis_ = op.const([axis], np.int64)
+            else:
+                axis_ = op.const(axis, np.int64)
+
+            ax_indices = TyArrayInt64(axis_).reshape((-1,))
+            size = self.dynamic_shape.take(ax_indices).prod(dtype=int64)
+
+        nom = (self - means).square().sum(axis=axis, keepdims=keepdims)
+
+        if correction != 0:
+            size = safe_cast(TyArrayInt64, size - astyarray(correction, dtype=int64))
+        res = (nom / size).astype(self.dtype)
+
+        # There is an uncanny corner case here: If self is 0-sized,
+        # means is NaN, however, the sum over a zero-sized array is
+        # `0`! I.e. we lose the NaN information. We recover it with
+        # the `where` call later.
+        nan = astyarray(np.nan, dtype=self.dtype)
+        is_zero_sized = self.dynamic_shape.prod(dtype=int64) == astyarray(
+            0, dtype=int64
+        )
+        return safe_cast(type(self), where(is_zero_sized, nan, res))
 
     def isfinite(self) -> TyArrayBool:
         return safe_cast(TyArrayBool, ~(self.isinf() | self.isnan()))
