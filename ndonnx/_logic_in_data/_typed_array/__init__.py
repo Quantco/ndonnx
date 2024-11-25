@@ -19,7 +19,7 @@ from .onnx import (
     TyArrayUint16,
     TyArrayUint32,
     TyArrayUint64,
-    TyArrayString,
+    TyArrayUtf8,
     TyArrayInteger,
 )
 from .masked_onnx import (
@@ -56,7 +56,7 @@ __all__ = [
     "TyArrayUint16",
     "TyArrayUint32",
     "TyArrayUint64",
-    "TyArrayString",
+    "TyArrayUtf8",
     "TyArrayFloat16",
     "TyArrayFloat32",
     "TyArrayFloat64",

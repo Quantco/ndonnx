@@ -66,7 +66,7 @@ class _PyScalar(DType):
 
 class PyString(_PyScalar):
     def _result_type(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, onnx.String | masked_onnx.NString):
+        if isinstance(other, onnx.Utf8 | masked_onnx.NString):
             return other
         return NotImplemented
 

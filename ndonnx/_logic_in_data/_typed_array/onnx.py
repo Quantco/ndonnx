@@ -116,17 +116,17 @@ class _Number(_OnnxDType[TY_ARRAY_ONNX]):
         return NotImplemented
 
 
-class String(_OnnxDType["TyArrayString"]):
+class Utf8(_OnnxDType["TyArrayUtf8"]):
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         if self == rhs:
             return self
         return NotImplemented
 
     @property
-    def _tyarr_class(self) -> type[TyArrayString]:
-        return TyArrayString
+    def _tyarr_class(self) -> type[TyArrayUtf8]:
+        return TyArrayUtf8
 
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayString:
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayUtf8:
         # NumPy returns empty strings for `zeros` with string data
         # types. We follow that lead.
         np_dtype = self.unwrap_numpy()
@@ -232,7 +232,7 @@ uint16: Uint16 = Uint16()
 uint32: Uint32 = Uint32()
 uint64: Uint64 = Uint64()
 
-string: String = String()
+string: Utf8 = Utf8()
 
 # Union types
 #
@@ -242,7 +242,7 @@ SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
 UnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
 IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
 NumericDTypes = FloatingDTypes | IntegerDTypes
-DTypes = NumericDTypes | String | Boolean
+DTypes = NumericDTypes | Utf8 | Boolean
 
 
 class TyArray(TyArrayBase):
@@ -757,7 +757,7 @@ class TyArray(TyArrayBase):
         return NotImplemented
 
 
-class TyArrayString(TyArray):
+class TyArrayUtf8(TyArray):
     dtype = string
 
     def __add__(self, other) -> TyArrayBase:
