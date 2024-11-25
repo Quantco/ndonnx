@@ -139,7 +139,7 @@ def fill_null(x: Array, value: Array | Scalar) -> Array:
     else:
         raise TypeError("'fill_null' is only implemented for built-in types.")
 
-    return Array._from_data(res).astype(result_type)
+    return ndx.Array._from_data(res).astype(result_type)
 
 
 def make_nullable(x: Array, null: Array) -> Array:
@@ -171,3 +171,22 @@ def make_nullable(x: Array, null: Array) -> Array:
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"
     )
+
+
+def get_nulls(x: Array) -> Array | None:
+    """Get null-mask if there is any."""
+    if isinstance(x._data, tydx.masked_onnx.TyMaArray):
+        if x._data.mask is None:
+            return None
+        return ndx.Array._from_data(x._data.mask)
+    return None
+
+
+def get_data(x: Array) -> Array:
+    """Get data part of a masked array.
+
+    If the ``x`` is not masked, return ``x``.
+    """
+    if isinstance(x._data, tydx.masked_onnx.TyMaArray):
+        return ndx.Array._from_data(x._data.data)
+    return ndx.Array._from_data(x._data)

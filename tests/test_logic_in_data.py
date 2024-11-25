@@ -516,3 +516,18 @@ def test_remainder(np_arr2):
 
     candidate = ndx.asarray(np_arr1) % ndx.asarray(np_arr2)
     np.testing.assert_equal(np_arr1 % np_arr2, candidate.unwrap_numpy())
+
+
+@pytest.mark.parametrize("k", [-1, 0, 1])
+@pytest.mark.parametrize(
+    "func",
+    [
+        np.tril,
+        np.triu,
+    ],
+)
+def test_trilu(func, k):
+    a = np.ones((3, 3))
+    expected = func(a, k=k)
+    actual = getattr(ndx, func.__name__)(ndx.asarray(a), k=k)
+    np.testing.assert_array_equal(expected, actual.unwrap_numpy())

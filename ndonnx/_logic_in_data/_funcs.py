@@ -93,7 +93,19 @@ def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Arra
 
 
 def broadcast_arrays(*arrays: Array) -> list[Array]:
-    raise NotImplementedError
+    if len(arrays) == 0:
+        return []
+
+    for a in arrays:
+        for el in a.shape:
+            if not isinstance(el, int):
+                raise ValueError(
+                    "broadcasting dynamic dimensions is not (yet) supported."
+                )
+
+    res = np.broadcast_shapes(*[a.shape for a in arrays])  # type: ignore
+
+    return [broadcast_to(a, tuple(res)) for a in arrays]
 
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
@@ -517,11 +529,11 @@ def tile(x: Array, repetitions: tuple[int, ...], /) -> Array:
 
 
 def tril(x: Array, /, *, k: int = 0) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.tril(k=k))
 
 
 def triu(x: Array, /, *, k: int = 0) -> Array:
-    raise NotImplementedError
+    return Array._from_data(x._data.triu(k=k))
 
 
 def tensordot(

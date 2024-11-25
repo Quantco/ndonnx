@@ -571,3 +571,60 @@ def label_encoder(
     if t2:
         return op.cast(res, to=values_tensor.dtype)
     return res
+
+
+def trilu(
+    input: Var,
+    k: Var | None = None,
+    *,
+    upper: int = 1,
+) -> Var:
+    # tensor(bool), tensor(double), tensor(float), tensor(int64)
+    fun = _wrap_unary(
+        lambda x: op.trilu(x, k, upper=upper),
+        mapping={
+            (
+                np.int8,
+                np.int16,
+                np.int32,
+                np.uint8,
+                np.uint16,
+                np.uint32,
+            ): np.int64,
+            (np.uint64,): np.int64,  # No warning since casting should be lossless
+        },
+        fun_name="trilu",
+    )
+
+    return fun(input)
+
+
+def range(
+    start: Var,
+    limit: Var,
+    delta: Var,
+) -> Var:
+    # tensor(double), tensor(float), tensor(int16), tensor(int32),
+    # tensor(int64)
+    in_dtype = start.unwrap_tensor().dtype
+    via_dtype = _detour_type(
+        in_dtype,
+        mapping={
+            (np.int8, np.uint8): np.int16,
+            (np.uint16,): np.int32,
+            (np.uint32,): np.int64,
+            (np.uint64,): Warn(np.int64),
+        },
+    )
+    if via_dtype is not None:
+        if isinstance(via_dtype, Warn):
+            via_dtype = via_dtype.ty
+            _warn_lossy("range", in_dtype, via_dtype)
+        start, limit, delta = (
+            op.cast(el, to=via_dtype) for el in (start, limit, delta)
+        )
+
+    res = op.range(start, limit, delta)
+    if via_dtype is None:
+        return res
+    return op.cast(res, to=in_dtype)

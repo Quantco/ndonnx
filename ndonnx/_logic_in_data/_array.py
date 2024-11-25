@@ -13,6 +13,7 @@ from copy import copy as std_copy
 from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
+from warnings import warn
 
 import numpy as np
 from spox import Var
@@ -136,6 +137,26 @@ class Array:
     @property
     def T(self) -> Array:  # noqa: N802
         return Array._from_data(self._data.T)
+
+    @property
+    def null(self) -> None | Array:
+        from .._extensions import get_nulls
+
+        warn(
+            "'Array.null' is deprecated in favor of 'ndonnx._extensions.get_nulls'",
+            DeprecationWarning,
+        )
+        return get_nulls(self)
+
+    @property
+    def data(self) -> Array:
+        from .._extensions import get_data
+
+        warn(
+            "'Array.null' is deprecated in favor of 'ndonnx._extensions.get_data'",
+            DeprecationWarning,
+        )
+        return get_data(self)
 
     def astype(self, dtype: DType, *, copy=True) -> Array:
         new_data = self._data.astype(dtype, copy=copy)

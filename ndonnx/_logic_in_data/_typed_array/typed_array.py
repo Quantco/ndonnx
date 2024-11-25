@@ -451,6 +451,12 @@ class TyArrayBase(ABC):
     def trunc(self) -> Self:
         raise _make_type_error("trunc", self.dtype)
 
+    def tril(self, /, *, k: int = 0) -> Self:
+        raise _make_type_error("trunc", self.dtype)
+
+    def triu(self, /, *, k: int = 0) -> Self:
+        raise _make_type_error("trunc", self.dtype)
+
     def __abs__(self) -> Self:
         raise _make_type_error("__abs__", self.dtype)
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable
+from copy import copy
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Any, TypeVar, overload
 
@@ -268,9 +269,11 @@ def _make_binary_pair(fun: Callable[[Any, Any], Any]):
 
 
 def _make_unary_member_promoted_type(fun_name: str):
-    def impl(self, fun_name: str) -> TyMaArray:
+    def impl(self) -> TyMaArray:
         data = getattr(self.data, fun_name)()
         return asncoredata(data, self.mask)
+
+    return impl
 
 
 def _make_unary_member_same_type(fun_name: str):
@@ -363,6 +366,12 @@ class TyMaArray(TyMaArrayBase):
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
         return self._pass_through_same_type("squeeze", axis=axis)
 
+    def tril(self, /, *, k: int = 0) -> Self:
+        return self._pass_through_same_type("tril", k=k)
+
+    def triu(self, /, *, k: int = 0) -> Self:
+        return self._pass_through_same_type("triu", k=k)
+
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         return self._pass_through_same_type("broadcast_to", shape=shape)
 
@@ -371,6 +380,10 @@ class TyMaArray(TyMaArrayBase):
             data=self.data.unwrap_numpy(),
             mask=None if self.mask is None else self.mask.unwrap_numpy(),
         )
+
+    def __copy__(self) -> Self:
+        # We want to copy the component arrays, too.
+        return type(self)(data=copy(self.data), mask=copy(self.mask))
 
     def __getitem__(self, key: GetitemIndex) -> Self:
         return self._pass_through_same_type("__getitem__", key=key)

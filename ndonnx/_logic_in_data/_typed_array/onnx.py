@@ -73,10 +73,21 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
         stop: int | float,
         step: int | float = 1,
     ) -> TY_ARRAY_ONNX:
+        np_dtype = self.unwrap_numpy()
+        np_arr = np.array([start, stop, step])
+
+        if np_dtype.kind != np_arr.dtype.kind:
+            TypeError(
+                f"'start', 'stop', and 'step' have to match data type kind of `{self}`"
+            )
         # Get everything onto the same type
-        start_, stop_, step_ = np.array([start, stop, step])
-        # TODO: ort compat
-        var = op.range(op.const(start_), op.const(stop_), op.const(step_))
+        start_, stop_, step_ = np.array([start, stop, step], dtype=np_dtype)
+
+        var = ort_compat.range(
+            op.const(start_, np_dtype),
+            op.const(stop_, np_dtype),
+            op.const(step_, np_dtype),
+        )
 
         return self._tyarr_class(var)
 
@@ -146,55 +157,58 @@ class Boolean(_OnnxDType["TyArrayBool"]):
         return TyArrayBool
 
 
-class Int8(_Number["TyArrayInt8"]):
+class Integer(_Number[TY_ARRAY_ONNX]): ...
+
+
+class Floating(_Number[TY_ARRAY_ONNX]): ...
+
+
+class Int8(Integer["TyArrayInt8"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt8]:
         return TyArrayInt8
 
 
-class Int16(_Number["TyArrayInt16"]):
+class Int16(Integer["TyArrayInt16"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt16]:
         return TyArrayInt16
 
 
-class Int32(_Number["TyArrayInt32"]):
+class Int32(Integer["TyArrayInt32"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt32]:
         return TyArrayInt32
 
 
-class Int64(_Number["TyArrayInt64"]):
+class Int64(Integer["TyArrayInt64"]):
     @property
     def _tyarr_class(self) -> type[TyArrayInt64]:
         return TyArrayInt64
 
 
-class Uint8(_Number["TyArrayUint8"]):
+class Uint8(Integer["TyArrayUint8"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint8]:
         return TyArrayUint8
 
 
-class Uint16(_Number["TyArrayUint16"]):
+class Uint16(Integer["TyArrayUint16"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint16]:
         return TyArrayUint16
 
 
-class Uint32(_Number["TyArrayUint32"]):
+class Uint32(Integer["TyArrayUint32"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint32]:
         return TyArrayUint32
 
 
-class Uint64(_Number["TyArrayUint64"]):
+class Uint64(Integer["TyArrayUint64"]):
     @property
     def _tyarr_class(self) -> type[TyArrayUint64]:
         return TyArrayUint64
-
-
-class Floating(_Number[TY_ARRAY_ONNX]): ...
 
 
 class Float16(Floating["TyArrayFloat16"]):
@@ -627,6 +641,14 @@ class TyArray(TyArrayBase):
                 "'tile' does not yet support repetition via dynamic arrays "
             )
 
+    def tril(self, /, *, k: int = 0) -> Self:
+        var = ort_compat.trilu(self.var, k=op.const(k), upper=False)
+        return type(self)(var)
+
+    def triu(self, /, *, k: int = 0) -> Self:
+        var = ort_compat.trilu(self.var, k=op.const(k), upper=True)
+        return type(self)(var)
+
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         flattened = self.reshape((-1,))
         res = ort_compat.unique(flattened.var, sorted=True)
@@ -1003,9 +1025,7 @@ class TyArrayNumber(TyArray):
         return type(self)(op.abs(self.var))
 
     def __neg__(self) -> TyArray:
-        from .funcs import astyarray
-
-        return safe_cast(TyArray, self * astyarray(-1, dtype=int8))
+        return type(self)(op.neg(self.var))
 
     def __pos__(self) -> Self:
         return self
@@ -1112,7 +1132,7 @@ class TyArrayNumber(TyArray):
 
 
 class TyArrayInteger(TyArrayNumber):
-    dtype: IntegerDTypes
+    dtype: Integer
 
     def __truediv__(self, rhs, /) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
@@ -1237,6 +1257,19 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 
     def __pos__(self) -> Self:
         return copy(self)
+
+    def __neg__(self) -> TyArray:
+        if isinstance(self.dtype, Uint8):
+            x: TyArray = self.astype(int8)
+        elif isinstance(self.dtype, Uint16):
+            x = self.astype(int16)
+        elif isinstance(self.dtype, Uint32):
+            x = self.astype(int32)
+        elif isinstance(self.dtype, Uint64):
+            x = self.astype(int64)
+        else:
+            raise TypeError(f"unexpected data type `{self.dtype}`")
+        return safe_cast(TyArray, (-x).astype(self.dtype))
 
 
 class TyArrayFloating(TyArrayNumber):
@@ -1489,6 +1522,10 @@ class TyArrayBool(TyArray):
             return type(self)(op.or_(lhs.var, self.var))
         return NotImplemented
 
+    def nonzero(self) -> tuple[TyArrayInt64, ...]:
+        # Use numeric implementation
+        return self.astype(uint8).nonzero()
+
     def logical_not(self) -> Self:
         return ~self
 
@@ -1505,35 +1542,35 @@ class TyArrayBool(TyArray):
         )
 
 
-class TyArrayInt8(TyArrayInteger):
+class TyArrayInt8(TyArraySignedInteger):
     dtype = int8
 
 
-class TyArrayInt16(TyArrayInteger):
+class TyArrayInt16(TyArraySignedInteger):
     dtype = int16
 
 
-class TyArrayInt32(TyArrayInteger):
+class TyArrayInt32(TyArraySignedInteger):
     dtype = int32
 
 
-class TyArrayInt64(TyArrayInteger):
+class TyArrayInt64(TyArraySignedInteger):
     dtype = int64
 
 
-class TyArrayUint8(TyArrayInteger):
+class TyArrayUint8(TyArrayUnsignedInteger):
     dtype = uint8
 
 
-class TyArrayUint16(TyArrayInteger):
+class TyArrayUint16(TyArrayUnsignedInteger):
     dtype = uint16
 
 
-class TyArrayUint32(TyArrayInteger):
+class TyArrayUint32(TyArrayUnsignedInteger):
     dtype = uint32
 
 
-class TyArrayUint64(TyArrayInteger):
+class TyArrayUint64(TyArrayUnsignedInteger):
     dtype = uint64
 
 
