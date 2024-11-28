@@ -48,8 +48,6 @@ def arange(
     dtype: DType | None = None,
     device=None,
 ) -> Array:
-    import builtins
-
     if dtype is None:
         if builtins.all(
             isinstance(el, int) for el in [start, stop, step] if el is not None
@@ -62,6 +60,14 @@ def arange(
     if stop is None:
         stop = start
         start = 0
+
+    # Validation; It is a user error if they provide wrong types. but there is an existing tests for this behavior.
+    # TODO: Remove after refactoring the typed arrays has landed
+    for el in [start, stop, step]:
+        if not isinstance(el, int | float):
+            raise TypeError(
+                f"unexpected type for 'start', 'stop', or 'step': `{type(el)}`"
+            )
 
     return Array._from_data(dtype._arange(start, stop, step))
 
