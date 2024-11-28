@@ -111,19 +111,13 @@ class Array:
 
     @property
     def dynamic_shape(self) -> Array:
+        """Runtime shape of this array as a 1D int64 tensor."""
         shape = self._tyarray.dynamic_shape
         return Array._from_tyarray(shape)
 
     @property
     def mT(self) -> Array:  # noqa: N802
         return Array._from_tyarray(self._tyarray.mT)
-
-    @property
-    def size(self) -> int | None:
-        static_dims = [el for el in self.shape if el is not None]
-        if static_dims:
-            return math.prod(static_dims)
-        return None
 
     @property
     def ndim(self) -> int:
@@ -135,28 +129,39 @@ class Array:
         return tuple(None if isinstance(item, str) else item for item in shape)
 
     @property
+    def size(self) -> int | None:
+        static_dims = [el for el in self.shape if el is not None]
+        if static_dims:
+            return math.prod(static_dims)
+        return None
+
+    @property
     def T(self) -> Array:  # noqa: N802
         return Array._from_tyarray(self._tyarray.T)
 
     @property
     def null(self) -> None | Array:
-        from .._extensions import get_nulls
+        from .extensions import get_mask
 
         warn(
-            "'Array.null' is deprecated in favor of 'ndonnx._extensions.get_nulls'",
+            "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
             DeprecationWarning,
         )
-        return get_nulls(self)
+        return get_mask(self)
 
     @property
-    def data(self) -> Array:
-        from .._extensions import get_data
+    def values(self) -> Array:
+        # TODO: This is the name currently used, but NumPy calls this 'data'.
+        from ._typed_array.masked_onnx import TyMaArray
 
         warn(
-            "'Array.null' is deprecated in favor of 'ndonnx._extensions.get_data'",
+            "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
             DeprecationWarning,
         )
-        return get_data(self)
+
+        if isinstance(self._tyarray, TyMaArray):
+            return Array._from_tyarray(self._tyarray.data)
+        raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
     def astype(self, dtype: DType, *, copy=True) -> Array:
         new_data = self._tyarray.astype(dtype, copy=copy)
@@ -169,7 +174,10 @@ class Array:
     def to_numpy(self) -> np.ndarray | None:
         from warnings import warn
 
-        warn("'to_numpy' is deprecated in favor of 'unwrap_numpy'", DeprecationWarning)
+        warn(
+            "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
+            DeprecationWarning,
+        )
         try:
             return self.unwrap_numpy()
         except ValueError:
@@ -194,15 +202,6 @@ class Array:
         The particular layout depends on the data type.
         """
         return self._tyarray.disassemble()
-
-    @property
-    def values(self) -> Array:
-        # TODO: is this really the best name?
-        from ._typed_array.masked_onnx import TyMaArray
-
-        if isinstance(self._tyarray, TyMaArray):
-            return Array._from_tyarray(self._tyarray.data)
-        raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
     def __dlpack__(
         self,
@@ -268,12 +267,6 @@ class Array:
     def __int__(self, /) -> int:
         return int(self.unwrap_numpy())
 
-    ##################################################################
-    # __r*__ are needed for interacting with Python scalars          #
-    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to #
-    # dispatch between different `_TypedArray` subclasses.           #
-    ##################################################################
-
     def __array_namespace__(self, /, *, api_version: Optional[str] = None) -> Any:
         # TODO: Version namespace
         import ndonnx._refactor as ndx
@@ -287,6 +280,12 @@ class Array:
 
     def __ne__(self, other) -> Array:  # type: ignore[override]
         return _apply_op(self, other, std_ops.ne)
+
+    ##################################################################
+    # __r*__ are needed for interacting with Python scalars          #
+    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to #
+    # dispatch between different `_TypedArray` subclasses.           #
+    ##################################################################
 
     __add__, __radd__ = _make_binary(std_ops.add)
     __and__, __rand__ = _make_binary(std_ops.and_)
@@ -326,8 +325,11 @@ class Array:
         return f"array({value_repr}, shape={self.shape}, dtype={self.dtype})"
 
 
+NestedSequence = Sequence["Array | bool | int | float | NestedSequence"]
+
+
 def asarray(
-    obj: Array | bool | int | float | str | np.ndarray | Sequence | Var,
+    obj: Array | bool | int | float | str | np.ndarray | NestedSequence | Var,
     /,
     *,
     dtype: DType | None = None,
@@ -363,9 +365,6 @@ def asarray(
     return Array._from_tyarray(data)
 
 
-NestedSequence = Sequence["Array | bool | int | float | NestedSequence"]
-
-
 def _asarray_sequence(
     seq: NestedSequence, dtype: DType | None, copy: bool | None
 ) -> Array:
@@ -390,22 +389,6 @@ def _as_array(
         return val
     ty_arr = astyarray(val, use_py_scalars=use_py_scalars)
     return Array._from_tyarray(ty_arr)
-
-
-@overload
-def _apply_op(
-    lhs: Array,
-    rhs: int | float | str | Array,
-    op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
-) -> Array | NotImplementedType: ...
-
-
-@overload
-def _apply_op(
-    lhs: int | float | str | Array,
-    rhs: Array,
-    op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
-) -> Array | NotImplementedType: ...
 
 
 def _apply_op(

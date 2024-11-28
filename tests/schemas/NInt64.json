@@ -1,17 +1,17 @@
 {
+    "version": 1,
     "input_schema": {
         "a": {
-            "author": "ndonnx",
             "type_name": "NInt64",
+            "author": "ndonnx",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
-            "author": "ndonnx",
             "type_name": "NInt64",
+            "author": "ndonnx",
             "meta": null
         }
-    },
-    "version": 1
+    }
 }

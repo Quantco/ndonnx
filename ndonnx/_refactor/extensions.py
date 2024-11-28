@@ -175,7 +175,7 @@ def make_nullable(x: Array, null: Array) -> Array:
     )
 
 
-def get_nulls(x: Array) -> Array | None:
+def get_mask(x: Array) -> Array | None:
     """Get null-mask if there is any."""
     if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
         if x._tyarray.mask is None:

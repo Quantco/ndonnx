@@ -7,8 +7,8 @@ import warnings
 import numpy as np
 import pytest
 
-import ndonnx._extensions as nda
 import ndonnx._refactor as ndx
+import ndonnx._refactor.extensions as nda
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 

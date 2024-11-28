@@ -2,14 +2,14 @@
     "version": 1,
     "input_schema": {
         "a": {
-            "type_name": "NInt8",
+            "type_name": "NBoolean",
             "author": "ndonnx",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
-            "type_name": "NInt8",
+            "type_name": "NBoolean",
             "author": "ndonnx",
             "meta": null
         }

@@ -187,28 +187,28 @@ class Int64(Integer["TyArrayInt64"]):
         return TyArrayInt64
 
 
-class Uint8(Integer["TyArrayUint8"]):
+class UInt8(Integer["TyArrayUInt8"]):
     @property
-    def _tyarr_class(self) -> type[TyArrayUint8]:
-        return TyArrayUint8
+    def _tyarr_class(self) -> type[TyArrayUInt8]:
+        return TyArrayUInt8
 
 
-class Uint16(Integer["TyArrayUint16"]):
+class UInt16(Integer["TyArrayUInt16"]):
     @property
-    def _tyarr_class(self) -> type[TyArrayUint16]:
-        return TyArrayUint16
+    def _tyarr_class(self) -> type[TyArrayUInt16]:
+        return TyArrayUInt16
 
 
-class Uint32(Integer["TyArrayUint32"]):
+class UInt32(Integer["TyArrayUInt32"]):
     @property
-    def _tyarr_class(self) -> type[TyArrayUint32]:
-        return TyArrayUint32
+    def _tyarr_class(self) -> type[TyArrayUInt32]:
+        return TyArrayUInt32
 
 
-class Uint64(Integer["TyArrayUint64"]):
+class UInt64(Integer["TyArrayUInt64"]):
     @property
-    def _tyarr_class(self) -> type[TyArrayUint64]:
-        return TyArrayUint64
+    def _tyarr_class(self) -> type[TyArrayUInt64]:
+        return TyArrayUInt64
 
 
 class Float16(Floating["TyArrayFloat16"]):
@@ -241,10 +241,10 @@ int32: Int32 = Int32()
 int64: Int64 = Int64()
 int8: Int8 = Int8()
 
-uint8: Uint8 = Uint8()
-uint16: Uint16 = Uint16()
-uint32: Uint32 = Uint32()
-uint64: Uint64 = Uint64()
+uint8: UInt8 = UInt8()
+uint16: UInt16 = UInt16()
+uint32: UInt32 = UInt32()
+uint64: UInt64 = UInt64()
 
 string: Utf8 = Utf8()
 
@@ -253,7 +253,7 @@ string: Utf8 = Utf8()
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
 FloatingDTypes = Float16 | Float32 | Float64
 SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
-UnsignedIntegerDTypes = Uint8 | Uint16 | Uint32 | Uint64
+UnsignedIntegerDTypes = UInt8 | UInt16 | UInt32 | UInt64
 IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
 NumericDTypes = FloatingDTypes | IntegerDTypes
 DTypes = NumericDTypes | Utf8 | Boolean
@@ -1259,13 +1259,13 @@ class TyArrayUnsignedInteger(TyArrayInteger):
         return copy(self)
 
     def __neg__(self) -> TyArray:
-        if isinstance(self.dtype, Uint8):
+        if isinstance(self.dtype, UInt8):
             x: TyArray = self.astype(int8)
-        elif isinstance(self.dtype, Uint16):
+        elif isinstance(self.dtype, UInt16):
             x = self.astype(int16)
-        elif isinstance(self.dtype, Uint32):
+        elif isinstance(self.dtype, UInt32):
             x = self.astype(int32)
-        elif isinstance(self.dtype, Uint64):
+        elif isinstance(self.dtype, UInt64):
             x = self.astype(int64)
         else:
             raise TypeError(f"unexpected data type `{self.dtype}`")
@@ -1558,19 +1558,19 @@ class TyArrayInt64(TyArraySignedInteger):
     dtype = int64
 
 
-class TyArrayUint8(TyArrayUnsignedInteger):
+class TyArrayUInt8(TyArrayUnsignedInteger):
     dtype = uint8
 
 
-class TyArrayUint16(TyArrayUnsignedInteger):
+class TyArrayUInt16(TyArrayUnsignedInteger):
     dtype = uint16
 
 
-class TyArrayUint32(TyArrayUnsignedInteger):
+class TyArrayUInt32(TyArrayUnsignedInteger):
     dtype = uint32
 
 
-class TyArrayUint64(TyArrayUnsignedInteger):
+class TyArrayUInt64(TyArrayUnsignedInteger):
     dtype = uint64
 
 

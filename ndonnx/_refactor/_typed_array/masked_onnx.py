@@ -164,36 +164,36 @@ class NInt64(_NNumber):
         return TyMaArrayInt64
 
 
-class NUint8(_NNumber):
+class NUInt8(_NNumber):
     _unmasked_dtype = onnx.uint8
 
     @property
-    def _tyarr_class(self) -> type[TyMaArrayUint8]:
-        return TyMaArrayUint8
+    def _tyarr_class(self) -> type[TyMaArrayUInt8]:
+        return TyMaArrayUInt8
 
 
-class NUint16(_NNumber):
+class NUInt16(_NNumber):
     _unmasked_dtype = onnx.uint16
 
     @property
-    def _tyarr_class(self) -> type[TyMaArrayUint16]:
-        return TyMaArrayUint16
+    def _tyarr_class(self) -> type[TyMaArrayUInt16]:
+        return TyMaArrayUInt16
 
 
-class NUint32(_NNumber):
+class NUInt32(_NNumber):
     _unmasked_dtype = onnx.uint32
 
     @property
-    def _tyarr_class(self) -> type[TyMaArrayUint32]:
-        return TyMaArrayUint32
+    def _tyarr_class(self) -> type[TyMaArrayUInt32]:
+        return TyMaArrayUInt32
 
 
-class NUint64(_NNumber):
+class NUInt64(_NNumber):
     _unmasked_dtype = onnx.uint64
 
     @property
-    def _tyarr_class(self) -> type[TyMaArrayUint64]:
-        return TyMaArrayUint64
+    def _tyarr_class(self) -> type[TyMaArrayUInt64]:
+        return TyMaArrayUInt64
 
 
 class NFloat16(_NNumber):
@@ -232,10 +232,10 @@ nint16 = NInt16()
 nint32 = NInt32()
 nint64 = NInt64()
 
-nuint8 = NUint8()
-nuint16 = NUint16()
-nuint32 = NUint32()
-nuint64 = NUint64()
+nuint8 = NUInt8()
+nuint16 = NUInt16()
+nuint32 = NUInt32()
+nuint64 = NUInt64()
 
 nstring = NString()
 
@@ -244,7 +244,7 @@ nstring = NString()
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
 
 NCoreIntegerDTypes = (
-    NInt8 | NInt16 | NInt32 | NInt64 | NUint8 | NUint16 | NUint32 | NUint64
+    NInt8 | NInt16 | NInt32 | NInt64 | NUInt8 | NUInt16 | NUInt32 | NUInt64
 )
 NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
 
@@ -616,19 +616,19 @@ class TyMaArrayInt64(TyMaArrayInteger):
     dtype = nint64
 
 
-class TyMaArrayUint8(TyMaArrayInteger):
+class TyMaArrayUInt8(TyMaArrayInteger):
     dtype = nuint8
 
 
-class TyMaArrayUint16(TyMaArrayInteger):
+class TyMaArrayUInt16(TyMaArrayInteger):
     dtype = nuint16
 
 
-class TyMaArrayUint32(TyMaArrayInteger):
+class TyMaArrayUInt32(TyMaArrayInteger):
     dtype = nuint32
 
 
-class TyMaArrayUint64(TyMaArrayInteger):
+class TyMaArrayUInt64(TyMaArrayInteger):
     dtype = nuint64
 
 
