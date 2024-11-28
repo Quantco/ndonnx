@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 import pytest
 
-import ndonnx._logic_in_data as ndx
+import ndonnx._refactor as ndx
 
 ARRAYS = [np.linspace(-10, 10, 10), np.array([])]
 

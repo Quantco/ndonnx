@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-import ndonnx._logic_in_data as ndx
+import ndonnx._refactor as ndx
 
 AXES = [None, 0, 1, (0, 1), (1, 0), ()]
 

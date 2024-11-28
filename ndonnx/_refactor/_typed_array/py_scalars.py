@@ -11,8 +11,8 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from typing_extensions import Self
 
-import ndonnx._logic_in_data as ndx
-from ndonnx._logic_in_data._schema import DTypeInfoV1
+import ndonnx._refactor as ndx
+from ndonnx._refactor._schema import DTypeInfoV1
 
 from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType

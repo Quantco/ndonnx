@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import numpy as np
 
-import ndonnx._logic_in_data as ndx
+import ndonnx._refactor as ndx
 
 from ._array import Array, asarray
 from ._dtypes import DType

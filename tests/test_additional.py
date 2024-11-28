@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import ndonnx._extensions as nda
-import ndonnx._logic_in_data as ndx
+import ndonnx._refactor as ndx
 
 from .utils import assert_array_equal, run
 

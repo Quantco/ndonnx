@@ -3,8 +3,8 @@
 
 import pytest
 
-import ndonnx._logic_in_data as ndx
-import ndonnx._logic_in_data._typed_array as tydx
+import ndonnx._refactor as ndx
+import ndonnx._refactor._typed_array as tydx
 
 
 @pytest.mark.parametrize(

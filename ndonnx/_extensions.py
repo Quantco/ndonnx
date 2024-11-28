@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, TypeAlias, TypeVar
 
 import numpy as np
 
-import ndonnx._logic_in_data as ndx
-from ndonnx._logic_in_data import _typed_array as tydx
+import ndonnx._refactor as ndx
+from ndonnx._refactor import _typed_array as tydx
 
 if TYPE_CHECKING:
-    from ndonnx._logic_in_data import Array
+    from ndonnx._refactor import Array
 
 Scalar = TypeVar("Scalar", int, float, str)
 

@@ -6,8 +6,8 @@ import operator
 import numpy as np
 import pytest
 
-import ndonnx._logic_in_data as ndx
-from ndonnx._logic_in_data import _dtypes as dtypes
+import ndonnx._refactor as ndx
+from ndonnx._refactor import _dtypes as dtypes
 
 
 def check_dtype_shape(arr, dtype, shape):
@@ -302,8 +302,8 @@ def test_ops_with_ort_compat(dtype, values, fun):
 
 @pytest.mark.parametrize("dtype", [None, ndx.int32, ndx.float64])
 def test_ones(dtype):
-    from ndonnx._logic_in_data import ones
-    from ndonnx._logic_in_data._dtypes import as_numpy
+    from ndonnx._refactor import ones
+    from ndonnx._refactor._dtypes import as_numpy
 
     shape = (2,)
     candidate = ones(shape, dtype=dtype)

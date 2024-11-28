@@ -10,15 +10,15 @@ import pytest
 import spox
 import spox.opset.ai.onnx.v19 as op
 
-import ndonnx._logic_in_data as ndx
-from ndonnx._logic_in_data import _dtypes as dtypes
+import ndonnx._refactor as ndx
+from ndonnx._refactor import _dtypes as dtypes
 from ndonnx._utility import promote
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def numpy_to_graph_input(arr, eager=False):
-    from ndonnx._logic_in_data._typed_array.masked_onnx import as_nullable
+    from ndonnx._refactor._typed_array.masked_onnx import as_nullable
 
     dtypes.from_numpy
 

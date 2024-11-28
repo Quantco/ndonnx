@@ -12,7 +12,7 @@ import numpy as np
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
-import ndonnx._logic_in_data as ndx
+import ndonnx._refactor as ndx
 
 from .._dtypes import TY_ARRAY, DType
 from . import masked_onnx, onnx

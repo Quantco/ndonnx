@@ -276,7 +276,7 @@ class Array:
 
     def __array_namespace__(self, /, *, api_version: Optional[str] = None) -> Any:
         # TODO: Version namespace
-        import ndonnx._logic_in_data as ndx
+        import ndonnx._refactor as ndx
 
         return ndx
 

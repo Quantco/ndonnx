@@ -3,7 +3,7 @@
 
 import pytest
 
-import ndonnx._logic_in_data as ndx
+import ndonnx._refactor as ndx
 
 
 def test_iter_for_loop():
