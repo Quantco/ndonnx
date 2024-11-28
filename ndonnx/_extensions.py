@@ -82,7 +82,7 @@ def static_map(
     out: Array
         A new Array with the values mapped according to the mapping.
     """
-    if not isinstance(x._data, tydx.onnx.TyArray):
+    if not isinstance(x._tyarray, tydx.onnx.TyArray):
         raise ndx.UnsupportedOperationError(
             "'static_map' accepts only non-nullable arrays"
         )
@@ -106,8 +106,8 @@ def static_map(
             # to be in line with the numerical 0
             default = False  # type: ignore
 
-    tyarr = x._data.static_map(dict(zip(keys, values)), default)
-    return ndx.Array._from_data(tyarr)
+    tyarr = x._tyarray.static_map(dict(zip(keys, values)), default)
+    return ndx.Array._from_tyarray(tyarr)
 
 
 def fill_null(x: Array, value: Array | Scalar) -> Array:
@@ -126,7 +126,7 @@ def fill_null(x: Array, value: Array | Scalar) -> Array:
         A new Array with the null values filled with the given value.
     """
     value_ = tydx.astyarray(value)
-    xty = x._data
+    xty = x._tyarray
     if isinstance(xty, tydx.masked_onnx.TyMaArray):
         result_type = ndx.result_type(xty.data.dtype, value_.dtype)
         if xty.mask is None:
@@ -139,7 +139,7 @@ def fill_null(x: Array, value: Array | Scalar) -> Array:
     else:
         raise TypeError("'fill_null' is only implemented for built-in types.")
 
-    return ndx.Array._from_data(res).astype(result_type)
+    return ndx.Array._from_tyarray(res).astype(result_type)
 
 
 def make_nullable(x: Array, null: Array) -> Array:
@@ -164,10 +164,12 @@ def make_nullable(x: Array, null: Array) -> Array:
     TypeError
         If the data type of ``x`` does not have a nullable counterpart.
     """
-    if not isinstance(null._data, tydx.TyArrayBool):
+    if not isinstance(null._tyarray, tydx.TyArrayBool):
         raise TypeError(f"'null' must be of boolean data type, found `{null.dtype}`")
-    if isinstance(x._data, tydx.TyArray):
-        return ndx.Array._from_data(tydx.masked_onnx.asncoredata(x._data, null._data))
+    if isinstance(x._tyarray, tydx.TyArray):
+        return ndx.Array._from_tyarray(
+            tydx.masked_onnx.asncoredata(x._tyarray, null._tyarray)
+        )
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"
     )
@@ -175,10 +177,10 @@ def make_nullable(x: Array, null: Array) -> Array:
 
 def get_nulls(x: Array) -> Array | None:
     """Get null-mask if there is any."""
-    if isinstance(x._data, tydx.masked_onnx.TyMaArray):
-        if x._data.mask is None:
+    if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
+        if x._tyarray.mask is None:
             return None
-        return ndx.Array._from_data(x._data.mask)
+        return ndx.Array._from_tyarray(x._tyarray.mask)
     return None
 
 
@@ -187,6 +189,6 @@ def get_data(x: Array) -> Array:
 
     If the ``x`` is not masked, return ``x``.
     """
-    if isinstance(x._data, tydx.masked_onnx.TyMaArray):
-        return ndx.Array._from_data(x._data.data)
-    return ndx.Array._from_data(x._data)
+    if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
+        return ndx.Array._from_tyarray(x._tyarray.data)
+    return ndx.Array._from_tyarray(x._tyarray)

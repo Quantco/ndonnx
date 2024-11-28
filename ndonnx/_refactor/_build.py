@@ -35,7 +35,7 @@ def _arrays_to_vars(dct_of_arrs: dict[str, Array]) -> dict[str, Var]:
     public_separator = "_"
     out = {}
     for k, v in dct_of_arrs.items():
-        components = v._data.disassemble()
+        components = v._tyarray.disassemble()
         if isinstance(components, Var):
             out[k] = components
             continue

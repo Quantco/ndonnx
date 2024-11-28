@@ -155,8 +155,8 @@ def normalize_getitem_key(
         key = astyarray(np.array(key), dtype=onnx.bool_)  # type: ignore
 
     # Fish out the boolean masks before normalizing to tuples
-    if isinstance(key, Array) and isinstance(key._data, TyArrayBool):
-        return key._data
+    if isinstance(key, Array) and isinstance(key._tyarray, TyArrayBool):
+        return key._tyarray
     if isinstance(key, TyArrayBool):
         return key
 
@@ -181,8 +181,8 @@ def _normalize_getitem_key_item(key: GetitemScalarPub | GetitemScalar) -> Getite
     if isinstance(key, Array):
         if key.ndim != 0:
             raise IndexError(f"Index array must be a scalar but has rank `{key.ndim}`")
-        if isinstance(key._data, TyArrayInt64):
-            return key._data
+        if isinstance(key._tyarray, TyArrayInt64):
+            return key._tyarray
         raise IndexError(
             f"indexing array must have integer or boolean data type; found `{key.dtype}`"
         )
@@ -198,7 +198,7 @@ def _normalize_getitem_key_item(key: GetitemScalarPub | GetitemScalar) -> Getite
                     raise IndexError(
                         f"array-slice argument must be be an int64 scalar. Found `{arg}`"
                     )
-                ty_arr = arg._data if isinstance(arg, Array) else arg
+                ty_arr = arg._tyarray if isinstance(arg, Array) else arg
                 out[k] = ty_arr.astype(int64)
             else:
                 out[k] = arg

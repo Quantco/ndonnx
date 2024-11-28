@@ -59,7 +59,7 @@ def astyarray(
         return copy_(val)
 
     if isinstance(val, Array):
-        return copy_(val._data)
+        return copy_(val._tyarray)
 
     arr: TyArrayBase
     if isinstance(val, bool):

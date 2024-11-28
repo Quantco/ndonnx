@@ -30,13 +30,13 @@ def from_dlpack(
 def all(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.all(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.all(axis=axis, keepdims=keepdims))
 
 
 def any(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.any(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.any(axis=axis, keepdims=keepdims))
 
 
 def arange(
@@ -69,27 +69,27 @@ def arange(
                 f"unexpected type for 'start', 'stop', or 'step': `{type(el)}`"
             )
 
-    return Array._from_data(dtype._arange(start, stop, step))
+    return Array._from_tyarray(dtype._arange(start, stop, step))
 
 
 def argmax(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
-    return Array._from_data(x._data.argmax(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.argmax(axis=axis, keepdims=keepdims))
 
 
 def argmin(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
-    return Array._from_data(x._data.argmin(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.argmin(axis=axis, keepdims=keepdims))
 
 
 def argsort(
     x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
 ) -> Array:
-    return Array._from_data(
-        x._data.argsort(axis=axis, descending=descending, stable=stable)
+    return Array._from_tyarray(
+        x._tyarray.argsort(axis=axis, descending=descending, stable=stable)
     )
 
 
 def nonzero(x: Array, /) -> tuple[Array, ...]:
-    return tuple(Array._from_data(el) for el in x._data.nonzero())
+    return tuple(Array._from_tyarray(el) for el in x._tyarray.nonzero())
 
 
 def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Array:
@@ -118,12 +118,12 @@ def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
     from ._typed_array import TyArrayInt64
 
     if isinstance(shape, Array):
-        if not isinstance(shape._data, TyArrayInt64):
+        if not isinstance(shape._tyarray, TyArrayInt64):
             raise ValueError(
                 f"dynamic shape must be of data type int64, found `{shape.dtype}`"
             )
-        return Array._from_data(x._data.broadcast_to(shape._data))
-    return Array._from_data(x._data.broadcast_to(shape))
+        return Array._from_tyarray(x._tyarray.broadcast_to(shape._tyarray))
+    return Array._from_tyarray(x._tyarray.broadcast_to(shape))
 
 
 def can_cast(from_: DType | Array, to: DType, /) -> bool:
@@ -137,8 +137,8 @@ def can_cast(from_: DType | Array, to: DType, /) -> bool:
 def concat(
     arrays: tuple[Array, ...] | list[Array], /, *, axis: None | int = 0
 ) -> Array:
-    data = tyfuncs.concat([arr._data for arr in arrays], axis=axis)
-    return Array._from_data(data)
+    data = tyfuncs.concat([arr._tyarray for arr in arrays], axis=axis)
+    return Array._from_tyarray(data)
 
 
 def cumulative_sum(
@@ -149,22 +149,22 @@ def cumulative_sum(
     dtype: DType | None = None,
     include_initial: bool = False,
 ) -> Array:
-    data = x._data.cumulative_sum(
+    data = x._tyarray.cumulative_sum(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
-    return Array._from_data(data)
+    return Array._from_tyarray(data)
 
 
 def max(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.max(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.max(axis=axis, keepdims=keepdims))
 
 
 def mean(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.mean(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.mean(axis=axis, keepdims=keepdims))
 
 
 def meshgrid(*Arrays: Array, indexing: str = "xy") -> list[Array]:
@@ -174,13 +174,13 @@ def meshgrid(*Arrays: Array, indexing: str = "xy") -> list[Array]:
 def moveaxis(
     x: Array, source: int | tuple[int, ...], destination: int | tuple[int, ...], /
 ) -> Array:
-    return Array._from_data(x._data.moveaxis(source, destination))
+    return Array._from_tyarray(x._tyarray.moveaxis(source, destination))
 
 
 def min(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
-    return Array._from_data(x._data.min(axis=axis, keepdims=keepdims))
+    return Array._from_tyarray(x._tyarray.min(axis=axis, keepdims=keepdims))
 
 
 def prod(
@@ -191,14 +191,16 @@ def prod(
     dtype: DType | None = None,
     keepdims: bool = False,
 ) -> Array:
-    return Array._from_data(x._data.prod(axis=axis, dtype=dtype, keepdims=keepdims))
+    return Array._from_tyarray(
+        x._tyarray.prod(axis=axis, dtype=dtype, keepdims=keepdims)
+    )
 
 
 def sort(
     x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
 ) -> Array:
-    return Array._from_data(
-        x._data.sort(axis=axis, descending=descending, stable=stable)
+    return Array._from_tyarray(
+        x._tyarray.sort(axis=axis, descending=descending, stable=stable)
     )
 
 
@@ -210,8 +212,8 @@ def std(
     correction: int | float = 0.0,
     keepdims: bool = False,
 ) -> Array:
-    return Array._from_data(
-        x._data.std(axis=axis, correction=correction, keepdims=keepdims)
+    return Array._from_tyarray(
+        x._tyarray.std(axis=axis, correction=correction, keepdims=keepdims)
     )
 
 
@@ -223,7 +225,9 @@ def sum(
     dtype: DType | None = None,
     keepdims: bool = False,
 ) -> Array:
-    return Array._from_data(x._data.sum(axis=axis, dtype=dtype, keepdims=keepdims))
+    return Array._from_tyarray(
+        x._tyarray.sum(axis=axis, dtype=dtype, keepdims=keepdims)
+    )
 
 
 def var(
@@ -234,8 +238,8 @@ def var(
     correction: int | float = 0.0,
     keepdims: bool = False,
 ) -> Array:
-    return Array._from_data(
-        x._data.variance(axis=axis, correction=correction, keepdims=keepdims)
+    return Array._from_tyarray(
+        x._tyarray.variance(axis=axis, correction=correction, keepdims=keepdims)
     )
 
 
@@ -408,7 +412,7 @@ def matmul(x1: Array, x2: Array, /) -> Array:
 
 
 def matrix_transpose(x: Array, /) -> Array:
-    return Array._from_data(x._data.mT)
+    return Array._from_tyarray(x._tyarray.mT)
 
 
 def ones(
@@ -416,7 +420,7 @@ def ones(
 ) -> Array:
     dtype = dtype or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
-    return Array._from_data(dtype._ones(shape))
+    return Array._from_tyarray(dtype._ones(shape))
 
 
 def ones_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
@@ -425,8 +429,8 @@ def ones_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
 
 
 def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
-    data = x._data.permute_dims(axes=axes)
-    return Array._from_data(data)
+    data = x._tyarray.permute_dims(axes=axes)
+    return Array._from_tyarray(data)
 
 
 def reshape(
@@ -435,7 +439,7 @@ def reshape(
     if copy is not None:
         raise ValueError("'copy' semantics are not implemented, yet")
     if isinstance(shape, Array):
-        shape_data = shape._data
+        shape_data = shape._tyarray
         if not isinstance(shape_data, onnx.TyArrayInt64):
             raise TypeError(
                 "'shape' must be of data type int64 if provided as an Array"
@@ -448,8 +452,8 @@ def reshape(
             raise ValueError(
                 "'shape' must be a 1D tensor of static shape if provided as an 'Array'"
             )
-        return Array._from_data(x._data.reshape(shape_data))
-    return Array._from_data(x._data.reshape(shape))
+        return Array._from_tyarray(x._tyarray.reshape(shape_data))
+    return Array._from_tyarray(x._tyarray.reshape(shape))
 
 
 def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Array:
@@ -458,14 +462,14 @@ def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Arr
     repeats_: int | TyArrayInt64
     if isinstance(repeats, int):
         repeats_ = repeats
-    elif isinstance(repeats._data, TyArrayInteger):
-        repeats_ = repeats._data.astype(int64)
+    elif isinstance(repeats._tyarray, TyArrayInteger):
+        repeats_ = repeats._tyarray.astype(int64)
     else:
         raise TypeError(
             f"'repeats' argument must be of type 'int' or an array with an integer data type, found `{repeats}`"
         )
 
-    return Array._from_data(x._data.repeat(repeats_, axis=axis))
+    return Array._from_tyarray(x._tyarray.repeat(repeats_, axis=axis))
 
 
 def result_type(*arrays_and_dtypes: Array | DType) -> DType:
@@ -487,7 +491,7 @@ def roll(
     *,
     axis: int | tuple[int, ...] | None = None,
 ) -> Array:
-    return Array._from_data(x._data.roll(shift=shift, axis=axis))
+    return Array._from_tyarray(x._tyarray.roll(shift=shift, axis=axis))
 
 
 def searchsorted(
@@ -500,14 +504,14 @@ def searchsorted(
 ) -> Array:
     if sorter is None:
         sorter_ = None
-    elif not isinstance(sorter._data, onnx.TyArrayInteger):
+    elif not isinstance(sorter._tyarray, onnx.TyArrayInteger):
         raise TypeError(
             f"'sorter' must have an integer data type, found `{sorter.dtype}`"
         )
     else:
-        sorter_ = sorter._data
-    return Array._from_data(
-        tyfuncs.searchsorted(x1._data, x2._data, side=side, sorter=sorter_)
+        sorter_ = sorter._tyarray
+    return Array._from_tyarray(
+        tyfuncs.searchsorted(x1._tyarray, x2._tyarray, side=side, sorter=sorter_)
     )
 
 
@@ -517,29 +521,29 @@ def stack(arrays: tuple[Array, ...] | list[Array], /, *, axis: int = 0) -> Array
 
 
 def squeeze(x: Array, /, axis: int | tuple[int, ...]) -> Array:
-    return Array._from_data(x._data.squeeze(axis))
+    return Array._from_tyarray(x._tyarray.squeeze(axis))
 
 
 def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
     from ._typed_array import TyArrayInt64
 
-    if not isinstance(indices._data, TyArrayInt64):
+    if not isinstance(indices._tyarray, TyArrayInt64):
         raise TypeError(
             "'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
-    return Array._from_data(x._data.take(indices._data, axis=axis))
+    return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 
 
 def tile(x: Array, repetitions: tuple[int, ...], /) -> Array:
-    return Array._from_data(x._data.tile(repetitions))
+    return Array._from_tyarray(x._tyarray.tile(repetitions))
 
 
 def tril(x: Array, /, *, k: int = 0) -> Array:
-    return Array._from_data(x._data.tril(k=k))
+    return Array._from_tyarray(x._tyarray.tril(k=k))
 
 
 def triu(x: Array, /, *, k: int = 0) -> Array:
-    return Array._from_data(x._data.triu(k=k))
+    return Array._from_tyarray(x._tyarray.triu(k=k))
 
 
 def tensordot(
@@ -557,7 +561,7 @@ class UniqueAll(NamedTuple):
 
 def unique_all(x: Array, /) -> UniqueAll:
     values, indices, inverse_indices, counts = (
-        Array._from_data(tyarr) for tyarr in x._data.unique_all()
+        Array._from_tyarray(tyarr) for tyarr in x._tyarray.unique_all()
     )
     return UniqueAll(values, indices, inverse_indices, counts)
 
@@ -597,17 +601,17 @@ def unstack(x: Array, /, *, axis: int = 0) -> tuple[Array, ...]:
 
 
 def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
-    if x1._data.shape[axis] != x2._data.shape[axis]:
+    if x1._tyarray.shape[axis] != x2._tyarray.shape[axis]:
         raise ValueError("summed over dimensions must match")
     prod = x1 * x2
     return sum(prod, axis=axis, dtype=prod.dtype)
 
 
 def where(cond: Array, a: Array, b: Array) -> Array:
-    if not isinstance(cond._data, onnx.TyArrayBool):
+    if not isinstance(cond._tyarray, onnx.TyArrayBool):
         raise TypeError("'cond' must be of data type 'bool'")
-    data = tyfuncs.where(cond._data, a._data, b._data)
-    return Array._from_data(data)
+    data = tyfuncs.where(cond._tyarray, a._tyarray, b._tyarray)
+    return Array._from_tyarray(data)
 
 
 def zeros(
@@ -615,7 +619,7 @@ def zeros(
 ) -> Array:
     dtype = dtype or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
-    return Array._from_data(dtype._zeros(shape))
+    return Array._from_tyarray(dtype._zeros(shape))
 
 
 def zeros_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:

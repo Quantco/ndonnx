@@ -61,7 +61,7 @@ class Array:
     """User-facing objects that makes no assumption about any data type related
     logic."""
 
-    _data: TyArrayBase
+    _tyarray: TyArrayBase
 
     @overload
     def __init__(self, *, shape: OnnxShape, dtype: DType): ...
@@ -81,23 +81,23 @@ class Array:
             raise ValueError("Invalid arguments.")
 
         if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._data = dtype._argument(shape)
+            self._tyarray = dtype._argument(shape)
             return
         if isinstance(value, np.ndarray):
             raise NotImplementedError
         if isinstance(value, int | float):
             ty_arr = astyarray(value, use_py_scalars=False, dtype=dtype)
-            self._data = ty_arr
+            self._tyarray = ty_arr
             return
 
         raise NotImplementedError
 
     @classmethod
-    def _from_data(cls, data: TyArrayBase) -> Array:
-        if not isinstance(data, TyArrayBase):
-            raise TypeError(f"expected '_TypedArrayBase', found `{type(data)}`")
+    def _from_tyarray(cls, tyarray: TyArrayBase, /) -> Array:
+        if not isinstance(tyarray, TyArrayBase):
+            raise TypeError(f"expected '_TypedArrayBase', found `{type(tyarray)}`")
         inst = cls.__new__(cls)
-        inst._data = data
+        inst._tyarray = tyarray
         return inst
 
     @property
@@ -107,16 +107,16 @@ class Array:
 
     @property
     def dtype(self) -> DType:
-        return self._data.dtype
+        return self._tyarray.dtype
 
     @property
     def dynamic_shape(self) -> Array:
-        shape = self._data.dynamic_shape
-        return Array._from_data(shape)
+        shape = self._tyarray.dynamic_shape
+        return Array._from_tyarray(shape)
 
     @property
     def mT(self) -> Array:  # noqa: N802
-        return Array._from_data(self._data.mT)
+        return Array._from_tyarray(self._tyarray.mT)
 
     @property
     def size(self) -> int | None:
@@ -131,12 +131,12 @@ class Array:
 
     @property
     def shape(self) -> tuple[int | None, ...]:
-        shape = self._data.shape
+        shape = self._tyarray.shape
         return tuple(None if isinstance(item, str) else item for item in shape)
 
     @property
     def T(self) -> Array:  # noqa: N802
-        return Array._from_data(self._data.T)
+        return Array._from_tyarray(self._tyarray.T)
 
     @property
     def null(self) -> None | Array:
@@ -159,12 +159,12 @@ class Array:
         return get_data(self)
 
     def astype(self, dtype: DType, *, copy=True) -> Array:
-        new_data = self._data.astype(dtype, copy=copy)
-        return Array._from_data(new_data)
+        new_data = self._tyarray.astype(dtype, copy=copy)
+        return Array._from_tyarray(new_data)
 
     def copy(self) -> Array:
         # TODO: do we need this?
-        return Array._from_data(std_copy(self._data))
+        return Array._from_tyarray(std_copy(self._tyarray))
 
     def to_numpy(self) -> np.ndarray | None:
         from warnings import warn
@@ -186,22 +186,22 @@ class Array:
         ValueError:
             If no propagated value is available.
         """
-        return self._data.unwrap_numpy()
+        return self._tyarray.unwrap_numpy()
 
     def disassemble(self) -> Mapping[str, Var] | Var:
         """Disassemble into the constituent ``spox.Var`` objects.
 
         The particular layout depends on the data type.
         """
-        return self._data.disassemble()
+        return self._tyarray.disassemble()
 
     @property
     def values(self) -> Array:
         # TODO: is this really the best name?
         from ._typed_array.masked_onnx import TyMaArray
 
-        if isinstance(self._data, TyMaArray):
-            return Array._from_data(self._data.data)
+        if isinstance(self._tyarray, TyMaArray):
+            return Array._from_tyarray(self._tyarray.data)
         raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
     def __dlpack__(
@@ -230,8 +230,8 @@ class Array:
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
         idx = normalize_getitem_key(key)
-        data = self._data[idx]
-        return type(self)._from_data(data)
+        data = self._tyarray[idx]
+        return type(self)._from_tyarray(data)
 
     def __setitem__(
         self,
@@ -242,16 +242,16 @@ class Array:
         from ._typed_array import TyArrayBool, TyArrayInteger
 
         if isinstance(key, Array):
-            if not isinstance(key._data, TyArrayInteger | TyArrayBool):
+            if not isinstance(key._tyarray, TyArrayInteger | TyArrayBool):
                 raise TypeError(
                     f"indexing array must have integer or boolean data type; found `{key.dtype}`"
                 )
-            idx: SetitemIndexStatic | TyArrayInteger | TyArrayBool = key._data
+            idx: SetitemIndexStatic | TyArrayInteger | TyArrayBool = key._tyarray
         else:
             idx = key
 
         # Specs say that the data type of self must not be changed.
-        self._data[idx] = asarray(value, dtype=self.dtype)._data
+        self._tyarray[idx] = asarray(value, dtype=self.dtype)._tyarray
 
     def __bool__(self, /) -> bool:
         return bool(self.unwrap_numpy())
@@ -307,21 +307,21 @@ class Array:
     __xor__, __rxor__ = _make_binary(std_ops.xor)
 
     def __abs__(self, /) -> Array:
-        data = self._data.__abs__()
-        return Array._from_data(data)
+        data = self._tyarray.__abs__()
+        return Array._from_tyarray(data)
 
     def __invert__(self, /) -> Array:
-        return Array._from_data(~self._data)
+        return Array._from_tyarray(~self._tyarray)
 
     def __neg__(self, /) -> Array:
-        return Array._from_data(-self._data)
+        return Array._from_tyarray(-self._tyarray)
 
     def __pos__(self, /) -> Array:
-        return Array._from_data(+self._data)
+        return Array._from_tyarray(+self._tyarray)
 
     def __repr__(self) -> str:
         value_repr = ", ".join(
-            [f"{k}: {v}" for k, v in self._data.__ndx_value_repr__().items()]
+            [f"{k}: {v}" for k, v in self._tyarray.__ndx_value_repr__().items()]
         )
         return f"array({value_repr}, shape={self.shape}, dtype={self.dtype})"
 
@@ -335,7 +335,7 @@ def asarray(
     copy: bool | None = None,
 ) -> Array:
     if isinstance(obj, Var | str):
-        obj = Array._from_data(astyarray(obj))
+        obj = Array._from_tyarray(astyarray(obj))
         if dtype is None:
             return obj
         return obj.astype(dtype)
@@ -345,7 +345,7 @@ def asarray(
             # TODO: Implement stricter failures cases according to standard
             copy = False
         if copy:
-            obj = Array._from_data(std_copy(obj._data))
+            obj = Array._from_tyarray(std_copy(obj._tyarray))
         if dtype:
             return obj.astype(dtype, copy=copy)
         return obj
@@ -360,7 +360,7 @@ def asarray(
     data = astyarray(obj)
     if dtype:
         data = data.astype(dtype)
-    return Array._from_data(data)
+    return Array._from_tyarray(data)
 
 
 NestedSequence = Sequence["Array | bool | int | float | NestedSequence"]
@@ -389,7 +389,7 @@ def _as_array(
     if isinstance(val, Array):
         return val
     ty_arr = astyarray(val, use_py_scalars=use_py_scalars)
-    return Array._from_data(ty_arr)
+    return Array._from_tyarray(ty_arr)
 
 
 @overload
@@ -415,8 +415,8 @@ def _apply_op(
 ) -> Array | NotImplementedType:
     lhs = _as_array(lhs, use_py_scalars=True)
     rhs = _as_array(rhs, use_py_scalars=True)
-    data = op(lhs._data, rhs._data)
+    data = op(lhs._tyarray, rhs._tyarray)
     if data is not NotImplemented:
-        return Array._from_data(data)
+        return Array._from_tyarray(data)
 
     return NotImplemented

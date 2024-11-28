@@ -12,7 +12,7 @@ from ndonnx._refactor import _dtypes as dtypes
 
 def check_dtype_shape(arr, dtype, shape):
     assert arr.dtype == dtype
-    assert arr._data.shape == shape
+    assert arr._tyarray.shape == shape
     assert arr.shape == tuple(None if isinstance(el, str) else el for el in shape)
 
 
@@ -318,7 +318,7 @@ def test_ones(dtype):
 
 def test_indexing_shape():
     arr = ndx.Array(shape=("N", "M"), dtype=ndx.nint32)
-    assert arr[0, :]._data.shape == ("M",)
+    assert arr[0, :]._tyarray.shape == ("M",)
     assert arr[0, :].shape == (None,)
 
 
@@ -440,7 +440,7 @@ def test_string_arrays(value, string_dtype):
         assert arr2[0] == arr
     else:
         # TODO: Properly implement eq for masked arrays
-        assert arr2._data[0].data == arr._data.data  # type: ignore
+        assert arr2._tyarray[0].data == arr._tyarray.data  # type: ignore
 
 
 def test_repr_eager():
