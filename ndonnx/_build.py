@@ -21,6 +21,8 @@ from ._corearray import _CoreArray
 def build(
     inputs: dict[str, Array],
     outputs: dict[str, Array],
+    *,
+    drop_unused_inputs: bool = True,
 ) -> onnx.ModelProto:
     """Build utility to produce an ONNX model. Requires a dictionary of named input and
     output arrays.
@@ -31,6 +33,9 @@ def build(
         Inputs of the model
     outputs: dict[str, Array]
         Outputs of the model
+    drop_unused_inputs: bool, optional
+        Whether to drop inputs to the model that are not used in the computation performed.
+        Defaults to `True`.
 
     Returns
     -------
@@ -55,7 +60,9 @@ def build(
     output_vars: dict[str, spox.Var] = functools.reduce(
         lambda acc, arr: acc | collect_vars(*arr), outputs.items(), {}
     )
-    model_proto = spox.build(input_vars, output_vars)
+    model_proto = spox.build(
+        input_vars, output_vars, drop_unused_inputs=drop_unused_inputs
+    )
     input_schema = {
         name: dataclasses.asdict(input.dtype._schema())
         for name, input in inputs.items()

@@ -7,6 +7,18 @@
 Changelog
 =========
 
+0.10.0 (unreleased)
+------------------
+
+**New feature**
+
+- :func:`ndonnx.build` gains the ``drop_unused_inputs`` parameter. If ``True``, inputs to the model that are not used in the computation graph are removed from produced ONNX model.
+
+**Other change**
+
+- The minimum required Spox version is now `0.12.0`.
+
+
 0.9.3 (2024-10-25)
 ------------------
 

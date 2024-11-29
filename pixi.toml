@@ -10,7 +10,7 @@ postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-
 [dependencies]
 python = ">=3.10"
 numpy = "*"
-spox = ">=0.10"
+spox = ">=0.12"
 typing_extensions = "*"
 onnx = "*"
 
