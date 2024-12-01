@@ -614,17 +614,7 @@ class TyArrayBase(ABC):
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
-    def __ndx_rmaximum__(
-        self, other: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType:
-        return NotImplemented
-
     def __ndx_minimum__(
-        self, other: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType:
-        return NotImplemented
-
-    def __ndx_rminimum__(
         self, other: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented

@@ -46,7 +46,15 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         return NotImplemented
 
     def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:
-        raise NotImplementedError
+        if isinstance(arr, onnx.TyArrayInteger):
+            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
+            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
+        elif isinstance(arr, py_scalars.TyArrayPyInt):
+            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
+            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
+        else:
+            raise NotImplementedError
+        return self._tyarr_class(is_nat=is_nat, data=data, unit=self.unit)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
@@ -107,17 +115,6 @@ class DateTime(BaseTimeDType):
     @property
     def _tyarr_class(self) -> type[TyArrayDateTime]:
         return TyArrayDateTime
-
-    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TyArrayDateTime:
-        if isinstance(arr, onnx.TyArrayInteger):
-            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
-            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
-        elif isinstance(arr, py_scalars.TyArrayPyInt):
-            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
-            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
-        else:
-            raise NotImplementedError
-        return TyArrayDateTime(is_nat=is_nat, data=data, unit=self.unit)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
@@ -217,6 +214,30 @@ class TimeBaseArray(TyArrayBase):
     def _eqcomp(self, other) -> TyArrayBase:
         raise NotImplementedError
 
+    def __ndx_maximum__(self, rhs: TyArrayBase) -> TyArrayBase:
+        from .funcs import maximum
+
+        if not isinstance(rhs, type(self)):
+            return NotImplemented
+        if self.dtype.unit != rhs.dtype.unit:
+            raise ValueError("inter-operation between time units is not implemented")
+
+        data = safe_cast(onnx.TyArrayInt64, maximum(self.data, rhs.data))
+        is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
+    def __ndx_minimum__(self, rhs: TyArrayBase) -> TyArrayBase:
+        from .funcs import minimum
+
+        if not isinstance(rhs, type(self)):
+            return NotImplemented
+        if self.dtype.unit != rhs.dtype.unit:
+            raise ValueError("inter-operation between time units is not implemented")
+
+        data = safe_cast(onnx.TyArrayInt64, minimum(self.data, rhs.data))
+        is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
 
 class TyArrayTimeDelta(TimeBaseArray):
     dtype: TimeDelta
@@ -248,6 +269,14 @@ class TyArrayTimeDelta(TimeBaseArray):
 
             return safe_cast(res_type, data)
         return NotImplemented
+
+    def unwrap_numpy(self) -> np.ndarray:
+        is_nat = self.is_nat.unwrap_numpy()
+        data = self.data.unwrap_numpy()
+
+        out = data.astype(f"timedelta64[{self.dtype.unit}]")
+        out[is_nat] = np.array("NaT", "timedelta64")
+        return out
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
         return _apply_op(self, rhs, operator.add, True)
@@ -306,15 +335,6 @@ class TyArrayDateTime(TimeBaseArray):
 
             return safe_cast(res_type, data)
         return NotImplemented
-
-    def __ndx_maximum__(self, rhs: TyArrayBase) -> TyArrayBase:
-        if not isinstance(rhs, TyArrayDateTime):
-            return NotImplemented
-        if self.dtype.unit != rhs.dtype.unit:
-            raise ValueError("inter-operation between time units is not implemented")
-        data = safe_cast(onnx.TyArrayInt64, self.data.__ndx_maximum__(rhs.data))
-        is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
         if isinstance(rhs, py_scalars.TyArrayPyInt | onnx.TyArrayInt64):

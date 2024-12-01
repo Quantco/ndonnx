@@ -211,12 +211,12 @@ def logical_xor(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
 def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     res = x1.__ndx_maximum__(x2)
     if res is NotImplemented:
-        res = x2.__ndx_rmaximum__(x1)
+        res = x2.__ndx_maximum__(x1)
     return _validate(x1, x2, res, "maximum")
 
 
 def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     res = x1.__ndx_minimum__(x2)
     if res is NotImplemented:
-        res = x2.__ndx_rminimum__(x1)
+        res = x2.__ndx_minimum__(x1)
     return _validate(x1, x2, res, "minimum")

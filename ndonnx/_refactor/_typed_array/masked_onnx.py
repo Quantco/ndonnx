@@ -509,20 +509,33 @@ class TyMaArrayNumber(TyMaArray):
         return self.fill_null(1).prod(axis=axis, dtype=dtype, keepdims=keepdims)
 
     def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        from .funcs import maximum as op
+        from .onnx import TyArray
+
         if isinstance(rhs, onnx.TyArray):
-            return self.__ndx_maximum__(asncoredata(rhs, None))
+            rhs = asncoredata(rhs, None)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
             rhs_ = unmask_core(rhs)
-            new_data = lhs_.__ndx_maximum__(rhs_)
+            new_data = safe_cast(TyArray, op(lhs_, rhs_))
             new_mask = _merge_masks(self.mask, rhs.mask)
             return asncoredata(new_data, new_mask)
 
         return NotImplemented
 
-    def __ndx_rmaximum__(self, lhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(lhs, onnx.TyArray):
-            return asncoredata(lhs, None).__ndx_maximum__(self)
+    def __ndx_minimum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        from .funcs import minimum as op
+        from .onnx import TyArray
+
+        if isinstance(rhs, onnx.TyArray):
+            rhs = asncoredata(rhs, None)
+        if isinstance(rhs, TyMaArray):
+            lhs_ = unmask_core(self)
+            rhs_ = unmask_core(rhs)
+            new_data = safe_cast(TyArray, op(lhs_, rhs_))
+            new_mask = _merge_masks(self.mask, rhs.mask)
+            return asncoredata(new_data, new_mask)
+
         return NotImplemented
 
     # Dunder implementations
