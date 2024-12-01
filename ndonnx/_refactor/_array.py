@@ -102,7 +102,6 @@ class Array:
 
     @property
     def device(self) -> None:
-        # TODO: Should we raise instead or is returning `None` more in line with the standard?
         return None
 
     @property
@@ -151,7 +150,6 @@ class Array:
 
     @property
     def values(self) -> Array:
-        # TODO: This is the name currently used, but NumPy calls this 'data'.
         from ._typed_array.masked_onnx import TyMaArray
 
         warn(

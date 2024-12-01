@@ -27,7 +27,7 @@ from ._typed_array.onnx import (
     float16,
     float32,
     float64,
-    string,
+    utf8,
     bool_ as bool,
 )
 from ._typed_array.masked_onnx import (
@@ -42,7 +42,7 @@ from ._typed_array.masked_onnx import (
     nfloat16,
     nfloat32,
     nfloat64,
-    nstring,
+    nutf8,
     nbool,
     as_nullable,
     as_non_nullable,
@@ -188,9 +188,6 @@ spox._value_prop._VALUE_PROP_BACKEND = spox._value_prop.ValuePropBackend.ONNXRUN
 _default_int = int64
 _default_float = float64
 
-utf8 = string
-nutf8 = nstring
-
 __all__ = [
     "__array_namespace_info__",
     "DType",
@@ -206,7 +203,7 @@ __all__ = [
     "float16",
     "float32",
     "float64",
-    "string",
+    "utf8",
     "bool",
     # masked ONNX data types
     "nint8",
@@ -221,7 +218,7 @@ __all__ = [
     "nfloat32",
     "nfloat64",
     "nbool",
-    "nstring",
+    "nutf8",
     # Standard functions
     "abs",
     "acos",

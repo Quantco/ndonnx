@@ -72,7 +72,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
         if self == bool_:
             return np.dtype("bool")
 
-        if self == string:
+        if self == utf8:
             # TODO: Migrate to numpy.StringDType
             return np.dtype(str)
 
@@ -278,7 +278,7 @@ uint16: UInt16 = UInt16()
 uint32: UInt32 = UInt32()
 uint64: UInt64 = UInt64()
 
-string: Utf8 = Utf8()
+utf8: Utf8 = Utf8()
 
 # Union types
 #
@@ -812,7 +812,7 @@ class TyArray(TyArrayBase):
 
 
 class TyArrayUtf8(TyArray):
-    dtype = string
+    dtype = utf8
 
     def __add__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(

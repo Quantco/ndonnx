@@ -131,6 +131,6 @@ def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
         return onnx.bool_
 
     if np_dtype == np.dtypes.StringDType() or np_dtype.kind == "U":
-        return onnx.string
+        return onnx.utf8
 
     raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")

@@ -73,7 +73,7 @@ def astyarray(
         arr = arr if use_py_scalars else arr.astype(ndx._default_float)
     elif isinstance(val, str):
         arr = TyArrayPyString(val)
-        arr = arr if use_py_scalars else arr.astype(ndx.string)
+        arr = arr if use_py_scalars else arr.astype(ndx.utf8)
     elif isinstance(val, Var):
         arr = onnx.ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):

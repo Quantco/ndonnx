@@ -7,7 +7,7 @@ import operator
 from collections.abc import Callable
 from copy import copy
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, TypeVar, overload
 
 import numpy as np
 from typing_extensions import Self
@@ -110,8 +110,8 @@ class _NNumber(_MaOnnxDType):
         return as_nullable(core_result)
 
 
-class NString(_MaOnnxDType):
-    _unmasked_dtype = onnx.string
+class NUtf8(_MaOnnxDType):
+    _unmasked_dtype = onnx.utf8
 
     def _result_type(self, rhs: DType) -> DType | NotImplementedType:
         return NotImplemented
@@ -237,7 +237,7 @@ nuint16 = NUInt16()
 nuint32 = NUInt32()
 nuint64 = NUInt64()
 
-nstring = NString()
+nutf8 = NUtf8()
 
 # Union types
 #
@@ -250,10 +250,10 @@ NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
 
 NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 
-NCoreDTypes = NBoolean | NCoreNumericDTypes | NString
+NCoreDTypes = NBoolean | NCoreNumericDTypes | NUtf8
 
 
-def _make_binary_pair(fun: Callable[[Any, Any], Any]):
+def _make_binary_pair(fun: Callable[[onnx.TyArray, onnx.TyArray], onnx.TyArray]):
     """Helper to define dunder methods.
 
     Does not work with proper type hints, though.
@@ -431,7 +431,7 @@ class TyMaArray(TyMaArrayBase):
         return safe_cast(type(self), asncoredata(data, mask))
 
     def _eqcomp(self, other) -> TyArrayBase | NotImplementedType:
-        raise NotImplementedError()
+        return _apply_op(self, other, operator.eq, True)
 
     def __ndx_where__(
         self, cond: onnx.TyArrayBool, y: TyArrayBase, /
@@ -470,7 +470,7 @@ class TyMaArray(TyMaArrayBase):
 
 
 class TyMaArrayString(TyMaArray):
-    dtype = nstring
+    dtype = nutf8
 
     __add__, __radd__ = _make_binary_pair(operator.add)  # type: ignore
 
@@ -717,7 +717,7 @@ _core_to_nullable_core: dict[onnx._OnnxDType, NCoreDTypes] = {
     onnx.float16: nfloat16,
     onnx.float32: nfloat32,
     onnx.float64: nfloat64,
-    onnx.string: nstring,
+    onnx.utf8: nutf8,
 }
 
 

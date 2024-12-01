@@ -292,7 +292,7 @@ def test_indexing_assign_to_zero_dim():
 
 
 @pytest.mark.parametrize("value", ["foo", np.array("foo"), np.array(["foo"])])
-@pytest.mark.parametrize("string_dtype", [ndx.string, ndx.nstring])
+@pytest.mark.parametrize("string_dtype", [ndx.utf8, ndx.nutf8])
 def test_string_arrays(value, string_dtype):
     arr = ndx.asarray(value).astype(string_dtype)
 
@@ -300,11 +300,10 @@ def test_string_arrays(value, string_dtype):
     assert "barfoo" == ("bar" + arr).unwrap_numpy()
 
     arr2 = ndx.reshape(arr, (1,))
-    if string_dtype == ndx.string:
+    if string_dtype == ndx.utf8:
         assert arr2[0] == arr
     else:
-        # TODO: Properly implement eq for masked arrays
-        assert arr2._tyarray[0].data == arr._tyarray.data  # type: ignore
+        assert (arr2._tyarray[0] == arr._tyarray).unwrap_numpy()
 
 
 def test_repr_eager():
