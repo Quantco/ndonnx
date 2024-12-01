@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from . import _dtypes as dtypes
 from ._array import Array
 from ._dtypes import DType
 from ._typed_array import masked_onnx, onnx
@@ -27,9 +26,9 @@ def iinfo(ty: DType | Array, /) -> Iinfo:
     if isinstance(ty, Array):
         ty = ty.dtype
     if isinstance(ty, masked_onnx.NCoreIntegerDTypes):
-        npdtype = dtypes.as_numpy(masked_onnx.as_non_nullable(ty))
+        npdtype = masked_onnx.as_non_nullable(ty).unwrap_numpy()
     elif isinstance(ty, onnx.IntegerDTypes):
-        npdtype = dtypes.as_numpy(ty)
+        npdtype = ty.unwrap_numpy()
     else:
         raise ValueError(f"'Iinfo' not available for type `{ty}`")
     info = np.iinfo(npdtype)
@@ -56,9 +55,9 @@ def finfo(ty: DType | Array, /):
     if isinstance(ty, Array):
         ty = ty.dtype
     if isinstance(ty, masked_onnx.NCoreFloatingDTypes):
-        npdtype = dtypes.as_numpy(masked_onnx.as_non_nullable(ty))
+        npdtype = masked_onnx.as_non_nullable(ty).unwrap_numpy()
     elif isinstance(ty, onnx.FloatingDTypes):
-        npdtype = dtypes.as_numpy(ty)
+        npdtype = ty.unwrap_numpy()
     else:
         raise ValueError(f"'FIinfo' not available for type `{ty}`")
     finfo = np.finfo(npdtype)

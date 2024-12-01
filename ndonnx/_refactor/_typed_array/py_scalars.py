@@ -14,7 +14,6 @@ from typing_extensions import Self
 import ndonnx._refactor as ndx
 from ndonnx._refactor._schema import DTypeInfoV1
 
-from .. import _dtypes as dtypes
 from .._dtypes import TY_ARRAY, DType
 from . import masked_onnx, onnx
 from .typed_array import TyArrayBase
@@ -210,7 +209,7 @@ class _ArrayPyScalar(TyArrayBase):
         # built-in typed arrays do not know about it. Thus, we define
         # the mapping from this class into those classes **here**.
         if isinstance(dtype, onnx._OnnxDType):
-            np_arr = np.array(self.value).astype(dtypes.as_numpy(dtype))
+            np_arr = np.array(self.value).astype(dtype.unwrap_numpy())
             return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
         if isinstance(dtype, masked_onnx._MaOnnxDType):
             unmasked_typed_arr = self.__ndx_astype__(dtype._unmasked_dtype)

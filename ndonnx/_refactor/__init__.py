@@ -3,7 +3,7 @@
 
 import spox
 
-from ._compat import (
+from ._deprecated import (
     array,
     from_spox_var,
     Nullable,

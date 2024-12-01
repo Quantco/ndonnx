@@ -19,8 +19,7 @@ from typing_extensions import Self
 
 from ndonnx._corearray import _CoreArray
 
-from .. import _dtypes as dtypes
-from .._dtypes import TY_ARRAY, DType, as_numpy, from_numpy
+from .._dtypes import TY_ARRAY, DType, from_numpy
 from .._schema import DTypeInfoV1
 from . import ort_compat
 from .indexing import FancySlice, normalize_getitem_key
@@ -45,7 +44,40 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
     """Data types with a direct representation in the ONNX standard."""
 
     def unwrap_numpy(self) -> np.dtype:
-        return as_numpy(self)
+        if self == int8:
+            return np.dtype("int8")
+        if self == int16:
+            return np.dtype("int16")
+        if self == int32:
+            return np.dtype("int32")
+        if self == int64:
+            return np.dtype("int64")
+
+        if self == uint8:
+            return np.dtype("uint8")
+        if self == uint16:
+            return np.dtype("uint16")
+        if self == uint32:
+            return np.dtype("uint32")
+        if self == uint64:
+            return np.dtype("uint64")
+
+        if self == float16:
+            return np.dtype("float16")
+        if self == float32:
+            return np.dtype("float32")
+        if self == float64:
+            return np.dtype("float64")
+
+        if self == bool_:
+            return np.dtype("bool")
+
+        if self == string:
+            # TODO: Migrate to numpy.StringDType
+            return np.dtype(str)
+
+        # Should never happen
+        raise ValueError(f"'{self}' does not have a corresponding NumPy data type")
 
     @property
     @abstractmethod
@@ -53,12 +85,12 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
 
     def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_ARRAY_ONNX:
         if isinstance(arr, TyArray):
-            var = op.cast(arr.var, to=as_numpy(self))
+            var = op.cast(arr.var, to=self.unwrap_numpy())
             return safe_cast(self._tyarr_class, ascoredata(var))
         raise NotImplementedError
 
     def _argument(self, shape: OnnxShape) -> TY_ARRAY_ONNX:
-        var = argument(Tensor(as_numpy(self), shape))
+        var = argument(Tensor(self.unwrap_numpy(), shape))
         return self._tyarr_class(var)
 
     @property
@@ -435,9 +467,9 @@ class TyArray(TyArrayBase):
         if self.var._value is not None:
             np_arr = np.asarray(self.var._value.value)
             np_arr.astype(np.dtypes.StringDType)
-            if np_arr.dtype == dtypes.as_numpy(self.dtype):
+            if np_arr.dtype == self.dtype.unwrap_numpy():
                 return np_arr
-            if dtypes.as_numpy(self.dtype).kind == "U" and np_arr.dtype.kind in [
+            if self.dtype.unwrap_numpy().kind == "U" and np_arr.dtype.kind in [
                 "U",
                 "O",
             ]:
