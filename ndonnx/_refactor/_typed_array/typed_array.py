@@ -110,7 +110,7 @@ class TyArrayBase(ABC):
 
     @abstractmethod
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
-        """Reflective sibling method for `DType._tyarray_from_tyarray` which must thus
+        """Reflective sibling method for `DType.__ndx_convert_tyarray` which must thus
         not call the latter.
 
         Used this function to implement the conversion from a custom type into a built-

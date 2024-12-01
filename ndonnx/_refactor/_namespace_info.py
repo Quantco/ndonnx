@@ -52,7 +52,6 @@ class Info:
         }
 
     def default_device(self) -> None:
-        # TODO: Should we raise instead or is returning `None` more in line with the standard?
         return None
 
     def default_dtypes(self, *, device=None) -> DefaultDataTypes:

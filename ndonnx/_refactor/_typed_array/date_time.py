@@ -149,7 +149,6 @@ class TimeBaseArray(TyArrayBase):
         )
 
     def disassemble(self) -> dict[str, Var]:
-        # TODO: What was the old schema here?
         return {
             "data": self.data.disassemble(),
             "is_nat": self.is_nat.disassemble(),

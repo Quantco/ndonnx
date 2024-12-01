@@ -87,7 +87,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
         if isinstance(arr, TyArray):
             var = op.cast(arr.var, to=self.unwrap_numpy())
             return safe_cast(self._tyarr_class, ascoredata(var))
-        raise NotImplementedError
+        return NotImplemented
 
     def _argument(self, shape: OnnxShape) -> TY_ARRAY_ONNX:
         var = argument(Tensor(self.unwrap_numpy(), shape))
@@ -700,7 +700,8 @@ class TyArray(TyArrayBase):
         return (values, indices, inverse_indices, counts)
 
     def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
-        # TODO: How is this never hit?
+        # We pretend that we don't know about any other data type. We
+        # delegate all work to ``DType.__ndx_convert_tyarray__``
         return NotImplemented
 
     def __eq__(self, other) -> TyArrayBool | NotImplementedType:  # type: ignore[override]
@@ -1806,8 +1807,6 @@ def _result_type_core_numeric(a: NumericDTypes, b: NumericDTypes) -> NumericDTyp
         return _result_type_core_numeric(a_floating, b)
     if b_floating := _int_to_floating.get(b):
         return _result_type_core_numeric(a, b_floating)
-
-    # TODO: Do bools and strings
 
     raise ValueError(f"No promotion between `{a}` and `{b}` is defined.")
 
