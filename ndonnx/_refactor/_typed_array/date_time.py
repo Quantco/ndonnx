@@ -37,6 +37,8 @@ BASE_DT_ARRAY = TypeVar("BASE_DT_ARRAY", bound="TimeBaseArray")
 
 
 class BaseTimeDType(DType[BASE_DT_ARRAY]):
+    unit: Unit
+
     def __init__(self, unit: Unit):
         self.unit = unit
 
@@ -139,6 +141,12 @@ class TimeBaseArray(TyArrayBase):
 
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
         raise NotImplementedError
+
+    def copy(self) -> Self:
+        # We want to copy the component arrays, too.
+        return type(self)(
+            data=self.data.copy(), is_nat=self.is_nat.copy(), unit=self.dtype.unit
+        )
 
     def disassemble(self) -> dict[str, Var]:
         # TODO: What was the old schema here?

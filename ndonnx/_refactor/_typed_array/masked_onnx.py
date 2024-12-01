@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable
-from copy import copy
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
@@ -375,15 +374,19 @@ class TyMaArray(TyMaArrayBase):
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         return self._pass_through_same_type("broadcast_to", shape=shape)
 
+    def copy(self) -> Self:
+        # We want to copy the component arrays, too.
+        mask = None if self.mask is None else self.mask.copy()
+        return type(self)(data=self.data.copy(), mask=mask)
+
+    def __copy__(self) -> Self:
+        return self.copy()
+
     def unwrap_numpy(self) -> np.ndarray:
         return np.ma.MaskedArray(
             data=self.data.unwrap_numpy(),
             mask=None if self.mask is None else self.mask.unwrap_numpy(),
         )
-
-    def __copy__(self) -> Self:
-        # We want to copy the component arrays, too.
-        return type(self)(data=copy(self.data), mask=copy(self.mask))
 
     def __getitem__(self, key: GetitemIndex) -> Self:
         return self._pass_through_same_type("__getitem__", key=key)

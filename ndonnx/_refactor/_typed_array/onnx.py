@@ -6,7 +6,7 @@ from __future__ import annotations
 import operator
 from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
-from copy import copy
+from copy import copy as std_copy
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
 
@@ -560,7 +560,7 @@ class TyArray(TyArrayBase):
             raise ValueError("zero-dimensional arrays cannot be concatenated")
 
         if len(arrays) == 1:
-            return copy(arrays[0])
+            return arrays[0].copy()
 
         # It seems that there is currently a bug(?) in the type/shape
         # inference in ONNX which prohibits us from concatenating
@@ -579,6 +579,9 @@ class TyArray(TyArrayBase):
         else:
             var = op.concat([a.var for a in arrays], axis=0 if axis is None else axis)
         return type(self)(var)
+
+    def copy(self) -> Self:
+        return std_copy(self)
 
     def disassemble(self) -> Var:
         return self.var
@@ -630,7 +633,7 @@ class TyArray(TyArrayBase):
         if isinstance(axis, int):
             axis = (axis,)
         if axis == ():
-            return copy(self)
+            return self.copy()
         try:
             res = op.squeeze(self.var, op.const(axis, np.int64))
         except Exception as e:
@@ -715,7 +718,7 @@ class TyArray(TyArrayBase):
         self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
     ) -> Self:
         if min is None and max is None:
-            return copy(self)
+            return self.copy()
 
         # The standard says that min/max must not change the output type.
         min_ = None if min is None else min.astype(self.dtype).var
@@ -938,7 +941,7 @@ class TyArrayNumber(TyArray):
         # Early return if there is nothing left to do. We deliberately
         # do this after the casting.
         if axis == ():
-            return copy(self)
+            return self.copy()
 
         axis_ = _axis_var(axis, self.ndim)
         var = var_op(
@@ -956,7 +959,7 @@ class TyArrayNumber(TyArray):
             # TODO: File bug:
             # `reduce_max`'s ORT implementation differs from onnx-shape
             # inference for keepdims=False AND noop_with_empty_axes=True.
-            return copy(self)
+            return self.copy()
 
         axes = _axis_var(axis, self.ndim)
         return type(self)(
@@ -969,7 +972,7 @@ class TyArrayNumber(TyArray):
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
         if axis == ():
-            return copy(self)
+            return self.copy()
 
         axes = _axis_var(axis, self.ndim)
         return type(self)(
@@ -1060,7 +1063,7 @@ class TyArrayNumber(TyArray):
         return type(self)(op.neg(self.var))
 
     def __pos__(self) -> Self:
-        return self
+        return self.copy()
 
     def __add__(self, other) -> TyArrayBase:
         return _promote_and_apply_op(
@@ -1259,13 +1262,13 @@ class TyArrayInteger(TyArrayNumber):
         return type(self)(res)
 
     def ceil(self) -> Self:
-        return copy(self)
+        return self.copy()
 
     def floor(self) -> Self:
-        return copy(self)
+        return self.copy()
 
     def round(self) -> Self:
-        return copy(self)
+        return self.copy()
 
     def isfinite(self) -> TyArrayBool:  # type: ignore
         return TyArrayBool(op.const(True)).broadcast_to(self.dynamic_shape)
@@ -1277,7 +1280,7 @@ class TyArrayInteger(TyArrayNumber):
         return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def trunc(self) -> Self:
-        return copy(self)
+        return self.copy()
 
 
 class TyArraySignedInteger(TyArrayInteger): ...
@@ -1285,10 +1288,10 @@ class TyArraySignedInteger(TyArrayInteger): ...
 
 class TyArrayUnsignedInteger(TyArrayInteger):
     def __abs__(self) -> Self:
-        return copy(self)
+        return self.copy()
 
     def __pos__(self) -> Self:
-        return copy(self)
+        return self.copy()
 
     def __neg__(self) -> TyArray:
         if isinstance(self.dtype, UInt8):
@@ -1358,7 +1361,7 @@ class TyArrayFloating(TyArrayNumber):
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
         if axis == ():
-            return copy(self)
+            return self.copy()
         axes = _axis_var(axis, self.ndim)
 
         summed = type(self)(

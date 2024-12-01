@@ -162,11 +162,6 @@ class _ArrayPyScalar(TyArrayBase):
     ) -> None:
         raise NotImplementedError
 
-    def disassemble(self) -> dict[str, Var] | Var:
-        raise ValueError(
-            "Python scalars cannot be disassembled into 'spox.Var' objects"
-        )
-
     @property
     def mT(self) -> Self:  # noqa: N802
         raise ValueError("Python scalars cannot be transposed")
@@ -182,6 +177,14 @@ class _ArrayPyScalar(TyArrayBase):
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         raise ValueError("'dynamic_shape' should never be called on Python scalar")
+
+    def copy(self) -> Self:
+        return self
+
+    def disassemble(self) -> dict[str, Var] | Var:
+        raise ValueError(
+            "Python scalars cannot be disassembled into 'spox.Var' objects"
+        )
 
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         raise ValueError("cannot 'reshape' Python scalar")

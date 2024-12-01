@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from copy import copy
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal, overload
 
@@ -98,9 +97,7 @@ class TyArrayBase(ABC):
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
         if self.dtype == dtype:
             if copy:
-                import copy
-
-                return copy.copy(self)  # type: ignore
+                return self.copy()  # type: ignore
             else:
                 return self  # type: ignore
         res = self.__ndx_astype__(dtype)
@@ -122,10 +119,14 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     @abstractmethod
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+
+    @abstractmethod
     def concat(self, others: list[Self], axis: None | int) -> Self: ...
 
     @abstractmethod
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+    def copy(self) -> Self:
+        """Copy ``self`` including all component arrays."""
 
     @abstractmethod
     def permute_dims(self, axes: tuple[int, ...]) -> Self: ...
@@ -137,7 +138,7 @@ class TyArrayBase(ABC):
         destination = normalize_axes_tuple(destination, self.ndim)
 
         if source == destination:
-            return copy(self)
+            return self.copy()
 
         axes = [n for n in range(self.ndim) if n not in source]
 

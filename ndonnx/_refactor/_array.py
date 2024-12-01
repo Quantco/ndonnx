@@ -9,7 +9,6 @@ from __future__ import annotations
 import math
 import operator as std_ops
 from collections.abc import Callable, Mapping, Sequence
-from copy import copy as std_copy
 from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
@@ -166,8 +165,7 @@ class Array:
         return Array._from_tyarray(new_data)
 
     def copy(self) -> Array:
-        # TODO: do we need this?
-        return Array._from_tyarray(std_copy(self._tyarray))
+        return Array._from_tyarray(self._tyarray.copy())
 
     def to_numpy(self) -> np.ndarray | None:
         from warnings import warn
@@ -345,7 +343,7 @@ def asarray(
             # TODO: Implement stricter failures cases according to standard
             copy = False
         if copy:
-            obj = Array._from_tyarray(std_copy(obj._tyarray))
+            obj = Array._from_tyarray(obj._tyarray.copy())
         if dtype:
             return obj.astype(dtype, copy=copy)
         return obj

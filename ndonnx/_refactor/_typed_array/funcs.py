@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from copy import copy as copy_
 from functools import reduce
 from itertools import chain
 from types import NotImplementedType
@@ -56,10 +55,10 @@ def astyarray(
         val = np.array(val)
 
     if isinstance(val, TyArrayBase):
-        return copy_(val)
+        return val.copy()
 
     if isinstance(val, Array):
-        return copy_(val._tyarray)
+        return val._tyarray.copy()
 
     arr: TyArrayBase
     if isinstance(val, bool):
