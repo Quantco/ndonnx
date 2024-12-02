@@ -37,13 +37,10 @@ array_api_tests/test_has_names.py::test_has_names[elementwise-expm1]
 array_api_tests/test_has_names.py::test_has_names[elementwise-log1p]
 
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
-array_api_tests/test_operators_and_elementwise_functions.py::test_conj
 array_api_tests/test_operators_and_elementwise_functions.py::test_copysign
 array_api_tests/test_operators_and_elementwise_functions.py::test_expm1
 array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
-array_api_tests/test_operators_and_elementwise_functions.py::test_imag
 array_api_tests/test_operators_and_elementwise_functions.py::test_log1p
-array_api_tests/test_operators_and_elementwise_functions.py::test_real
 array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
 
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i < 0) -> NaN]

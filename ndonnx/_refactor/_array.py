@@ -264,7 +264,6 @@ class Array:
         return int(self.unwrap_numpy())
 
     def __array_namespace__(self, /, *, api_version: Optional[str] = None) -> Any:
-        # TODO: Version namespace
         import ndonnx._refactor as ndx
 
         return ndx
