@@ -1322,13 +1322,13 @@ class TyArrayFloating(TyArrayNumber):
         )
 
     def ceil(self) -> Self:
-        return type(self)(ort_compat.ceil(self.var))
+        return type(self)(op.ceil(self.var))
 
     def floor(self) -> Self:
-        return type(self)(ort_compat.floor(self.var))
+        return type(self)(op.floor(self.var))
 
     def round(self) -> Self:
-        return type(self)(ort_compat.round(self.var))
+        return type(self)(op.round(self.var))
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False

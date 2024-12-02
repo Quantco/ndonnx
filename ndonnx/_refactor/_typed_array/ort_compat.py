@@ -19,6 +19,8 @@ from spox import Var
 
 
 class Warn:
+    """Wrapper to keep track if a cast is lossy so that we may issue a warning."""
+
     def __init__(self, ty: type[np.generic]):
         self.ty = ty
 
@@ -125,6 +127,7 @@ less_or_equal = _wrap_binary(op.less_or_equal, _common_mapping, cast_output=Fals
 mul = _mitigate_segfault_from_zero_dims(_wrap_binary(op.mul, _common_mapping))
 sub = _mitigate_segfault_from_zero_dims(_wrap_binary(op.sub, _common_mapping))
 
+# div does not suffer of the segfault issues.
 div = _wrap_binary(
     op.div,
     {
@@ -148,8 +151,6 @@ _mapping_float_double: _MappingDictType = {
     (np.uint32, np.int32): np.float64,
     (np.uint64, np.int64): Warn(np.float64),
 }
-ceil = _wrap_unary(op.ceil, _mapping_float_double)
-floor = _wrap_unary(op.floor, _mapping_float_double)
 # T: tensor(double), tensor(float), tensor(int32), tensor(int64), tensor(int8)
 neg = _wrap_unary(
     op.neg,
@@ -159,7 +160,6 @@ neg = _wrap_unary(
         (np.uint64,): Warn(np.int64),
     },
 )
-round = _wrap_unary(op.round, _mapping_float_double)
 # T tensor(bfloat16), tensor(double), tensor(float), tensor(float16), tensor(int16), tensor(int32), tensor(int64), tensor(int8), tensor(uint16), tensor(uint32), tensor(uint64), tensor(uint8)
 sign = op.sign
 sin = _wrap_unary(op.sin, _mapping_float_double)
@@ -238,16 +238,10 @@ def cumsum(
     exclusive: int = 0,
     reverse: int = 0,
 ) -> Var:
-    # It seems that ORT 1.19.2 already supports float64 in practice,
-    # but this is not reflected in the OperatorKernels.md file which reads for 1.19.2:
-    # tensor(float), tensor(float16), tensor(int32), tensor(int64),
-    # tensor(uint32), tensor(uint64)
-
-    # ORT always returns 64bit integer types. Spox detects the
-    # standard violation and aborts the value propagation. Thus, we
-    # always cast to 64bit types.
+    # T = tensor(double), tensor(float), tensor(int32), tensor(int64)
+    # T2 = tensor(int32), tensor(int64)
     mapping: _MappingDictType = {
-        (np.uint8, np.int8, np.int16, np.uint16): np.int64,
+        (np.uint8, np.int8, np.int16, np.uint16, np.uint32): np.int32,
         (np.uint32,): np.int64,
         (np.uint64,): Warn(np.float64),
     }
