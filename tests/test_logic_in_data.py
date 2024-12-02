@@ -33,14 +33,6 @@ def constant_prop(fn, *np_args):
     return fn(*[ndx.asarray(a) for a in np_args]).unwrap_numpy()
 
 
-@pytest.fixture(autouse=True)
-def warn_when_prop_fails():
-    from spox import _future
-
-    _future.set_type_warning_level(_future.TypeWarningLevel.OUTPUTS)
-    yield
-
-
 @pytest.mark.parametrize(
     "op",
     [

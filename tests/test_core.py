@@ -7,7 +7,6 @@ import re
 
 import numpy as np
 import pytest
-import spox
 import spox.opset.ai.onnx.v19 as op
 
 import ndonnx._refactor as ndx
@@ -38,11 +37,6 @@ def numpy_to_graph_input(arr, eager=False):
             dtype=dtype,
         )
     )
-
-
-@pytest.fixture(autouse=True)
-def use_spox_ort_value_prop(monkeypatch):
-    spox._value_prop._VALUE_PROP_BACKEND = spox._value_prop.ValuePropBackend.ONNXRUNTIME
 
 
 @pytest.fixture
