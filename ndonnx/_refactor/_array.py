@@ -317,7 +317,8 @@ class Array:
         value_repr = ", ".join(
             [f"{k}: {v}" for k, v in self._tyarray.__ndx_value_repr__().items()]
         )
-        return f"array({value_repr}, shape={self.shape}, dtype={self.dtype})"
+        shape = self._tyarray.shape
+        return f"array({value_repr}, shape={shape}, dtype={self.dtype})"
 
 
 NestedSequence = Sequence["Array | bool | int | float | NestedSequence"]

@@ -311,11 +311,10 @@ def test_repr_eager():
 
 
 def test_repr_lazy():
-    # TODO: Show dynamic shape parameters rather than `None`
-    assert "array(data: *lazy*, shape=(None,), dtype=Int64)" == str(
+    assert "array(data: *lazy*, shape=('N',), dtype=Int64)" == str(
         ndx.Array(shape=("N",), dtype=ndx.int64)
     )
-    assert "array(data: *lazy*, mask: *lazy*, shape=(None,), dtype=NInt64)" == str(
+    assert "array(data: *lazy*, mask: *lazy*, shape=('N',), dtype=NInt64)" == str(
         ndx.Array(shape=("N",), dtype=ndx.nint64)
     )
 
