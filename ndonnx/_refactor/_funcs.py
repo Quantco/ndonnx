@@ -61,8 +61,10 @@ def arange(
         stop = start
         start = 0
 
-    # Validation; It is a user error if they provide wrong types. but there is an existing tests for this behavior.
-    # TODO: Remove after refactoring the typed arrays has landed
+    # Validation; It is a user error if they provide wrong
+    # types. However, there is an existing tests for this behavior, so
+    # we support it for now.
+    # TODO: Remove after the typed arrays refactoring has landed
     for el in [start, stop, step]:
         if not isinstance(el, int | float):
             raise TypeError(
@@ -167,8 +169,26 @@ def mean(
     return Array._from_tyarray(x._tyarray.mean(axis=axis, keepdims=keepdims))
 
 
-def meshgrid(*Arrays: Array, indexing: str = "xy") -> list[Array]:
-    raise NotImplementedError
+def meshgrid(*arrays: Array, indexing: str = "xy") -> list[Array]:
+    ndim = len(arrays)
+
+    if indexing not in ("xy", "ij"):
+        raise ValueError(
+            f"'indexing' argument must be one 'xy' or 'ij', found `{indexing}`"
+        )
+
+    base_shape = (1,) * ndim
+    output = [
+        reshape(x, base_shape[:i] + (-1,) + base_shape[i + 1 :])
+        for i, x in enumerate(arrays)
+    ]
+
+    if indexing == "xy" and ndim > 1:
+        # switch first and second axis
+        output[0] = reshape(output[0], (1, -1) + base_shape[2:])
+        output[1] = reshape(output[1], (-1, 1) + base_shape[2:])
+
+    return broadcast_arrays(*output)
 
 
 def moveaxis(

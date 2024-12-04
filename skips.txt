@@ -1,7 +1,5 @@
 # The following tests cause segfaults
 
-array_api_tests/test_data_type_functions.py::test_broadcast_arrays
-
 # Missing implementations which should be perfectly doable
 array_api_tests/test_linalg.py::test_tensordot
 array_api_tests/test_manipulation_functions.py::test_repeat
@@ -24,8 +22,6 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_atanh
 array_api_tests/test_operators_and_elementwise_functions.py::test_asinh
 
 # The following tests have no implementation due to lacking operators in the ONNX standard
-array_api_tests/test_creation_functions.py::test_meshgrid
-
 array_api_tests/test_has_names.py::test_has_names[elementwise-conj]
 array_api_tests/test_has_names.py::test_has_names[elementwise-copysign]
 array_api_tests/test_has_names.py::test_has_names[elementwise-hypot]

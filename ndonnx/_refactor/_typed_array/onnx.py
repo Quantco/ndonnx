@@ -433,7 +433,7 @@ class TyArray(TyArrayBase):
     def mT(self) -> Self:  # noqa: N802
         if self.ndim < 2:
             raise ValueError(
-                "array must have two or more dimensions, found `{self.ndim}`"
+                f"array must have two or more dimensions, found `{self.ndim}`"
             )
         dims = list(range(self.ndim))
         dims = dims[:-2] + dims[-2:][::-1]
