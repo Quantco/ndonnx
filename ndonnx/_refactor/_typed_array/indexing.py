@@ -207,3 +207,105 @@ def _normalize_getitem_key_item(key: GetitemScalarPub | GetitemScalar) -> Getite
     if isinstance(key, int | None | type(...)):
         return key
     raise IndexError(f"unexpected index element `{key}`")
+
+
+def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
+    """Compute expanded indices for ``key`` for an array of shape ``shape``."""
+    # TODO: Allow dynamic inputs to DType._arange?
+    import spox.opset.ai.onnx.v21 as op
+
+    import ndonnx._refactor as ndx
+
+    from . import TyArrayInt64
+    from .funcs import safe_cast
+
+    indices_per_dim = []
+    for s, length in zip(key, shape):
+        if isinstance(s, int):
+            stop = None if s == -1 else s + 1
+            s = slice(s, stop, 1)
+        indices_per_dim.append(
+            ndx.asarray(op.range(*[el.var for el in _get_indices(s, length)]))
+        )
+
+    grid = ndx.meshgrid(*indices_per_dim, indexing="ij")
+    indices = ndx.concat([ndx.reshape(el, (-1, 1)) for el in grid], axis=-1)
+
+    return safe_cast(TyArrayInt64, indices._tyarray)
+
+
+def _get_indices(
+    s: slice, length: int | TyArrayInt64
+) -> tuple[TyArrayInt64, TyArrayInt64, TyArrayInt64]:
+    """Array-compatible implementation of ``slice.indices``.
+
+    Slice members must be of type ``int`` or ``None`` while `length` may be an array.
+    """
+    from ndonnx._refactor import Array, asarray, int64, maximum, minimum, where
+
+    from .funcs import astyarray, safe_cast
+    from .onnx import TyArrayInt64
+
+    length_ = Array._from_tyarray(astyarray(length))
+
+    step = 1 if s.step is None else s.step
+    if not isinstance(step, int):
+        raise IndexError(f"'step' must be of type 'int' found `{type(step)}`")
+
+    if step == 0:
+        raise IndexError("'step' must not be zero")
+
+    step_is_negative = step < 0
+
+    if step_is_negative:
+        lower = -1
+        upper: Array = length_ + lower
+    else:
+        lower = 0
+        upper = length_
+
+    if s.start is None:
+        start = upper if step_is_negative else lower
+    elif isinstance(s.start, int):
+        start = asarray(s.start, dtype=int64)
+        start = where(
+            start < 0, maximum(start + length_, asarray(lower)), minimum(start, upper)
+        )
+    else:
+        raise IndexError(f"'start' must be 'int' or 'None', found `{s.start}`")
+
+    if s.stop is None:
+        stop = lower if step_is_negative else upper
+    elif isinstance(s.stop, int):
+        stop = asarray(s.stop, dtype=int64)
+        stop = where(
+            stop < 0, maximum(stop + length_, asarray(lower)), minimum(stop, upper)
+        )
+    else:
+        raise IndexError(f"'stop' must be 'int' or 'None', found `{s.stop}`")
+
+    (start_, stop_, step_) = (
+        safe_cast(TyArrayInt64, astyarray(el)) for el in [start, stop, step]
+    )
+    return (start_, stop_, step_)
+
+
+def _move_ellipsis_back(
+    ndim: int, key: tuple[int | slice | EllipsisType, ...]
+) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int | slice | EllipsisType, ...]]:
+    """Permute axes such that the ellipsis-axes are at the end."""
+
+    if ... not in key:
+        raise ValueError("No ellipsis found in 'key'")
+    ellipsis_pos = key.index(...)
+    current_dims = list(range(ndim))
+    ellipsis_len = ndim - (len(key) - 1)
+    new_perm = tuple(
+        current_dims[:ellipsis_pos]
+        + current_dims[ellipsis_pos + ellipsis_len :]
+        + current_dims[ellipsis_pos:][:ellipsis_len]
+    )
+    inverse_map = tuple(int(el) for el in np.argsort(new_perm))
+
+    keys_no_ellipsis = tuple(el for el in key if el != ...)
+    return new_perm, inverse_map, keys_no_ellipsis

@@ -30,6 +30,15 @@ class TyArrayBase(ABC):
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.__dict__})"
 
+    def __bool__(self, /) -> bool:
+        return bool(self.unwrap_numpy())
+
+    def __int__(self, /) -> int:
+        return int(self.unwrap_numpy())
+
+    def __float__(self, /) -> float:
+        return float(self.unwrap_numpy())
+
     @abstractmethod
     def __ndx_value_repr__(self) -> dict[str, str]:
         """A string representation of the fields to be used in ``Array.__repr__```."""
@@ -117,6 +126,17 @@ class TyArrayBase(ABC):
         in one.
         """
         return NotImplemented
+
+    def __iter__(self):
+        try:
+            n, *_ = self.shape
+        except IndexError:
+            raise ValueError("iteration over 0-d array")
+        if isinstance(n, int):
+            return (self[i, ...] for i in range(n))
+        raise ValueError(
+            "iteration requires dimension of static length, but dimension 0 is dynamic."
+        )
 
     @abstractmethod
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...

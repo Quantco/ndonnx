@@ -23,8 +23,7 @@ from ._typed_array.funcs import astyarray
 from ._typed_array.indexing import normalize_getitem_key
 
 if TYPE_CHECKING:
-    from ._typed_array import TyArrayBool, TyArrayInteger
-    from ._typed_array.indexing import SetitemIndexStatic
+    from ._typed_array.indexing import SetitemIndex as TySetitemIndex
 
 StrictShape = tuple[int, ...]
 StandardShape = int | tuple[int | None, ...]
@@ -241,7 +240,7 @@ class Array:
                 raise TypeError(
                     f"indexing array must have integer or boolean data type; found `{key.dtype}`"
                 )
-            idx: SetitemIndexStatic | TyArrayInteger | TyArrayBool = key._tyarray
+            idx: TySetitemIndex = key._tyarray
         else:
             idx = key
 

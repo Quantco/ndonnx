@@ -17,12 +17,15 @@ import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, Var, argument
 from typing_extensions import Self
 
-from ndonnx._corearray import _CoreArray
-
 from .._dtypes import TY_ARRAY, DType, from_numpy
 from .._schema import DTypeInfoV1
 from . import ort_compat
-from .indexing import FancySlice, normalize_getitem_key
+from .indexing import (
+    FancySlice,
+    _key_to_indices,
+    _move_ellipsis_back,
+    normalize_getitem_key,
+)
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
@@ -32,7 +35,6 @@ if TYPE_CHECKING:
         GetitemIndex,
         GetitemTuple,
         SetitemIndex,
-        SetitemIndexStatic,
     )
 
 TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
@@ -391,8 +393,12 @@ class TyArray(TyArrayBase):
             res = op.compress(x.var, key.var, axis=0)
             return type(self)(res)
 
-        in_shape = TyArrayInt64(op.const([-1])).concat(
-            [self.dynamic_shape[key.ndim :]], axis=0
+        # Can't use reshape since the use of -1 for zero dimensional
+        # arrays is undefined
+        in_shape = (
+            self.dynamic_shape[: key.ndim]
+            .prod(keepdims=True, dtype=int64)
+            .concat([self.dynamic_shape[key.ndim :]], axis=0)
         )
         var = self.reshape(in_shape).var
 
@@ -405,18 +411,55 @@ class TyArray(TyArrayBase):
         value: Self,
         /,
     ) -> None:
-        ca = _as_old_corarray(self)
+        if key == ():
+            self.var = value.broadcast_to(self.dynamic_shape).var
+            return
+
+        if isinstance(key, list):
+            # Technically not supported, but a common pattern
+            key = tuple(key)
+        if isinstance(key, int | slice | EllipsisType):
+            key = (key,)
+
         if isinstance(key, TyArrayBool):
-            key_: SetitemIndexStatic | _CoreArray = _as_old_corarray(key)
+            return self._setitem_boolmask(key, value)
         elif isinstance(key, TyArrayInteger):
-            key_ = _as_old_corarray(key.astype(int64))
-        else:
-            key_ = key
-        ca[key_] = _as_old_corarray(value)
+            raise IndexError("'__setitem__' with integer arrays is not supported.")
 
-        # Check that the type was not changed by going through the constructor
-        self.var = type(self)(ca.var).var
+        # Shortcut: Remove ellipsis from the front if there is any
+        if ... in key and key.index(...) == len(key):
+            key = key[:-1]
 
+        if contains_no_ellipsis(key):
+            arr_key = _key_to_indices(key, self.dynamic_shape)
+            self._setitem_int_array(arr_key, value)
+            return
+
+        # The ellipsis is somewhere else in the key. We need to do some rearangment
+        tmp_dim_perm, reverse_perm, keys_no_ellips = _move_ellipsis_back(self.ndim, key)
+        perm_self = self.permute_dims(tmp_dim_perm)
+        perm_self[keys_no_ellips] = value
+        self.var = perm_self.permute_dims(reverse_perm).var
+
+    def _setitem_boolmask(self, key: TyArrayBool, value: Self) -> None:
+        if self.ndim < key.ndim:
+            raise IndexError("provided boolean mask has higher rank than 'self'")
+        if self.ndim > key.ndim:
+            diff = self.ndim - key.ndim
+            # expand to rank of self
+            idx = [...] + diff * [None]
+            key = key[tuple(idx)]
+
+        self.var = ort_compat.where(key.var, value.var, self.var)
+        return
+
+    def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
+        # if self.ndim != key.ndim:
+        #     raise IndexError("index array and 'key' must have identical rank")
+        value_shape = key.dynamic_shape[:-1].concat(
+            [self.dynamic_shape[slice(key.dynamic_shape[-1], None, 1)]], axis=0
+        )
+        self.var = op.scatter_nd(self.var, key.var, value.broadcast_to(value_shape).var)
         return
 
     @property
@@ -1640,6 +1683,12 @@ def all_items_are_int(
     return all(isinstance(d, int) for d in seq)
 
 
+def contains_no_ellipsis(
+    seq: tuple[int | slice | EllipsisType, ...],
+) -> TypeGuard[tuple[int | slice, ...]]:
+    return all(el != ... for el in seq)
+
+
 T = TypeVar("T", bound=TyArray)
 
 
@@ -1677,22 +1726,6 @@ def _promote_and_apply_op(
         var = spox_op(this.var, other.var) if forward else spox_op(other.var, this.var)
         return ascoredata(var)
     return NotImplemented
-
-
-def _as_old_corarray(tyarr: TyArray) -> _CoreArray:
-    from ndonnx._corearray import _CoreArray
-
-    ca = _CoreArray(tyarr.var)
-    try:
-        spox_prop_val = tyarr.var._get_value()
-        if not isinstance(spox_prop_val, np.ndarray):
-            raise ValueError(
-                "Propagated value has unexpected type `{type(spox_prop_val)}`"
-            )
-        ca._eager_value = spox_prop_val
-    except ValueError:
-        pass
-    return ca
 
 
 #####################

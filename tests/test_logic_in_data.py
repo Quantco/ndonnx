@@ -283,6 +283,55 @@ def test_indexing_assign_to_zero_dim():
     np.testing.assert_equal(arr.unwrap_numpy(), np_array)
 
 
+@pytest.mark.parametrize("idx_list", ([[True, False], [False, True]], [True, False]))
+def test_indexing_boolean_array(idx_list):
+    np_arr = np.ones((2, 2), np.float64)
+    arr = ndx.asarray(np_arr)
+
+    np_idx = np.array(idx_list)
+    idx = ndx.asarray(np_idx)
+
+    update = 42.0
+    np_arr[np_idx] = update
+    arr[idx] = update
+    np.testing.assert_equal(arr.unwrap_numpy(), np_arr)
+
+
+@pytest.mark.skip(reason="Unclear index type")
+def test_indexing_boolean_array_equivalent_nonzero():
+    idx_list = [True, False]
+    np_arr = np.ones((2, 2), np.float64)
+    arr1 = ndx.asarray(np_arr)
+    arr2 = ndx.asarray(np_arr)
+
+    np_idx = np.array(idx_list)
+    idx = ndx.asarray(np_idx)
+
+    arr1[idx] = 42.0
+    arr2[ndx.nonzero(idx)] = 42.0
+
+    np_arr[np.nonzero(np_idx)] = 42
+
+    np.testing.assert_equal(arr1.unwrap_numpy(), np_arr)
+
+
+@pytest.mark.skip(reason="Indexing with integer arrays is not defined by the standard.")
+def test_indexing_set_with_int_array():
+    np_a = np.array([1, 2, 3])
+    np_index = np.array([0, 2])
+
+    a = ndx.asarray(np_a)
+    index = ndx.asarray(np_index)
+
+    c = a.copy()
+    c[index] = 0
+
+    expected_c = np_a
+    expected_c[np_index] = 0
+
+    np.testing.assert_array_equal(c.unwrap_numpy(), expected_c)
+
+
 @pytest.mark.parametrize("value", ["foo", np.array("foo"), np.array(["foo"])])
 @pytest.mark.parametrize("string_dtype", [ndx.utf8, ndx.nutf8])
 def test_string_arrays(value, string_dtype):

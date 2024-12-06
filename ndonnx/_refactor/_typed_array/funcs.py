@@ -87,7 +87,7 @@ def astyarray(
             val = val.astype(str)
         arr = onnx.ascoredata(op.const(val))
     else:
-        raise ValueError
+        raise ValueError(f"failed to convert `{val}` to typed array")
 
     if dtype is not None:
         return arr.astype(dtype, copy=True)
