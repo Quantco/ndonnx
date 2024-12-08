@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class TyArrayBase(ABC):
-    dtype: DType
+    dtype: DType[Self]
 
     @abstractmethod
     def __init__(self): ...
