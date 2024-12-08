@@ -395,3 +395,12 @@ def test_remainder(np_arr2):
 
     candidate = ndx.asarray(np_arr1) % ndx.asarray(np_arr2)
     np.testing.assert_equal(np_arr1 % np_arr2, candidate.unwrap_numpy())
+
+
+def test_dynamic_shape_propagates_staticlly_known_shape():
+    shape = (
+        2,
+        2,
+    )
+    assert tuple(ndx.ones(shape).dynamic_shape.unwrap_numpy()) == shape
+    assert tuple(ndx.ones(shape)._tyarray.dynamic_shape.unwrap_numpy()) == shape

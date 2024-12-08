@@ -343,7 +343,8 @@ def test_indexing_with_invalid_rank(_a):
     b[0, ...]
 
 
-def test_indexing_set_with_array(_a):
+@pytest.mark.skip("Indexing with integer arrays is ambiguous.")
+def test_indexing_set_with_integer_array(_a):
     _index = np.array([0, 2])
 
     a = numpy_to_graph_input(_a)

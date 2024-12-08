@@ -454,16 +454,37 @@ class TyArray(TyArrayBase):
         return
 
     def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
-        # if self.ndim != key.ndim:
-        #     raise IndexError("index array and 'key' must have identical rank")
+        # The last dim of shape must be statically known (i.e. the
+        # length of the indexing tuple
+        idx_tuple_len = key.shape[-1]
+        if not isinstance(idx_tuple_len, int):
+            raise IndexError("Length of indexing tuple must be statically known")
         value_shape = key.dynamic_shape[:-1].concat(
-            [self.dynamic_shape[slice(key.dynamic_shape[-1], None, 1)]], axis=0
+            [self.dynamic_shape[idx_tuple_len:]], axis=0
         )
-        self.var = op.scatter_nd(self.var, key.var, value.broadcast_to(value_shape).var)
+        # We may have to broadcast `value` into a higher rank, or we
+        # have to reshape it into a lower one
+        (target_rank,) = value_shape.shape
+        if not isinstance(target_rank, int):
+            raise IndexError("target rank must be statically known")
+        if target_rank < value.ndim:
+            value_correct_shape = value.reshape(value_shape)
+        else:
+            value_correct_shape = value.broadcast_to(value_shape)
+        self.var = op.scatter_nd(self.var, key.var, value_correct_shape.var)
         return
 
     @property
     def dynamic_shape(self) -> TyArrayInt64:
+        from .funcs import astyarray
+
+        # Spox does not attempt value propagation for lazy
+        # arrays. Thus, we never get a constant from lazy input, even
+        # if the shape is statically known. We therefore do that
+        # manually here.
+        if all(isinstance(el, int) for el in self.shape):
+            return astyarray(np.array(self.shape), dtype=int64)
+
         var = op.shape(self.var)
         return TyArrayInt64(var)
 
@@ -581,11 +602,22 @@ class TyArray(TyArrayBase):
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+        from .funcs import astyarray
+
         if isinstance(shape, tuple):
-            shape_var = op.const(shape, dtype=np.int64)
-        else:
-            shape_var = shape.var
-        var = op.expand(self.var, shape_var)
+            shape = astyarray(np.array(shape), dtype=int64)
+        if shape.ndim != 1:
+            raise ValueError(f"'shape' must be a rank-1 tensor, found `{shape.ndim}`")
+        if not isinstance(shape.shape[0], int):
+            raise ValueError("'shape' must be a rank-1 tensor with static length.")
+        (target_rank,) = shape.shape
+        if not isinstance(target_rank, int):
+            raise ValueError(
+                "target rank of broadcasting operation must be statically known"
+            )
+        if target_rank < self.ndim:
+            raise ValueError("target rank must equal or greater than rank of 'self'")
+        var = op.expand(self.var, shape.var)
         return type(self)(var)
 
     def concat(self, others: Sequence[Self], axis: None | int) -> Self:

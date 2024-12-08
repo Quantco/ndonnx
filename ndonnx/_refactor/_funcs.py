@@ -101,9 +101,11 @@ def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Arra
 
 
 def broadcast_arrays(*arrays: Array) -> list[Array]:
-    if len(arrays) == 0:
-        return []
+    if len(arrays) < 2:
+        return [a.copy() for a in arrays]
 
+    # TODO: Create upstream issue for a variadic broadcasting operator
+    # in the ONNX standard.
     for a in arrays:
         for el in a.shape:
             if not isinstance(el, int):
@@ -125,7 +127,7 @@ def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
                 f"dynamic shape must be of data type int64, found `{shape.dtype}`"
             )
         return Array._from_tyarray(x._tyarray.broadcast_to(shape._tyarray))
-    return Array._from_tyarray(x._tyarray.broadcast_to(shape))
+    return Array._from_tyarray(x._tyarray.broadcast_to(shape)).copy()
 
 
 def can_cast(from_: DType | Array, to: DType, /) -> bool:

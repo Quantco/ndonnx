@@ -49,6 +49,8 @@ def test_get_indices(s: slice, length: int):
         (slice(0, 2, 1), slice(0, 2, 1)),
         (slice(0, 2, 1), -1, slice(0, 2, 1)),
         (slice(0, 100, 10),),
+        # empty slice
+        (slice(0, 0, None),),
     ],
 )
 def test_key_to_indices(key):
@@ -98,3 +100,26 @@ def test_set_index_fancy(dtype):
     arr[key] = 42
 
     np.testing.assert_array_equal(np_arr, arr.unwrap_numpy())
+
+
+def test_empty_data():
+    np_arr = np.ones((0, 0), dtype=bool)
+    key = (slice(None, None, None), slice(None, None, None))
+    arr = ndx.asarray(np_arr)
+
+    arr[key] = True
+    np_arr[key] = True
+
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
+
+
+def test_empty_update():
+    np_arr = np.ones((2, 2), dtype=bool)
+    key = (slice(0, 0, None), slice(None, None, None))
+    arr = ndx.asarray(np_arr)
+
+    np_arr[key] = ~np_arr[key]
+    update = ~arr[key]
+    arr[key] = update
+
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
