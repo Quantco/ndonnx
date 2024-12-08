@@ -404,3 +404,53 @@ def test_dynamic_shape_propagates_staticlly_known_shape():
     )
     assert tuple(ndx.ones(shape).dynamic_shape.unwrap_numpy()) == shape
     assert tuple(ndx.ones(shape)._tyarray.dynamic_shape.unwrap_numpy()) == shape
+
+
+@pytest.mark.parametrize(
+    "np_left, right",
+    [
+        (np.array([-1, -128, 10], np.int8), 2),
+        (np.array([-1, -128, 10], np.int8), np.array(2, np.uint16)),
+        (np.array([-1, -128, 10], np.int8), np.array(0, np.uint16)),
+        (2, np.array([0, 1, 2], np.int8)),
+        (np.array(2, np.uint16), np.array([0, 1, 2], np.int8)),
+        (np.array(0, np.uint16), np.array([0, 1, 2], np.int8)),
+        (np.array(3, np.uint16), np.array(1, np.uint8)),
+    ],
+)
+def test_bitshift_right(np_left, right):
+    ndx_left = ndx.asarray(np_left)
+    if isinstance(right, np.ndarray):
+        ndx_right = ndx.asarray(right)
+    else:
+        ndx_right = right
+
+    np_res = np_left >> right
+    ndx_res = ndx_left >> ndx_right
+
+    np.testing.assert_array_equal(np_res, ndx_res.unwrap_numpy())
+
+
+@pytest.mark.parametrize(
+    "np_left, right",
+    [
+        (np.array([-1, -128, 10], np.int8), 2),
+        (np.array([-1, -128, 10], np.int8), np.array(2, np.uint16)),
+        (np.array([-1, -128, 10], np.int8), np.array(0, np.uint16)),
+        (2, np.array([0, 1, 2], np.int8)),
+        (np.array(2, np.uint16), np.array([0, 1, 2], np.int8)),
+        (np.array(0, np.uint16), np.array([0, 1, 2], np.int8)),
+        (np.array(3, np.uint16), np.array(1, np.uint8)),
+    ],
+)
+def test_bitshift_left(np_left, right):
+    ndx_left = ndx.asarray(np_left)
+    if isinstance(right, np.ndarray):
+        ndx_right = ndx.asarray(right)
+    else:
+        ndx_right = right
+
+    np_res = np_left << right
+    ndx_res = ndx_left << ndx_right
+
+    np.testing.assert_array_equal(np_res, ndx_res.unwrap_numpy())

@@ -1136,7 +1136,7 @@ class TyArrayNumber(TyArray):
         return type(self)(op.abs(self.var))
 
     def __neg__(self) -> TyArray:
-        return type(self)(op.neg(self.var))
+        return type(self)(ort_compat.neg(self.var))
 
     def __pos__(self) -> Self:
         return self.copy()
@@ -1315,24 +1315,6 @@ class TyArrayInteger(TyArrayNumber):
             forward=False,
         )
 
-    def __rshift__(self, other) -> TyArrayBase:
-        return _promote_and_apply_op(
-            self,
-            other,
-            operator.rshift,
-            lambda a, b: ort_compat.bit_shift(a, b, direction="RIGHT"),
-            forward=True,
-        )
-
-    def __rrshift__(self, other) -> TyArrayBase:
-        return _promote_and_apply_op(
-            self,
-            other,
-            operator.rshift,
-            lambda a, b: ort_compat.bit_shift(a, b, direction="RIGHT"),
-            forward=False,
-        )
-
     def __invert__(self) -> Self:
         res = op.bitwise_not(self.var)
         return type(self)(res)
@@ -1359,7 +1341,15 @@ class TyArrayInteger(TyArrayNumber):
         return self.copy()
 
 
-class TyArraySignedInteger(TyArrayInteger): ...
+class TyArraySignedInteger(TyArrayInteger):
+    # The array-api standard defines the right shift as arithmetic
+    # (i.e. sign-propagating). The ONNX standard is logical.
+
+    def __rshift__(self, other) -> TyArrayBase:
+        from .funcs import astyarray
+
+        two = astyarray(2, dtype=self.dtype)
+        return self // (two**other)
 
 
 class TyArrayUnsignedInteger(TyArrayInteger):
@@ -1381,6 +1371,17 @@ class TyArrayUnsignedInteger(TyArrayInteger):
         else:
             raise TypeError(f"unexpected data type `{self.dtype}`")
         return safe_cast(TyArray, (-x).astype(self.dtype))
+
+    def __rshift__(self, other) -> TyArrayBase:
+        # The array-api standard defines the right shift as arithmetic
+        # (i.e. sign-propagating). The ONNX standard is logical.
+        return _promote_and_apply_op(
+            self,
+            other,
+            operator.rshift,
+            lambda a, b: ort_compat.bit_shift(a, b, direction="RIGHT"),
+            forward=True,
+        )
 
 
 class TyArrayFloating(TyArrayNumber):

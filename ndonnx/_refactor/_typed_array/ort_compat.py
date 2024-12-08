@@ -264,9 +264,11 @@ def bit_shift(
     *,
     direction: str,
 ) -> Var:
-    # tensor(uint16), tensor(uint32), tensor(uint64), tensor(uint8)
+    # tensor(uint32), tensor(uint64), tensor(uint8)
     mapping: _MappingDictType = {
-        (np.int8, np.int16, np.int32, np.int64): Warn(np.uint64),
+        (np.int8,): np.uint8,
+        (np.int16, np.uint16, np.int32): np.uint32,
+        (np.int64,): np.uint64,
     }
     dtype_in = X.unwrap_tensor().dtype
     detour_type = _detour_type(dtype_in, mapping)
