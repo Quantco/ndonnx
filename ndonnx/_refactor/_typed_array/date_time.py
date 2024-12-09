@@ -42,7 +42,7 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     def __init__(self, unit: Unit):
         self.unit = unit
 
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, py_scalars.PyInteger):
             return self
         return NotImplemented

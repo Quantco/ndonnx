@@ -94,7 +94,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 class _NNumber(_MaOnnxDType):
     _unmasked_dtype: onnx.NumericDTypes
 
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         if isinstance(self, NCoreNumericDTypes) and isinstance(rhs, onnx.NumericDTypes):
             core_result = onnx._result_type_core_numeric(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NCoreNumericDTypes):
@@ -112,7 +112,7 @@ class _NNumber(_MaOnnxDType):
 class NUtf8(_MaOnnxDType):
     _unmasked_dtype = onnx.utf8
 
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         return NotImplemented
 
     @property
@@ -123,7 +123,7 @@ class NUtf8(_MaOnnxDType):
 class NBoolean(_MaOnnxDType):
     _unmasked_dtype = onnx.bool_
 
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         return NotImplemented
 
     @property

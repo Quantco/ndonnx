@@ -154,7 +154,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
 
 
 class _Number(_OnnxDType[TY_ARRAY_ONNX]):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         if isinstance(self, NumericDTypes) and isinstance(rhs, NumericDTypes):
             return _result_type_core_numeric(self, rhs)
 
@@ -162,7 +162,7 @@ class _Number(_OnnxDType[TY_ARRAY_ONNX]):
 
 
 class Utf8(_OnnxDType["TyArrayUtf8"]):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         if self == rhs:
             return self
         return NotImplemented
@@ -181,7 +181,7 @@ class Utf8(_OnnxDType["TyArrayUtf8"]):
 
 
 class Boolean(_OnnxDType["TyArrayBool"]):
-    def _result_type(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         if self == rhs:
             return self
         return NotImplemented

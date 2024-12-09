@@ -64,7 +64,7 @@ class _PyScalar(DType):
 
 
 class PyString(_PyScalar):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.Utf8 | masked_onnx.NUtf8):
             return other
         return NotImplemented
@@ -75,7 +75,7 @@ class PyString(_PyScalar):
 
 
 class PyInteger(_PyScalar):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.NumericDTypes | masked_onnx.NCoreNumericDTypes):
             return other
         if isinstance(other, onnx.Boolean):
@@ -90,10 +90,10 @@ class PyInteger(_PyScalar):
 
 
 class PyBool(PyInteger):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.Boolean):
             return ndx.bool
-        return super()._result_type(other)
+        return super().__ndx_result_type__(other)
 
     @property
     def _tyarr_class(self) -> type[TyArrayPyBool]:
@@ -101,7 +101,7 @@ class PyBool(PyInteger):
 
 
 class PyFloat(_PyScalar):
-    def _result_type(self, other: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
         if isinstance(other, onnx.IntegerDTypes):
             return onnx.float64
         if isinstance(other, masked_onnx.NCoreIntegerDTypes):

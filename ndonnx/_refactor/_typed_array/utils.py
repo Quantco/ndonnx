@@ -3,11 +3,9 @@
 
 from __future__ import annotations
 
-from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
 if TYPE_CHECKING:
-    from .._dtypes import DType
     from . import TyArray, TyMaArray
     from .py_scalars import _ArrayPyScalar
     from .typed_array import TyArrayBase
@@ -37,15 +35,10 @@ def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase, ...]: 
 
 
 def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase, ...]:
-    acc: DType = lhs.dtype
-    for other in others:
-        updated = acc._result_type(other.dtype)
-        if isinstance(updated, NotImplementedType):
-            updated = other.dtype._result_type(acc)
-        if isinstance(updated, NotImplementedType):
-            raise TypeError("Failed to promote into common data type.")
-        acc = updated
-    return tuple([lhs.astype(acc)] + [other.astype(acc) for other in others])
+    from .funcs import result_type
+
+    res_type = result_type(lhs, *others)
+    return tuple([lhs.astype(res_type)] + [other.astype(res_type) for other in others])
 
 
 def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:

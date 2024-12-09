@@ -22,7 +22,7 @@ TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
 
 class DType(ABC, Generic[TY_ARRAY_BASE]):
     @abstractmethod
-    def _result_type(self, other: DType) -> DType | NotImplementedType: ...
+    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType: ...
 
     @property
     @abstractmethod

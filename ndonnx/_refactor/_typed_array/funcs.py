@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from functools import reduce
-from itertools import chain
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
@@ -119,26 +118,27 @@ def result_type(first: onnx.DTypes, *others: onnx.DTypes) -> onnx.DTypes: ...
 def result_type(first: DType, *others: DType) -> DType: ...
 
 
+@overload
+def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType: ...
+
+
 def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType:
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
-    return reduce(
-        lambda a, b: _result_dtype(a, b),
-        (get_dtype(el) for el in chain([first], others)),
-    )
+    return _result_dtype(get_dtype(first), *(get_dtype(el) for el in others))
 
 
 def _result_dtype(first: DType, *others: DType) -> DType:
     def result_binary(a: DType, b: DType) -> DType:
         if a == b:
             return a
-        res1 = a._result_type(b)
+        res1 = a.__ndx_result_type__(b)
         if res1 != NotImplemented:
             return res1
-        return b._result_type(a)
+        return b.__ndx_result_type__(a)
 
     res = reduce(result_binary, others, first)
     if res == NotImplemented:
