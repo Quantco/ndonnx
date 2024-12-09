@@ -355,43 +355,39 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def argmax(self, x, axis=None, keepdims=False):
-        if axis is None:
-            reshaped_x = ndx.reshape(x, [-1])._core()
-            if keepdims:
-                return from_corearray(
-                    opx.reshape(
-                        opx.arg_max(reshaped_x, axis=0, keepdims=False),
-                        opx.const([1 for x in range(x.ndim)], dtype=dtypes.int64),
-                    )
-                )
-            else:
-                return from_corearray(
-                    opx.reshape(
-                        opx.arg_max(reshaped_x, axis=0, keepdims=False),
-                        opx.const([], dtype=dtypes.int64),
-                    )
-                )
-        return _via_i64_f64(lambda x: opx.arg_max(x, axis=axis, keepdims=keepdims), [x])
+        out = via_upcast(
+            lambda x: opx.arg_max(
+                x,
+                axis=axis or 0,
+                keepdims=int(keepdims),
+            ),
+            [ndx.reshape(x, [-1]) if axis is None else x],
+            cast_return=False,
+            int_dtype=ndx.int32,
+            float_dtype=ndx.float64,
+        )
+
+        while keepdims and out.ndim < x.ndim:
+            out = ndx.expand_dims(out, axis=0)
+        return out
 
     @validate_core
     def argmin(self, x, axis=None, keepdims=False):
-        if axis is None:
-            reshaped_x = ndx.reshape(x, [-1])._core()
-            if keepdims:
-                return from_corearray(
-                    opx.reshape(
-                        opx.arg_min(reshaped_x, axis=0, keepdims=False),
-                        opx.const([1 for x in range(x.ndim)], dtype=dtypes.int64),
-                    )
-                )
-            else:
-                return from_corearray(
-                    opx.reshape(
-                        opx.arg_min(reshaped_x, axis=0, keepdims=False),
-                        opx.const([], dtype=dtypes.int64),
-                    )
-                )
-        return _via_i64_f64(lambda x: opx.arg_min(x, axis=axis, keepdims=keepdims), [x])
+        out = via_upcast(
+            lambda x: opx.arg_min(
+                x,
+                axis=axis or 0,
+                keepdims=int(keepdims),
+            ),
+            [ndx.reshape(x, [-1]) if axis is None else x],
+            cast_return=False,
+            int_dtype=ndx.int32,
+            float_dtype=ndx.float64,
+        )
+
+        while keepdims and out.ndim < x.ndim:
+            out = ndx.expand_dims(out, axis=0)
+        return out
 
     @validate_core
     def nonzero(self, x) -> tuple[Array, ...]:

@@ -252,7 +252,7 @@ class UniformShapeOperations(OperationsBlock):
         return ndx.zeros(nda.shape(x), dtype=dtype or x.dtype, device=device)
 
     def ones_like(self, x, dtype=None, device=None):
-        return ndx.ones(x.shape, dtype=dtype or x.dtype, device=device)
+        return ndx.ones(nda.shape(x), dtype=dtype or x.dtype, device=device)
 
     def make_array(
         self,

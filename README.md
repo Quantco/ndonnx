@@ -48,14 +48,14 @@ It has a couple of key features:
   ```python
   import numpy as np
   import ndonnx as ndx
-  from jax.experimental import array_api as jxp
+  import jax.numpy as jnp
 
   def mean_drop_outliers(a, low=-5, high=5):
       xp = a.__array_namespace__()
       return xp.mean(a[(low < a) & (a < high)])
 
   np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 5]))
-  jax_result = mean_drop_outliers(jxp.asarray([-10, 0.5, 1, 5]))
+  jax_result = mean_drop_outliers(jnp.asarray([-10, 0.5, 1, 5]))
   onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
 
   assert np_result == onnx_result.to_numpy() == jax_result == 0.75

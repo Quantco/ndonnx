@@ -505,6 +505,16 @@ def test_creation_full():
     )
 
 
+def test_creation_ones_like():
+    a = ndx.array(shape=("N",), dtype=ndx.int64)
+    b = ndx.ones_like(a)
+    model = ndx.build({"a": a}, {"b": b})
+    assert_array_equal(
+        run(model, {"a": np.array([1, 2, 3], dtype=np.int64)})["b"],
+        np.ones(3, dtype=np.int64),
+    )
+
+
 @pytest.mark.parametrize(
     "args, expected",
     [
@@ -983,3 +993,26 @@ def test_no_unsafe_cumulative_sum_cast():
     with pytest.warns(match="A lossy cast to 'float64' is used instead"):
         a = ndx.asarray([1, 2, 3], dtype=ndx.int32)
         ndx.cumulative_sum(a, dtype=ndx.uint64)
+
+
+@pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize(
+    "func, x",
+    [
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int32)),
+        (np.argmax, np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int8)),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
+        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
+        (np.argmin, np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32)),
+        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
+        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int16)),
+    ],
+)
+def test_argmaxmin(func, x, keepdims):
+    np_result = func(x, keepdims=keepdims)
+    ndx_result = getattr(ndx, func.__name__)(
+        ndx.asarray(x), keepdims=keepdims
+    ).to_numpy()
+    assert_array_equal(np_result, ndx_result)
