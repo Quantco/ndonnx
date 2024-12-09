@@ -37,12 +37,12 @@ if TYPE_CHECKING:
         SetitemIndex,
     )
 
-TY_ARRAY_ONNX = TypeVar("TY_ARRAY_ONNX", bound="TyArray")
+TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
 
 
-class _OnnxDType(DType[TY_ARRAY_ONNX]):
+class _OnnxDType(DType[TY_ARRAY]):
     """Data types with a direct representation in the ONNX standard."""
 
     def unwrap_numpy(self) -> np.dtype:
@@ -83,15 +83,15 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
 
     @property
     @abstractmethod
-    def _tyarr_class(self) -> type[TY_ARRAY_ONNX]: ...
+    def _tyarr_class(self) -> type[TY_ARRAY]: ...
 
-    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_ARRAY_ONNX:
+    def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY:
         if isinstance(arr, TyArray):
             var = op.cast(arr.var, to=self.unwrap_numpy())
             return safe_cast(self._tyarr_class, ascoredata(var))
         return NotImplemented
 
-    def _argument(self, shape: OnnxShape) -> TY_ARRAY_ONNX:
+    def _argument(self, shape: OnnxShape) -> TY_ARRAY:
         var = argument(Tensor(self.unwrap_numpy(), shape))
         return self._tyarr_class(var)
 
@@ -106,7 +106,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
         start: int | float,
         stop: int | float,
         step: int | float = 1,
-    ) -> TY_ARRAY_ONNX:
+    ) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
         np_arr = np.array([start, stop, step])
 
@@ -132,7 +132,7 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
         /,
         *,
         k: int = 0,
-    ) -> TY_ARRAY_ONNX:
+    ) -> TY_ARRAY:
         n_cols = n_rows if n_cols is None else n_cols
         # There is no adequate ONNX operator
         mat = np.eye(n_rows, n_cols, k=k)
@@ -140,20 +140,20 @@ class _OnnxDType(DType[TY_ARRAY_ONNX]):
 
         return self._tyarr_class(var)
 
-    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_ONNX:
+    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
         scalar = self._tyarr_class(op.const(1, np_dtype))
 
         return scalar.broadcast_to(shape)
 
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_ONNX:
+    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
         scalar = self._tyarr_class(op.const(0, np_dtype))
 
         return scalar.broadcast_to(shape)
 
 
-class _Number(_OnnxDType[TY_ARRAY_ONNX]):
+class _Number(_OnnxDType[TY_ARRAY]):
     def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
         if isinstance(self, NumericDTypes) and isinstance(rhs, NumericDTypes):
             return _result_type_core_numeric(self, rhs)
@@ -191,10 +191,10 @@ class Boolean(_OnnxDType["TyArrayBool"]):
         return TyArrayBool
 
 
-class Integer(_Number[TY_ARRAY_ONNX]): ...
+class Integer(_Number[TY_ARRAY]): ...
 
 
-class Floating(_Number[TY_ARRAY_ONNX]): ...
+class Floating(_Number[TY_ARRAY]): ...
 
 
 class Int8(Integer["TyArrayInt8"]):
@@ -774,9 +774,9 @@ class TyArray(TyArrayBase):
 
         return (values, indices, inverse_indices, counts)
 
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
         # We pretend that we don't know about any other data type. We
-        # delegate all work to ``DType.__ndx_convert_tyarray__``
+        # delegate all work to ``DType.__ndx_cast_from__``
         return NotImplemented
 
     def __eq__(self, other) -> TyArrayBool | NotImplementedType:  # type: ignore[override]

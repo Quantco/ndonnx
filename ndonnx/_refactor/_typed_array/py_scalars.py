@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class _PyScalar(DType):
-    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> Self:
+    def __ndx_cast_from__(self, arr: TyArrayBase) -> Self:
         raise NotImplementedError
 
     def _argument(self, shape: OnnxShape):
@@ -201,7 +201,7 @@ class _ArrayPyScalar(TyArrayBase):
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
         raise ValueError("cannot 'permute_dims' on Python scalar")
 
-    def __ndx_astype__(
+    def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
         from . import asncoredata
@@ -215,9 +215,9 @@ class _ArrayPyScalar(TyArrayBase):
         # the mapping from this class into those classes **here**.
         if isinstance(dtype, onnx._OnnxDType):
             np_arr = np.array(self.value).astype(dtype.unwrap_numpy())
-            return safe_cast(res_ty, dtype._tyarr_class(op.const(np_arr)))
+            return dtype._tyarr_class(op.const(np_arr))
         if isinstance(dtype, masked_onnx._MaOnnxDType):
-            unmasked_typed_arr = self.__ndx_astype__(dtype._unmasked_dtype)
+            unmasked_typed_arr = self.__ndx_cast_to__(dtype._unmasked_dtype)
             return safe_cast(res_ty, asncoredata(unmasked_typed_arr, None))
         return NotImplemented
 

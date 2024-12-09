@@ -35,7 +35,7 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         ...
 
     @abstractmethod
-    def __ndx_convert_tyarray__(self, arr: TyArrayBase) -> TY_ARRAY_BASE:
+    def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_BASE:
         """Convert the given array to this data type.
 
         This function is used to implement ``TyArrayBase.astype`` and

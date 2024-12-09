@@ -109,23 +109,23 @@ class TyArrayBase(ABC):
                 return self.copy()  # type: ignore
             else:
                 return self  # type: ignore
-        res = self.__ndx_astype__(dtype)
+        res = self.__ndx_cast_to__(dtype)
         if res is NotImplemented:
             # `type(self._data)` does not know about the target `dtype`
-            res = dtype.__ndx_convert_tyarray__(self)
+            res = dtype.__ndx_cast_from__(self)
         if res is not NotImplemented:
             return res
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
     @abstractmethod
-    def __ndx_astype__(
+    def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
-        """Reflective sibling method for `DType.__ndx_convert_tyarray` which must thus
-        not call the latter.
+        """Reflective sibling method for `DType.__ndx_cast_from__` which must thus not
+        call the latter.
 
-        Used this function to implement the conversion from a custom type into a built-
-        in one.
+        Use this function to implement the conversion from a custom type into a built-
+        in one. This function is called by `TyArrayBase.astype`.
         """
         return NotImplemented
 
