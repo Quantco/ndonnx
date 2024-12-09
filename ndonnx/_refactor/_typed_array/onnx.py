@@ -17,7 +17,7 @@ import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, Var, argument
 from typing_extensions import Self
 
-from .._dtypes import TY_ARRAY, DType, from_numpy
+from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
 from .._schema import DTypeInfoV1
 from . import ort_compat
 from .indexing import (
@@ -774,7 +774,7 @@ class TyArray(TyArrayBase):
 
         return (values, indices, inverse_indices, counts)
 
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
         # We pretend that we don't know about any other data type. We
         # delegate all work to ``DType.__ndx_convert_tyarray__``
         return NotImplemented
@@ -1062,10 +1062,10 @@ class TyArrayNumber(TyArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY],
+        dtype: DType[TY_ARRAY_BASE],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY: ...
+    ) -> TY_ARRAY_BASE: ...
 
     @overload
     def prod(
@@ -1105,10 +1105,10 @@ class TyArrayNumber(TyArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY],
+        dtype: DType[TY_ARRAY_BASE],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY: ...
+    ) -> TY_ARRAY_BASE: ...
 
     @overload
     def sum(

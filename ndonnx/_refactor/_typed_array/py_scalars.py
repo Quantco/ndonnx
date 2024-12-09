@@ -14,7 +14,7 @@ from typing_extensions import Self
 import ndonnx._refactor as ndx
 from ndonnx._refactor._schema import DTypeInfoV1
 
-from .._dtypes import TY_ARRAY, DType
+from .._dtypes import TY_ARRAY_BASE, DType
 from . import masked_onnx, onnx
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
@@ -201,7 +201,9 @@ class _ArrayPyScalar(TyArrayBase):
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
         raise ValueError("cannot 'permute_dims' on Python scalar")
 
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(
+        self, dtype: DType[TY_ARRAY_BASE]
+    ) -> TY_ARRAY_BASE | NotImplementedType:
         from . import asncoredata
 
         # mypy gets confused with the generic return type after the

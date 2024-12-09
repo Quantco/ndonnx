@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 import numpy as np
 
-from .._dtypes import TY_ARRAY, DType
+from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
 from . import onnx, py_scalars
 from .funcs import astyarray, where
@@ -254,7 +254,9 @@ class TyArrayTimeDelta(TimeBaseArray):
         self.data = data
         self.dtype = TimeDelta(unit)
 
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(
+        self, dtype: DType[TY_ARRAY_BASE]
+    ) -> TY_ARRAY_BASE | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, _NAT_SENTINEL, self.data)
@@ -320,7 +322,9 @@ class TyArrayDateTime(TimeBaseArray):
         out[is_nat] = np.array("NaT", "datetime64")
         return out
 
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(
+        self, dtype: DType[TY_ARRAY_BASE]
+    ) -> TY_ARRAY_BASE | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)

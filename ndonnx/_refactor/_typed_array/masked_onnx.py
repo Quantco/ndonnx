@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, TypeVar, overload
 import numpy as np
 from typing_extensions import Self
 
-from .._dtypes import TY_ARRAY, DType
+from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
 from . import onnx
 from .funcs import astyarray, result_type, where
@@ -407,7 +407,7 @@ class TyMaArray(TyMaArrayBase):
         else:
             self.mask[index] = new_mask
 
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY:
+    def __ndx_astype__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
         # Implemented under the assumption that we know about `onnx`, but not py_scalars
         if isinstance(dtype, onnx._OnnxDType):
             # Not clear what the behavior should be if we have a mask
@@ -485,10 +485,10 @@ class TyMaArrayNumber(TyMaArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY],
+        dtype: DType[TY_ARRAY_BASE],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY: ...
+    ) -> TY_ARRAY_BASE: ...
 
     @overload
     def prod(

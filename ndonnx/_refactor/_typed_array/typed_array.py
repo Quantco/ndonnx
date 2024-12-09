@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Literal, overload
 import numpy as np
 from typing_extensions import Self
 
-from .._dtypes import TY_ARRAY, DType
+from .._dtypes import TY_ARRAY_BASE, DType
 from .utils import normalize_axes_tuple
 
 if TYPE_CHECKING:
@@ -102,7 +102,7 @@ class TyArrayBase(ABC):
         """Disassemble ``self`` into a flat mapping of its constituents."""
         raise NotImplementedError
 
-    def astype(self, dtype: DType[TY_ARRAY], /, *, copy=True) -> TY_ARRAY:
+    def astype(self, dtype: DType[TY_ARRAY_BASE], /, *, copy=True) -> TY_ARRAY_BASE:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
         if self.dtype == dtype:
             if copy:
@@ -118,7 +118,9 @@ class TyArrayBase(ABC):
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
     @abstractmethod
-    def __ndx_astype__(self, dtype: DType[TY_ARRAY]) -> TY_ARRAY | NotImplementedType:
+    def __ndx_astype__(
+        self, dtype: DType[TY_ARRAY_BASE]
+    ) -> TY_ARRAY_BASE | NotImplementedType:
         """Reflective sibling method for `DType.__ndx_convert_tyarray` which must thus
         not call the latter.
 
@@ -260,10 +262,10 @@ class TyArrayBase(ABC):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY],
+        dtype: DType[TY_ARRAY_BASE],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY: ...
+    ) -> TY_ARRAY_BASE: ...
 
     @overload
     def prod(
@@ -305,10 +307,10 @@ class TyArrayBase(ABC):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY],
+        dtype: DType[TY_ARRAY_BASE],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY: ...
+    ) -> TY_ARRAY_BASE: ...
 
     @overload
     def sum(
