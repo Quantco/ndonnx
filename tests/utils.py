@@ -84,3 +84,9 @@ def assert_array_equal(
     )
     if isinstance(expected, np.ma.masked_array):
         np.testing.assert_array_equal(actual.mask, expected.mask)
+
+
+def assert_equal_dtype_shape(arr, dtype, shape):
+    assert arr.dtype == dtype
+    assert arr._tyarray.shape == shape
+    assert arr.shape == tuple(None if isinstance(el, str) else el for el in shape)

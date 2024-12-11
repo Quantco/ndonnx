@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "input_schema": {
+        "a": {
+            "type_name": "NUInt8",
+            "author": "ndonnx",
+            "meta": null
+        }
+    },
+    "output_schema": {
+        "b": {
+            "type_name": "NUInt8",
+            "author": "ndonnx",
+            "meta": null
+        }
+    }
+}

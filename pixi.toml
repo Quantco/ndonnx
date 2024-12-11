@@ -49,12 +49,16 @@ test = "pytest"
 test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
 
 [feature.test.tasks.arrayapitests]
-cmd = "pytest --max-examples 16 api-coverage-tests/array_api_tests/  -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg --skips-file=skips.txt --xfails-file=xfails.txt --hypothesis-seed=0"
+cmd = "pytest --max-examples 16 api-coverage-tests/array_api_tests/ -v -rfX --json-report --json-report-file=api-coverage-tests.json --disable-deadline --disable-extension linalg,fft --skips-file=skips.txt --xfails-file=xfails.txt --hypothesis-seed=0 -s"
 [feature.test.tasks.arrayapitests.env]
-ARRAY_API_TESTS_MODULE = "ndonnx"
-ARRAY_API_TESTS_VERSION = "2023.12"
-ARRAY_API_TESTS_SKIP_DTYPES = "complex64,complex128"
-
+ARRAY_API_TESTS_MODULE="ndonnx._array_api_test_module"
+ARRAY_API_TESTS_VERSION="2023.12"
+ARRAY_API_TESTS_SKIP_DTYPES="complex64,complex128"
+# Ignored warnings:
+# - from ort_compat: warnings about lossy casts
+# - "case for": upstream test suite failed to automatically parse special cases
+# - "Special cases found for": upstream test suite expected a special case but didn't find it
+PYTHONWARNINGS="ignore::UserWarning:ndonnx._refactor._typed_array.ort_compat,ignore:case for:UserWarning,ignore:Special cases found for:UserWarning"
 
 [feature.lint.dependencies]
 pre-commit = "*"

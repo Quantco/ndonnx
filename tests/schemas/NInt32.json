@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "input_schema": {
+        "a": {
+            "type_name": "NInt32",
+            "author": "ndonnx",
+            "meta": null
+        }
+    },
+    "output_schema": {
+        "b": {
+            "type_name": "NInt32",
+            "author": "ndonnx",
+            "meta": null
+        }
+    }
+}

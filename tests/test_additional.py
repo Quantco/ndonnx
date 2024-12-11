@@ -6,8 +6,8 @@ import sys
 import numpy as np
 import pytest
 
-import ndonnx as ndx
-import ndonnx.additional as nda
+import ndonnx._refactor as ndx
+import ndonnx._refactor.extensions as nda
 
 from .utils import assert_array_equal, run
 
@@ -137,6 +137,12 @@ def test_static_map_lazy():
             {0: -1, 1: -2, np.nan: 3.142},
             42,
             [[-1], [-2], [3.142]],
+        ),
+        (
+            ndx.asarray([[True], [True], [False]], dtype=ndx.bool),
+            {True: 1, False: 0},
+            True,
+            [[1], [1], [0]],
         ),
     ],
 )
