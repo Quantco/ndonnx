@@ -42,11 +42,6 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     def __init__(self, unit: Unit):
         self.unit = unit
 
-    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
-        if isinstance(other, py_scalars.PyInteger):
-            return self
-        return NotImplemented
-
     def __ndx_cast_from__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:
         if isinstance(arr, onnx.TyArrayInteger):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
@@ -57,6 +52,11 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         else:
             raise NotImplementedError
         return self._tyarr_class(is_nat=is_nat, data=data, unit=self.unit)
+
+    def __ndx_result_type__(self, other: DType) -> DType:
+        if isinstance(other, py_scalars.PyInteger):
+            return self
+        return NotImplemented
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"

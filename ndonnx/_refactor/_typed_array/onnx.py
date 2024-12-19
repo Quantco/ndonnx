@@ -309,6 +309,7 @@ class TyArray(TyArrayBase):
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         try:
+            # TODO: should this really be "data"?
             return {"data": str(self.unwrap_numpy().tolist())}
         except ValueError:
             return {"data": "*lazy*"}

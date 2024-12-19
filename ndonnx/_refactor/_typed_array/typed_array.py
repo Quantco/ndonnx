@@ -70,18 +70,56 @@ class TyArrayBase(ABC):
     @abstractmethod
     def shape(self) -> OnnxShape: ...
 
+    @abstractmethod
+    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+
+    @abstractmethod
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self: ...
+
+    @abstractmethod
+    def disassemble(self) -> dict[str, Var] | Var:
+        """Disassemble ``self`` into a flat mapping of its constituents."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+
+    @abstractmethod
+    def concat(self, others: list[Self], axis: None | int) -> Self: ...
+
+    @abstractmethod
+    def copy(self) -> Self:
+        """Copy ``self`` including all component arrays."""
+
+    @abstractmethod
+    def permute_dims(self, axes: tuple[int, ...]) -> Self: ...
+
+    @abstractmethod
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
+        """Reflective sibling method for `DType.__ndx_cast_from__` which must thus not
+        call the latter.
+
+        Use this function to implement the conversion from a custom type into a built-
+        in one. This function is called by `TyArrayBase.astype`.
+        """
+        return NotImplemented
+
+    # TODO: Make this a __ndx_*__ method
+    @abstractmethod
+    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+        """Implementation of equal-comparison.
+
+        '__eq__' has special semantics compared to other dunder methods.
+        https://docs.python.org/3/reference/datamodel.html#object.__eq__
+        """
+        ...
+
     @property
     def T(self) -> Self:  # noqa: N802
         if self.ndim != 2:
             raise ValueError(f"array must have two dimensions, found `{self.ndim}`")
 
         return self.mT
-
-    @abstractmethod
-    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
-
-    @abstractmethod
-    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self: ...
 
     @property
     def ndim(self) -> int:
@@ -96,11 +134,6 @@ class TyArrayBase(ABC):
         Otherwise, a 'ValueError' is raised
         """
         raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
-
-    @abstractmethod
-    def disassemble(self) -> dict[str, Var] | Var:
-        """Disassemble ``self`` into a flat mapping of its constituents."""
-        raise NotImplementedError
 
     def astype(self, dtype: DType[TY_ARRAY_BASE], /, *, copy=True) -> TY_ARRAY_BASE:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
@@ -117,18 +150,6 @@ class TyArrayBase(ABC):
             return res
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
-    @abstractmethod
-    def __ndx_cast_to__(
-        self, dtype: DType[TY_ARRAY_BASE]
-    ) -> TY_ARRAY_BASE | NotImplementedType:
-        """Reflective sibling method for `DType.__ndx_cast_from__` which must thus not
-        call the latter.
-
-        Use this function to implement the conversion from a custom type into a built-
-        in one. This function is called by `TyArrayBase.astype`.
-        """
-        return NotImplemented
-
     def __iter__(self):
         try:
             n, *_ = self.shape
@@ -139,19 +160,6 @@ class TyArrayBase(ABC):
         raise ValueError(
             "iteration requires dimension of static length, but dimension 0 is dynamic."
         )
-
-    @abstractmethod
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
-
-    @abstractmethod
-    def concat(self, others: list[Self], axis: None | int) -> Self: ...
-
-    @abstractmethod
-    def copy(self) -> Self:
-        """Copy ``self`` including all component arrays."""
-
-    @abstractmethod
-    def permute_dims(self, axes: tuple[int, ...]) -> Self: ...
 
     def moveaxis(
         self, source: int | tuple[int, ...], destination: int | tuple[int, ...], /
@@ -590,15 +598,6 @@ class TyArrayBase(ABC):
                 f"comparison between `{type(self).__name__}` and `{type(other).__name__}` is not implemented."
             )
         return res
-
-    @abstractmethod
-    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
-        """Implementation of equal-comparison.
-
-        '__eq__' has special semantics compared to other dunder methods.
-        https://docs.python.org/3/reference/datamodel.html#object.__eq__
-        """
-        ...
 
     # Functions which may return `NotImplemented`
     # Note: Prefixed with `__ndx_` to avoid naming collisions with
