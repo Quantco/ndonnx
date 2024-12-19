@@ -99,6 +99,7 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 # Helper functions
 
 
+# TODO: move to onnx.py
 def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
     from ._typed_array import onnx
 

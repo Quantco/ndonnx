@@ -38,7 +38,10 @@ class UnsupportedOperationError(TypeError): ...
 
 
 Nullable = NCoreDTypes
-Floating = FloatingDTypes | NCoreFloatingDTypes
-Integer = IntegerDTypes | NCoreIntegerDTypes
-Numeric = Floating | Integer
+Floating = FloatingDTypes
+Integral = IntegerDTypes
+Numerical = Floating | Integral
 CoreType: TypeAlias = DTypes
+
+NullableFloating = NCoreFloatingDTypes
+NullableIntegral = NCoreIntegerDTypes

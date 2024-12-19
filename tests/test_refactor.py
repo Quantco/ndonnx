@@ -118,6 +118,14 @@ def test_datetime():
     assert res.dtype == ndx.DateTime("s")
 
 
+@pytest.mark.parametrize("unit", ["s", "ns"])
+@pytest.mark.parametrize("ty", ["datetime64", "timedelta64"])
+def test_datetime_from_np_array(ty, unit):
+    np_arr = np.array([0, 1], f"{ty}[{unit}]")
+    arr = ndx.asarray(np_arr)
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr, strict=True)
+
+
 @pytest.mark.parametrize(
     "op",
     [
@@ -466,3 +474,24 @@ def test_bitshift_left(left, right):
     ndx_res = ndx_left << ndx_right
 
     np.testing.assert_array_equal(ndx_res.unwrap_numpy(), np_res, strict=True)  # type: ignore
+
+
+def test_masked_clip():
+    x = ndx.asarray(np.ma.MaskedArray([1, 2, 3, 4], [True, False, True, False]))
+    res = ndx.clip(x, 0, 3)
+    np.testing.assert_array_equal(
+        res.unwrap_numpy(), np.ma.MaskedArray([1, 2, 3, 3], [True, False, True, False])
+    )
+
+
+@pytest.mark.xfail(reason="Not implemented, yet")
+def test_masked_where():
+    cond = ndx.asarray(
+        np.ma.MaskedArray([True, True, False, False], [True, False, True, False])
+    )
+    x = ndx.asarray([1, 2, 3, 4])
+    y = ndx.asarray([10, 20, 30, 40])
+    res = ndx.where(cond, x, y)
+    np.testing.assert_array_equal(
+        res.unwrap_numpy(), np.ma.MaskedArray([0, 0, 0, 0], [True, False, True, False])
+    )

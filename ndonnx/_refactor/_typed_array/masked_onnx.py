@@ -13,7 +13,7 @@ from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
-from . import onnx
+from . import onnx, py_scalars
 from .funcs import astyarray, result_type, where
 from .typed_array import TyArrayBase
 from .utils import safe_cast
@@ -241,7 +241,7 @@ nutf8 = NUtf8()
 # Union types
 #
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
-
+# TODO: Rename
 NCoreIntegerDTypes = (
     NInt8 | NInt16 | NInt32 | NInt64 | NUInt8 | NUInt16 | NUInt32 | NUInt64
 )
@@ -344,9 +344,13 @@ class TyMaArray(TyMaArrayBase):
     def shape(self) -> OnnxShape:
         return self.data.shape
 
-    def _pass_through_same_type(self, fun_name: str, **kwargs) -> Self:
-        data = getattr(self.data, fun_name)(**kwargs)
-        mask = getattr(self.mask, fun_name)(**kwargs) if self.mask is not None else None
+    def _pass_through_same_type(self, fun_name: str, *args, **kwargs) -> Self:
+        data = getattr(self.data, fun_name)(*args, **kwargs)
+        mask = (
+            getattr(self.mask, fun_name)(*args, **kwargs)
+            if self.mask is not None
+            else None
+        )
         return type(self)(data=data, mask=mask)
 
     def fill_null(self, value: int | float | bool | str) -> onnx.TyArray:
@@ -364,6 +368,9 @@ class TyMaArray(TyMaArrayBase):
 
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
         return self._pass_through_same_type("squeeze", axis=axis)
+
+    def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        return self._pass_through_same_type("take", indices, axis=axis)
 
     def tril(self, /, *, k: int = 0) -> Self:
         return self._pass_through_same_type("tril", k=k)
@@ -480,6 +487,36 @@ class TyMaArrayString(TyMaArray):
 class TyMaArrayNumber(TyMaArray):
     dtype: NCoreNumericDTypes
 
+    def clip(
+        self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
+    ) -> Self:
+        allowed_types = (
+            py_scalars.TyArrayPyInt
+            | py_scalars.TyArrayPyFloat
+            | onnx.TyArray
+            | TyMaArrayNumber
+            | None
+        )
+        if not isinstance(min, allowed_types):
+            raise TypeError(
+                f"'clip' is not implemented for argument 'min' with data type `{min.dtype}`"
+            )
+        if not isinstance(max, allowed_types):
+            raise TypeError(
+                f"'clip' is not implemented for argument 'max' with data type `{max.dtype}`"
+            )
+        mask = self.mask
+        if isinstance(min, TyMaArrayNumber):
+            mask = _merge_masks(mask, min.mask)
+            min = min.data
+        if isinstance(max, TyMaArrayNumber):
+            mask = _merge_masks(mask, max.mask)
+            max = max.data
+
+        data = self.data.clip(min, max)
+
+        return type(self)(data=data, mask=mask)
+
     @overload
     def prod(
         self,
@@ -558,6 +595,7 @@ class TyMaArrayNumber(TyMaArray):
     __floordiv__, __rfloordiv__ = _make_binary_pair(operator.floordiv)  # type: ignore
 
     __neg__ = _make_unary_member_promoted_type("__neg__")  # type: ignore
+    __invert__ = _make_unary_member_same_type("__invert__")  # type: ignore
 
     __abs__ = _make_unary_member_same_type("__abs__")  # type: ignore
     __pos__ = _make_unary_member_same_type("__pos__")  # type: ignore
@@ -607,6 +645,8 @@ class TyMaArrayFloating(TyMaArrayNumber):
 
 class TyMaArrayBool(TyMaArray):
     dtype = nbool
+
+    __invert__ = _make_unary_member_same_type("__invert__")  # type: ignore
 
     __and__, __rand__ = _make_binary_pair(operator.and_)  # type: ignore
     __or__, __ror__ = _make_binary_pair(operator.or_)  # type: ignore

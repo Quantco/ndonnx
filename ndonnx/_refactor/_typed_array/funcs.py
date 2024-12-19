@@ -48,7 +48,8 @@ def astyarray(
     This function always copies
     """
     from .. import Array
-    from .onnx import TyArray
+    from .date_time import DateTime, TimeDelta, validate_unit
+    from .onnx import TyArray, TyArrayUtf8
 
     if isinstance(val, np.generic):
         val = np.array(val)
@@ -83,8 +84,25 @@ def astyarray(
         arr = masked_onnx.asncoredata(data, mask)
     elif isinstance(val, np.ndarray):
         if val.dtype.kind == "O" and all(isinstance(el, str) for el in val.flat):
-            val = val.astype(str)
-        arr = onnx.ascoredata(op.const(val))
+            arr = TyArrayUtf8(op.const(val.astype(str)))
+        elif val.dtype.kind == "M":
+            unit, count = np.datetime_data(val.dtype)
+            unit = validate_unit(unit)
+            if count != 1:
+                raise ValueError(
+                    "cannot create datetime with unit count other than '1'"
+                )
+            arr = astyarray(val.astype(np.int64)).astype(DateTime(unit=unit))
+        elif val.dtype.kind == "m":
+            unit, count = np.datetime_data(val.dtype)
+            unit = validate_unit(unit)
+            if count != 1:
+                raise ValueError(
+                    "cannot create timedelta with unit count other than '1'"
+                )
+            arr = astyarray(val.astype(np.int64)).astype(TimeDelta(unit=unit))
+        else:
+            arr = onnx.ascoredata(op.const(val))
     else:
         raise ValueError(f"failed to convert `{val}` to typed array")
 

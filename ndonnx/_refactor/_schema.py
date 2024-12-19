@@ -58,8 +58,12 @@ class SchemaV1:
         parsed = json.loads(s)
 
         return cls(
-            input_schema=parsed["input_schema"],
-            output_schema=parsed["input_schema"],
+            input_schema={
+                k: DTypeInfoV1(**v) for k, v in parsed["input_schema"].items()
+            },
+            output_schema={
+                k: DTypeInfoV1(**v) for k, v in parsed["output_schema"].items()
+            },
             version=1,
         )
 

@@ -4,15 +4,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, TypeAlias, TypeVar
+from typing import Literal, TypeAlias, TypeVar
 
 import numpy as np
 
 import ndonnx._refactor as ndx
 from ndonnx._refactor import _typed_array as tydx
-
-if TYPE_CHECKING:
-    from ndonnx._refactor import Array
 
 Scalar = TypeVar("Scalar", int, float, str)
 
@@ -20,7 +17,7 @@ Key: TypeAlias = Scalar
 Value = TypeVar("Value", int, float, str)
 
 
-def shape(x: Array) -> Array:
+def shape(x: ndx.Array, /) -> ndx.Array:
     """Returns shape of an array.
 
     Parameters
@@ -36,7 +33,7 @@ def shape(x: Array) -> Array:
     return x.dynamic_shape
 
 
-def isin(x: Array, items: Sequence[Scalar]) -> Array:
+def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
     """Return true where the input ``Array`` contains an element in ``items``.
 
     Parameters
@@ -54,18 +51,17 @@ def isin(x: Array, items: Sequence[Scalar]) -> Array:
     if len(items) == 1:
         if isinstance(items[0], float) and np.isnan(items[0]):
             return ndx.isnan(x)
-        else:
-            return x == items[0]
-    else:
-        mapping = dict(zip(items, (1,) * len(items)))
-        return static_map(x, mapping, 0).astype(ndx.bool)
+        return x == items[0]
+    mapping = dict(zip(items, (1,) * len(items)))
+    return static_map(x, mapping, 0).astype(ndx.bool)
 
 
 def static_map(
-    x: Array,
+    x: ndx.Array,
+    /,
     mapping: Mapping[Key, Value],
     default: Value | None = None,
-) -> Array:
+) -> ndx.Array:
     """Map values in ``x`` based on the static ``mapping``.
 
     Parameters
@@ -84,7 +80,7 @@ def static_map(
     """
     if not isinstance(x._tyarray, tydx.onnx.TyArray):
         raise ndx.UnsupportedOperationError(
-            "'static_map' accepts only non-nullable arrays"
+            f"'static_map' accepts only non-nullable arrays, found `{x.dtype}`"
         )
 
     np_dtype = x.dtype.unwrap_numpy()
@@ -110,7 +106,7 @@ def static_map(
     return ndx.Array._from_tyarray(tyarr)
 
 
-def fill_null(x: Array, value: Array | Scalar) -> Array:
+def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
     """Returns a new ``Array`` with the null values filled with the given value.
 
     Parameters
@@ -142,7 +138,13 @@ def fill_null(x: Array, value: Array | Scalar) -> Array:
     return ndx.Array._from_tyarray(res).astype(result_type)
 
 
-def make_nullable(x: Array, null: Array) -> Array:
+def make_nullable(
+    x: ndx.Array,
+    null: ndx.Array,
+    /,
+    *,
+    merge_strategy: Literal["raise", "merge"] = "raise",
+) -> ndx.Array:
     """Given an array ``x`` of values and a null mask ``null``, construct a new Array
     with a nullable data type.
 
@@ -153,6 +155,11 @@ def make_nullable(x: Array, null: Array) -> Array:
 
     null: Array
         Array of booleans indicating whether each element of ``x`` is null.
+
+    merge_strategy: Literal["raise", "merge"]
+        If `"raise"` a ``TypeError`` is raised if ``x`` is already of
+        a nullable data type. If `"merge"` is provided, any mask
+        existing on ``x`` is merged with ``null``.
 
     Returns
     -------
@@ -170,12 +177,16 @@ def make_nullable(x: Array, null: Array) -> Array:
         return ndx.Array._from_tyarray(
             tydx.masked_onnx.asncoredata(x._tyarray, null._tyarray)
         )
+    if merge_strategy == "merge" and isinstance(x._tyarray, tydx.TyMaArray):
+        mask = tydx.masked_onnx._merge_masks(x._tyarray.mask, null._tyarray)
+        tyarr = tydx.asncoredata(x._tyarray.data, mask)
+        return ndx.Array._from_tyarray(tyarr)
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"
     )
 
 
-def get_mask(x: Array) -> Array | None:
+def get_mask(x: ndx.Array, /) -> ndx.Array | None:
     """Get null-mask if there is any."""
     if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
         if x._tyarray.mask is None:
@@ -184,7 +195,7 @@ def get_mask(x: Array) -> Array | None:
     return None
 
 
-def get_data(x: Array) -> Array:
+def get_data(x: ndx.Array, /) -> ndx.Array:
     """Get data part of a masked array.
 
     If the ``x`` is not masked, return ``x``.

@@ -6,10 +6,12 @@ from ._deprecated import (
     from_spox_var,
     Nullable,
     Floating,
-    Integer,
-    Numeric,
+    Integral,
+    Numerical,
     CoreType,
     UnsupportedOperationError,
+    NullableFloating,
+    NullableIntegral,
 )
 from ._array import Array, asarray
 from ._dtypes import DType
@@ -354,9 +356,11 @@ __all__ = [
     "array",
     "from_spox_var",
     "Nullable",
+    "NullableFloating",
+    "NullableIntegral",
     "Floating",
-    "Integer",
-    "Numeric",
+    "Integral",
+    "Numerical",
     "as_nullable",
     "as_non_nullable",
     "CoreType",

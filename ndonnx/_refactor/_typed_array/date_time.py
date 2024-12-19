@@ -259,7 +259,7 @@ class TyArrayTimeDelta(TimeBaseArray):
     ) -> TY_ARRAY_BASE | NotImplementedType:
         res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.IntegerDTypes):
-            data = where(self.is_nat, _NAT_SENTINEL, self.data)
+            data = where(self.is_nat, _NAT_SENTINEL.astype(onnx.int64), self.data)
             return data.astype(dtype)
         if isinstance(dtype, TimeDelta):
             powers = {
@@ -305,13 +305,19 @@ class TyArrayTimeDelta(TimeBaseArray):
     def __rsub__(self, lhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
         return _apply_op(self, lhs, operator.sub, False)
 
+    def __truediv__(self, rhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, rhs, operator.truediv, True)
+
+    def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayTimeDelta | TyArrayTimeDelta:
+        return _apply_op(self, lhs, operator.truediv, False)
+
 
 class TyArrayDateTime(TimeBaseArray):
     dtype: DateTime
 
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
-        self.is_nat = is_nat
-        self.data = data
+        self.is_nat = safe_cast(onnx.TyArrayBool, is_nat)
+        self.data = safe_cast(onnx.TyArrayInt64, data)
         self.dtype = DateTime(unit)
 
     def unwrap_numpy(self) -> np.ndarray:
@@ -406,3 +412,9 @@ def _apply_op(
     data_ = op(this.data, other_data)
     data = cast(onnx.TyArrayInt64, data_)
     return type(this)(is_nat=this.is_nat, data=data, unit=this.dtype.unit)
+
+
+def validate_unit(unit: str) -> Literal["ns", "s"]:
+    if unit in ["ns", "s"]:
+        return unit  # type: ignore
+    raise ValueError(f"unsupported datetime unit `{unit}`")

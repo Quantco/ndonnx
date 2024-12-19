@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 import operator as std_ops
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
@@ -127,10 +127,12 @@ class Array:
 
     @property
     def size(self) -> int | None:
+        if any(el is None for el in self.shape):
+            return None
+
+        # We know that no elements are `None`. This is to keep mypy happy
         static_dims = [el for el in self.shape if el is not None]
-        if static_dims:
-            return math.prod(static_dims)
-        return None
+        return math.prod(static_dims)
 
     @property
     def T(self) -> Array:  # noqa: N802
@@ -191,7 +193,7 @@ class Array:
         """
         return self._tyarray.unwrap_numpy()
 
-    def disassemble(self) -> Mapping[str, Var] | Var:
+    def disassemble(self) -> dict[str, Var] | Var:
         """Disassemble into the constituent ``spox.Var`` objects.
 
         The particular layout depends on the data type.

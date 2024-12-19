@@ -398,14 +398,14 @@ def isdtype(dtype: DType, kind: DType | str | tuple[DType | str, ...]) -> bool:
         elif kind == "unsigned integer":
             return dtype in (ndx.uint8, ndx.uint16, ndx.uint32, ndx.uint64)
         elif kind == "integral":
-            return isinstance(dtype, ndx.Integer)
+            return isinstance(dtype, ndx.Integral)
         elif kind == "real floating":
             return isinstance(dtype, ndx.Floating)
         elif kind == "complex floating":
             # 'complex floating' is not supported"
             return False
         elif kind == "numeric":
-            return isinstance(dtype, ndx.Numeric)
+            return isinstance(dtype, ndx.Numerical)
     elif isinstance(kind, DType):
         return dtype == kind
     elif isinstance(kind, tuple):
@@ -631,7 +631,7 @@ def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
 
 def where(cond: Array, a: Array, b: Array) -> Array:
     if not isinstance(cond._tyarray, onnx.TyArrayBool):
-        raise TypeError("'cond' must be of data type 'bool'")
+        raise TypeError(f"'cond' must be of data type 'bool', found `{cond.dtype}`")
     data = tyfuncs.where(cond._tyarray, a._tyarray, b._tyarray)
     return Array._from_tyarray(data)
 

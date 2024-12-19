@@ -789,20 +789,6 @@ class TyArray(TyArrayBase):
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, ort_compat.equal, True)
 
-    def clip(
-        self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
-    ) -> Self:
-        if min is None and max is None:
-            return self.copy()
-
-        # The standard says that min/max must not change the output type.
-        min_ = None if min is None else min.astype(self.dtype).var
-        max_ = None if max is None else max.astype(self.dtype).var
-
-        var = ort_compat.clip(self.var, min_, max_)
-
-        return type(self)(var)
-
     def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
         """Map values in ``self`` based on the static ``mapping``.
 
@@ -835,38 +821,6 @@ class TyArray(TyArrayBase):
         )
 
         return ascoredata(var)
-
-    @overload
-    def __ndx_maximum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
-
-    @overload
-    def __ndx_maximum__(
-        self, rhs: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType: ...
-
-    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(rhs, TyArray):
-            lhs, rhs = promote(self, rhs)
-            var = ort_compat.max([lhs.var, rhs.var])
-            return type(lhs)(var)
-
-        return NotImplemented
-
-    @overload
-    def __ndx_minimum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
-
-    @overload
-    def __ndx_minimum__(
-        self, rhs: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType: ...
-
-    def __ndx_minimum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(rhs, TyArray):
-            lhs, rhs = promote(self, rhs)
-            var = ort_compat.min([lhs.var, rhs.var])
-            return type(lhs)(var)
-
-        return NotImplemented
 
     @overload
     def __ndx_where__(
@@ -941,6 +895,20 @@ class TyArrayNumber(TyArray):
             self.var, k, axis=axis, largest=descending, sorted=stable
         )
         return TyArrayInt64(indices)
+
+    def clip(
+        self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
+    ) -> Self:
+        if min is None and max is None:
+            return self.copy()
+
+        # The standard says that min/max must not change the output type.
+        min_ = None if min is None else min.astype(self.dtype).var
+        max_ = None if max is None else max.astype(self.dtype).var
+
+        var = ort_compat.clip(self.var, min_, max_)
+
+        return type(self)(var)
 
     def cumulative_sum(
         self,
@@ -1239,6 +1207,38 @@ class TyArrayNumber(TyArray):
 
         two = astyarray(2, use_py_scalars=True)
         return safe_cast(TyArray, self**two)
+
+    @overload
+    def __ndx_maximum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_maximum__(
+        self, rhs: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
+    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(rhs, TyArray):
+            lhs, rhs = promote(self, rhs)
+            var = ort_compat.max([lhs.var, rhs.var])
+            return type(lhs)(var)
+
+        return NotImplemented
+
+    @overload
+    def __ndx_minimum__(self, rhs: TyArray, /) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_minimum__(
+        self, rhs: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
+    def __ndx_minimum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
+        if isinstance(rhs, TyArray):
+            lhs, rhs = promote(self, rhs)
+            var = ort_compat.min([lhs.var, rhs.var])
+            return type(lhs)(var)
+
+        return NotImplemented
 
 
 class TyArrayInteger(TyArrayNumber):
