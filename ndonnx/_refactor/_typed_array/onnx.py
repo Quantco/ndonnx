@@ -790,6 +790,22 @@ class TyArray(TyArrayBase):
     def _eqcomp(self, other) -> TyArrayBase:
         return _promote_and_apply_op(self, other, operator.eq, ort_compat.equal, True)
 
+    def isin(self, items: Sequence[VALUE]) -> TyArrayBool:
+        from .funcs import astyarray
+
+        # Filter out nan values since we never want to compare equal to them (NumPy semantics)
+        items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
+
+        # Optimizations:
+        if len(items) == 0:
+            return astyarray(False, dtype=bool_).broadcast_to(self.dynamic_shape)
+        if len(items) == 1:
+            return self == astyarray(items[0])
+
+        # label_encoder based implementation
+        mapping = dict(zip(items, (True,) * len(items)))
+        return safe_cast(TyArrayBool, self.static_map(mapping, False))
+
     def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
         """Map values in ``self`` based on the static ``mapping``.
 

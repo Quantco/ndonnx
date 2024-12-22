@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal, overload
 
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from .._array import OnnxShape
     from . import TyArrayBool, TyArrayInt64, TyArrayInteger
     from .indexing import GetitemIndex, SetitemIndex
+    from .onnx import VALUE
 
 
 class TyArrayBase(ABC):
@@ -641,6 +643,10 @@ class TyArrayBase(ABC):
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
+    # Non-standard functions that reflect free functions
+    def isin(self, items: Sequence[VALUE], /) -> TyArrayBool:
+        raise _make_type_error("isin", self.dtype)
+
 
 def _make_type_error(fn_name, dtype: DType) -> TypeError:
-    return TypeError(f"`{fn_name}` is not implemented for data type `{dtype}`")
+    return TypeError(f"'{fn_name}' is not implemented for data type `{dtype}`")

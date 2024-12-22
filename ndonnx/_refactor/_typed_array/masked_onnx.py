@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import operator
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from .._array import OnnxShape
     from .indexing import GetitemIndex, SetitemIndex
-    from .onnx import TyArrayInt64
+    from .onnx import VALUE, TyArrayInt64
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -310,6 +310,8 @@ class TyMaArray(TyMaArrayBase):
     know about `_ArrayCoreType`s, but not `_PyScalar`s.
     """
 
+    # TODO: Things should be easier if they were to know about PyScalars
+
     dtype: _MaOnnxDType
     # Specialization of data from `Data` to `_ArrayCoreType`
     data: onnx.TyArray
@@ -476,6 +478,13 @@ class TyMaArray(TyMaArrayBase):
         if isinstance(x, onnx.TyArray):
             return asncoredata(x, None).__ndx_where__(cond, self)
         return NotImplemented
+
+    def isin(self, items: Sequence[VALUE]) -> onnx.TyArrayBool:
+        data = self.data.isin(items)
+        # Masked values always return False
+        if self.mask is None:
+            return data
+        return safe_cast(onnx.TyArrayBool, data & ~self.mask)
 
 
 class TyMaArrayString(TyMaArray):

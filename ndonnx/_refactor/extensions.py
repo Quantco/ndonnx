@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Literal, TypeAlias, TypeVar
+from warnings import warn
 
 import numpy as np
 
@@ -30,11 +31,17 @@ def shape(x: ndx.Array, /) -> ndx.Array:
     out: Array
         Array of shape
     """
+    warn(
+        "'ndonnx.shape' is deprecated in favor of 'ndonnx.Array.dynamic_shape'",
+        DeprecationWarning,
+    )
     return x.dynamic_shape
 
 
 def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
     """Return true where the input ``Array`` contains an element in ``items``.
+
+    ``NaN`` values do **not** compare equal.
 
     Parameters
     ----------
@@ -48,14 +55,25 @@ def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
     out: Array
         Array of booleans indicating whether each element of ``x`` is in ``items``.
     """
+    return ndx.Array._from_tyarray(x._tyarray.isin(items))
+    # Filter out nan values since we never want to compare equal to them (NumPy semantics)
+    items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
+    if len(items) == 0:
+        return ndx.full_like(x, False, dtype=ndx.bool)
     if len(items) == 1:
-        if isinstance(items[0], float) and np.isnan(items[0]):
-            return ndx.isnan(x)
         return x == items[0]
     mapping = dict(zip(items, (1,) * len(items)))
-    return static_map(x, mapping, 0).astype(ndx.bool)
+    res = static_map(x, mapping, 0)
+    if isinstance(res.dtype, ndx.Nullable):
+        data = get_data(res).astype(ndx.bool)
+        mask = get_mask(res)
+        if mask is None:
+            return data
+        return data & ~mask
+    return res.astype(ndx.bool)
 
 
+# TODO: Bad naming: It is obvious from the type hints that this mapping is "static"
 def static_map(
     x: ndx.Array,
     /,
