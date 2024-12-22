@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     GetitemIndexStatic: TypeAlias = GetitemScalar | GetitemTuple
     GetitemIndex: TypeAlias = GetitemIndexStatic | TyArrayInteger | TyArrayBool
 
+    # TODO: should contain str
     SetitemIndexStatic: TypeAlias = Union[
         int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...]
     ]

@@ -39,6 +39,8 @@ from .masked_onnx import (
     TyMaArrayString,
     asncoredata,
 )
+from .date_time import DateTime, TimeDelta, TyArrayDateTime, TyArrayTimeDelta
+from .categorical import CategoricalDType, CategoricalArray
 from .funcs import astyarray
 
 from .py_scalars import TyArrayPyInt, TyArrayPyFloat, TyArrayPyString
@@ -78,6 +80,12 @@ __all__ = [
     "TyArrayPyInt",
     "TyArrayPyFloat",
     "TyArrayPyString",
+    "DateTime",
+    "TimeDelta",
+    "TyArrayDateTime",
+    "TyArrayTimeDelta",
+    "CategoricalDType",
+    "CategoricalArray",
     "asncoredata",
     "ascoredata",
     "astyarray",

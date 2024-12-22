@@ -27,11 +27,14 @@ if TYPE_CHECKING:
     from .onnx import TyArrayInt64
 
 
+_N_MAX_CATEGORIES = np.iinfo(np.uint16).max
+
+
 class CategoricalDType(DType["CategoricalArray"]):
     _categories: list[str]
     ordered: bool
 
-    def __init__(self, *, categories: list[str], ordered: bool):
+    def __init__(self, categories: list[str], ordered: bool = False):
         self.categories = categories
         self.ordered = ordered
 
@@ -45,13 +48,14 @@ class CategoricalDType(DType["CategoricalArray"]):
         """List of unique categories."""
         if len(categories) != len(set(categories)):
             raise ValueError("provided categories must be unique")
+        if not all(isinstance(el, str) for el in categories):
+            raise TypeError("provided categories must all be of type 'str'")
         # TODO: Use uint8 if we have fewer categories. For now, uint8
         # support may be too limited in onnxruntime to provide a
         # benefit.
-        n_max_categories = np.iinfo(np.uint16).max
-        if len(categories) >= n_max_categories:
+        if len(categories) >= _N_MAX_CATEGORIES:
             raise ValueError(
-                f"at most '{n_max_categories} may be provided, found `{len(categories)}`"
+                f"at most '{_N_MAX_CATEGORIES} may be provided, found `{len(categories)}`"
             )
         self._categories = categories
 
@@ -195,10 +199,15 @@ class CategoricalArray(TyArrayBase):
         from .._infos import iinfo
         from .funcs import astyarray
 
-        if self.dtype != other.dtype:
-            return NotImplemented
+        if other.dtype == onnx.utf8:
+            return self == other.astype(self.dtype)
 
         if isinstance(other.dtype, CategoricalDType):
+            if self.dtype != other.dtype:
+                # We directly raise here to be able to provide a better error message
+                raise TypeError(
+                    "comparison between arrays of categorical type requires data type to be precisely equal."
+                )
             # Unclear why mypy would not figure out the type of `other` here?!
             bools = self.codes == other.codes  # type: ignore
             not_missing = self.codes != astyarray(
@@ -213,3 +222,13 @@ class CategoricalArray(TyArrayBase):
         cats = self.codes.static_map(mapping, default="<NA>")
 
         return cats.astype(onnx.utf8)
+
+    def unwrap_numpy(self) -> np.ndarray:
+        """Cast array to utf8 and replace missing with ``numpy.nan`` values.
+
+        The returned array has the ``object`` data type.
+        """
+        objs = self._to_categories().unwrap_numpy().astype(object)
+        objs[self.codes.unwrap_numpy() == _N_MAX_CATEGORIES] = np.nan
+
+        return objs
