@@ -67,7 +67,7 @@ class CategoricalDType(DType["CategoricalArray"]):
         # TODO: Add possibility to specify value dtype of
         # `static_map`. At the moment, this would give us no practical
         # benefit due to lacking support in onnxruntime, though.
-        codes = arr.static_map(encoding, default=-1).astype(onnx.uint16)
+        codes = arr.apply_mapping(encoding, default=-1).astype(onnx.uint16)
 
         return CategoricalArray(codes=codes, dtype=self)
 
@@ -129,7 +129,7 @@ class CategoricalArray(TyArrayBase):
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         mapping = dict(enumerate(self.dtype.categories))
-        cats = self.codes.static_map(mapping, default="<NA>")
+        cats = self.codes.apply_mapping(mapping, default="<NA>")
         return {
             "categories": cats.__ndx_value_repr__()["data"],
         }
@@ -191,7 +191,7 @@ class CategoricalArray(TyArrayBase):
             return NotImplemented
 
         mapping = dict(enumerate(self.dtype.categories))
-        cats = self.codes.static_map(mapping, default="<NA>")
+        cats = self.codes.apply_mapping(mapping, default="<NA>")
 
         return cats.astype(dtype)
 
@@ -219,7 +219,7 @@ class CategoricalArray(TyArrayBase):
 
     def _to_categories(self) -> onnx.TyArrayUtf8:
         mapping = dict(enumerate(self.dtype.categories))
-        cats = self.codes.static_map(mapping, default="<NA>")
+        cats = self.codes.apply_mapping(mapping, default="<NA>")
 
         return cats.astype(onnx.utf8)
 

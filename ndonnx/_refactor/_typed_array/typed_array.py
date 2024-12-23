@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal, overload
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .._array import OnnxShape
     from . import TyArrayBool, TyArrayInt64, TyArrayInteger
     from .indexing import GetitemIndex, SetitemIndex
-    from .onnx import VALUE
+    from .onnx import KEY, VALUE
 
 
 class TyArrayBase(ABC):
@@ -643,9 +643,48 @@ class TyArrayBase(ABC):
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
-    # Non-standard functions that reflect free functions
+    ######################################################
+    # Non-standard functions that reflect free functions #
+    ######################################################
+
     def isin(self, items: Sequence[VALUE], /) -> TyArrayBool:
+        """Return for each element in ``self`` that is found in ``items``.
+
+        ``NaN`` values do **not** compare equal.
+
+        Parameters
+        ----------
+        x
+            The input Array to check for the presence of items.
+        items
+            Scalar items to check for in the input Array.
+
+        Returns
+        -------
+        out: Array
+            Array of booleans indicating whether each element of ``x`` is in ``items``.
+        """
         raise _make_type_error("isin", self.dtype)
+
+    def apply_mapping(
+        self, mapping: Mapping[KEY, VALUE], default: VALUE
+    ) -> TyArrayBase:
+        """Map values in ``self`` based on the static ``mapping``.
+
+        Parameters
+        ----------
+        mapping
+            A mapping from keys to values. The keys must be of the
+            same type as the values in ``x``. NaN-keys compare true to
+            values in ``self``.
+        default
+            The default value to use when a key is not found in the mapping.
+
+        Returns
+        -------
+        A new Array with the values mapped according to the mapping.
+        """
+        raise _make_type_error("apply_mapping", self.dtype)
 
 
 def _make_type_error(fn_name, dtype: DType) -> TypeError:

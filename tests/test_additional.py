@@ -156,7 +156,7 @@ def test_static_map_unimplemented_for_nullable():
     m = ndx.asarray([True, False, True])
     a = nda.make_nullable(a, m)
 
-    with pytest.raises(ndx.UnsupportedOperationError):
+    with pytest.raises(TypeError):
         nda.static_map(a, {1: 2, 2: 3})
 
 

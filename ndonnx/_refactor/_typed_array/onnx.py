@@ -804,24 +804,9 @@ class TyArray(TyArrayBase):
 
         # label_encoder based implementation
         mapping = dict(zip(items, (True,) * len(items)))
-        return safe_cast(TyArrayBool, self.static_map(mapping, False))
+        return safe_cast(TyArrayBool, self.apply_mapping(mapping, False))
 
-    def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
-        """Map values in ``self`` based on the static ``mapping``.
-
-        Parameters
-        ----------
-        mapping
-            A mapping from keys to values. The keys must be of the
-            same type as the values in ``x``. NaN-keys compare true to
-            values in ``self``.
-        default
-            The default value to use when a key is not found in the mapping.
-
-        Returns
-        -------
-        A new Array with the values mapped according to the mapping.
-        """
+    def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
         np_dtype = self.dtype.unwrap_numpy()
         keys = np.array(list(mapping.keys()), dtype=np_dtype)
         values = np.array(list(mapping.values()))

@@ -96,13 +96,6 @@ def static_map(
     out: Array
         A new Array with the values mapped according to the mapping.
     """
-    if not isinstance(x._tyarray, tydx.onnx.TyArray):
-        raise ndx.UnsupportedOperationError(
-            f"'static_map' accepts only non-nullable arrays, found `{x.dtype}`"
-        )
-
-    np_dtype = x.dtype.unwrap_numpy()
-    keys = np.array(list(mapping.keys()), dtype=np_dtype)
     values = np.array(list(mapping.values()))
 
     if values.dtype.kind in ("O", "U"):
@@ -119,9 +112,12 @@ def static_map(
         elif values.dtype == bool:
             # to be in line with the numerical 0
             default = False  # type: ignore
+    if default is None:
+        raise TypeError(
+            f"failed to infer default value for mapping values of data type `{values.dtype}`"
+        )
 
-    tyarr = x._tyarray.static_map(dict(zip(keys, values)), default)
-    return ndx.Array._from_tyarray(tyarr)
+    return ndx.Array._from_tyarray(x._tyarray.apply_mapping(mapping, default))
 
 
 def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
