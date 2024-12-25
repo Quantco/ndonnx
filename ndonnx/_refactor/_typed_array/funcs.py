@@ -7,19 +7,17 @@ from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
 import numpy as np
-import spox.opset.ai.onnx.v21 as op
 from spox import Var
 
 import ndonnx._refactor as ndx
 
-from .._dtypes import TY_ARRAY_BASE, DType
-from . import masked_onnx, onnx
-from .py_scalars import TyArrayPyBool, TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from .. import Array
+    from .._dtypes import TY_ARRAY_BASE, DType
+    from . import onnx
 
 
 @overload
@@ -48,8 +46,9 @@ def astyarray(
     This function always copies
     """
     from .. import Array
+    from . import TyArrayBase, masked_onnx, onnx
     from .date_time import DateTime, TimeDelta, validate_unit
-    from .onnx import TyArray, TyArrayUtf8
+    from .py_scalars import TyArrayPyBool, TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 
     if isinstance(val, np.generic):
         val = np.array(val)
@@ -76,15 +75,15 @@ def astyarray(
     elif isinstance(val, Var):
         arr = onnx.ascoredata(val)
     elif isinstance(val, np.ma.MaskedArray):
-        data = safe_cast(TyArray, astyarray(val.data))
+        data = safe_cast(onnx.TyArray, astyarray(val.data))
         if val.mask is np.ma.nomask:
             mask = None
         else:
-            mask = safe_cast(onnx.TyArrayBool, onnx.ascoredata(op.const(val.mask)))
+            mask = safe_cast(onnx.TyArrayBool, onnx.const(val.mask))
         arr = masked_onnx.asncoredata(data, mask)
     elif isinstance(val, np.ndarray):
         if val.dtype.kind == "O" and all(isinstance(el, str) for el in val.flat):
-            arr = TyArrayUtf8(op.const(val.astype(str)))
+            arr = safe_cast(onnx.TyArrayUtf8, onnx.const(val.astype(str)))
         elif val.dtype.kind == "M":
             unit, count = np.datetime_data(val.dtype)
             unit = validate_unit(unit)
@@ -102,7 +101,7 @@ def astyarray(
                 )
             arr = astyarray(val.astype(np.int64)).astype(TimeDelta(unit=unit))
         else:
-            arr = onnx.ascoredata(op.const(val))
+            arr = onnx.const(val)
     else:
         raise ValueError(f"failed to convert `{type(val)}` to typed array")
 
@@ -186,7 +185,7 @@ T = TypeVar("T")
 def _validate(
     x1: TyArrayBase, x2: TyArrayBase, result: T | NotImplementedType, func_name: str
 ) -> T:
-    if result is NotImplemented:
+    if isinstance(result, NotImplementedType):
         raise TypeError(
             f"Unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
         )
@@ -194,6 +193,8 @@ def _validate(
 
 
 def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
+    from . import onnx
+
     if not isinstance(cond, onnx.TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 

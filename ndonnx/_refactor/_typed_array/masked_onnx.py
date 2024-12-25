@@ -13,17 +13,24 @@ from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
-from . import onnx, py_scalars
-from .funcs import astyarray, result_type, where
-from .typed_array import TyArrayBase
-from .utils import safe_cast
+from . import (
+    TyArrayBase,
+    astyarray,
+    maximum,
+    minimum,
+    onnx,
+    py_scalars,
+    result_type,
+    safe_cast,
+    where,
+)
 
 if TYPE_CHECKING:
     from spox import Var
 
-    from .._array import OnnxShape
+    from .._types import OnnxShape
     from .indexing import GetitemIndex, SetitemIndex
-    from .onnx import VALUE, TyArrayInt64
+    from .onnx import VALUE
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -82,11 +89,11 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
         return self._tyarr_class(data=data, mask=None)
 
-    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_MA_ARRAY_ONNX:
+    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_MA_ARRAY_ONNX:
         data = self._unmasked_dtype._ones(shape)
         return self._tyarr_class(data=data, mask=None)
 
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_MA_ARRAY_ONNX:
+    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_MA_ARRAY_ONNX:
         data = self._unmasked_dtype._zeros(shape)
         return self._tyarr_class(data=data, mask=None)
 
@@ -371,7 +378,7 @@ class TyMaArray(TyMaArrayBase):
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
         return self._pass_through_same_type("squeeze", axis=axis)
 
-    def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
+    def take(self, indices: onnx.TyArrayInt64, /, *, axis: int | None = None) -> Self:
         return self._pass_through_same_type("take", indices, axis=axis)
 
     def tril(self, /, *, k: int = 0) -> Self:
@@ -557,30 +564,24 @@ class TyMaArrayNumber(TyMaArray):
         return self.fill_null(1).prod(axis=axis, dtype=dtype, keepdims=keepdims)
 
     def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        from .funcs import maximum as op
-        from .onnx import TyArray
-
         if isinstance(rhs, onnx.TyArray):
             rhs = asncoredata(rhs, None)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
             rhs_ = unmask_core(rhs)
-            new_data = safe_cast(TyArray, op(lhs_, rhs_))
+            new_data = safe_cast(onnx.TyArray, maximum(lhs_, rhs_))
             new_mask = _merge_masks(self.mask, rhs.mask)
             return asncoredata(new_data, new_mask)
 
         return NotImplemented
 
     def __ndx_minimum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        from .funcs import minimum as op
-        from .onnx import TyArray
-
         if isinstance(rhs, onnx.TyArray):
             rhs = asncoredata(rhs, None)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
             rhs_ = unmask_core(rhs)
-            new_data = safe_cast(TyArray, op(lhs_, rhs_))
+            new_data = safe_cast(onnx.TyArray, minimum(lhs_, rhs_))
             new_mask = _merge_masks(self.mask, rhs.mask)
             return asncoredata(new_data, new_mask)
 

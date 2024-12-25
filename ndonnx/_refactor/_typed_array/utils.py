@@ -6,9 +6,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeVar, overload
 
 if TYPE_CHECKING:
-    from . import TyArray, TyMaArray
+    from . import TyArrayBase
+    from .masked_onnx import TyMaArray
+    from .onnx import TyArray
     from .py_scalars import _ArrayPyScalar
-    from .typed_array import TyArrayBase
 
 T = TypeVar("T")
 

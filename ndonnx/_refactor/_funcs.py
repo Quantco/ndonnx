@@ -6,7 +6,7 @@ from __future__ import annotations
 import builtins
 import math
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import Literal, NamedTuple
 
 import numpy as np
 
@@ -16,9 +16,6 @@ from ._array import Array, asarray
 from ._dtypes import DType
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
-
-if TYPE_CHECKING:
-    pass
 
 
 def from_dlpack(
@@ -119,7 +116,7 @@ def broadcast_arrays(*arrays: Array) -> list[Array]:
 
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
-    from ._typed_array import TyArrayInt64
+    from ._typed_array.onnx import TyArrayInt64
 
     if isinstance(shape, Array):
         if not isinstance(shape._tyarray, TyArrayInt64):
@@ -547,7 +544,7 @@ def squeeze(x: Array, /, axis: int | tuple[int, ...]) -> Array:
 
 
 def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
-    from ._typed_array import TyArrayInt64
+    from ._typed_array.onnx import TyArrayInt64
 
     if not isinstance(indices._tyarray, TyArrayInt64):
         raise TypeError(

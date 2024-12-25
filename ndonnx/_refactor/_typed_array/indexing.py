@@ -3,27 +3,31 @@
 from __future__ import annotations
 
 from types import EllipsisType
-from typing import TYPE_CHECKING, Any, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 
+from . import astyarray, safe_cast, where
+
 if TYPE_CHECKING:
-    from .._array import Array
-    from .._array import GetitemIndex as GetitemIndexPub
-    from . import TyArrayBool, TyArrayInt64, TyArrayInteger
+    from .onnx import TyArrayBool, TyArrayInt64, TyArrayInteger
 
-    GetitemScalarPub: TypeAlias = int | slice | EllipsisType | None | Array
+    ScalarInt = TyArrayInteger
+    """Alias signaling that this must be a rank-0 integer tensor."""
+    BoolMask = TyArrayBool
+    """Alias signaling that this must be a rank-1 boolean tensor."""
+    SetitemItem: TypeAlias = int | slice | EllipsisType | ScalarInt
+    """A single item; i.e. not a tuple nor a boolean mask.
 
-    GetitemScalar: TypeAlias = int | slice | EllipsisType | None | TyArrayInt64
-    GetitemTuple: TypeAlias = tuple[GetitemScalar, ...]
-    GetitemIndexStatic: TypeAlias = GetitemScalar | GetitemTuple
-    GetitemIndex: TypeAlias = GetitemIndexStatic | TyArrayInteger | TyArrayBool
+    This does not include `None`.
+    """
+    GetitemItem: TypeAlias = int | slice | EllipsisType | ScalarInt | None
+    """A single item (; i.e. not a tuple nor a boolean mask) for __getitem__.
 
-    # TODO: should contain str
-    SetitemIndexStatic: TypeAlias = Union[
-        int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...]
-    ]
-    SetitemIndex: TypeAlias = Union[SetitemIndexStatic, TyArrayInteger, TyArrayBool]
+    This includes `None`.
+    """
+    SetitemIndex: TypeAlias = SetitemItem | tuple[SetitemItem, ...] | BoolMask
+    GetitemIndex: TypeAlias = GetitemItem | tuple[GetitemItem, ...] | BoolMask
 
 
 class FancySlice:
@@ -39,7 +43,7 @@ class FancySlice:
     squeeze: bool
 
     def __init__(self, obj: slice | int | TyArrayInt64):
-        from . import TyArrayInt64
+        from .onnx import TyArrayInt64
 
         if isinstance(obj, TyArrayInt64 | int):
             self.start = _asidx(obj)
@@ -75,8 +79,7 @@ class FancySlice:
 
 
 def _asidx(obj: int | TyArrayInt64) -> TyArrayInt64:
-    from . import TyArrayInt64
-    from .funcs import astyarray, safe_cast
+    from .onnx import TyArrayInt64
 
     obj_ = np.array(obj, np.int64) if isinstance(obj, int) else obj
     arr = safe_cast(TyArrayInt64, astyarray(obj_))
@@ -92,8 +95,7 @@ _MIN = np.iinfo(np.int64).min
 
 
 def _compute_end_single_idx(start: TyArrayInt64 | int) -> TyArrayInt64:
-    from . import TyArrayBool, TyArrayInt64
-    from .funcs import safe_cast, where
+    from .onnx import TyArrayBool, TyArrayInt64
 
     start = _asidx(start)
     end = start + _asidx(1)
@@ -104,8 +106,7 @@ def _compute_end_single_idx(start: TyArrayInt64 | int) -> TyArrayInt64:
 def _compute_start_slice(
     start: int | TyArrayInt64 | None, step: int | TyArrayInt64 | None
 ) -> TyArrayInt64:
-    from . import TyArrayBool, TyArrayInt64
-    from .funcs import safe_cast, where
+    from .onnx import TyArrayBool, TyArrayInt64
 
     if start is not None:
         return _asidx(start)
@@ -122,8 +123,7 @@ def _compute_start_slice(
 def _compute_stop_slice(
     stop: int | TyArrayInt64 | None, step: int | TyArrayInt64 | None
 ) -> TyArrayInt64:
-    from . import TyArrayBool, TyArrayInt64
-    from .funcs import safe_cast, where
+    from .onnx import TyArrayBool, TyArrayInt64
 
     if stop is not None:
         return _asidx(stop)
@@ -140,28 +140,24 @@ def _compute_stop_slice(
 
 
 def normalize_getitem_key(
-    key: GetitemIndexPub | GetitemIndex,
-) -> GetitemTuple | TyArrayBool:
-    from .. import Array
-    from . import TyArrayBool, TyArrayInt64, onnx
-    from .funcs import astyarray
+    key: GetitemIndex,
+) -> tuple[GetitemItem, ...] | BoolMask:
+    from .onnx import TyArrayBool, TyArrayInt64, bool_
 
     if isinstance(key, bool):
-        return astyarray(key, dtype=onnx.bool_)
+        return astyarray(key, dtype=bool_)
     if (
         isinstance(key, tuple)
         and len(key) > 0
         and all(isinstance(el, bool) for el in key)
     ):
-        key = astyarray(np.array(key), dtype=onnx.bool_)  # type: ignore
+        key = astyarray(np.array(key), dtype=bool_)  # type: ignore
 
     # Fish out the boolean masks before normalizing to tuples
-    if isinstance(key, Array) and isinstance(key._tyarray, TyArrayBool):
-        return key._tyarray
     if isinstance(key, TyArrayBool):
         return key
 
-    if isinstance(key, int | slice | EllipsisType | None | Array | TyArrayInt64):
+    if isinstance(key, int | slice | EllipsisType | None | TyArrayInt64):
         return (_normalize_getitem_key_item(key),)
 
     if isinstance(key, tuple):
@@ -175,50 +171,42 @@ def normalize_getitem_key(
     raise IndexError(f"unexpected key `{key}`")
 
 
-def _normalize_getitem_key_item(key: GetitemScalarPub | GetitemScalar) -> GetitemScalar:
-    from .. import Array
+def _normalize_getitem_key_item(key: GetitemItem) -> GetitemItem:
     from .onnx import TyArrayBase, TyArrayInt64, int32, int64
-
-    if isinstance(key, Array):
-        if key.ndim != 0:
-            raise IndexError(f"Index array must be a scalar but has rank `{key.ndim}`")
-        if isinstance(key._tyarray, TyArrayInt64):
-            return key._tyarray
-        raise IndexError(
-            f"indexing array must have integer or boolean data type; found `{key.dtype}`"
-        )
 
     if isinstance(key, slice):
         slice_kwargs = {"start": key.start, "stop": key.stop, "step": key.step}
         out: dict[str, int | None | TyArrayInt64] = {}
         for k, arg in slice_kwargs.items():
-            if not isinstance(arg, Array | None | int | TyArrayInt64):
+            if not isinstance(arg, None | int | TyArrayInt64):
                 raise IndexError(f"slice argument `{k}` has invalid type `{type(arg)}`")
-            if isinstance(arg, Array | TyArrayBase):
+            if isinstance(arg, TyArrayBase):
                 if arg.dtype not in (int32, int64) or arg.ndim != 0:
                     raise IndexError(
                         f"array-slice argument must be be an int64 scalar. Found `{arg}`"
                     )
-                ty_arr = arg._tyarray if isinstance(arg, Array) else arg
-                out[k] = ty_arr.astype(int64)
+                out[k] = arg.astype(int64)
             else:
                 out[k] = arg
         return slice(*out.values())  # Beware that we use the dict order here!
 
-    if isinstance(key, int | None | type(...)):
+    if isinstance(key, int | None | EllipsisType):
         return key
-    raise IndexError(f"unexpected index element `{key}`")
+
+    if key.ndim != 0:
+        raise IndexError(
+            f"index arrays must be rank-0 tensors; found rank `{key.ndim}`"
+        )
+    return key.astype(int64)
 
 
 def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
     """Compute expanded indices for ``key`` for an array of shape ``shape``."""
     # TODO: Allow dynamic inputs to DType._arange?
-    import spox.opset.ai.onnx.v21 as op
-
     import ndonnx._refactor as ndx
 
-    from . import TyArrayInt64
-    from .funcs import safe_cast
+    from . import ort_compat
+    from .onnx import TyArrayInt64
 
     indices_per_dim = []
     for s, length in zip(key, shape):
@@ -226,7 +214,7 @@ def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArra
             stop = None if s == -1 else s + 1
             s = slice(s, stop, 1)
         indices_per_dim.append(
-            ndx.asarray(op.range(*[el.var for el in _get_indices(s, length)]))
+            ndx.asarray(ort_compat.range(*[el.var for el in _get_indices(s, length)]))
         )
 
     grid = ndx.meshgrid(*indices_per_dim, indexing="ij")
@@ -242,12 +230,10 @@ def _get_indices(
 
     Slice members must be of type ``int`` or ``None`` while `length` may be an array.
     """
-    from ndonnx._refactor import Array, asarray, int64, maximum, minimum, where
+    from .funcs import astyarray, maximum, minimum, safe_cast, where
+    from .onnx import TyArrayBool, TyArrayInt64, int64
 
-    from .funcs import astyarray, safe_cast
-    from .onnx import TyArrayInt64
-
-    length_ = Array._from_tyarray(astyarray(length))
+    length_ = astyarray(length)
 
     step = 1 if s.step is None else s.step
     if not isinstance(step, int):
@@ -260,7 +246,7 @@ def _get_indices(
 
     if step_is_negative:
         lower = -1
-        upper: Array = length_ + lower
+        upper = length_ + astyarray(lower, dtype=int64)
     else:
         lower = 0
         upper = length_
@@ -268,9 +254,12 @@ def _get_indices(
     if s.start is None:
         start = upper if step_is_negative else lower
     elif isinstance(s.start, int):
-        start = asarray(s.start, dtype=int64)
+        start = astyarray(s.start, dtype=int64)
+        start_is_neg = safe_cast(TyArrayBool, start < astyarray(0))
         start = where(
-            start < 0, maximum(start + length_, asarray(lower)), minimum(start, upper)
+            start_is_neg,
+            maximum(start + length_, astyarray(lower)),
+            minimum(start, upper),
         )
     else:
         raise IndexError(f"'start' must be 'int' or 'None', found `{s.start}`")
@@ -278,9 +267,10 @@ def _get_indices(
     if s.stop is None:
         stop = lower if step_is_negative else upper
     elif isinstance(s.stop, int):
-        stop = asarray(s.stop, dtype=int64)
+        stop = astyarray(s.stop, dtype=int64)
+        stop_is_neg = safe_cast(TyArrayBool, stop < astyarray(0))
         stop = where(
-            stop < 0, maximum(stop + length_, asarray(lower)), minimum(stop, upper)
+            stop_is_neg, maximum(stop + length_, astyarray(lower)), minimum(stop, upper)
         )
     else:
         raise IndexError(f"'stop' must be 'int' or 'None', found `{s.stop}`")
@@ -292,8 +282,9 @@ def _get_indices(
 
 
 def _move_ellipsis_back(
-    ndim: int, key: tuple[int | slice | EllipsisType, ...]
-) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int | slice | EllipsisType, ...]]:
+    ndim: int,
+    key: tuple[SetitemItem, ...],
+) -> tuple[tuple[int, ...], tuple[int, ...], tuple[SetitemItem, ...]]:
     """Permute axes such that the ellipsis-axes are at the end."""
 
     if ... not in key:

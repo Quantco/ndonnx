@@ -18,26 +18,11 @@ import numpy as np
 from spox import Var
 
 from ._dtypes import DType
-from ._typed_array import TyArrayBase
-from ._typed_array.funcs import astyarray
-from ._typed_array.indexing import normalize_getitem_key
+from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
-    from ._typed_array.indexing import SetitemIndex as TySetitemIndex
-
-StrictShape = tuple[int, ...]
-StandardShape = int | tuple[int | None, ...]
-OnnxShape = tuple[int | str | None, ...]
-
-GetitemIndex = Union[
-    int | slice | EllipsisType | None,
-    tuple[int | slice | EllipsisType | None, ...],
-    "Array",
-]
-
-SetitemIndex = Union[
-    int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...], "Array"
-]
+    from ._typed_array.indexing import GetitemIndex as TyGetitemIndex
+    from ._types import GetitemIndex, OnnxShape, SetitemIndex
 
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
@@ -225,7 +210,7 @@ class Array:
         )
 
     def __getitem__(self, key: GetitemIndex, /) -> Array:
-        idx = normalize_getitem_key(key)
+        idx = _normalize_arrays_in_key(key)
         data = self._tyarray[idx]
         return type(self)._from_tyarray(data)
 
@@ -235,19 +220,19 @@ class Array:
         value: Union[int, float, bool, Array],
         /,
     ) -> None:
-        from ._typed_array import TyArrayBool, TyArrayInteger
+        from ._typed_array.onnx import TyArrayBool, TyArrayInteger
+
+        # Specs say that the data type of self must not be changed.
+        updates = asarray(value, dtype=self.dtype)._tyarray
 
         if isinstance(key, Array):
             if not isinstance(key._tyarray, TyArrayInteger | TyArrayBool):
                 raise TypeError(
                     f"indexing array must have integer or boolean data type; found `{key.dtype}`"
                 )
-            idx: TySetitemIndex = key._tyarray
+            self._tyarray[key._tyarray] = updates
         else:
-            idx = key
-
-        # Specs say that the data type of self must not be changed.
-        self._tyarray[idx] = asarray(value, dtype=self.dtype)._tyarray
+            self._tyarray[key] = updates
 
     def __bool__(self, /) -> bool:
         return bool(self.unwrap_numpy())
@@ -404,3 +389,51 @@ def _apply_op(
         return Array._from_tyarray(data)
 
     return NotImplemented
+
+
+def _normalize_arrays_in_key(key: GetitemIndex) -> TyGetitemIndex:
+    if isinstance(key, Array):
+        if isinstance(key._tyarray.dtype, onnx.Boolean):
+            # TODO: Why is mypy not able to figure out the type of _tyarray any more?
+            return key._tyarray.astype(onnx.bool_)
+
+    if isinstance(key, int | slice | EllipsisType | Array | None):
+        return _normalize_key_item(key)
+
+    if isinstance(key, tuple):
+        return tuple(_normalize_key_item(el) for el in key)
+
+    raise IndexError(f"unexpected key type: `{type(key)}`")
+
+
+def _normalize_key_item(
+    item: int | slice | EllipsisType | Array | None,
+) -> int | slice | EllipsisType | onnx.TyArrayInt64 | None:
+    if isinstance(item, int | EllipsisType | None):
+        return item
+
+    if isinstance(item, Array):
+        if isinstance(item.dtype, onnx.Integer):
+            return item._tyarray.astype(onnx.int64)
+        raise IndexError(
+            f"indexing arrays must be of integer or boolean data type; found `{item.dtype}`"
+        )
+
+    def _normalize_slice_arg(el: int | Array | None) -> int | onnx.TyArrayInt64 | None:
+        if isinstance(el, int | None):
+            return el
+        if not isinstance(el.dtype, onnx.Integer):
+            IndexError(
+                f"arrays in 'slice' objects must be of integer data types; found `{el.dtype}"
+            )
+        if el.ndim != 0:
+            IndexError(f"arrays in 'slice' objects must be rank-0; found `{el.ndim}")
+        return el._tyarray.astype(onnx.int64)
+
+    if isinstance(item, slice):
+        start = _normalize_slice_arg(item.start)
+        stop = _normalize_slice_arg(item.stop)
+        step = _normalize_slice_arg(item.step)
+        return slice(start, stop, step)
+
+    raise IndexError(f"invalid index key type: `{type(item)}`")

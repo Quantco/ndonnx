@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import re
-
 import numpy as np
 import pytest
 import spox.opset.ai.onnx.v19 as op
@@ -278,7 +276,7 @@ def test_indexing_with_tuple_of_array(_a):
 
     with pytest.raises(
         IndexError,
-        match=re.escape("Index array must be a scalar but has rank"),
+        match="index arrays must be rank-0",
     ):
         a[(index,)]
 

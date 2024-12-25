@@ -11,31 +11,23 @@ from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
 
 import numpy as np
-import spox
-import spox._future
 import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, Var, argument
 from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
 from .._schema import DTypeInfoV1
-from . import ort_compat
+from . import TyArrayBase, ort_compat, promote, safe_cast
 from .indexing import (
     FancySlice,
     _key_to_indices,
     _move_ellipsis_back,
     normalize_getitem_key,
 )
-from .typed_array import TyArrayBase
-from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from .._array import OnnxShape
-    from .indexing import (
-        GetitemIndex,
-        GetitemTuple,
-        SetitemIndex,
-    )
+    from .indexing import BoolMask, GetitemItem, SetitemItem
 
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
 KEY = TypeVar("KEY", int, float, str)
@@ -314,7 +306,9 @@ class TyArray(TyArrayBase):
         except ValueError:
             return {"data": "*lazy*"}
 
-    def __getitem__(self, key: GetitemIndex) -> Self:
+    def __getitem__(
+        self, key: GetitemItem | tuple[GetitemItem, ...] | BoolMask
+    ) -> Self:
         key = normalize_getitem_key(key)
 
         if isinstance(key, bool):
@@ -325,7 +319,7 @@ class TyArray(TyArrayBase):
             return self._getitem_boolmask(key)
         raise IndexError(f"Cannot index with key `{key}`")
 
-    def _getitem_static(self, key: GetitemTuple) -> Self:
+    def _getitem_static(self, key: tuple[GetitemItem, ...]) -> Self:
         if isinstance(key, list):
             # Technically not supported, but a common pattern
             key = tuple(key)
@@ -408,7 +402,7 @@ class TyArray(TyArrayBase):
 
     def __setitem__(
         self,
-        key: SetitemIndex,
+        key: SetitemItem | tuple[SetitemItem, ...] | BoolMask,
         value: Self,
         /,
     ) -> None:
@@ -1705,6 +1699,14 @@ def ascoredata(var: Var) -> TyArray:
     return dtype._tyarr_class(var)
 
 
+def const(obj: bool | int | float | str | np.ndarray) -> TyArray:
+    """Create a constant from the given value if it can be expressed as an ONNX data
+    type."""
+    obj = np.asarray(obj)
+
+    return ascoredata(op.const(obj))
+
+
 def is_sequence_of_core_data(
     seq: Sequence[TyArrayBase],
 ) -> TypeGuard[Sequence[TyArray]]:
@@ -1718,29 +1720,9 @@ def all_items_are_int(
 
 
 def contains_no_ellipsis(
-    seq: tuple[int | slice | EllipsisType, ...],
+    seq: tuple[SetitemItem, ...],
 ) -> TypeGuard[tuple[int | slice, ...]]:
-    return all(el != ... for el in seq)
-
-
-T = TypeVar("T", bound=TyArray)
-
-
-def _element_wise(x: T, op: Callable[[Var], Var], via: _OnnxDType | None = None) -> T:
-    """Apply an element wise operations possible with an onnxruntime workaround ``via``
-    a different data type.
-
-    The workaround is only applied if
-    ``spox._value_prop._VALUE_PROP_BACKEND==spox._future.ValuePropBackend.ONNXRUNTIME``.
-    """
-    target_ort = (
-        spox._value_prop._VALUE_PROP_BACKEND
-        == spox._future.ValuePropBackend.ONNXRUNTIME
-    )
-    if via is not None and target_ort:
-        res = ascoredata(op(x.astype(via).var))
-        return safe_cast(type(x), res.astype(x.dtype))
-    return type(x)(op(x.var))
+    return all(not isinstance(el, EllipsisType) for el in seq)
 
 
 def _promote_and_apply_op(

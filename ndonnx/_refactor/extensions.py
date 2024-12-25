@@ -185,15 +185,15 @@ def make_nullable(
     TypeError
         If the data type of ``x`` does not have a nullable counterpart.
     """
-    if not isinstance(null._tyarray, tydx.TyArrayBool):
+    if not isinstance(null._tyarray, tydx.onnx.TyArrayBool):
         raise TypeError(f"'null' must be of boolean data type, found `{null.dtype}`")
-    if isinstance(x._tyarray, tydx.TyArray):
+    if isinstance(x._tyarray, tydx.onnx.TyArray):
         return ndx.Array._from_tyarray(
             tydx.masked_onnx.asncoredata(x._tyarray, null._tyarray)
         )
-    if merge_strategy == "merge" and isinstance(x._tyarray, tydx.TyMaArray):
+    if merge_strategy == "merge" and isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
         mask = tydx.masked_onnx._merge_masks(x._tyarray.mask, null._tyarray)
-        tyarr = tydx.asncoredata(x._tyarray.data, mask)
+        tyarr = tydx.masked_onnx.asncoredata(x._tyarray.data, mask)
         return ndx.Array._from_tyarray(tyarr)
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"

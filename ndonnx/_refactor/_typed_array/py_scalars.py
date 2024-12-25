@@ -8,16 +8,13 @@ from types import NotImplementedType
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-import spox.opset.ai.onnx.v21 as op
 from typing_extensions import Self
 
 import ndonnx._refactor as ndx
 from ndonnx._refactor._schema import DTypeInfoV1
 
 from .._dtypes import TY_ARRAY_BASE, DType
-from . import masked_onnx, onnx
-from .typed_array import TyArrayBase
-from .utils import promote, safe_cast
+from . import TyArrayBase, masked_onnx, onnx, promote, safe_cast
 
 if TYPE_CHECKING:
     from spox import Var
@@ -204,7 +201,7 @@ class _ArrayPyScalar(TyArrayBase):
     def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
-        from . import asncoredata
+        from .masked_onnx import asncoredata
 
         # mypy gets confused with the generic return type after the
         # narrowing so we put it aside here.
@@ -215,7 +212,7 @@ class _ArrayPyScalar(TyArrayBase):
         # the mapping from this class into those classes **here**.
         if isinstance(dtype, onnx._OnnxDType):
             np_arr = np.array(self.value).astype(dtype.unwrap_numpy())
-            return dtype._tyarr_class(op.const(np_arr))
+            return dtype._tyarr_class(onnx.const(np_arr).var)
         if isinstance(dtype, masked_onnx._MaOnnxDType):
             unmasked_typed_arr = self.__ndx_cast_to__(dtype._unmasked_dtype)
             return safe_cast(res_ty, asncoredata(unmasked_typed_arr, None))

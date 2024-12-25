@@ -18,9 +18,8 @@ if TYPE_CHECKING:
     from spox import Var
 
     from .._array import OnnxShape
-    from . import TyArrayBool, TyArrayInt64, TyArrayInteger
     from .indexing import GetitemIndex, SetitemIndex
-    from .onnx import KEY, VALUE
+    from .onnx import KEY, VALUE, TyArrayBool, TyArrayInt64, TyArrayInteger
 
 
 class TyArrayBase(ABC):

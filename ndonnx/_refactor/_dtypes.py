@@ -13,8 +13,8 @@ import numpy as np
 from ._schema import DTypeInfoV1
 
 if TYPE_CHECKING:
-    from ._array import OnnxShape
-    from ._typed_array import TyArrayBase, TyArrayInt64, onnx
+    from ._typed_array import TyArrayBase, onnx
+    from ._types import OnnxShape
 
 
 TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
@@ -71,10 +71,10 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
     ) -> TY_ARRAY_BASE: ...
 
     @abstractmethod
-    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_BASE: ...
+    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE: ...
 
     @abstractmethod
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_BASE: ...
+    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE: ...
 
     def __eq__(self, other) -> bool:
         if type(self) is not type(other):

@@ -20,10 +20,12 @@ from ._typed_array.onnx import DTypes, FloatingDTypes, IntegerDTypes
 if TYPE_CHECKING:
     from spox import Var
 
+    from ._types import OnnxShape
+
 
 def array(
     *,
-    shape: tuple[int | str | None, ...],
+    shape: OnnxShape,
     dtype: DType,
 ) -> Array:
     return Array(shape=shape, dtype=dtype)
