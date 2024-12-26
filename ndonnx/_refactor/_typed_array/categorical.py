@@ -82,7 +82,8 @@ class CategoricalDType(DType["CategoricalArray"]):
         return CategoricalArray
 
     def _argument(self, shape: OnnxShape) -> CategoricalArray:
-        raise NotImplementedError
+        codes = onnx.uint16._argument(shape)
+        return CategoricalArray(codes, dtype=self)
 
     @property
     def _infov1(self) -> DTypeInfoV1:

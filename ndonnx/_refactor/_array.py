@@ -333,8 +333,11 @@ def asarray(
         if dtype:
             return obj.astype(dtype, copy=copy)
         return obj
+    elif isinstance(obj, bool | int | float) and dtype is not None:
+        # Avoid adding an unnecessary cast into the graph
+        return Array._from_tyarray(astyarray(obj, use_py_scalars=True).astype(dtype))
     elif isinstance(obj, bool):
-        obj = np.asarray(obj, dtype=bool)
+        obj = np.asarray(obj, dtype=np.bool)
     elif isinstance(obj, int):
         obj = np.asarray(obj, dtype=np.int64)
     elif isinstance(obj, float):

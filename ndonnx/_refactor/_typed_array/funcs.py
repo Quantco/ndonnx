@@ -155,12 +155,12 @@ def _result_dtype(first: DType, *others: DType) -> DType:
         res1 = a.__ndx_result_type__(b)
         if res1 != NotImplemented:
             return res1
-        return b.__ndx_result_type__(a)
+        res2 = b.__ndx_result_type__(a)
+        if res2 != NotImplemented:
+            return res2
+        raise TypeError(f"no common type found for `{a}` and `{b}`")
 
-    res = reduce(result_binary, others, first)
-    if res == NotImplemented:
-        raise TypeError("No common type found")
-    return res
+    return reduce(result_binary, others, first)
 
 
 def searchsorted(

@@ -11,6 +11,7 @@ import numpy as np
 
 import ndonnx._refactor as ndx
 from ndonnx._refactor import _typed_array as tydx
+from ndonnx._refactor._typed_array.masked_onnx import TyMaArray
 
 Scalar = TypeVar("Scalar", int, float, str)
 
@@ -154,7 +155,7 @@ def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
 
 def make_nullable(
     x: ndx.Array,
-    null: ndx.Array,
+    null: ndx.Array | None,
     /,
     *,
     merge_strategy: Literal["raise", "merge"] = "raise",
@@ -185,6 +186,14 @@ def make_nullable(
     TypeError
         If the data type of ``x`` does not have a nullable counterpart.
     """
+    if null is None:
+        if isinstance(x, TyMaArray):
+            return x
+        if isinstance(x, tydx.onnx.TyArray):
+            return ndx.Array._from_tyarray(
+                tydx.masked_onnx.asncoredata(x._tyarray, None)
+            )
+        raise TypeError(f"failed to make array of data type `{x.dtype}` nullable")
     if not isinstance(null._tyarray, tydx.onnx.TyArrayBool):
         raise TypeError(f"'null' must be of boolean data type, found `{null.dtype}`")
     if isinstance(x._tyarray, tydx.onnx.TyArray):
@@ -194,6 +203,13 @@ def make_nullable(
     if merge_strategy == "merge" and isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
         mask = tydx.masked_onnx._merge_masks(x._tyarray.mask, null._tyarray)
         tyarr = tydx.masked_onnx.asncoredata(x._tyarray.data, mask)
+        return ndx.Array._from_tyarray(tyarr)
+    if isinstance(x._tyarray, tydx.date_time.TimeBaseArray):
+        # TODO: The semantics of this branch are very odd!
+        is_nat = tydx.masked_onnx._merge_masks(x._tyarray.is_nat, null._tyarray)
+        tyarr = x.dtype._tyarr_class(
+            is_nat, x._tyarray.data, unit=x._tyarray.dtype.unit
+        )
         return ndx.Array._from_tyarray(tyarr)
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"

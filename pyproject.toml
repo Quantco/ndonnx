@@ -92,7 +92,10 @@ filterwarnings = [
     # upstream test suite failed to automatically parse special cases
     "ignore:case for:UserWarning",
     # upstream test suite expected a special case but didn't find it
-    "ignore:Special cases found for:UserWarning"
+    "ignore:Special cases found for:UserWarning",
+    # NumPy warnings for invalid values in divisions
+    "ignore:.*invalid value encountered in (scalar )?divide.*:RuntimeWarning:numpy",
+    "ignore:.*Mean of empty slice.*:RuntimeWarning:numpy"
 ]
 
 [tool.typos.default]

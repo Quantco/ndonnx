@@ -429,3 +429,10 @@ def test_masked_where():
     np.testing.assert_array_equal(
         res.unwrap_numpy(), np.ma.MaskedArray([0, 0, 0, 0], [True, False, True, False])
     )
+
+
+@pytest.mark.parametrize("scalar", [True, False, 0, 1, 0.0, -0.0, np.float32(1)])
+def test_asarray_matches_numpy(scalar):
+    np.testing.assert_equal(
+        np.asarray(scalar), ndx.asarray(scalar).unwrap_numpy(), strict=True
+    )

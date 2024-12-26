@@ -67,7 +67,7 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype, op):
         operator.mul,
     ],
 )
-def test_add_pyscalar_timedelta(op):
+def test_arithmetic_pyscalar_timedelta(op):
     shape = ("N",)
     scalar = 1
     arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
@@ -75,6 +75,37 @@ def test_add_pyscalar_timedelta(op):
     expected_dtype = ndx.TimeDelta("s")
     assert_equal_dtype_shape(op(scalar, arr), expected_dtype, shape)
     assert_equal_dtype_shape(op(arr, scalar), expected_dtype, shape)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.add,
+        operator.sub,
+    ],
+)
+def test_arithmetic_timedelta_timedelta(op):
+    shape = ("N",)
+    arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
+
+    expected_dtype = ndx.TimeDelta("s")
+    assert_equal_dtype_shape(op(arr, arr), expected_dtype, shape)
+    assert_equal_dtype_shape(op(arr, arr), expected_dtype, shape)
+
+
+def test_arithmetic_timedelta_datetime():
+    shape = ("N",)
+    arr_dt = ndx.Array(shape=shape, dtype=ndx.DateTime("s"))
+    arr_td = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
+
+    expected_dtype = ndx.DateTime("s")
+    assert_equal_dtype_shape(arr_dt + arr_td, expected_dtype, shape)
+    assert_equal_dtype_shape(arr_td + arr_dt, expected_dtype, shape)
+
+    assert_equal_dtype_shape(arr_dt - arr_td, expected_dtype, shape)
+
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        _ = arr_td - arr_dt
 
 
 @pytest.mark.parametrize(

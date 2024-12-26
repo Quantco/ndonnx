@@ -46,11 +46,14 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         if isinstance(arr, onnx.TyArrayInteger):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
             is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
+        elif isinstance(arr, onnx.TyArrayFloating):
+            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
+            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL | arr.isnan())
         elif isinstance(arr, py_scalars.TyArrayPyInt):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
             is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
         else:
-            raise NotImplementedError
+            return NotImplemented
         return self._tyarr_class(is_nat=is_nat, data=data, unit=self.unit)
 
     def __ndx_result_type__(self, other: DType) -> DType:
@@ -244,8 +247,8 @@ class TyArrayTimeDelta(TimeBaseArray):
     dtype: TimeDelta
 
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
-        self.is_nat = is_nat
-        self.data = data
+        self.is_nat = safe_cast(onnx.TyArrayBool, is_nat)
+        self.data = safe_cast(onnx.TyArrayInt64, data)
         self.dtype = TimeDelta(unit)
 
     def __ndx_cast_to__(
@@ -360,7 +363,9 @@ class TyArrayDateTime(TimeBaseArray):
             return safe_cast(res_type, data)
         return NotImplemented
 
-    def _coerce_to_time_delta(self, other: TyArrayBase) -> TyArrayTimeDelta:
+    def _coerce_to_time_delta(
+        self, other: TyArrayBase
+    ) -> TyArrayTimeDelta | NotImplementedType:
         """Coerce to a time delta array of identical unit as ``self``.
 
         This is useful for comparisons and ``__add__``.
@@ -376,7 +381,9 @@ class TyArrayDateTime(TimeBaseArray):
             raise TypeError("inter operation between time units is not implemented")
         return other
 
-    def _coerce_to_date_time(self, other: TyArrayBase) -> TyArrayDateTime:
+    def _coerce_to_date_time(
+        self, other: TyArrayBase
+    ) -> TyArrayDateTime | NotImplementedType:
         """Coerce `other` to ``TyArrayDateTime``.
 
         This is encapsulates the promotion rules for comparison operations.
@@ -392,8 +399,10 @@ class TyArrayDateTime(TimeBaseArray):
             raise TypeError("inter operation between time units is not implemented")
         return other
 
-    def __add__(self, rhs: TyArrayBase) -> TyArrayDateTime:
+    def __add__(self, rhs: TyArrayBase) -> Self:
         rhs = self._coerce_to_time_delta(rhs)
+        if rhs is NotImplemented:
+            return NotImplemented
 
         data = safe_cast(onnx.TyArrayInt64, self.data + rhs.data)
         is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
@@ -416,7 +425,16 @@ class TyArrayDateTime(TimeBaseArray):
             data = safe_cast(onnx.TyArrayInt64, data_)
             is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | other.is_nat)
             return TyArrayTimeDelta(is_nat=is_nat, data=data, unit=self.dtype.unit)
-        raise NotImplementedError
+
+        if isinstance(other, TyArrayTimeDelta) and forward:
+            if self.dtype.unit != other.dtype.unit:
+                raise NotImplementedError
+            data_ = op(self.data, other.data) if forward else op(other.data, self.data)
+            data = safe_cast(onnx.TyArrayInt64, data_)
+            is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | other.is_nat)
+            return TyArrayDateTime(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
+        return NotImplemented
 
     def __sub__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
         return self._sub(rhs, True)
@@ -467,6 +485,8 @@ def _apply_op(
     forward: bool,
 ) -> TyArrayTimeDelta:
     other_data = _coerce_other(this, other)
+    if other_data is NotImplemented:
+        return NotImplemented
 
     if forward:
         data_ = op(this.data, other_data)
@@ -476,14 +496,16 @@ def _apply_op(
     return type(this)(is_nat=this.is_nat, data=data, unit=this.dtype.unit)
 
 
-def _coerce_other(this: TyArrayTimeDelta, other) -> onnx.TyArrayInt64:
+def _coerce_other(
+    this: TyArrayTimeDelta, other
+) -> onnx.TyArrayInt64 | NotImplementedType:
     if isinstance(other, py_scalars.TyArrayPyInt | onnx.TyArrayInt64):
         return other.astype(onnx.int64)
     elif isinstance(other, TyArrayTimeDelta):
         if this.dtype.unit != other.dtype.unit:
             raise ValueError("inter-operation between time units is not implemented")
         return other.data
-    raise NotImplementedError
+    return NotImplemented
 
 
 def validate_unit(unit: str) -> Literal["ns", "s"]:

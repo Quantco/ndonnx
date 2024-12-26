@@ -209,9 +209,21 @@ class _ArrayPyScalar(TyArrayBase):
 
         # We implement this class under the assumption that the other
         # built-in typed arrays do not know about it. Thus, we define
-        # the mapping from this class into those classes **here**.
+        # the mapping from this class into those classes
+        # **here**.
+        # TODO: This was probably not the best idea in hindsight...
+        if isinstance(dtype, onnx.Utf8):
+            # For strings we want to avoid using astype in order to
+            # get value-dependent string sizes. If we use asarray,
+            # int64s will always result in a `<U21` string.
+            # We cannot use this for all types though, since we
+            # otherwise get a hard error from NumPy when casting
+            # overflowing integers.
+            # TODO: Figure out why mypy things that `dtype` is `Never`...
+            np_arr = np.asarray(self.value, dtype=dtype.unwrap_numpy())  # type: ignore
+            return dtype._tyarr_class(onnx.const(np_arr).var)  # type: ignore
         if isinstance(dtype, onnx._OnnxDType):
-            np_arr = np.array(self.value).astype(dtype.unwrap_numpy())
+            np_arr = np.asarray(self.value).astype(dtype.unwrap_numpy())
             return dtype._tyarr_class(onnx.const(np_arr).var)
         if isinstance(dtype, masked_onnx._MaOnnxDType):
             unmasked_typed_arr = self.__ndx_cast_to__(dtype._unmasked_dtype)
