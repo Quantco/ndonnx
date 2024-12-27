@@ -218,6 +218,9 @@ class TimeBaseArray(TyArrayBase):
 
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
+    def isnan(self) -> onnx.TyArrayBool:
+        return self.is_nat
+
     def __ndx_maximum__(self, rhs: TyArrayBase) -> TyArrayBase:
         from .funcs import maximum
 
@@ -240,6 +243,46 @@ class TimeBaseArray(TyArrayBase):
 
         data = safe_cast(onnx.TyArrayInt64, minimum(self.data, rhs.data))
         is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
+    def __ndx_where__(
+        self, cond: onnx.TyArrayBool, other: TyArrayBase, /
+    ) -> TyArrayBase:
+        from .funcs import where
+
+        if self.dtype != other.dtype or not isinstance(other, type(self)):
+            return NotImplemented
+
+        data = safe_cast(onnx.TyArrayInt64, where(cond, self.data, other.data))
+        is_nat = safe_cast(onnx.TyArrayBool, where(cond, self.is_nat, other.is_nat))
+
+        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+
+    def clip(
+        self, /, min: TyArrayBase | None = None, max: TyArrayBase | None = None
+    ) -> Self:
+        if min is not None:
+            if not isinstance(min, type(self)) or self.dtype != min.dtype:
+                raise TypeError(
+                    f"'min' be of identical data type as self; found {min.dtype}"
+                )
+        if max is not None:
+            if not isinstance(max, type(self)) or self.dtype != max.dtype:
+                raise TypeError(
+                    f"'max' be of identical data type as self; found {max.dtype}"
+                )
+
+        data = self.data.clip(
+            min=None if min is None else min.data,
+            max=None if max is None else max.data,
+        )
+        is_nat = self.is_nat
+        if min is not None:
+            is_nat = safe_cast(onnx.TyArrayBool, is_nat | min.is_nat)
+
+        if max is not None:
+            is_nat = safe_cast(onnx.TyArrayBool, is_nat | max.is_nat)
+
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
 

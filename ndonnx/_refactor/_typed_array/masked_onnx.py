@@ -451,9 +451,7 @@ class TyMaArray(TyMaArrayBase):
     def _eqcomp(self, other) -> TyArrayBase | NotImplementedType:
         return _apply_op(self, other, operator.eq, True)
 
-    def __ndx_where__(
-        self, cond: onnx.TyArrayBool, y: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType:
+    def __ndx_where__(self, cond: onnx.TyArrayBool, y: TyArrayBase, /) -> TyArrayBase:
         if isinstance(y, onnx.TyArray):
             return self.__ndx_where__(cond, asncoredata(y, None))
         if isinstance(y, TyMaArray):

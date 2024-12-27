@@ -121,3 +121,43 @@ def test_comparisons(op, x, y, unit):
     actual = op(ndx.asarray(np_x), ndx.asarray(np_y))
 
     np.testing.assert_equal(actual.unwrap_numpy(), desired, strict=True)
+
+
+def test_isnan():
+    np_arr = np.asarray(["NaT", 1], dtype="datetime64[s]")
+    arr = ndx.asarray(np_arr)
+
+    np.testing.assert_array_equal(
+        ndx.isnan(arr).unwrap_numpy(), np.isnan(np_arr), strict=True
+    )
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[s]", "timedelta64[s]"])
+def test_where(dtype):
+    cond = np.asarray([False, True, False])
+    np_arr1 = np.asarray(["NaT", 1, 2], dtype=dtype)
+    np_arr2 = np.asarray(["NaT", "NaT", "NaT"], dtype=dtype)
+
+    expected = np.where(cond, np_arr1, np_arr2)
+    actual = ndx.where(ndx.asarray(cond), ndx.asarray(np_arr1), ndx.asarray(np_arr2))
+
+    np.testing.assert_array_equal(actual.unwrap_numpy(), expected, strict=True)
+
+
+@pytest.mark.parametrize("data", [[], ["Nat", 1, 3]])
+@pytest.mark.parametrize("min", [None, 0, 2, 5, "NaT"])
+@pytest.mark.parametrize("max", [None, 0, 2, 5, "NaT"])
+def test_clip(data, min, max):
+    dtype = "datetime64[s]"
+    np_arr = np.asarray(data, dtype=dtype)
+    min = None if min is None else np.asarray(min, dtype=dtype)
+    max = None if max is None else np.asarray(max, dtype=dtype)
+
+    desired = np.clip(np_arr, min, max)
+    actual = ndx.clip(
+        ndx.asarray(np_arr),
+        min=None if min is None else ndx.asarray(min),
+        max=None if max is None else ndx.asarray(max),
+    ).unwrap_numpy()
+
+    np.testing.assert_array_equal(actual, desired, strict=True)
