@@ -3,7 +3,7 @@ name: Array API coverage tests
 on:
   push: # Run on all branches
   schedule:
-    - cron: "0 0 * * *" # Runs daily at 00:00 UTC
+    - cron: "* * * * *" # Runs daily at 00:00 UTC
 
 # Automatically stop old builds on the same branch/PR
 concurrency:
@@ -28,7 +28,7 @@ jobs:
       - name: Install repository
         run: pixi run postinstall
       - name: Run Array API tests (Scheduled)
-        if: ${{ github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event_name == 'schedule' }}
         run: pixi run arrayapitests
       - name: Run Array API tests (Push)
         if: ${{ github.event_name == 'push' }}
