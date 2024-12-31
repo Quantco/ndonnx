@@ -28,7 +28,7 @@ jobs:
       - name: Install repository
         run: pixi run postinstall
       - name: Run Array API tests (Scheduled)
-        if: ${{ github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event_name == 'schedule' }}
         run: pixi run arrayapitests
       - name: Run Array API tests (Push)
         if: ${{ github.event_name == 'push' }}
