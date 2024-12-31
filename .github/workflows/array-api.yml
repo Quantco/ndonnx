@@ -1,7 +1,7 @@
 name: Array API coverage tests
 
 on:
-  push: {} # Run on all branches
+  push: # Run on all branches
   schedule:
     - cron: "0 0 * * *" # Runs daily at 00:00 UTC
 
