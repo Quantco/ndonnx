@@ -104,11 +104,5 @@ Summary(1119 total):
 Run the tests with:
 
 ```bash
-pixi run arrayapitests
-```
-
-Or for a faster feedback cycle, with a fixed seed:
-
-```bash
 pixi run arrayapitests --max-examples 16 --hypothesis-seed=0
 ```

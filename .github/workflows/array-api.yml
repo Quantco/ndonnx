@@ -3,7 +3,7 @@ name: Array API coverage tests
 on:
   push: # Run on all branches
   schedule:
-    - cron: "0 8 * * *" # Runs daily at 00:00 UTC
+    - cron: "0 8 * * 0" # Runs weekly at 08:00 UTC on Sunday
 
 # Automatically stop old builds on the same branch/PR
 concurrency:
