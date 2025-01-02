@@ -104,5 +104,5 @@ Summary(1119 total):
 Run the tests with:
 
 ```bash
-pixi run arrayapitests
+pixi run arrayapitests --max-examples 16 --hypothesis-seed=0
 ```
