@@ -1038,3 +1038,35 @@ def test_argmaxmin_unsupported_kernels(func, x):
 
     with pytest.raises(TypeError):
         getattr(ndx, func.__name__)(ndx.asarray(x))
+
+
+# Current array-api tests don't include the case min(a.ndim, b.ndim) != 0
+@pytest.mark.parametrize(
+    "a, b, axes",
+    [
+        (
+            np.arange(60.0).reshape(3, 4, 5),
+            np.arange(24.0).reshape(4, 3, 2),
+            ([1, 0], [0, 1]),
+        ),
+        (
+            np.arange(60.0).reshape(3, 4, 5),
+            np.arange(60.0).reshape(4, 5, 3),
+            2
+        ),
+        (
+            np.arange(60.0).reshape(3, 4, 5),
+            np.arange(60.0).reshape(4, 5, 3),
+            0
+        ),
+        (
+            np.arange(60.0).reshape(4, 5, 3),
+            np.arange(60.0).reshape(4, 5, 3),
+            3
+        )
+    ],
+)
+def test_tensordot(a, b, axes):
+    np_result = np.tensordot(a, b, axes=axes)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b), axes=axes).to_numpy()
+    assert_array_equal(np_result, ndx_result)

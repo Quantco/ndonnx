@@ -550,6 +550,16 @@ def matrix_transpose(x):
     return _unary(x.dtype._ops.matrix_transpose, x)
 
 
+def tensordot(x, y, axes):
+    if (out := x.dtype._ops.tensordot(x, y, axes)) is not NotImplemented:
+        return out
+    if (out := y.dtype._ops.tensordot(x, y, axes)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for tensordot: '{x.dtype}' and '{y.dtype}'"
+    )
+
+
 # indexing.py
 
 
