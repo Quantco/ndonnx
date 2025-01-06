@@ -271,7 +271,7 @@ class _NumericOperationsImpl(OperationsBlock):
     def pow(self, x, y):
         x, y = ndx.asarray(x), ndx.asarray(y)
         dtype = ndx.result_type(x, y)
-        if isinstance(dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+        if isinstance(dtype, (dtypes.Integral)):
             return binary_op(x, y, opx.pow, dtypes.int64)
         else:
             return binary_op(x, y, opx.pow)
@@ -363,7 +363,7 @@ class _NumericOperationsImpl(OperationsBlock):
             ),
             [ndx.reshape(x, [-1]) if axis is None else x],
             cast_return=False,
-            int_dtype=ndx.int32,
+            int_dtype=ndx.int64,
             float_dtype=ndx.float64,
         )
 
@@ -381,7 +381,7 @@ class _NumericOperationsImpl(OperationsBlock):
             ),
             [ndx.reshape(x, [-1]) if axis is None else x],
             cast_return=False,
-            int_dtype=ndx.int32,
+            int_dtype=ndx.int64,
             float_dtype=ndx.float64,
         )
 
@@ -848,6 +848,7 @@ class _NumericOperationsImpl(OperationsBlock):
             x = ndx.where(x.null, True, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(True, dtype=ndx.bool)
+        x = x.astype(ndx.bool)
         return ndx.min(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
             ndx.bool
         )
@@ -858,6 +859,7 @@ class _NumericOperationsImpl(OperationsBlock):
             x = ndx.where(x.null, False, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(False, dtype=ndx.bool)
+        x = x.astype(ndx.bool)
         return ndx.max(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
             ndx.bool
         )
