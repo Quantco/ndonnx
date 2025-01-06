@@ -90,6 +90,8 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
 array_api_tests/test_operators_and_elementwise_functions.py::test_sinh
 array_api_tests/test_operators_and_elementwise_functions.py::test_sqrt
 array_api_tests/test_operators_and_elementwise_functions.py::test_tan
+array_api_tests/test_searching_functions.py::test_argmin
+array_api_tests/test_searching_functions.py::test_argmax
 array_api_tests/test_searching_functions.py::test_nonzero_zerodim_error
 array_api_tests/test_searching_functions.py::test_searchsorted
 array_api_tests/test_searching_functions.py::test_where
