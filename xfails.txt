@@ -1,3 +1,7 @@
+# These are not implemented for uint64, but are tested internally
+array_api_tests/test_searching_functions.py::test_argmin
+array_api_tests/test_searching_functions.py::test_argmax
+
 array_api_tests/test_constants.py::test_newaxis
 array_api_tests/test_creation_functions.py::test_eye
 array_api_tests/test_creation_functions.py::test_meshgrid
