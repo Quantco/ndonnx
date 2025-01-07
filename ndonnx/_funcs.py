@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -638,6 +638,12 @@ def permute_dims(x, axes):
     raise UnsupportedOperationError(
         f"Unsupported operand type for permute_dims: '{x.dtype}'"
     )
+
+
+def repeat(x, repeats, axis=None):
+    if (out := x.dtype._ops.repeat(x, repeats, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for repeat: '{x.dtype}'")
 
 
 def reshape(x, shape, *, copy=None):

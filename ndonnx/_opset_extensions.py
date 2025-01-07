@@ -444,10 +444,8 @@ def matmul(a: _CoreArray, b: _CoreArray) -> _CoreArray:
 def tensordot(
     a: _CoreArray, b: _CoreArray, axes: int | tuple[Sequence[int], Sequence[int]] = 2
 ) -> _CoreArray:
-    from builtins import range
-
     def letter():
-        for i in range(ord("a"), ord("z") + 1):
+        for i in builtins.range(ord("a"), ord("z") + 1):
             yield chr(i)
         raise ValueError("Exceeded available letters for einsum equation")
 
@@ -457,26 +455,26 @@ def tensordot(
         return _CoreArray(op.mul(a.var, b.var))
 
     if isinstance(axes, int):
-        axes = ([-axes + i for i in range(axes)], [i for i in range(axes)])
+        axes = (
+            [-axes + i for i in builtins.range(axes)],
+            [i for i in builtins.range(axes)],
+        )
 
     axes_a, axes_b = axes
 
     axes_a = [(ax + a.ndim) if ax < 0 else ax for ax in axes_a]
     axes_b = [(bx + b.ndim) if bx < 0 else bx for bx in axes_b]
 
-    a_letters = [next(letter_gen) for _ in range(a.ndim)]
+    a_letters = [next(letter_gen) for _ in builtins.range(a.ndim)]
 
     b_letters = [
-        a_letters[axes_a[axes_b.index(bx)]]
-        if bx in axes_b
-        else next(letter_gen)
-        for bx in range(b.ndim)
+        a_letters[axes_a[axes_b.index(bx)]] if bx in axes_b else next(letter_gen)
+        for bx in builtins.range(b.ndim)
     ]
 
-    joint_letters = (
-        [let for idx, let in enumerate(a_letters) if idx not in axes_a] +
-        [let for idx, let in enumerate(b_letters) if idx not in axes_b]
-    )
+    joint_letters = [let for idx, let in enumerate(a_letters) if idx not in axes_a] + [
+        let for idx, let in enumerate(b_letters) if idx not in axes_b
+    ]
 
     equation = f"{''.join(a_letters)},{''.join(b_letters)}->{''.join(joint_letters)}"
 
