@@ -66,6 +66,25 @@ class UniformShapeOperations(OperationsBlock):
             )
         )
 
+    def repeat(self, x, repeats, axis):
+        if axis is None:
+            x = ndx.reshape(x, [-1])
+            axis = 0
+
+        x_shape = ndx.additional.shape(x)
+
+        if isinstance(repeats, int):
+            # TODO: this case can be optimized by broadcasting and reshaping
+            repeats = ndx.asarray(repeats)
+
+        repeats = ndx.broadcast_to(repeats, ndx.reshape(x_shape[axis], [1]))
+        indices = ndx.searchsorted(
+            ndx.cumulative_sum(repeats).astype(ndx.uint64),
+            ndx.arange(ndx.sum(repeats)),
+            side="right",
+        )
+        return ndx.take(x, indices, axis=axis)
+
     def flip(self, x, axis):
         if x.ndim == 0:
             return x.copy()

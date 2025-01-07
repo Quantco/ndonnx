@@ -205,6 +205,9 @@ class OperationsBlock:
     def matrix_transpose(self, x) -> ndx.Array:
         return NotImplemented
 
+    def tensordot(self, x, y) -> ndx.Array:
+        return NotImplemented
+
     # searching.py
 
     def argmax(self, x, axis=None, keepdims=False) -> ndx.Array:

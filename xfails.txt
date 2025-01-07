@@ -1,3 +1,7 @@
+# segmentation fault: https://github.com/onnx/onnx/pull/6570
+array_api_tests/test_manipulation_functions.py::test_repeat
+array_api_tests/test_linalg.py::test_tensordot
+
 array_api_tests/test_constants.py::test_newaxis
 array_api_tests/test_creation_functions.py::test_eye
 array_api_tests/test_creation_functions.py::test_meshgrid
@@ -59,16 +63,13 @@ array_api_tests/test_has_names.py::test_has_names[linalg-vector_norm]
 array_api_tests/test_has_names.py::test_has_names[linear_algebra-tensordot]
 array_api_tests/test_has_names.py::test_has_names[linear_algebra-vecdot]
 array_api_tests/test_has_names.py::test_has_names[manipulation-moveaxis]
-array_api_tests/test_has_names.py::test_has_names[manipulation-repeat]
 array_api_tests/test_has_names.py::test_has_names[manipulation-tile]
 array_api_tests/test_has_names.py::test_has_names[manipulation-unstack]
 array_api_tests/test_inspection_functions.py::test_array_namespace_info
 array_api_tests/test_inspection_functions.py::test_array_namespace_info_dtypes
 array_api_tests/test_linalg.py::test_matrix_transpose
-array_api_tests/test_linalg.py::test_tensordot
 array_api_tests/test_linalg.py::test_vecdot
 array_api_tests/test_manipulation_functions.py::test_moveaxis
-array_api_tests/test_manipulation_functions.py::test_repeat
 array_api_tests/test_manipulation_functions.py::test_squeeze
 array_api_tests/test_manipulation_functions.py::test_tile
 array_api_tests/test_manipulation_functions.py::test_unstack
@@ -113,9 +114,7 @@ array_api_tests/test_signatures.py::test_func_signature[meshgrid]
 array_api_tests/test_signatures.py::test_func_signature[minimum]
 array_api_tests/test_signatures.py::test_func_signature[moveaxis]
 array_api_tests/test_signatures.py::test_func_signature[real]
-array_api_tests/test_signatures.py::test_func_signature[repeat]
 array_api_tests/test_signatures.py::test_func_signature[signbit]
-array_api_tests/test_signatures.py::test_func_signature[tensordot]
 array_api_tests/test_signatures.py::test_func_signature[tile]
 array_api_tests/test_signatures.py::test_func_signature[unstack]
 array_api_tests/test_signatures.py::test_func_signature[vecdot]

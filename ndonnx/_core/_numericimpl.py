@@ -351,6 +351,10 @@ class _NumericOperationsImpl(OperationsBlock):
     def matrix_transpose(self, x) -> ndx.Array:
         return ndx.permute_dims(x, list(range(x.ndim - 2)) + [x.ndim - 1, x.ndim - 2])
 
+    @validate_core
+    def tensordot(self, x, y, axes):
+        return _via_i64_f64(lambda x, y: opx.tensordot(x, y, axes), [x, y])
+
     # searching.py
 
     @validate_core

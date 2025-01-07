@@ -1038,3 +1038,57 @@ def test_argmaxmin_unsupported_kernels(func, x):
 
     with pytest.raises(TypeError):
         getattr(ndx, func.__name__)(ndx.asarray(x))
+
+
+# Current array-api tests don't include the case min(a.ndim, b.ndim) != 0
+@pytest.mark.parametrize(
+    "a, b, axes",
+    [
+        (
+            np.arange(60).reshape(3, 4, 5),
+            np.arange(24).reshape(4, 3, 2),
+            ([1, 0], [0, 1]),
+        ),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 2),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 0),
+        (np.arange(60).reshape(4, 5, 3), np.arange(60).reshape(4, 5, 3), 3),
+        (np.arange(5).reshape(5), np.arange(5).reshape(5), 1),
+    ],
+)
+def test_tensordot(a, b, axes):
+    np_result = np.tensordot(a, b, axes=axes)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b), axes=axes).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3)),
+    ],
+)
+def test_tensordot_no_axes(a, b):
+    np_result = np.tensordot(a, b)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b)).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+# Current repeat does not work on the upstream arrayapi tests in the case
+# of an empty tensor as https://github.com/onnx/onnx/pull/6570 has not landed in onnx
+@pytest.mark.parametrize("lazy_repeats", [False, True])
+@pytest.mark.parametrize(
+    "a, repeats, axis",
+    [
+        (np.arange(60).reshape(3, 4, 5), 3, 0),
+        (np.arange(60).reshape(3, 4, 5), 3, 1),
+        (np.arange(60).reshape(3, 4, 5), 3, 2),
+        (np.arange(60).reshape(3, 4, 5), 3, None),
+        (np.arange(60).reshape(3, 4, 5), [1, 2, 3], 0),
+    ],
+)
+def test_repeat(a, repeats, axis, lazy_repeats):
+    np_result = np.repeat(a, repeats, axis=axis)
+    if lazy_repeats or not isinstance(repeats, int):
+        repeats = ndx.asarray(repeats)
+    ndx_result = ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
+    assert_array_equal(np_result, ndx_result)
