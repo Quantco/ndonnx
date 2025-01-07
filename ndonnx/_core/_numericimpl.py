@@ -98,8 +98,13 @@ class _NumericOperationsImpl(OperationsBlock):
     @validate_core
     def bitwise_right_shift(self, x, y):
         # Since we need to perform arithmetic right-shift we have to be a bit more careful
+        if isinstance(x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+            return binary_op(
+                x, y, lambda a, b: opx.bit_shift(a, b, direction="RIGHT"), dtypes.uint64
+            )
+        MAX_POW = 63
         return ndx.where(
-            y >= 63,
+            y >= MAX_POW,
             ndx.where(x >= 0, 0, -1),
             ndx.floor_divide(x, ndx.pow(ndx.asarray(2, ndx.int64), y)),
         ).astype(x.dtype)
