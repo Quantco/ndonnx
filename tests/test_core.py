@@ -996,18 +996,22 @@ def test_no_unsafe_cumulative_sum_cast():
 
 
 @pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize("func", [np.argmax, np.argmin])
 @pytest.mark.parametrize(
-    "func, x",
+    "x",
     [
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int32)),
-        (np.argmax, np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int8)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
-        (np.argmin, np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int16)),
+        np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32),
+        np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32),
+        # Test all types
+        np.array([1, 2, 3, 4, 5], dtype=np.int8),
+        np.array([1, 2, 3, 4, 5], dtype=np.int16),
+        np.array([1, 2, 3, 4, 5], dtype=np.int32),
+        np.array([1, 2, 3, 4, 5], dtype=np.int32),
+        np.array([1, 2, 3, 4, 5], dtype=np.uint8),
+        np.array([1, 2, 3, 4, 5], dtype=np.uint16),
+        # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.uint64)), -> onnxruntime
+        np.array([1, 2, 3, 4, 5], dtype=np.float32),
+        np.array([1, 2, 3, 4, 5], dtype=np.float64),
     ],
 )
 def test_argmaxmin(func, x, keepdims):
@@ -1020,11 +1024,12 @@ def test_argmaxmin(func, x, keepdims):
 
 # Pending ORT 1.19 conda-forge release before this becomes supported:
 # https://github.com/conda-forge/onnxruntime-feedstock/pull/128
+@pytest.mark.parametrize("func", [np.argmax, np.argmin])
 @pytest.mark.parametrize(
-    "func, x",
+    "x",
     [
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int64)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int64)),
+        np.array([1, 2, 3, 4, 5], dtype=np.int64),
+        # np.array([1, 2, 3, 4, 5], dtype=np.uint32), -> onnxruntime
     ],
 )
 def test_argmaxmin_unsupported_kernels(func, x):
