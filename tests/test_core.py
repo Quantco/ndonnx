@@ -1063,7 +1063,12 @@ def test_argmaxmin_unsupported_kernels(func, x):
             np.arange(60.0).reshape(4, 5, 3),
             np.arange(60.0).reshape(4, 5, 3),
             3
-        )
+        ),
+        (
+            np.arange(60.0).reshape(5),
+            np.arange(60.0).reshape(5),
+            1
+        ),
     ],
 )
 def test_tensordot(a, b, axes):
