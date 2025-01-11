@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -1083,7 +1083,10 @@ def test_tensordot_no_axes(a, b):
         (np.arange(60).reshape(3, 4, 5), 3, 1),
         (np.arange(60).reshape(3, 4, 5), 3, 2),
         (np.arange(60).reshape(3, 4, 5), 3, None),
-        (np.arange(60).reshape(3, 4, 5), [1, 2, 3], 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(3), 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(4), 1),
+        (np.arange(60).reshape(3, 4, 5), np.arange(5), 2),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60), None),
     ],
 )
 def test_repeat(a, repeats, axis, lazy_repeats):
@@ -1092,3 +1095,16 @@ def test_repeat(a, repeats, axis, lazy_repeats):
         repeats = ndx.asarray(repeats)
     ndx_result = ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
     assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, repeats, axis",
+    [
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 4, 5]), 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 20]), None),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([2, 3, 2, 5]), None),
+    ],
+)
+def test_repeat_raises(a, repeats, axis):
+    with pytest.raises(ValueError):
+        ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()

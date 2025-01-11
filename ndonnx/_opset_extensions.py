@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -447,7 +447,9 @@ def tensordot(
     def letter():
         for i in builtins.range(ord("a"), ord("z") + 1):
             yield chr(i)
-        raise ValueError("Exceeded available letters for einsum equation")
+        raise ValueError(
+            "Exceeded available letters for einsum equation in the implementation of 'tensordot': this means that the number of dimensions of 'a' and 'b' are too large"
+        )
 
     letter_gen = letter()
 

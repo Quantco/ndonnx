@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -74,15 +74,28 @@ class UniformShapeOperations(OperationsBlock):
         x_shape = ndx.additional.shape(x)
 
         if isinstance(repeats, int):
-            # TODO: this case can be optimized by broadcasting and reshaping
             repeats = ndx.asarray(repeats)
 
-        repeats = ndx.broadcast_to(repeats, ndx.reshape(x_shape[axis], [1]))
-        indices = ndx.searchsorted(
-            ndx.cumulative_sum(repeats).astype(ndx.uint64),
-            ndx.arange(ndx.sum(repeats)),
-            side="right",
-        )
+        if repeats.ndim == 0:
+            indices = ndx.broadcast_to(
+                ndx.arange(x_shape[axis], dtype=ndx.int64),
+                ndx.concat(
+                    [ndx.expand_dims(repeats, 0), ndx.expand_dims(x_shape[axis], 0)]
+                ),
+            )
+            indices = ndx.reshape(ndx.matrix_transpose(indices), [-1])
+        elif repeats.ndim == 1:
+            repeats = ndx.broadcast_to(repeats, ndx.reshape(x_shape[axis], [1]))
+            indices = ndx.searchsorted(
+                ndx.cumulative_sum(repeats).astype(ndx.int64),
+                ndx.arange(ndx.sum(repeats), dtype=ndx.int64),
+                side="right",
+            )
+        elif repeats.ndim > 1:
+            raise ValueError(
+                f"'repeats' should be either 0 or 1 dimensional, but is instead {repeats.ndim}-dimensional"
+            )
+
         return ndx.take(x, indices, axis=axis)
 
     def flip(self, x, axis):
