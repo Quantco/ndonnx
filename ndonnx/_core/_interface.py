@@ -345,6 +345,9 @@ class OperationsBlock:
     def reshape(self, x, shape, *, copy=None) -> ndx.Array:
         return NotImplemented
 
+    def repeat(self, x, repeats, axis=None) -> ndx.Array:
+        return NotImplemented
+
     def roll(self, x, shift, axis) -> ndx.Array:
         return NotImplemented
 

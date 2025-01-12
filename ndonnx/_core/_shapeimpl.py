@@ -66,7 +66,7 @@ class UniformShapeOperations(OperationsBlock):
             )
         )
 
-    def repeat(self, x, repeats, axis):
+    def repeat(self, x, repeats, axis=None):
         if axis is None:
             x = ndx.reshape(x, [-1])
             axis = 0
