@@ -9,6 +9,9 @@ import warnings
 import numpy as np
 import pytest
 import spox.opset.ai.onnx.v19 as op
+from hypothesis import given
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import array_shapes
 
 import ndonnx as ndx
 import ndonnx.additional as nda
@@ -1070,6 +1073,43 @@ def test_tensordot(a, b, axes):
 def test_tensordot_no_axes(a, b):
     np_result = np.tensordot(a, b)
     ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b)).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+def generate_tensordot_cases():
+    shape1 = array_shapes(min_dims=1, max_dims=4, min_side=1, max_side=5)
+    shape2 = array_shapes(min_dims=1, max_dims=4, min_side=1, max_side=5)
+
+    def compatible_shapes_and_axes(shape1, shape2):
+        shape1 = list(shape1)
+        shape2 = list(shape2)
+
+        a = np.random.randint(0, 100, size=shape1)
+        b = np.random.randint(0, 100, size=shape2)
+
+        open = list(np.random.permutation(np.arange(len(shape2))))
+
+        axes1, axes2 = [], []
+
+        for i, d1 in enumerate(shape1):
+            for ind, j in enumerate(open):
+                if d1 != shape2[j]:
+                    continue
+                open.pop(ind)
+                axes1.append(i)
+                axes2.append(j)
+                break
+
+        return a, b, (axes1, axes2)
+
+    return st.builds(compatible_shapes_and_axes, shape1, shape2)
+
+
+@given(data=generate_tensordot_cases())
+def test_tensordot_hypothesis(data):
+    a, b, axes = data
+    np_result = np.tensordot(a, b, axes=axes)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b), axes=axes).to_numpy()
     assert_array_equal(np_result, ndx_result)
 
 
