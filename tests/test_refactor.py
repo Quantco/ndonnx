@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 import operator
@@ -139,10 +139,10 @@ def test_numerical_ops_with_ort_compat(dtype, values, fun):
     expected = fun(np_arr, np_arr)
 
     candidate = build_and_run(fun, np_arr, np_arr)
-    np.testing.assert_equal(candidate, expected)
+    np.testing.assert_array_equal(candidate, expected)
 
     candidate = constant_prop(fun, np_arr, np_arr)
-    np.testing.assert_equal(expected, candidate)
+    np.testing.assert_array_equal(expected, candidate)
 
 
 def test_indexing_shape():
@@ -159,7 +159,7 @@ def test_indexing_value_prop_scalar_index(np_array, idx):
     arr = ndx.asarray(np_array)
     assert arr[idx].shape == np_array[idx].shape
     assert arr[idx].dtype == arr.dtype
-    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+    np.testing.assert_array_equal(arr[idx].unwrap_numpy(), np_array[idx])
 
 
 @pytest.mark.parametrize("np_array", [np.asarray([[1, 2]]), np.asarray([1, 2])])
@@ -168,7 +168,7 @@ def test_indexing_value_prop_scalar_slice(np_array):
     idx = (slice(None, 1), ...)
     assert arr[idx].shape == np_array[idx].shape
     assert arr[idx].dtype == arr.dtype
-    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+    np.testing.assert_array_equal(arr[idx].unwrap_numpy(), np_array[idx])
 
 
 def test_indexing_value_prop_tuple_index():
@@ -178,7 +178,7 @@ def test_indexing_value_prop_tuple_index():
         el = arr[idx]
         assert el.shape == ()
         assert el.dtype == arr.dtype
-        np.testing.assert_equal(el.unwrap_numpy(), np_arr[idx])
+        np.testing.assert_array_equal(el.unwrap_numpy(), np_arr[idx])
 
 
 @pytest.mark.parametrize("idx", [(0, 1), (-1, ...), (..., 1), (-1, ..., 1)])
@@ -191,7 +191,7 @@ def test_indexing_setitem_scalar(np_array, idx):
     arr = ndx.asarray(np_array.copy())
     arr[idx] = -1
     np_array[idx] = -1
-    np.testing.assert_equal(arr.unwrap_numpy(), np_array)
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_array)
 
 
 @pytest.mark.parametrize(
@@ -209,10 +209,10 @@ def test_indexing_slicing(np_array, idx):
     np_array = np_array.copy()
     arr = ndx.asarray(np_array)
 
-    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+    np.testing.assert_array_equal(arr[idx].unwrap_numpy(), np_array[idx])
     arr[idx] = -1
     np_array[idx] = -1
-    np.testing.assert_equal(arr.unwrap_numpy(), np_array)
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_array)
 
 
 def test_indexing_assign_to_zero_dim():
@@ -220,10 +220,10 @@ def test_indexing_assign_to_zero_dim():
     arr = ndx.asarray(np_array)
 
     idx = ...
-    np.testing.assert_equal(arr[idx].unwrap_numpy(), np_array[idx])
+    np.testing.assert_array_equal(arr[idx].unwrap_numpy(), np_array[idx])
     arr[idx] = ndx.asarray(np_array)
     np_array[idx] = np_array.copy()
-    np.testing.assert_equal(arr.unwrap_numpy(), np_array)
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_array)
 
 
 @pytest.mark.parametrize("idx_list", ([[True, False], [False, True]], [True, False]))
@@ -237,7 +237,7 @@ def test_indexing_boolean_array(idx_list):
     update = 42.0
     np_arr[np_idx] = update
     arr[idx] = update
-    np.testing.assert_equal(arr.unwrap_numpy(), np_arr)
+    np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
 
 
 @pytest.mark.skip(reason="Unclear index type")
@@ -255,7 +255,7 @@ def test_indexing_boolean_array_equivalent_nonzero():
 
     np_arr[np.nonzero(np_idx)] = 42
 
-    np.testing.assert_equal(arr1.unwrap_numpy(), np_arr)
+    np.testing.assert_array_equal(arr1.unwrap_numpy(), np_arr)
 
 
 @pytest.mark.skip(reason="Indexing with integer arrays is not defined by the standard.")
@@ -433,6 +433,7 @@ def test_masked_where():
 
 @pytest.mark.parametrize("scalar", [True, False, 0, 1, 0.0, -0.0, np.float32(1)])
 def test_asarray_matches_numpy(scalar):
-    np.testing.assert_equal(
-        np.asarray(scalar), ndx.asarray(scalar).unwrap_numpy(), strict=True
+    is_np2 = np.__version__.startswith("2")
+    np.testing.assert_array_equal(
+        np.asarray(scalar), ndx.asarray(scalar).unwrap_numpy(), strict=is_np2
     )

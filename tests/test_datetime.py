@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
@@ -120,7 +120,7 @@ def test_comparisons(op, x, y, unit):
     desired = op(np_x, np_y)
     actual = op(ndx.asarray(np_x), ndx.asarray(np_y))
 
-    np.testing.assert_equal(actual.unwrap_numpy(), desired, strict=True)
+    np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
 
 
 def test_isnan():

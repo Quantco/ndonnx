@@ -337,7 +337,7 @@ def asarray(
         # Avoid adding an unnecessary cast into the graph
         return Array._from_tyarray(astyarray(obj, use_py_scalars=True).astype(dtype))
     elif isinstance(obj, bool):
-        obj = np.asarray(obj, dtype=np.bool)
+        obj = np.asarray(obj, dtype=np.bool_)
     elif isinstance(obj, int):
         obj = np.asarray(obj, dtype=np.int64)
     elif isinstance(obj, float):
