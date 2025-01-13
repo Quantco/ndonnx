@@ -148,6 +148,8 @@ def test_where(dtype):
 @pytest.mark.parametrize("min", [None, 0, 2, 5, "NaT"])
 @pytest.mark.parametrize("max", [None, 0, 2, 5, "NaT"])
 def test_clip(data, min, max):
+    if min is None and max is None:
+        pytest.skip("'clip' is not defined in NumPy if both 'min' and 'max' are 'None'")
     dtype = "datetime64[s]"
     np_arr = np.asarray(data, dtype=dtype)
     min = None if min is None else np.asarray(min, dtype=dtype)
