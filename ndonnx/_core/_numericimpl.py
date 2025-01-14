@@ -102,12 +102,16 @@ class _NumericOperationsImpl(OperationsBlock):
             return binary_op(
                 x, y, lambda a, b: opx.bit_shift(a, b, direction="RIGHT"), dtypes.uint64
             )
-        MAX_POW = 63
-        return ndx.where(
-            y >= MAX_POW,
-            ndx.where(x >= 0, 0, -1),
-            ndx.floor_divide(x, ndx.pow(ndx.asarray(2, ndx.int64), y)),
-        ).astype(x.dtype)
+        elif isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral)):
+            MAX_POW = 63
+            pow2 = ndx.pow(ndx.asarray(2, ndx.int64), ndx.where(y > MAX_POW, 0, y))
+            return ndx.where(
+                y >= MAX_POW,
+                ndx.where(x >= 0, 0, -1),
+                ndx.floor_divide(x, pow2),
+            ).astype(x.dtype)
+        else:
+            return NotImplemented
 
     @validate_core
     def bitwise_xor(self, x, y):

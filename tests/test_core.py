@@ -1043,3 +1043,21 @@ def test_argmaxmin_unsupported_kernels(func, x):
 
     with pytest.raises(TypeError):
         getattr(ndx, func.__name__)(ndx.asarray(x))
+
+
+@pytest.mark.parametrize(
+    "x, index",
+    [
+        (
+            ndx.asarray([1, 2, 3, 4, 5]),
+            ndx.asarray([[True, True, False, False, True]], dtype=ndx.bool),
+        ),
+        (
+            ndx.asarray([1, 2, 3, 4, 5]),
+            ndx.asarray([True, False, False, True], dtype=ndx.bool),
+        ),
+    ],
+)
+def test_getitem_bool_raises(x, index):
+    with pytest.raises(IndexError):
+        x[index]
