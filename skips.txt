@@ -2,3 +2,9 @@
 
 array_api_tests/test_manipulation_functions.py::test_roll
 array_api_tests/test_data_type_functions.py::test_broadcast_arrays
+
+# segmentation fault: https://github.com/onnx/onnx/pull/6570
+array_api_tests/test_manipulation_functions.py::test_repeat
+
+# segmentation fault: due to onnxruntime not handling einsum with dim 0
+array_api_tests/test_linalg.py::test_tensordot
