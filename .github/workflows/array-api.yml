@@ -38,8 +38,7 @@ jobs:
       - name: Run Array API tests (Scheduled)
         if: ${{ github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
         run: pixi run arrayapitests
-      - name: Run Array API tests (Push)
-        if: ${{ github.event_name == 'push' }}
+      - name: Run Array API tests (PR and main branch)
         run: pixi run arrayapitests --max-examples 16 --hypothesis-seed=0
       - name: Upload Array API tests report
         uses: actions/upload-artifact@v4
