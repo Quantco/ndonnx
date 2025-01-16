@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import pytest
@@ -10,7 +10,7 @@ def test_iter_for_loop():
     n = 5
     a = ndx.array(shape=(n,), dtype=ndx.int64)
 
-    for i, el in enumerate(a):  # type: ignore
+    for i, el in enumerate(a):
         assert isinstance(el, ndx.Array)
         if i > n:
             assert False, "Iterated past the number of elements"
