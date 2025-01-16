@@ -12,8 +12,7 @@ def test_iter_for_loop():
 
     for i, el in enumerate(a):
         assert isinstance(el, ndx.Array)
-        if i > n:
-            assert False, "Iterated past the number of elements"
+        assert i < n, "Iterated past the number of elements"
 
 
 @pytest.mark.parametrize(
