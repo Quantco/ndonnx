@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -547,7 +547,10 @@ def getitem(
 ) -> _CoreArray:
     if isinstance(index, _CoreArray):
         if get_dtype(index) == np.bool_:
-            if get_rank(corearray) < get_rank(index):
+            if get_rank(corearray) < get_rank(index) or any(
+                isinstance(xs, int) and isinstance(ks, int) and ks not in (xs, 0)
+                for xs, ks in zip(get_shape(corearray), get_shape(index))
+            ):
                 raise IndexError("Indexing with boolean array cannot happen")
             return getitem_null(corearray, index)
         else:

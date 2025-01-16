@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -60,6 +60,8 @@ class UniformShapeOperations(OperationsBlock):
         return x._transmute(lambda corearray: opx.expand(corearray, shape))
 
     def expand_dims(self, x, axis):
+        if axis < -x.ndim - 1 or axis > x.ndim:
+            raise IndexError(f"Axis must be in [-{x.ndim}, {x.ndim}]")
         return x._transmute(
             lambda corearray: opx.unsqueeze(
                 corearray, axes=opx.const([axis], dtype=dtypes.int64)
