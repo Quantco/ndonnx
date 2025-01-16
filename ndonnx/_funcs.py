@@ -85,7 +85,7 @@ def asarray(
         ret = x.copy() if copy is True else x
 
     if dtype is not None:
-        ret = ret.astype(dtype)
+        ret = astype(ret, dtype=dtype, copy=copy)
 
     return ret
 
