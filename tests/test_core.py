@@ -995,20 +995,23 @@ def test_no_unsafe_cumulative_sum_cast():
 
 
 @pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize("func", [np.argmax, np.argmin])
 @pytest.mark.parametrize(
-    "func, x",
+    "x",
     [
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int32)),
-        (np.argmax, np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int8)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
-        (np.argmin, np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int16)),
-        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int64)),
-        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int64)),
+        np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32),
+        np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32),
+        # Test all types
+        np.array([1, 2, 3, 4, 5], dtype=np.int8),
+        np.array([1, 2, 3, 4, 5], dtype=np.int16),
+        np.array([1, 2, 3, 4, 5], dtype=np.int32),
+        np.array([1, 2, 3, 4, 5], dtype=np.int64),
+        np.array([1, 2, 3, 4, 5], dtype=np.uint8),
+        np.array([1, 2, 3, 4, 5], dtype=np.uint16),
+        np.array([1, 2, 3, 4, 5], dtype=np.uint32),
+        # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.uint64)), -> onnxruntime
+        np.array([1, 2, 3, 4, 5], dtype=np.float32),
+        np.array([1, 2, 3, 4, 5], dtype=np.float64),
     ],
 )
 def test_argmaxmin(func, x, keepdims):
@@ -1017,3 +1020,21 @@ def test_argmaxmin(func, x, keepdims):
         ndx.asarray(x), keepdims=keepdims
     ).to_numpy()
     assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "x, index",
+    [
+        (
+            ndx.asarray([1, 2, 3, 4, 5]),
+            ndx.asarray([[True, True, False, False, True]], dtype=ndx.bool),
+        ),
+        (
+            ndx.asarray([1, 2, 3, 4, 5]),
+            ndx.asarray([True, False, False, True], dtype=ndx.bool),
+        ),
+    ],
+)
+def test_getitem_bool_raises(x, index):
+    with pytest.raises(IndexError):
+        x[index]
