@@ -1127,6 +1127,7 @@ def test_repeat_raises(a, repeats, axis):
     with pytest.raises(ValueError):
         ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
 
+
 @pytest.mark.parametrize(
     "x, index",
     [
