@@ -76,7 +76,9 @@ python = "3.11.*"
 python = "3.12.*"
 [feature.py313.dependencies]
 python = "3.13.*"
-
+[feature.np1x.dependencies]
+python = "3.11.*"
+numpy = "1.*"
 
 [environments]
 default = ["test", "lint"]
@@ -84,6 +86,7 @@ py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
 py313 = ["py313", "test"]
+np1x = ["np1x", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }
