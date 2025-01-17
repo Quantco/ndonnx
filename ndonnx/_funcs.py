@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -550,6 +550,16 @@ def matrix_transpose(x):
     return _unary(x.dtype._ops.matrix_transpose, x)
 
 
+def tensordot(x, y, /, *, axes=2):
+    if (out := x.dtype._ops.tensordot(x, y, axes)) is not NotImplemented:
+        return out
+    if (out := y.dtype._ops.tensordot(x, y, axes)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(
+        f"Unsupported operand type for tensordot: '{x.dtype}' and '{y.dtype}'"
+    )
+
+
 # indexing.py
 
 
@@ -628,6 +638,12 @@ def permute_dims(x, axes):
     raise UnsupportedOperationError(
         f"Unsupported operand type for permute_dims: '{x.dtype}'"
     )
+
+
+def repeat(x, repeats, /, *, axis=None):
+    if (out := x.dtype._ops.repeat(x, repeats, axis)) is not NotImplemented:
+        return out
+    raise UnsupportedOperationError(f"Unsupported operand type for repeat: '{x.dtype}'")
 
 
 def reshape(x, shape, *, copy=None):

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import builtins
 import typing
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TypeVar
 
 import numpy as np
@@ -438,6 +438,49 @@ def clip(input: _CoreArray, min: _CoreArray, max: _CoreArray) -> _CoreArray:
 @eager_propagate
 def matmul(a: _CoreArray, b: _CoreArray) -> _CoreArray:
     return _CoreArray(op.matmul(a.var, b.var))
+
+
+@eager_propagate
+def tensordot(
+    a: _CoreArray, b: _CoreArray, axes: int | tuple[Sequence[int], Sequence[int]] = 2
+) -> _CoreArray:
+    def letter():
+        for i in builtins.range(ord("a"), ord("z") + 1):
+            yield chr(i)
+        raise ValueError(
+            "Exceeded available letters for einsum equation in the implementation of 'tensordot': this means that the number of dimensions of 'a' and 'b' are too large"
+        )
+
+    letter_gen = letter()
+
+    if a.ndim == 0 or b.ndim == 0:
+        return _CoreArray(op.mul(a.var, b.var))
+
+    if isinstance(axes, int):
+        axes = (
+            [-axes + i for i in builtins.range(axes)],
+            [i for i in builtins.range(axes)],
+        )
+
+    axes_a, axes_b = axes
+
+    axes_a = [(ax + a.ndim) if ax < 0 else ax for ax in axes_a]
+    axes_b = [(bx + b.ndim) if bx < 0 else bx for bx in axes_b]
+
+    a_letters = [next(letter_gen) for _ in builtins.range(a.ndim)]
+
+    b_letters = [
+        a_letters[axes_a[axes_b.index(bx)]] if bx in axes_b else next(letter_gen)
+        for bx in builtins.range(b.ndim)
+    ]
+
+    joint_letters = [let for idx, let in enumerate(a_letters) if idx not in axes_a] + [
+        let for idx, let in enumerate(b_letters) if idx not in axes_b
+    ]
+
+    equation = f"{''.join(a_letters)},{''.join(b_letters)}->{''.join(joint_letters)}"
+
+    return _CoreArray(op.einsum([a.var, b.var], equation=equation))
 
 
 @eager_propagate

@@ -1046,6 +1046,89 @@ def test_argmaxmin_unsupported_kernels(func, x):
 
 
 @pytest.mark.parametrize(
+    "a, b, axes",
+    [
+        (
+            np.arange(60).reshape(3, 4, 5),
+            np.arange(24).reshape(4, 3, 2),
+            ([1, 0], [0, 1]),
+        ),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 2),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 0),
+        (np.arange(60).reshape(4, 5, 3), np.arange(60).reshape(4, 5, 3), 3),
+        (np.arange(5).reshape(5), np.arange(5).reshape(5), 1),
+        (np.arange(36).reshape(6, 6), np.arange(36).reshape(6, 6), 1),
+        (np.arange(24).reshape(3, 2, 4), np.arange(24).reshape(4, 2, 3), 1),
+        (np.arange(35).reshape(5, 7), np.arange(35).reshape(7, 5), 1),
+        (np.arange(35).reshape(7, 5), np.arange(35).reshape(7, 5), 2),
+        (np.arange(48).reshape(4, 3, 4), np.arange(48).reshape(4, 4, 3), 0),
+        (
+            np.arange(32).reshape(4, 4, 2),
+            np.arange(32).reshape(2, 4, 4),
+            ([2, 0], [0, 1]),
+        ),
+        (np.arange(30).reshape(3, 10), np.arange(20).reshape(10, 2), ([1], [0])),
+    ],
+)
+def test_tensordot(a, b, axes):
+    np_result = np.tensordot(a, b, axes=axes)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b), axes=axes).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3)),
+    ],
+)
+def test_tensordot_no_axes(a, b):
+    np_result = np.tensordot(a, b)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b)).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+# Current repeat does not work on the upstream arrayapi tests in the case
+# of an empty tensor as https://github.com/onnx/onnx/pull/6570 has not landed in onnx
+@pytest.mark.parametrize(
+    "a, repeats, axis",
+    [
+        (np.arange(60).reshape(3, 4, 5), 3, 0),
+        (np.arange(60).reshape(3, 4, 5), 3, 1),
+        (np.arange(60).reshape(3, 4, 5), 3, 2),
+        (np.arange(60).reshape(3, 4, 5), 3, None),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 0),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 1),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 2),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), None),
+        (np.arange(60).reshape(3, 4, 5), np.arange(3), 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(4), 1),
+        (np.arange(60).reshape(3, 4, 5), np.arange(5), 2),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60), None),
+    ],
+)
+def test_repeat(a, repeats, axis):
+    np_result = np.repeat(a, repeats, axis=axis)
+    if not isinstance(repeats, int):
+        repeats = ndx.asarray(repeats)
+    ndx_result = ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, repeats, axis",
+    [
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 4, 5]), 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 20]), None),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([2, 3, 2, 5]), None),
+    ],
+)
+def test_repeat_raises(a, repeats, axis):
+    with pytest.raises(ValueError):
+        ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
+
+
+@pytest.mark.parametrize(
     "x, index",
     [
         (
