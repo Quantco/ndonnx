@@ -95,15 +95,23 @@ class _NumericOperationsImpl(OperationsBlock):
     def bitwise_or(self, x, y):
         return binary_op(x, y, opx.bitwise_or)
 
-    # TODO: ONNX standard -> not cyclic
     @validate_core
     def bitwise_right_shift(self, x, y):
-        return binary_op(
-            x,
-            y,
-            lambda x, y: opx.bit_shift(x, y, direction="RIGHT"),
-            dtypes.uint64,
-        )
+        # Since we need to perform arithmetic right-shift we have to be a bit more careful
+        if isinstance(x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+            return binary_op(
+                x, y, lambda a, b: opx.bit_shift(a, b, direction="RIGHT"), dtypes.uint64
+            )
+        elif isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral)):
+            MAX_POW = 63
+            pow2 = ndx.pow(ndx.asarray(2, ndx.int64), ndx.where(y > MAX_POW, 0, y))
+            return ndx.where(
+                y >= MAX_POW,
+                ndx.where(x >= 0, 0, -1),
+                ndx.floor_divide(x, pow2),
+            ).astype(x.dtype)
+        else:
+            return NotImplemented
 
     @validate_core
     def bitwise_xor(self, x, y):
@@ -271,7 +279,7 @@ class _NumericOperationsImpl(OperationsBlock):
     def pow(self, x, y):
         x, y = ndx.asarray(x), ndx.asarray(y)
         dtype = ndx.result_type(x, y)
-        if isinstance(dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
+        if isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)):
             return binary_op(x, y, opx.pow, dtypes.int64)
         else:
             return binary_op(x, y, opx.pow)
@@ -852,6 +860,7 @@ class _NumericOperationsImpl(OperationsBlock):
             x = ndx.where(x.null, True, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(True, dtype=ndx.bool)
+        x = x.astype(ndx.bool)
         return ndx.min(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
             ndx.bool
         )
@@ -862,6 +871,7 @@ class _NumericOperationsImpl(OperationsBlock):
             x = ndx.where(x.null, False, x.values)
         if functools.reduce(operator.mul, x._static_shape, 1) == 0:
             return ndx.asarray(False, dtype=ndx.bool)
+        x = x.astype(ndx.bool)
         return ndx.max(x.astype(ndx.int8), axis=axis, keepdims=keepdims).astype(
             ndx.bool
         )
