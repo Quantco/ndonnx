@@ -1085,7 +1085,6 @@ def test_tensordot_no_axes(a, b):
 
 # Current repeat does not work on the upstream arrayapi tests in the case
 # of an empty tensor as https://github.com/onnx/onnx/pull/6570 has not landed in onnx
-@pytest.mark.parametrize("lazy_repeats", [False, True])
 @pytest.mark.parametrize(
     "a, repeats, axis",
     [
@@ -1093,15 +1092,19 @@ def test_tensordot_no_axes(a, b):
         (np.arange(60).reshape(3, 4, 5), 3, 1),
         (np.arange(60).reshape(3, 4, 5), 3, 2),
         (np.arange(60).reshape(3, 4, 5), 3, None),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 0),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 1),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 2),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), None),
         (np.arange(60).reshape(3, 4, 5), np.arange(3), 0),
         (np.arange(60).reshape(3, 4, 5), np.arange(4), 1),
         (np.arange(60).reshape(3, 4, 5), np.arange(5), 2),
         (np.arange(60).reshape(3, 4, 5), np.arange(60), None),
     ],
 )
-def test_repeat(a, repeats, axis, lazy_repeats):
+def test_repeat(a, repeats, axis):
     np_result = np.repeat(a, repeats, axis=axis)
-    if lazy_repeats or not isinstance(repeats, int):
+    if not isinstance(repeats, int):
         repeats = ndx.asarray(repeats)
     ndx_result = ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
     assert_array_equal(np_result, ndx_result)
