@@ -324,7 +324,7 @@ class TyArrayTimeDelta(TimeBaseArray):
         data = self.data.unwrap_numpy()
 
         out = data.astype(f"timedelta64[{self.dtype.unit}]")
-        out[is_nat] = np.array("NaT", "timedelta64")
+        out[is_nat] = np.array("NaT", out.dtype)
         return out
 
     def __add__(self, rhs: TyArrayBase) -> TyArrayTimeDelta:
@@ -536,7 +536,10 @@ def _apply_op(
     else:
         data_ = op(other_data, this.data)
     data = cast(onnx.TyArrayInt64, data_)
-    return type(this)(is_nat=this.is_nat, data=data, unit=this.dtype.unit)
+    is_nat = this.is_nat
+    if isinstance(other, TyArrayTimeDelta):
+        is_nat = safe_cast(onnx.TyArrayBool, is_nat | other.is_nat)
+    return type(this)(is_nat=is_nat, data=data, unit=this.dtype.unit)
 
 
 def _coerce_other(

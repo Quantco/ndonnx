@@ -19,14 +19,13 @@ def test_value_prop_datetime():
 
 
 def test_arithmetic():
-    arr = ndx.Array(shape=("N",), dtype=ndx.DateTime("s"))
+    arr_np = np.array([1, 2, "NaT"], "datetime64[s]")
+    arr = ndx.asarray(arr_np)
     one_s_td = (arr + 1) - arr
+    one_s_td_np = (arr_np + 1) - arr_np
+
     assert one_s_td.dtype == ndx.TimeDelta("s")
-
-    ten_s_td = one_s_td * 10
-
-    res = arr + ten_s_td
-    assert res.dtype == ndx.DateTime("s")
+    np.testing.assert_array_equal(one_s_td.unwrap_numpy(), one_s_td_np, strict=True)
 
 
 @pytest.mark.parametrize("unit", ["s", "ns"])
@@ -65,6 +64,7 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype, op):
         operator.add,
         operator.sub,
         operator.mul,
+        # operator.truediv
     ],
 )
 def test_arithmetic_pyscalar_timedelta(op):
