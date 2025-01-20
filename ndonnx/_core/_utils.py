@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
@@ -168,7 +168,7 @@ def via_upcast(
             via_dtype = int_dtype
         else:
             raise TypeError(
-                f"Can't upcast unsigned type `{dtype}`. Available implementations are for `{*available_types,}`"
+                f"Can't upcast unsigned type `{dtype}`. Available implementations are for `{(*available_types,)}`"
             )
     elif isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
         dtypes.nbool,
@@ -178,7 +178,7 @@ def via_upcast(
             via_dtype = int_dtype
         else:
             raise TypeError(
-                f"Can't upcast signed type `{dtype}`. Available implementations are for `{*available_types,}`"
+                f"Can't upcast signed type `{dtype}`. Available implementations are for `{(*available_types,)}`"
             )
     elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
         if (
@@ -188,7 +188,7 @@ def via_upcast(
             via_dtype = float_dtype
         else:
             raise TypeError(
-                f"Can't upcast float type `{dtype}`. Available implementations are for `{*available_types,}`"
+                f"Can't upcast float type `{dtype}`. Available implementations are for `{(*available_types,)}`"
             )
     else:
         raise TypeError(f"Expected numerical data type, found {dtype}")

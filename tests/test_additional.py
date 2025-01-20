@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import sys
@@ -155,7 +155,7 @@ def test_static_map_unimplemented_for_nullable():
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win"),
+    sys.platform.startswith("win") and np.__version__ < "2",
     reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
 )
 def test_isin():
