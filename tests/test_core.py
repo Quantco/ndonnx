@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -952,9 +951,10 @@ def test_no_unsafe_cumulative_sum_cast():
         np.array([1, 2, 3, 4, 5], dtype=np.int8),
         np.array([1, 2, 3, 4, 5], dtype=np.int16),
         np.array([1, 2, 3, 4, 5], dtype=np.int32),
-        np.array([1, 2, 3, 4, 5], dtype=np.int32),
+        np.array([1, 2, 3, 4, 5], dtype=np.int64),
         np.array([1, 2, 3, 4, 5], dtype=np.uint8),
         np.array([1, 2, 3, 4, 5], dtype=np.uint16),
+        np.array([1, 2, 3, 4, 5], dtype=np.uint32),
         # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.uint64)), -> onnxruntime
         np.array([1, 2, 3, 4, 5], dtype=np.float32),
         np.array([1, 2, 3, 4, 5], dtype=np.float64),
@@ -966,29 +966,6 @@ def test_argmaxmin(func, x, keepdims):
         ndx.asarray(x), keepdims=keepdims
     ).to_numpy()
     assert_array_equal(np_result, ndx_result)
-
-
-# Pending ORT 1.19 conda-forge release before this becomes supported:
-# https://github.com/conda-forge/onnxruntime-feedstock/pull/128
-@pytest.mark.parametrize("func", [np.argmax, np.argmin])
-@pytest.mark.parametrize(
-    "x",
-    [
-        np.array([1, 2, 3, 4, 5], dtype=np.int64),
-        # np.array([1, 2, 3, 4, 5], dtype=np.uint32), -> onnxruntime
-    ],
-)
-def test_argmaxmin_unsupported_kernels(func, x):
-    import onnxruntime as ort
-
-    if ort.__version__.startswith("19"):
-        warnings.warn(
-            "Please remove this test and update `argmax` and `argmin` to reflect expanded kernel support.",
-            Warning,
-        )
-
-    with pytest.raises(TypeError):
-        getattr(ndx, func.__name__)(ndx.asarray(x))
 
 
 @pytest.mark.parametrize(
