@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -205,6 +205,9 @@ class OperationsBlock:
     def matrix_transpose(self, x) -> ndx.Array:
         return NotImplemented
 
+    def tensordot(self, x, y) -> ndx.Array:
+        return NotImplemented
+
     # searching.py
 
     def argmax(self, x, axis=None, keepdims=False) -> ndx.Array:
@@ -340,6 +343,9 @@ class OperationsBlock:
         return NotImplemented
 
     def reshape(self, x, shape, *, copy=None) -> ndx.Array:
+        return NotImplemented
+
+    def repeat(self, x, repeats, axis=None) -> ndx.Array:
         return NotImplemented
 
     def roll(self, x, shift, axis) -> ndx.Array:

@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import importlib.metadata
@@ -127,10 +127,12 @@ from ._funcs import (
     trunc,
     matmul,
     matrix_transpose,
+    tensordot,
     concat,
     expand_dims,
     flip,
     permute_dims,
+    repeat,
     reshape,
     roll,
     squeeze,
@@ -263,10 +265,12 @@ __all__ = [
     "trunc",
     "matmul",
     "matrix_transpose",
+    "tensordot",
     "concat",
     "expand_dims",
     "flip",
     "permute_dims",
+    "repeat",
     "reshape",
     "roll",
     "squeeze",

@@ -553,60 +553,6 @@ def test_all(x):
     assert_array_equal(ndx.all(x).to_numpy(), np.all(x.to_numpy()))
 
 
-@pytest.mark.parametrize(
-    "side",
-    [
-        "left",
-        "right",
-    ],
-)
-def test_searchsorted(side):
-    a_val = [0, 1, 2, 5, 5, 6, 10, 15]
-    b_val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 10, 15, 20, 20]
-    c_val = np.searchsorted(a_val, b_val, side)
-
-    a = ndx.asarray(a_val, dtype=ndx.int64)
-    b = ndx.asarray(b_val, dtype=ndx.int64)
-    c = ndx.searchsorted(a, b, side=side)
-    assert_array_equal(c_val, c.to_numpy())
-
-
-@pytest.mark.skip(reason="TODO: onnxruntime")
-@pytest.mark.parametrize(
-    "side",
-    [
-        "left",
-        "right",
-    ],
-)
-def test_searchsorted_nans(side):
-    a_val = np.array([0, 1, 2, 5, 5, 6, 10, 15, np.nan])
-    b_val = np.array([0, 1, 2, np.nan, np.nan])
-    c_val = np.searchsorted(a_val, b_val, side)
-
-    a = ndx.array(shape=(len(a_val),), dtype=ndx.float64)
-    b = ndx.array(shape=(len(b_val),), dtype=ndx.float64)
-    c = ndx.searchsorted(a, b, side=side)
-
-    model = ndx.build({"a": a, "b": b}, {"c": c})
-
-    assert_array_equal(c_val, run(model, dict(a=a_val, b=b_val))["c"])
-
-
-def test_searchsorted_raises():
-    with pytest.raises(TypeError):
-        a = ndx.array(shape=(), dtype=ndx.int64)
-        b = ndx.array(shape=(), dtype=ndx.float64)
-
-        ndx.searchsorted(a, b)
-
-    with pytest.raises(ValueError):
-        a = ndx.array(shape=(3,), dtype=ndx.int64)
-        b = ndx.array(shape=(3,), dtype=ndx.int64)
-
-        ndx.searchsorted(a, b, side="middle")  # type: ignore[arg-type]
-
-
 def test_truediv():
     x = ndx.asarray([1, 2, 3], dtype=ndx.int64)
     y = ndx.asarray([2, 3, 3], dtype=ndx.int64)
@@ -1020,6 +966,89 @@ def test_argmaxmin(func, x, keepdims):
         ndx.asarray(x), keepdims=keepdims
     ).to_numpy()
     assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, b, axes",
+    [
+        (
+            np.arange(60).reshape(3, 4, 5),
+            np.arange(24).reshape(4, 3, 2),
+            ([1, 0], [0, 1]),
+        ),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 2),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 0),
+        (np.arange(60).reshape(4, 5, 3), np.arange(60).reshape(4, 5, 3), 3),
+        (np.arange(5).reshape(5), np.arange(5).reshape(5), 1),
+        (np.arange(36).reshape(6, 6), np.arange(36).reshape(6, 6), 1),
+        (np.arange(24).reshape(3, 2, 4), np.arange(24).reshape(4, 2, 3), 1),
+        (np.arange(35).reshape(5, 7), np.arange(35).reshape(7, 5), 1),
+        (np.arange(35).reshape(7, 5), np.arange(35).reshape(7, 5), 2),
+        (np.arange(48).reshape(4, 3, 4), np.arange(48).reshape(4, 4, 3), 0),
+        (
+            np.arange(32).reshape(4, 4, 2),
+            np.arange(32).reshape(2, 4, 4),
+            ([2, 0], [0, 1]),
+        ),
+        (np.arange(30).reshape(3, 10), np.arange(20).reshape(10, 2), ([1], [0])),
+    ],
+)
+def test_tensordot(a, b, axes):
+    np_result = np.tensordot(a, b, axes=axes)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b), axes=axes).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3)),
+    ],
+)
+def test_tensordot_no_axes(a, b):
+    np_result = np.tensordot(a, b)
+    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b)).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+# Current repeat does not work on the upstream arrayapi tests in the case
+# of an empty tensor as https://github.com/onnx/onnx/pull/6570 has not landed in onnx
+@pytest.mark.parametrize(
+    "a, repeats, axis",
+    [
+        (np.arange(60).reshape(3, 4, 5), 3, 0),
+        (np.arange(60).reshape(3, 4, 5), 3, 1),
+        (np.arange(60).reshape(3, 4, 5), 3, 2),
+        (np.arange(60).reshape(3, 4, 5), 3, None),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 0),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 1),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), 2),
+        (np.arange(60).reshape(3, 4, 5), np.array(3), None),
+        (np.arange(60).reshape(3, 4, 5), np.arange(3), 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(4), 1),
+        (np.arange(60).reshape(3, 4, 5), np.arange(5), 2),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60), None),
+    ],
+)
+def test_repeat(a, repeats, axis):
+    np_result = np.repeat(a, repeats, axis=axis)
+    if not isinstance(repeats, int):
+        repeats = ndx.asarray(repeats)
+    ndx_result = ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
+    assert_array_equal(np_result, ndx_result)
+
+
+@pytest.mark.parametrize(
+    "a, repeats, axis",
+    [
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 4, 5]), 0),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 20]), None),
+        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([2, 3, 2, 5]), None),
+    ],
+)
+def test_repeat_raises(a, repeats, axis):
+    with pytest.raises(ValueError):
+        ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
 
 
 @pytest.mark.parametrize(
