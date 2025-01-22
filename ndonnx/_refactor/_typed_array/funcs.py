@@ -9,37 +9,34 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import numpy as np
 from spox import Var
 
-import ndonnx._refactor as ndx
-
+from .._dtypes import DType
 from .typed_array import TyArrayBase
 from .utils import promote, safe_cast
 
 if TYPE_CHECKING:
     from .. import Array
-    from .._dtypes import TY_ARRAY_BASE, DType
+    from .._dtypes import TY_ARRAY_BASE
     from . import onnx
+
+
+_PyScalar = bool | int | float | str
 
 
 @overload
 def astyarray(
-    val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
-    dtype: DType[TY_ARRAY_BASE],
-    use_py_scalars=False,
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: DType[TY_ARRAY_BASE]
 ) -> TY_ARRAY_BASE: ...
 
 
 @overload
 def astyarray(
-    val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
-    dtype: None | DType = None,
-    use_py_scalars=False,
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: None | DType = None
 ) -> TyArrayBase: ...
 
 
 def astyarray(
-    val: bool | int | float | str | np.ndarray | TyArrayBase | Var | Array,
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array,
     dtype: None | DType[TY_ARRAY_BASE] = None,
-    use_py_scalars=False,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
@@ -48,32 +45,25 @@ def astyarray(
     from .. import Array
     from . import TyArrayBase, masked_onnx, onnx
     from .date_time import DateTime, TimeDelta, validate_unit
-    from .py_scalars import TyArrayPyBool, TyArrayPyFloat, TyArrayPyInt, TyArrayPyString
 
     if isinstance(val, np.generic):
         val = np.array(val)
 
     if isinstance(val, TyArrayBase):
-        return val.copy()
+        return val.copy() if dtype is None else val.astype(dtype).copy()
 
     if isinstance(val, Array):
         return val._tyarray.copy()
 
     arr: TyArrayBase
-    if isinstance(val, bool):
-        arr = TyArrayPyBool(val)
-        arr = arr if use_py_scalars else arr.astype(ndx.bool)
-    elif isinstance(val, int):
-        arr = TyArrayPyInt(val)
-        arr = arr if use_py_scalars else arr.astype(ndx._default_int)
-    elif isinstance(val, float):
-        arr = TyArrayPyFloat(val)
-        arr = arr if use_py_scalars else arr.astype(ndx._default_float)
-    elif isinstance(val, str):
-        arr = TyArrayPyString(val)
-        arr = arr if use_py_scalars else arr.astype(ndx.utf8)
+    if isinstance(val, _PyScalar):
+        if dtype is None:
+            return onnx.const(val)
+        return onnx.const(val).astype(dtype)
     elif isinstance(val, Var):
         arr = onnx.ascoredata(val)
+        if dtype is not None:
+            arr = arr.astype(dtype)
     elif isinstance(val, np.ma.MaskedArray):
         data = safe_cast(onnx.TyArray, astyarray(val.data))
         if val.mask is np.ma.nomask:
@@ -136,29 +126,45 @@ def result_type(first: DType, *others: DType) -> DType: ...
 
 
 @overload
-def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType: ...
+def result_type(
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | _PyScalar
+) -> DType: ...
 
 
-def result_type(first: TyArrayBase | DType, *others: TyArrayBase | DType) -> DType:
+def result_type(
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | _PyScalar
+) -> DType:
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
-    return _result_dtype(get_dtype(first), *(get_dtype(el) for el in others))
+    def get_dtype_or_scalar(obj: TyArrayBase | DType | _PyScalar) -> DType | _PyScalar:
+        if isinstance(obj, _PyScalar):
+            return obj
+        if isinstance(obj, TyArrayBase):
+            return obj.dtype
+        return obj
+
+    if len(others) == 0:
+        return get_dtype(first)
+
+    return _result_dtype(get_dtype(first), *(get_dtype_or_scalar(el) for el in others))
 
 
-def _result_dtype(first: DType, *others: DType) -> DType:
-    def result_binary(a: DType, b: DType) -> DType:
+def _result_dtype(first: DType, *others: DType | _PyScalar) -> DType:
+    def result_binary(a: DType, b: DType | _PyScalar) -> DType:
         if a == b:
             return a
         res1 = a.__ndx_result_type__(b)
         if res1 != NotImplemented:
             return res1
-        res2 = b.__ndx_result_type__(a)
-        if res2 != NotImplemented:
-            return res2
-        raise TypeError(f"no common type found for `{a}` and `{b}`")
+        if not isinstance(b, _PyScalar):
+            res2 = b.__ndx_result_type__(a)
+            if res2 != NotImplemented:
+                return res2
+        b_ty = b if isinstance(b, DType) else type(b)
+        raise TypeError(f"no common type found for `{a}` and `{b_ty}`")
 
     return reduce(result_binary, others, first)
 

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 
 _N_MAX_CATEGORIES = np.iinfo(np.uint16).max
+_PyScalar = bool | int | float | str
 
 
 class CategoricalDType(DType["CategoricalArray"]):
@@ -71,7 +72,9 @@ class CategoricalDType(DType["CategoricalArray"]):
 
         return CategoricalArray(codes=codes, dtype=self)
 
-    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(
+        self, other: DType | _PyScalar
+    ) -> DType | NotImplementedType:
         return NotImplemented
 
     def __repr__(self) -> str:
@@ -196,9 +199,14 @@ class CategoricalArray(TyArrayBase):
 
         return cats.astype(dtype)
 
-    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+    def _eqcomp(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:  # type: ignore
         from .._infos import iinfo
         from .funcs import astyarray
+
+        if isinstance(other, _PyScalar):
+            if isinstance(other, bool | int | float):
+                return NotImplemented
+            other = astyarray(other, dtype=onnx.utf8)
 
         if other.dtype == onnx.utf8:
             return self == other.astype(self.dtype)

@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Copyright (c) QuantCo 2023-2024
@@ -26,10 +26,11 @@ if TYPE_CHECKING:
 
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
+_PyScalar = bool | int | float | str
 
 
 def _make_binary(
-    tyarr_op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
+    tyarr_op: Callable[[TyArrayBase | _PyScalar, TyArrayBase | _PyScalar], TyArrayBase],
 ) -> tuple[_BinaryOp, _BinaryOp]:
     def binary_op_forward(self, other):
         return _apply_op(self, other, tyarr_op)
@@ -69,7 +70,7 @@ class Array:
         if isinstance(value, np.ndarray):
             raise NotImplementedError
         if isinstance(value, int | float):
-            ty_arr = astyarray(value, use_py_scalars=False, dtype=dtype)
+            ty_arr = astyarray(value, dtype=dtype)
             self._tyarray = ty_arr
             return
 
@@ -335,7 +336,7 @@ def asarray(
         return obj
     elif isinstance(obj, bool | int | float) and dtype is not None:
         # Avoid adding an unnecessary cast into the graph
-        return Array._from_tyarray(astyarray(obj, use_py_scalars=True).astype(dtype))
+        return Array._from_tyarray(astyarray(obj, dtype=dtype))
     elif isinstance(obj, bool):
         obj = np.asarray(obj, dtype=np.bool_)
     elif isinstance(obj, int):
@@ -371,23 +372,24 @@ def _asarray_sequence(
     return concat(arrays)
 
 
-def _as_array(
-    val: int | float | str | Array | Var | np.ndarray, use_py_scalars=False
-) -> Array:
+def _astyarray_or_pyscalar(
+    val: int | float | str | Array | Var | np.ndarray,
+) -> TyArrayBase | int | float | str:
     if isinstance(val, Array):
+        return val._tyarray
+    if isinstance(val, int | float | str):
         return val
-    ty_arr = astyarray(val, use_py_scalars=use_py_scalars)
-    return Array._from_tyarray(ty_arr)
+    return astyarray(val)
 
 
 def _apply_op(
-    lhs: int | float | str | Array,
-    rhs: int | float | str | Array,
-    op: Callable[[TyArrayBase, TyArrayBase], TyArrayBase],
+    lhs: _PyScalar | Array,
+    rhs: _PyScalar | Array,
+    op: Callable[[TyArrayBase | _PyScalar, TyArrayBase | _PyScalar], TyArrayBase],
 ) -> Array | NotImplementedType:
-    lhs = _as_array(lhs, use_py_scalars=True)
-    rhs = _as_array(rhs, use_py_scalars=True)
-    data = op(lhs._tyarray, rhs._tyarray)
+    lhs_ = _astyarray_or_pyscalar(lhs)
+    rhs_ = _astyarray_or_pyscalar(rhs)
+    data = op(lhs_, rhs_)
     if data is not NotImplemented:
         return Array._from_tyarray(data)
 

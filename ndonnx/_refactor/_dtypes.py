@@ -18,11 +18,14 @@ if TYPE_CHECKING:
 
 
 TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
+_Py_Scalar = bool | int | float | str
 
 
 class DType(ABC, Generic[TY_ARRAY_BASE]):
     @abstractmethod
-    def __ndx_result_type__(self, other: DType) -> DType | NotImplementedType: ...
+    def __ndx_result_type__(
+        self, other: DType | _Py_Scalar
+    ) -> DType | NotImplementedType: ...
 
     @property
     @abstractmethod

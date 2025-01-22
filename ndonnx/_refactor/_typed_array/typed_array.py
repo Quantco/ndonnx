@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from .indexing import GetitemIndex, SetitemIndex
     from .onnx import KEY, VALUE, TyArrayBool, TyArrayInt64, TyArrayInteger
 
+_PyScalar = bool | int | float | str
+
 
 class TyArrayBase(ABC):
     dtype: DType[Self]
@@ -107,7 +109,9 @@ class TyArrayBase(ABC):
 
     # TODO: Make this a __ndx_*__ method
     @abstractmethod
-    def _eqcomp(self, other: TyArrayBase) -> TyArrayBase | NotImplementedType:
+    def _eqcomp(
+        self, other: TyArrayBase | _PyScalar
+    ) -> TyArrayBase | NotImplementedType:
         """Implementation of equal-comparison.
 
         '__eq__' has special semantics compared to other dunder methods.
@@ -501,98 +505,65 @@ class TyArrayBase(ABC):
     def __invert__(self) -> Self:
         raise _make_type_error("__invert__", self.dtype)
 
-    def __add__(self, other) -> TyArrayBase:
+    def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __radd__(self, other) -> TyArrayBase:
+    def __and__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __and__(self, other) -> TyArrayBase:
+    def __floordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rand__(self, other) -> TyArrayBase:
+    def __ge__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __floordiv__(self, other) -> TyArrayBase:
+    def __gt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rfloordiv__(self, other) -> TyArrayBase:
+    def __le__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __ge__(self, other) -> TyArrayBase:
+    def __lshift__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __gt__(self, other) -> TyArrayBase:
+    def __lt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __le__(self, other) -> TyArrayBase:
+    def __mod__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __lshift__(self, other) -> TyArrayBase:
+    def __mul__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rlshift__(self, other) -> TyArrayBase:
+    def __or__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __lt__(self, other) -> TyArrayBase:
+    def __pow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __mod__(self, other) -> TyArrayBase:
+    def __rshift__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rmod__(self, other) -> TyArrayBase:
+    def __sub__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __mul__(self, other) -> TyArrayBase:
+    def __truediv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rmul__(self, other) -> TyArrayBase:
+    def __xor__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __or__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __ror__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __pow__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __rpow__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __rshift__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __rrshift__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __sub__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __rsub__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __truediv__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __rtruediv__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __xor__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __rxor__(self, other) -> TyArrayBase:
-        return NotImplemented
-
-    def __ne__(self, other) -> TyArrayBase:  # type: ignore
+    def __ne__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:  # type: ignore
         return ~(self == other)
 
     # mypy believes that __eq__ should return a `bool` but the docs say we can return whatever:
     # https://docs.python.org/3/reference/datamodel.html#object.__eq__
-    def __eq__(self, other) -> TyArrayBase:  # type: ignore
+    def __eq__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:  # type: ignore
+        if not isinstance(other, TyArrayBase | _PyScalar):
+            return False
+
         res = self._eqcomp(other)
-        if res is NotImplemented:
+        if res is NotImplemented and isinstance(other, TyArrayBase):
             res = other._eqcomp(self)
         if res is NotImplemented:
             raise ValueError(
@@ -604,22 +575,22 @@ class TyArrayBase(ABC):
     # Note: Prefixed with `__ndx_` to avoid naming collisions with
     # possible future Python dunder methods
 
-    def __ndx_logical_and__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+    def __ndx_logical_and__(self, rhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
-    def __ndx_rlogical_and__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+    def __ndx_rlogical_and__(self, lhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
-    def __ndx_logical_or__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+    def __ndx_logical_or__(self, rhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
-    def __ndx_rlogical_or__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+    def __ndx_rlogical_or__(self, lhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
-    def __ndx_logical_xor__(self, rhs: TyArrayBase, /) -> TyArrayBase:
+    def __ndx_logical_xor__(self, rhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
-    def __ndx_rlogical_xor__(self, lhs: TyArrayBase, /) -> TyArrayBase:
+    def __ndx_rlogical_xor__(self, lhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
     def __ndx_where__(
@@ -633,12 +604,12 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __ndx_maximum__(
-        self, other: TyArrayBase, /
+        self, other: TyArrayBase | _PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
     def __ndx_minimum__(
-        self, other: TyArrayBase, /
+        self, other: TyArrayBase | _PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 

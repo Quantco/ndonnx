@@ -9,9 +9,9 @@ if TYPE_CHECKING:
     from . import TyArrayBase
     from .masked_onnx import TyMaArray
     from .onnx import TyArray
-    from .py_scalars import _ArrayPyScalar
 
 T = TypeVar("T")
+_PyScalar = bool | int | float | str
 
 
 @overload
@@ -19,27 +19,31 @@ def promote(lhs: TyArray, *others: TyArray) -> tuple[TyArray, ...]: ...
 
 
 @overload
-def promote(
-    lhs: TyArray | _ArrayPyScalar, *others: TyArray | _ArrayPyScalar
-) -> tuple[TyArray, ...]: ...
+def promote(lhs: TyArray, *others: TyArray | _PyScalar) -> tuple[TyArray, ...]: ...
 
 
 @overload
 def promote(
-    lhs: TyArray | TyMaArray | _ArrayPyScalar,
-    *others: TyArray | TyMaArray | _ArrayPyScalar,
+    lhs: TyArray | TyMaArray,
+    *others: TyArray | TyMaArray | _PyScalar,
 ) -> tuple[TyArray | TyMaArray, ...]: ...
 
 
 @overload
-def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase, ...]: ...
+def promote(
+    lhs: TyArrayBase, *others: TyArrayBase | _PyScalar
+) -> tuple[TyArrayBase, ...]: ...
 
 
-def promote(lhs: TyArrayBase, *others: TyArrayBase) -> tuple[TyArrayBase, ...]:
-    from .funcs import result_type
+def promote(
+    lhs: TyArrayBase, *others: TyArrayBase | _PyScalar
+) -> tuple[TyArrayBase, ...]:
+    from .funcs import astyarray, result_type
 
     res_type = result_type(lhs, *others)
-    return tuple([lhs.astype(res_type)] + [other.astype(res_type) for other in others])
+    return tuple(
+        [lhs.astype(res_type)] + [astyarray(other, dtype=res_type) for other in others]
+    )
 
 
 def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:

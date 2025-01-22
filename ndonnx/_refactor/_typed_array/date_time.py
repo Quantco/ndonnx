@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 """Implementation of "custom" datetime-related data types."""
 
@@ -12,7 +12,7 @@ import numpy as np
 
 from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
-from . import onnx, py_scalars
+from . import onnx
 from .funcs import astyarray, where
 from .typed_array import TyArrayBase
 from .utils import safe_cast
@@ -32,8 +32,10 @@ if TYPE_CHECKING:
 
 Unit = Literal["ns", "s"]
 
-_NAT_SENTINEL = py_scalars.TyArrayPyInt(np.iinfo(np.int64).min)
+_NAT_SENTINEL = onnx.const(np.iinfo(np.int64).min).astype(onnx.int64)
 BASE_DT_ARRAY = TypeVar("BASE_DT_ARRAY", bound="TimeBaseArray")
+
+_PyScalar = bool | int | float | str
 
 
 class BaseTimeDType(DType[BASE_DT_ARRAY]):
@@ -49,15 +51,15 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         elif isinstance(arr, onnx.TyArrayFloating):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
             is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL | arr.isnan())
-        elif isinstance(arr, py_scalars.TyArrayPyInt):
-            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
-            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
+        # elif isinstance(arr, py_scalars.TyArrayPyInt):
+        #     data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
+        #     is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
         else:
             return NotImplemented
         return self._tyarr_class(is_nat=is_nat, data=data, unit=self.unit)
 
-    def __ndx_result_type__(self, other: DType) -> DType:
-        if isinstance(other, py_scalars.PyInteger):
+    def __ndx_result_type__(self, other: DType | _PyScalar) -> DType:
+        if isinstance(other, int):
             return self
         return NotImplemented
 
@@ -81,8 +83,6 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         stop: int | float,
         step: int | float = 1,
     ) -> BASE_DT_ARRAY:
-        from .funcs import astyarray
-
         data = onnx.int64._arange(start, stop, step)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
@@ -95,8 +95,6 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         *,
         k: int = 0,
     ) -> BASE_DT_ARRAY:
-        from .funcs import astyarray
-
         data = onnx.int64._eye(n_rows, n_cols, k=k)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
@@ -221,7 +219,7 @@ class TimeBaseArray(TyArrayBase):
     def isnan(self) -> onnx.TyArrayBool:
         return self.is_nat
 
-    def __ndx_maximum__(self, rhs: TyArrayBase) -> TyArrayBase:
+    def __ndx_maximum__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayBase:
         from .funcs import maximum
 
         if not isinstance(rhs, type(self)):
@@ -233,7 +231,7 @@ class TimeBaseArray(TyArrayBase):
         is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
-    def __ndx_minimum__(self, rhs: TyArrayBase) -> TyArrayBase:
+    def __ndx_minimum__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayBase:
         from .funcs import minimum
 
         if not isinstance(rhs, type(self)):
@@ -327,28 +325,28 @@ class TyArrayTimeDelta(TimeBaseArray):
         out[is_nat] = np.array("NaT", out.dtype)
         return out
 
-    def __add__(self, rhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __add__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, rhs, operator.add, True)
 
-    def __radd__(self, lhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __radd__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, lhs, operator.add, False)
 
-    def __mul__(self, rhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __mul__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, rhs, operator.mul, True)
 
-    def __rmul__(self, lhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __rmul__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, lhs, operator.mul, False)
 
-    def __sub__(self, rhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __sub__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, rhs, operator.sub, True)
 
-    def __rsub__(self, lhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __rsub__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, lhs, operator.sub, False)
 
-    def __truediv__(self, rhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __truediv__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, rhs, operator.truediv, True)
 
-    def __rtruediv__(self, lhs: TyArrayBase) -> TyArrayTimeDelta:
+    def __rtruediv__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, lhs, operator.truediv, False)
 
     def _eqcomp(self, other) -> onnx.TyArrayBool:
@@ -407,14 +405,16 @@ class TyArrayDateTime(TimeBaseArray):
         return NotImplemented
 
     def _coerce_to_time_delta(
-        self, other: TyArrayBase
+        self, other: TyArrayBase | _PyScalar
     ) -> TyArrayTimeDelta | NotImplementedType:
         """Coerce to a time delta array of identical unit as ``self``.
 
         This is useful for comparisons and ``__add__``.
         """
-        if isinstance(other, py_scalars.TyArrayPyInt):
-            other = other.astype(onnx.int64)
+        from .funcs import astyarray
+
+        if isinstance(other, int):
+            other = astyarray(other, dtype=onnx.int64)
         if isinstance(other, onnx.TyArrayInt64):
             other = other.astype(TimeDelta(unit=self.dtype.unit))
         if not isinstance(other, TyArrayTimeDelta):
@@ -425,14 +425,14 @@ class TyArrayDateTime(TimeBaseArray):
         return other
 
     def _coerce_to_date_time(
-        self, other: TyArrayBase
+        self, other: TyArrayBase | _PyScalar
     ) -> TyArrayDateTime | NotImplementedType:
         """Coerce `other` to ``TyArrayDateTime``.
 
         This is encapsulates the promotion rules for comparison operations.
         """
-        if isinstance(other, py_scalars.TyArrayPyInt):
-            other = other.astype(onnx.int64)
+        if isinstance(other, int):
+            other = astyarray(other, dtype=onnx.int64)
         if isinstance(other, onnx.TyArrayInt64):
             other = other.astype(DateTime(unit=self.dtype.unit))
         if not isinstance(other, TyArrayDateTime):
@@ -442,7 +442,7 @@ class TyArrayDateTime(TimeBaseArray):
             raise TypeError("inter operation between time units is not implemented")
         return other
 
-    def __add__(self, rhs: TyArrayBase) -> Self:
+    def __add__(self, rhs: TyArrayBase | _PyScalar) -> Self:
         rhs = self._coerce_to_time_delta(rhs)
         if rhs is NotImplemented:
             return NotImplemented
@@ -451,12 +451,14 @@ class TyArrayDateTime(TimeBaseArray):
         is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
         return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
 
-    def __radd__(self, lhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+    def __radd__(
+        self, lhs: TyArrayBase | _PyScalar
+    ) -> TyArrayDateTime | TyArrayTimeDelta:
         return self.__add__(lhs)
 
     def _sub(self, other, forward: bool):
         op = operator.sub
-        if isinstance(other, py_scalars.TyArrayPyInt):
+        if isinstance(other, int):
             data_ = op(self.data, other) if forward else op(other, self.data)
             data = safe_cast(onnx.TyArrayInt64, data_)
             return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
@@ -479,10 +481,14 @@ class TyArrayDateTime(TimeBaseArray):
 
         return NotImplemented
 
-    def __sub__(self, rhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+    def __sub__(
+        self, rhs: TyArrayBase | _PyScalar
+    ) -> TyArrayDateTime | TyArrayTimeDelta:
         return self._sub(rhs, True)
 
-    def __rsub__(self, lhs: TyArrayBase) -> TyArrayDateTime | TyArrayTimeDelta:
+    def __rsub__(
+        self, lhs: TyArrayBase | _PyScalar
+    ) -> TyArrayDateTime | TyArrayTimeDelta:
         return self._sub(lhs, False)
 
     def _apply_comp(
@@ -495,16 +501,20 @@ class TyArrayDateTime(TimeBaseArray):
         is_nat = self.is_nat | other.is_nat
         return safe_cast(onnx.TyArrayBool, data & ~is_nat)
 
-    def __le__(self, other: TyArrayBase) -> onnx.TyArrayBool:
+    def __le__(self, other: TyArrayBase | _PyScalar) -> onnx.TyArrayBool:
+        other = self._coerce_to_date_time(other)
         return self._apply_comp(operator.le, other)
 
-    def __lt__(self, other: TyArrayBase) -> onnx.TyArrayBool:
+    def __lt__(self, other: TyArrayBase | _PyScalar) -> onnx.TyArrayBool:
+        other = self._coerce_to_date_time(other)
         return self._apply_comp(operator.lt, other)
 
-    def __ge__(self, other: TyArrayBase) -> onnx.TyArrayBool:
+    def __ge__(self, other: TyArrayBase | _PyScalar) -> onnx.TyArrayBool:
+        other = self._coerce_to_date_time(other)
         return self._apply_comp(operator.ge, other)
 
-    def __gt__(self, other: TyArrayBase) -> onnx.TyArrayBool:
+    def __gt__(self, other: TyArrayBase | _PyScalar) -> onnx.TyArrayBool:
+        other = self._coerce_to_date_time(other)
         return self._apply_comp(operator.gt, other)
 
     def _eqcomp(self, other) -> onnx.TyArrayBool:
@@ -545,8 +555,10 @@ def _apply_op(
 def _coerce_other(
     this: TyArrayTimeDelta, other
 ) -> onnx.TyArrayInt64 | NotImplementedType:
-    if isinstance(other, py_scalars.TyArrayPyInt | onnx.TyArrayInt64):
-        return other.astype(onnx.int64)
+    from .funcs import astyarray
+
+    if isinstance(other, int):
+        return astyarray(other, dtype=onnx.int64)
     elif isinstance(other, TyArrayTimeDelta):
         if this.dtype.unit != other.dtype.unit:
             raise ValueError("inter-operation between time units is not implemented")

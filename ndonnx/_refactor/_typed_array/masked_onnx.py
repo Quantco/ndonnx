@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -19,7 +19,6 @@ from . import (
     maximum,
     minimum,
     onnx,
-    py_scalars,
     result_type,
     safe_cast,
     where,
@@ -42,6 +41,8 @@ NCORE_FLOATING_DTYPES = TypeVar("NCORE_FLOATING_DTYPES", bound="NCoreFloatingDTy
 NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="NCoreIntegerDTypes")
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
+
+_PyScalar = bool | int | float | str
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
@@ -101,13 +102,11 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 class _NNumber(_MaOnnxDType):
     _unmasked_dtype: onnx.NumericDTypes
 
-    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
-        if isinstance(self, NCoreNumericDTypes) and isinstance(rhs, onnx.NumericDTypes):
-            core_result = onnx._result_type_core_numeric(self._unmasked_dtype, rhs)
+    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
+        if isinstance(rhs, onnx.NumericDTypes | int | float):
+            core_result = onnx._result_type(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NCoreNumericDTypes):
-            core_result = onnx._result_type_core_numeric(
-                self._unmasked_dtype, rhs._unmasked_dtype
-            )
+            core_result = onnx._result_type(self._unmasked_dtype, rhs._unmasked_dtype)
 
         else:
             # No implicit promotion for bools and strings
@@ -119,7 +118,9 @@ class _NNumber(_MaOnnxDType):
 class NUtf8(_MaOnnxDType):
     _unmasked_dtype = onnx.utf8
 
-    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
+        if isinstance(rhs, onnx.Utf8 | str):
+            return self
         return NotImplemented
 
     @property
@@ -130,7 +131,7 @@ class NUtf8(_MaOnnxDType):
 class NBoolean(_MaOnnxDType):
     _unmasked_dtype = onnx.bool_
 
-    def __ndx_result_type__(self, rhs: DType) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
         return NotImplemented
 
     @property
@@ -259,13 +260,15 @@ NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 NCoreDTypes = NBoolean | NCoreNumericDTypes | NUtf8
 
 
-def _make_binary_pair(fun: Callable[[onnx.TyArray, onnx.TyArray], onnx.TyArray]):
+def _make_binary_pair(
+    fun: Callable[[onnx.TyArray, onnx.TyArray | _PyScalar], onnx.TyArray],
+):
     """Helper to define dunder methods.
 
     Does not work with proper type hints, though.
     """
 
-    def forward(self, rhs) -> TyArrayBase:
+    def forward(self, rhs: TyArrayBase | _PyScalar) -> TyArrayBase:
         return _apply_op(self, rhs, fun, True)
 
     def backward(self, lhs) -> TyArrayBase:
@@ -363,10 +366,10 @@ class TyMaArray(TyMaArrayBase):
         return type(self)(data=data, mask=mask)
 
     def fill_null(self, value: int | float | bool | str) -> onnx.TyArray:
-        value_arr = astyarray(value, use_py_scalars=True)
+        dtype = result_type(self.data.dtype, value)
         if self.mask is None:
-            dtype = result_type(self.data.dtype, value_arr.dtype)
             return self.data.astype(dtype)
+        value_arr = astyarray(value, dtype)
         return safe_cast(onnx.TyArray, where(self.mask, value_arr, self.data))
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
@@ -504,13 +507,7 @@ class TyMaArrayNumber(TyMaArray):
     def clip(
         self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
     ) -> Self:
-        allowed_types = (
-            py_scalars.TyArrayPyInt
-            | py_scalars.TyArrayPyFloat
-            | onnx.TyArray
-            | TyMaArrayNumber
-            | None
-        )
+        allowed_types = int | float | onnx.TyArray | TyMaArrayNumber | None
         if not isinstance(min, allowed_types):
             raise TypeError(
                 f"'clip' is not implemented for argument 'min' with data type `{min.dtype}`"
@@ -561,9 +558,10 @@ class TyMaArrayNumber(TyMaArray):
     ) -> TyArrayBase:
         return self.fill_null(1).prod(axis=axis, dtype=dtype, keepdims=keepdims)
 
-    def __ndx_maximum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(rhs, onnx.TyArray):
-            rhs = asncoredata(rhs, None)
+    def __ndx_maximum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
+        dtype = result_type(self, rhs)
+        if isinstance(rhs, onnx.TyArray | _PyScalar):
+            rhs = astyarray(rhs, dtype=dtype)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
             rhs_ = unmask_core(rhs)
@@ -573,9 +571,10 @@ class TyMaArrayNumber(TyMaArray):
 
         return NotImplemented
 
-    def __ndx_minimum__(self, rhs: TyArrayBase, /) -> TyArrayBase | NotImplementedType:
-        if isinstance(rhs, onnx.TyArray):
-            rhs = asncoredata(rhs, None)
+    def __ndx_minimum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
+        dtype = result_type(self, rhs)
+        if isinstance(rhs, onnx.TyArray | _PyScalar):
+            rhs = astyarray(rhs, dtype=dtype)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
             rhs_ = unmask_core(rhs)
@@ -733,13 +732,19 @@ def unmask_core(arr: onnx.TyArray | TyMaArray) -> onnx.TyArray:
 
 def _apply_op(
     this: TyMaArray,
-    other: TyArrayBase,
-    op: Callable[[onnx.TyArray, onnx.TyArray], onnx.TyArray],
+    other: TyArrayBase | _PyScalar,
+    op: Callable[[onnx.TyArray, onnx.TyArray | _PyScalar], onnx.TyArray],
     forward: bool,
 ) -> TyMaArray:
     """Apply an operation by passing it through to the data member."""
+    if isinstance(other, _PyScalar):
+        dtype = result_type(this, other)
+        other = astyarray(other, dtype)
     if isinstance(other, onnx.TyArray):
-        data = op(this.data, other) if forward else op(other, this.data)
+        from .funcs import promote
+
+        this_, other = promote(this.data, other)
+        data = op(this_, other) if forward else op(other, this_)
         mask = this.mask
     elif isinstance(other, TyMaArray):
         data = op(this.data, other.data) if forward else op(other.data, this.data)
