@@ -347,11 +347,23 @@ class TyArrayTimeDelta(TimeBaseArray):
     def __rsub__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
         return _apply_op(self, lhs, operator.sub, False)
 
-    def __truediv__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, rhs, operator.truediv, True)
+    def __truediv__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayBase:
+        if isinstance(rhs, onnx.TyArrayNumber | float | int):
+            data = (self.data / astyarray(rhs)).astype(onnx.int64)
+            return TyArrayTimeDelta(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
+        if isinstance(rhs, TyArrayTimeDelta) and self.dtype == rhs.dtype:
+            res = (self.data / rhs.data).astype(onnx.float64)
+            res[safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)] = astyarray(
+                np.nan, dtype=onnx.float64
+            )
+            return res
+        return NotImplemented
 
-    def __rtruediv__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, lhs, operator.truediv, False)
+    def __rtruediv__(self, lhs: TyArrayBase | _PyScalar) -> TyArrayBase:
+        if isinstance(lhs, onnx.TyArrayNumber | float | int):
+            data = (astyarray(lhs) / self.data).astype(onnx.int64)
+            return TyArrayTimeDelta(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
+        return NotImplemented
 
     def _eqcomp(self, other) -> onnx.TyArrayBool:
         if not isinstance(other.dtype, TimeDelta):

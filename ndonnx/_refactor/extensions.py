@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -171,6 +171,9 @@ def make_nullable(
     TypeError
         If the data type of ``x`` does not have a nullable counterpart.
     """
+    x = x.copy()
+    null = None if null is None else null.copy()
+
     if null is None:
         if isinstance(x, TyMaArray):
             return x
