@@ -624,3 +624,29 @@ def range(
     if via_dtype is None:
         return res
     return op.cast(res, to=in_dtype)
+
+
+def matmul(
+    A: Var,
+    B: Var,
+) -> Var:
+    # This is "compat" function actually extends the ONNX standard to also allow for smaller integer data types.
+
+    # ORT support: tensor(double), tensor(float), tensor(int32), tensor(int64), tensor(uint32), tensor(uint64)
+
+    a_dtype = A.unwrap_tensor().dtype
+    b_dtype = B.unwrap_tensor().dtype
+    if a_dtype == b_dtype and a_dtype in [np.int8, np.uint8]:
+        # Special case for 8 bit data types
+
+        res = op.matmul_integer(A, B)
+        return op.cast(res, to=a_dtype)
+
+    return _wrap_binary(
+        op.matmul,
+        mapping={
+            (np.int16,): np.int32,
+            (np.uint16,): np.uint32,
+        },
+        fun_name="matmul",
+    )(A, B)

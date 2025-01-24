@@ -57,21 +57,6 @@ def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
         Array of booleans indicating whether each element of ``x`` is in ``items``.
     """
     return ndx.Array._from_tyarray(x._tyarray.isin(items))
-    # Filter out nan values since we never want to compare equal to them (NumPy semantics)
-    items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
-    if len(items) == 0:
-        return ndx.full_like(x, False, dtype=ndx.bool)
-    if len(items) == 1:
-        return x == items[0]
-    mapping = dict(zip(items, (1,) * len(items)))
-    res = static_map(x, mapping, 0)
-    if isinstance(res.dtype, ndx.Nullable):
-        data = get_data(res).astype(ndx.bool)
-        mask = get_mask(res)
-        if mask is None:
-            return data
-        return data & ~mask
-    return res.astype(ndx.bool)
 
 
 # TODO: Bad naming: It is obvious from the type hints that this mapping is "static"

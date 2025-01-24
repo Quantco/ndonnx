@@ -319,7 +319,9 @@ class TyArray(TyArrayBase):
             key = (key,)
 
         # Validation
-        cnt_slice_or_idx = len(list(el for el in key if isinstance(el, int | slice)))
+        cnt_slice_or_idx = len(
+            list(el for el in key if isinstance(el, int | slice | TyArrayInteger))
+        )
 
         if key.count(...) == 0:
             if self.ndim != cnt_slice_or_idx:
@@ -787,8 +789,15 @@ class TyArray(TyArrayBase):
         return safe_cast(TyArrayBool, self.apply_mapping(mapping, False))
 
     def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
-        np_dtype = self.dtype.unwrap_numpy()
-        keys = np.array(list(mapping.keys()), dtype=np_dtype)
+        np_arr_dtype = self.dtype.unwrap_numpy()
+        np_keys = np.array(list(mapping.keys()))
+
+        result_np_dtype_key = np.result_type(np_arr_dtype, np_keys)
+        result_dtype_key: _OnnxDType = from_numpy(result_np_dtype_key)
+
+        if result_dtype_key != self.dtype:
+            return self.astype(result_dtype_key).apply_mapping(mapping, default)
+
         values = np.array(list(mapping.values()))
         if values.dtype.kind in ("O", "U"):
             values = values.astype(str)
@@ -799,7 +808,10 @@ class TyArray(TyArrayBase):
             default_ = np.array([default], dtype=values.dtype)
 
         var = ort_compat.label_encoder(
-            self.var, keys_tensor=keys, values_tensor=values, default_tensor=default_
+            self.var,
+            keys_tensor=np_keys.astype(result_np_dtype_key),
+            values_tensor=values,
+            default_tensor=default_,
         )
 
         return ascoredata(var)
@@ -1159,6 +1171,11 @@ class TyArrayNumber(TyArray):
     def __lt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return self._apply(
             other, ort_compat.less, forward=True, result_type=TyArrayBool
+        )
+
+    def __matmul__(self, other) -> TyArrayBase:
+        return self._apply(
+            other, ort_compat.matmul, forward=True, result_type=TyArrayNumber
         )
 
     def __mul__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
@@ -1845,7 +1862,8 @@ _non_standard: dict[tuple[_Number, _Number], NumericDTypes] = {
 
 # Mixed integers and floating point numbers are not
 # defined by the standard.
-_int_to_floating: dict[_Number, NumericDTypes] = {
+_int_to_floating: dict[_Number | Boolean, NumericDTypes] = {
+    bool_: float32,
     int8: float32,
     uint8: float32,
     int16: float32,
@@ -1874,6 +1892,10 @@ def _result_type(
             if isinstance(a, Floating):
                 return a
         return NotImplemented
+
+    # Treat boolean arrays as uint8
+    a = uint8 if isinstance(a, Boolean) else a
+    b = uint8 if isinstance(b, Boolean) else b
 
     if isinstance(a, Integer) and isinstance(b, Floating):
         a = _int_to_floating[a]

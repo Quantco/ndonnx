@@ -42,6 +42,10 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     unit: Unit
 
     def __init__(self, unit: Unit):
+        from typing import get_args
+
+        if unit not in get_args(Unit):
+            raise TypeError(f"unsupported time unit `{unit}`")
         self.unit = unit
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:

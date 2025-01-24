@@ -2,13 +2,27 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
+from typing import get_args
 
 import numpy as np
 import pytest
 
 import ndonnx._refactor as ndx
+from ndonnx._refactor._typed_array.date_time import Unit
 
 from .utils import assert_equal_dtype_shape
+
+
+@pytest.mark.parametrize("unit", get_args(Unit))
+@pytest.mark.parametrize("cls", [ndx.DateTime, ndx.TimeDelta])
+def test_dtype_constructor_valid_units(unit, cls):
+    cls(unit=unit)
+
+
+@pytest.mark.parametrize("cls", [ndx.DateTime, ndx.TimeDelta])
+def test_dtype_constructor_invalid_unit(cls):
+    with pytest.raises(TypeError):
+        cls(unit="foo")
 
 
 def test_value_prop_datetime():
@@ -93,7 +107,7 @@ def test_arithmetic_timedelta_timedelta(op):
     assert_equal_dtype_shape(op(arr, arr), expected_dtype, shape)
 
 
-def test_arithmetic_timedelta_datetime():
+def test_arithmetic_timedelta_datetime_lazy():
     shape = ("N",)
     arr_dt = ndx.Array(shape=shape, dtype=ndx.DateTime("s"))
     arr_td = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
@@ -106,6 +120,22 @@ def test_arithmetic_timedelta_datetime():
 
     with pytest.raises(TypeError, match="unsupported operand type"):
         _ = arr_td - arr_dt
+
+
+def test_arithmetic_datetime_time_delta():
+    from datetime import datetime, timedelta
+
+    np_arr = np.array(
+        [datetime(year=1982, month=5, day=24, hour=12, second=1)], "datetime64[s]"
+    )
+    np_delta = np.asarray(timedelta(days=5), dtype="timedelta64[s]")
+    np_res = np_arr + np_delta
+
+    arr = ndx.asarray(np_arr)
+    delta = ndx.asarray(np_delta)
+    res = arr + delta
+
+    np.testing.assert_array_equal(np_res, res.unwrap_numpy(), strict=True)
 
 
 @pytest.mark.parametrize(

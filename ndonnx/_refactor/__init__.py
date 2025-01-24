@@ -29,6 +29,7 @@ from ._typed_array.onnx import (
     float64,
     utf8,
     bool_ as bool,
+    TyArray as _TyArray,
 )
 from ._typed_array.masked_onnx import (
     nint8,
@@ -180,6 +181,7 @@ from ._infos import finfo, iinfo
 from ._namespace_info import __array_namespace_info__
 from ._constants import e, inf, nan, pi, newaxis
 from ._build import build
+from . import extensions as extensions
 
 _default_int = int64
 _default_float = float64
@@ -365,4 +367,6 @@ __all__ = [
     "as_non_nullable",
     "CoreType",
     "UnsupportedOperationError",
+    "_TyArray",
+    "extensions",
 ]

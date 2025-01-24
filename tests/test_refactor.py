@@ -383,6 +383,9 @@ def test_bitshift_right(np_left, right):
 @pytest.mark.parametrize(
     "left, right",
     [
+        # Overflow is undefined behavior (C++ and Rust seem to cycle
+        # at least on some architectures)
+        # (np.array(1, np.int32), np.array(32, np.int16)),
         (np.array([-1, -128, 10], np.int8), 2),
         (np.array([-1, -128, 10], np.int8), np.array(2, np.uint16)),
         (np.array([-1, -128, 10], np.int8), np.array(0, np.uint16)),
@@ -437,3 +440,27 @@ def test_asarray_matches_numpy(scalar):
     np.testing.assert_array_equal(
         np.asarray(scalar), ndx.asarray(scalar).unwrap_numpy(), strict=is_np2
     )
+
+
+_NP_INTEGER_DTYPES = [
+    np.int8,
+    np.int16,
+    np.int32,
+    np.int64,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+    np.uint64,
+]
+
+
+@pytest.mark.parametrize("np_dtype", _NP_INTEGER_DTYPES)
+def test_isin_with_type_promotion(np_dtype):
+    np_arr = np.asarray([1, 2, 3], dtype=np_dtype)
+    test_elements = [1, 2.2, 3.8]
+
+    np_res = np.isin(np_arr, test_elements)
+
+    res = ndx.extensions.isin(ndx.asarray(np_arr), test_elements)
+
+    np.testing.assert_equal(res.unwrap_numpy(), np_res, strict=True)

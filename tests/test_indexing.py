@@ -123,3 +123,12 @@ def test_empty_update():
     arr[key] = update
 
     np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
+
+
+def test_scalar_array_key():
+    np_arr = np.asarray([1, 2, 3], dtype=np.int64)
+    np_key = np.asarray(1, dtype=np.int64)
+    arr = ndx.asarray(np_arr)
+    key = ndx.asarray(np_key)
+
+    np.testing.assert_array_equal(np_arr[np_key], arr[key].unwrap_numpy())

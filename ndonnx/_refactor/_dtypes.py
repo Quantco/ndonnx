@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -102,9 +102,9 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 # Helper functions
 
 
-# TODO: move to onnx.py
+# TODO: move to onnx.py?
 def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
-    from ._typed_array import onnx
+    from ._typed_array import date_time, onnx
 
     # Ensure that this also works with np.generic such as np.int64
     np_dtype = np.dtype(np_dtype)
@@ -136,6 +136,13 @@ def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
 
     if np_dtype == np.bool_:
         return onnx.bool_
+
+    if np_dtype.kind == "M":
+        unit = np.datetime_data(np_dtype)[0]
+        # Narrowing strings to Literal is virtually unsupported by
+        # mypy. The constructor raises if the unit is malformed,
+        # though.
+        return date_time.DateTime(unit=unit)  # type: ignore
 
     # "T" i.e. "Text" is the kind used for `StringDType` in numpy >= 2
     # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype
