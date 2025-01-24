@@ -7,6 +7,12 @@
 Changelog
 =========
 
+0.10.0 (unreleased)
+-------------------
+
+- Removed the deprecated :func:`ndonnx.promote_nullable` function. Use :func:`ndonnx.additional.make_nullable` instead.
+
+
 0.9.3 (2024-10-25)
 ------------------
 

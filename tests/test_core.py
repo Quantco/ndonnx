@@ -658,11 +658,6 @@ def test_array_creation_with_invalid_fields():
         )
 
 
-def test_promote_nullable():
-    with pytest.warns(DeprecationWarning):
-        assert ndx.promote_nullable(np.int64) == ndx.nint64
-
-
 @pytest.mark.parametrize(
     "operation", [ndx.sin, ndx.cos, ndx.tan, ndx.sinh, ndx.mean, ndx.sum, ndx.abs]
 )

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
-from ndonnx._utility import deprecated
 from typing import Union
 from .aliases import (
     bool,
@@ -102,14 +101,6 @@ def into_nullable(dtype: StructType | CoreType) -> NullableCore:
 Dtype = Union[CoreType, StructType]
 
 
-@deprecated(
-    "Function 'ndonnx.promote_nullable' will be deprecated in ndonnx 0.7. "
-    "To create nullable array, use 'ndonnx.additional.make_nullable' instead."
-)
-def promote_nullable(dtype: StructType | CoreType) -> NullableCore:
-    return into_nullable(dtype)
-
-
 __all__ = [
     "CoreType",
     "StructType",
@@ -150,7 +141,6 @@ __all__ = [
     "nutf8",
     "get_finfo",
     "get_iinfo",
-    "promote_nullable",
     "Schema",
     "CastMixin",
     "CastError",

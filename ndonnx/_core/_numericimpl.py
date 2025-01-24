@@ -1020,7 +1020,7 @@ def _determine_reduce_op_dtype(
             raise TypeError(f"Cannot reduce {x.dtype} to a smaller unsigned dtype")
     elif isinstance(x.dtype, dtypes.NullableUnsigned):
         if ndx.iinfo(x.dtype).bits <= ndx.iinfo(maximum_unsigned_dtype).bits:
-            return dtypes.promote_nullable(maximum_unsigned_dtype)
+            return dtypes.into_nullable(maximum_unsigned_dtype)
         else:
             raise TypeError(f"Cannot reduce {x.dtype} to a smaller unsigned dtype")
     elif isinstance(x.dtype, dtypes.Integral):
