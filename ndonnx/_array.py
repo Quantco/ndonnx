@@ -264,7 +264,7 @@ class Array:
         if device is not ndonnx_device:
             raise ValueError("Cannot move Array to a different device")
         if stream is not None:
-            raise ValueError("Stream is not supported")
+            raise ValueError("The 'stream' parameter is not supported in ndonnx.")
         return self.copy()
 
     @property

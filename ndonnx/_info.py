@@ -40,7 +40,10 @@ class ArrayNamespaceInfo:
     def dtypes(
         self, *, device=None, kind: str | tuple[str, ...] | None = None
     ) -> dict[str, ndx.CoreType]:
-        # We don't care for device and don't use it.
+        # We don't care for device since we are writing ONNX graphs.
+        # We would rather not give users the impression that their arrays
+        # are tied to a specific device when serializing an ONNX graph as
+        # such a concept does not exist in the ONNX standard.
         out: dict[str, ndx.CoreType] = {}
         for dtype in self._all_array_api_types:
             if kind is None or ndx.isdtype(dtype, kind):
@@ -48,12 +51,18 @@ class ArrayNamespaceInfo:
         return out
 
     def default_dtypes(
-        self, *, device=None, kind: str | tuple[str, ...] | None
-    ) -> dict[str, ndx.CoreType]:
+        self,
+        *,
+        device=None,
+    ) -> dict[str, ndx.CoreType | None]:
+        # See comment in `dtypes` method regarding device.
         return {
             "real floating": ndx.float64,
             "integral": ndx.int64,
             "indexing": ndx.int64,
+            # We don't support complex numbers yet due to immaturity in the ONNX ecoystem, so "complex floating" is meaningless.
+            # The Array API standard requires this key to be present so we set it to None.
+            "complex floating": None,
         }
 
 

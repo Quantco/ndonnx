@@ -63,47 +63,50 @@ nuint64: NUInt64 = NUInt64()
 nutf8: NUtf8 = NUtf8()
 
 
+_canonical_names = {
+    bool: "bool",
+    float32: "float32",
+    float64: "float64",
+    int8: "int8",
+    int16: "int16",
+    int32: "int32",
+    int64: "int64",
+    uint8: "uint8",
+    uint16: "uint16",
+    uint32: "uint32",
+    uint64: "uint64",
+    utf8: "utf8",
+}
+
+
 def canonical_name(dtype: CoreType) -> str:
     """Return the canonical name of the data type."""
-    if dtype == bool:
-        return "bool"
-    elif dtype == float32:
-        return "float32"
-    elif dtype == float64:
-        return "float64"
-    elif dtype == int8:
-        return "int8"
-    elif dtype == int16:
-        return "int16"
-    elif dtype == int32:
-        return "int32"
-    elif dtype == int64:
-        return "int64"
-    elif dtype == uint8:
-        return "uint8"
-    elif dtype == uint16:
-        return "uint16"
-    elif dtype == uint32:
-        return "uint32"
-    elif dtype == uint64:
-        return "uint64"
-    elif dtype == utf8:
-        return "utf8"
+    if dtype in _canonical_names:
+        return _canonical_names[dtype]
     else:
         raise ValueError(f"Unknown data type: {dtype}")
 
 
+_kinds = {
+    bool: ("bool",),
+    int8: ("signed integer", "integer", "numeric"),
+    int16: ("signed integer", "integer", "numeric"),
+    int32: ("signed integer", "integer", "numeric"),
+    int64: ("signed integer", "integer", "numeric"),
+    uint8: ("unsigned integer", "integer", "numeric"),
+    uint16: ("unsigned integer", "integer", "numeric"),
+    uint32: ("unsigned integer", "integer", "numeric"),
+    uint64: ("unsigned integer", "integer", "numeric"),
+    float32: ("floating", "numeric"),
+    float64: ("floating", "numeric"),
+}
+
+
 def kinds(dtype: CoreType) -> tuple[str, ...]:
     """Return the kinds of the data type."""
-    if dtype in (bool,):
-        return ("bool",)
-    if dtype in (int8, int16, int32, int64):
-        return ("signed integer", "integer", "numeric")
-    if dtype in (uint8, uint16, uint32, uint64):
-        return ("unsigned integer", "integer", "numeric")
-    if dtype in (float32, float64):
-        return ("floating", "numeric")
-    if dtype in (utf8,):
-        raise ValueError(f"We don't get define a kind for {dtype}")
+    if dtype in _kinds:
+        return _kinds[dtype]
+    elif dtype in (utf8,):
+        raise ValueError(f"We don't yet define a kind for {dtype}")
     else:
         raise ValueError(f"Unknown data type: {dtype}")
