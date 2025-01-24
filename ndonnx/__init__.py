@@ -162,6 +162,7 @@ from ._funcs import (
     take,
     UnsupportedOperationError,
 )
+from ._info import __array_namespace_info__
 from ._constants import (
     e,
     inf,
@@ -177,6 +178,7 @@ except importlib.metadata.PackageNotFoundError as err:  # pragma: no cover
 
 
 __all__ = [
+    "__array_namespace_info__",
     "Array",
     "array",
     "from_spox_var",

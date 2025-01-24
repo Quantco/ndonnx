@@ -1,11 +1,11 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
 import typing
 from collections.abc import Callable
-from typing import Union
+from typing import Any, Union
 
 import numpy as np
 import spox.opset.ai.onnx.v19 as op
@@ -253,6 +253,19 @@ class Array:
             return tuple(map(int, shape_array))
         else:
             return static_shape(self)
+
+    @property
+    def device(self):
+        return ndonnx_device
+
+    def to_device(
+        self, device: NdonnxDevice, /, *, stream: int | Any | None = None
+    ) -> Array:
+        if device is not ndonnx_device:
+            raise ValueError("Cannot move Array to a different device")
+        if stream is not None:
+            raise ValueError("Stream is not supported")
+        return self.copy()
 
     @property
     def values(self) -> Array:
@@ -579,7 +592,19 @@ class Array:
         return ndx.any(self, axis=axis, keepdims=False)
 
 
+class NdonnxDevice:
+    def __str__(self):
+        return "ndonnx device"
+
+    def __eq__(self, other):
+        return type(other) is NdonnxDevice
+
+
+ndonnx_device = NdonnxDevice()
+
+
 __all__ = [
     "Array",
     "array",
+    "ndonnx_device",
 ]
