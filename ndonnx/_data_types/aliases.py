@@ -106,7 +106,7 @@ def kinds(dtype: CoreType) -> tuple[str, ...]:
     """Return the kinds of the data type."""
     if dtype in _kinds:
         return _kinds[dtype]
-    elif dtype in (utf8,):
+    elif dtype == utf8:
         raise ValueError(f"We don't yet define a kind for {dtype}")
     else:
         raise ValueError(f"Unknown data type: {dtype}")

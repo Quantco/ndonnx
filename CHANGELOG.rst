@@ -7,6 +7,13 @@
 Changelog
 =========
 
+0.10.0 (unreleased)
+------------------
+
+- ndonnx now supports the :func:`ndonnx.__array_namespace_info__` function from the Array API standard.
+- Arrays now expose the :meth:`ndonnx.Array.device` property to improve Array API compatibility. Note that serializing an ONNX model inherently postpones device placement decisions to the runtime so currently one abstract device is supported.
+
+
 0.9.3 (2024-10-25)
 ------------------
 
