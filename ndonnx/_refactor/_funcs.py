@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ import ndonnx._refactor as ndx
 
 from ._array import Array, asarray
 from ._dtypes import DType
+from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
 
@@ -43,7 +44,7 @@ def arange(
     step: int | float = 1,
     *,
     dtype: DType | None = None,
-    device=None,
+    device: None | Device = None,
 ) -> Array:
     if dtype is None:
         if builtins.all(
@@ -91,7 +92,9 @@ def nonzero(x: Array, /) -> tuple[Array, ...]:
     return tuple(Array._from_tyarray(el) for el in x._tyarray.nonzero())
 
 
-def astype(x: Array, dtype: DType, /, *, copy: bool = True, device=None) -> Array:
+def astype(
+    x: Array, dtype: DType, /, *, copy: bool = True, device: None | Device = None
+) -> Array:
     if not copy and x.dtype == dtype:
         return x
     return x.astype(dtype)
@@ -263,12 +266,17 @@ def var(
 
 
 def empty(
-    shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
+    shape: int | tuple[int, ...],
+    *,
+    dtype: DType | None = None,
+    device: None | Device = None,
 ) -> Array:
     return zeros(shape=shape, dtype=dtype)
 
 
-def empty_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
+def empty_like(
+    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+) -> Array:
     return zeros_like(x, dtype=dtype)
 
 
@@ -319,7 +327,7 @@ def eye(
     *,
     k: int = 0,
     dtype: DType | None = None,
-    device=None,
+    device: None | Device = None,
 ) -> Array:
     nparr = np.eye(n_rows, n_cols, k=k)
     return asarray(nparr, dtype=dtype)
@@ -342,7 +350,7 @@ def full(
     fill_value: bool | int | float | str,
     *,
     dtype: DType | None = None,
-    device=None,
+    device: None | Device = None,
 ) -> Array:
     if dtype is None:
         if isinstance(fill_value, bool):
@@ -379,7 +387,7 @@ def full_like(
     fill_value: bool | int | float | str,
     *,
     dtype: DType | None = None,
-    device=None,
+    device: None | Device = None,
 ) -> Array:
     shape = x.dynamic_shape
     fill = asarray(fill_value, dtype=dtype or x.dtype)
@@ -417,7 +425,7 @@ def linspace(
     num: int,
     *,
     dtype: DType | None = None,
-    device=None,
+    device: None | Device = None,
     endpoint: bool = True,
 ) -> Array:
     dtype = dtype or ndx._default_float
@@ -435,14 +443,19 @@ def matrix_transpose(x: Array, /) -> Array:
 
 
 def ones(
-    shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
+    shape: int | tuple[int, ...],
+    *,
+    dtype: DType | None = None,
+    device: None | Device = None,
 ) -> Array:
     dtype = dtype or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(dtype._ones(shape))
 
 
-def ones_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
+def ones_like(
+    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+) -> Array:
     dtype = dtype or x.dtype
     return full_like(x, 1, dtype=dtype)
 
@@ -634,13 +647,18 @@ def where(cond: Array, a: Array, b: Array) -> Array:
 
 
 def zeros(
-    shape: int | tuple[int, ...], *, dtype: DType | None = None, device=None
+    shape: int | tuple[int, ...],
+    *,
+    dtype: DType | None = None,
+    device: None | Device = None,
 ) -> Array:
     dtype = dtype or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(dtype._zeros(shape))
 
 
-def zeros_like(x: Array, /, *, dtype: DType | None = None, device=None) -> Array:
+def zeros_like(
+    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+) -> Array:
     dtype = dtype or x.dtype
     return full_like(x, 0, dtype=dtype)

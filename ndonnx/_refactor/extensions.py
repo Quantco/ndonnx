@@ -10,8 +10,9 @@ from warnings import warn
 import numpy as np
 
 import ndonnx._refactor as ndx
-from ndonnx._refactor import _typed_array as tydx
-from ndonnx._refactor._typed_array.masked_onnx import TyMaArray
+
+from . import _typed_array as tydx
+from ._typed_array.masked_onnx import TyMaArray
 
 Scalar = TypeVar("Scalar", int, float, str)
 
@@ -122,6 +123,8 @@ def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
         A new Array with the null values filled with the given value.
     """
     value_ = tydx.astyarray(value)
+    if isinstance(value_.dtype, ndx.Nullable):
+        raise ValueError("'fill_null' expects a none-nullable fill value data type.")
     xty = x._tyarray
     if isinstance(xty, tydx.masked_onnx.TyMaArray):
         result_type = ndx.result_type(xty.data.dtype, value_.dtype)

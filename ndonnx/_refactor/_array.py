@@ -18,6 +18,7 @@ import numpy as np
 from spox import Var
 
 from ._dtypes import DType
+from ._namespace_info import Device
 from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
@@ -316,7 +317,7 @@ def asarray(
     /,
     *,
     dtype: DType | None = None,
-    device=None,
+    device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
     if isinstance(obj, Var | str):

@@ -1,5 +1,6 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 from typing import TypedDict
 
@@ -51,10 +52,10 @@ class Info:
             "max rank": None,
         }
 
-    def default_device(self) -> None:
-        return None
+    def default_device(self) -> Device:
+        return device
 
-    def default_dtypes(self, *, device=None) -> DefaultDataTypes:
+    def default_dtypes(self, *, device: None | Device = None) -> DefaultDataTypes:
         # TODO: We are not standard compliant until we support complex numbers
         return {  # type: ignore
             "real floating": onnx.float64,
@@ -63,10 +64,12 @@ class Info:
             "indexing": onnx.int64,
         }
 
-    def devices(self) -> list[None]:
-        raise ValueError("ndonnx does not define devices")
+    def devices(self) -> list[Device]:
+        return [device]
 
-    def dtypes(self, *, device=None, kind: None | str | tuple[str, ...]) -> DataTypes:
+    def dtypes(
+        self, *, device: None | Device = None, kind: None | str | tuple[str, ...]
+    ) -> DataTypes:
         return {
             "bool": onnx.bool_,
             "float32": onnx.float32,
@@ -84,8 +87,16 @@ class Info:
         }
 
 
+class Device:
+    def __eq__(self, other) -> bool:
+        return self is device
+
+
+device = Device()
+
+
 def __array_namespace_info__() -> Info:
     return Info()
 
 
-__all__ = ["__array_namespace_info__"]
+__all__ = ["__array_namespace_info__", "device"]
