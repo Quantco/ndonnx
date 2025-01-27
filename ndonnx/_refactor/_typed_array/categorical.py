@@ -32,12 +32,18 @@ _PyScalar = bool | int | float | str
 
 
 class CategoricalDType(DType["CategoricalArray"]):
-    _categories: list[str]
-    ordered: bool
+    """Categorical data type with pandas-like semantics.
 
-    def __init__(self, categories: list[str], ordered: bool = False):
+    Contrary to Pandas, the `categories` and `ordered` attributes of
+    the constructor are mandatory.
+    """
+
+    _categories: list[str]
+    _ordered: bool
+
+    def __init__(self, categories: list[str], ordered: bool):
         self.categories = categories
-        self.ordered = ordered
+        self._ordered = ordered
 
     @property
     def categories(self) -> list[str]:
@@ -60,6 +66,10 @@ class CategoricalDType(DType["CategoricalArray"]):
             )
         self._categories = categories
 
+    @property
+    def ordered(self) -> bool:
+        return self._ordered
+
     def __ndx_cast_from__(self, arr: TyArrayBase) -> CategoricalArray:
         if not isinstance(arr, onnx.TyArrayUtf8):
             raise NotImplementedError
@@ -78,7 +88,7 @@ class CategoricalDType(DType["CategoricalArray"]):
         return NotImplemented
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(categories={self.categories}, ordered={self.ordered})"
+        return f"{self.__class__.__name__}(categories={self.categories}, ordered={self._ordered})"
 
     @property
     def _tyarr_class(self) -> type[CategoricalArray]:
@@ -93,7 +103,7 @@ class CategoricalDType(DType["CategoricalArray"]):
         return DTypeInfoV1(
             author="ndonnx",
             type_name=self.__class__.__name__,
-            meta={"categories": list(self.categories), "ordered": self.ordered},
+            meta={"categories": list(self.categories), "ordered": self._ordered},
         )
 
     # Construction functions
