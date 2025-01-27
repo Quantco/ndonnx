@@ -11,7 +11,7 @@ import operator as std_ops
 from collections.abc import Callable, Sequence
 from enum import Enum
 from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, Any, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, overload
 from warnings import warn
 
 import numpy as np
@@ -218,7 +218,7 @@ class Array:
     def __setitem__(
         self,
         key: SetitemIndex,
-        value: Union[int, float, bool, Array],
+        value: str | int | float | bool | Array,
         /,
     ) -> None:
         from ._typed_array.onnx import TyArrayBool, TyArrayInteger

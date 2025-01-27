@@ -376,7 +376,7 @@ def full(
 def full_like(
     x: Array,
     /,
-    fill_value: bool | int | float,
+    fill_value: bool | int | float | str,
     *,
     dtype: DType | None = None,
     device=None,
