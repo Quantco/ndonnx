@@ -19,7 +19,6 @@ from ._data_types import (
     NullableIntegral,
     NullableNumerical,
     Numerical,
-    promote_nullable,
     from_numpy_dtype,
     bool,
     float32,
