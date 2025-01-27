@@ -1878,12 +1878,15 @@ _int_to_floating: dict[_Number | Boolean, NumericDTypes] = {
 def _result_type(
     a: _OnnxDType, b: _OnnxDType | int | float | str
 ) -> _OnnxDType | NotImplementedType:
+    """Entry point for promotion logic between ONNX data types."""
     if isinstance(b, str):
         if isinstance(a, Utf8):
             return a
         return NotImplemented
 
-    if isinstance(b, int | float):
+    if isinstance(b, bool | int | float):
+        if isinstance(a, Boolean) and isinstance(b, bool):
+            return a
         if isinstance(a, _Number):
             if isinstance(b, int):
                 return a
