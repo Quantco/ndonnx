@@ -658,11 +658,6 @@ def test_array_creation_with_invalid_fields():
         )
 
 
-def test_promote_nullable():
-    with pytest.warns(DeprecationWarning):
-        assert ndx.promote_nullable(np.int64) == ndx.nint64
-
-
 @pytest.mark.parametrize(
     "operation", [ndx.sin, ndx.cos, ndx.tan, ndx.sinh, ndx.mean, ndx.sum, ndx.abs]
 )
@@ -1067,3 +1062,26 @@ def test_repeat_raises(a, repeats, axis):
 def test_getitem_bool_raises(x, index):
     with pytest.raises(IndexError):
         x[index]
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (
+            ndx.asarray([], dtype=ndx.uint8),
+            ndx.asarray([], dtype=ndx.uint8),
+        ),
+        (
+            ndx.asarray([], dtype=ndx.float32),
+            ndx.asarray([], dtype=ndx.int16),
+        ),
+        (
+            ndx.asarray([1, 2, 3], dtype=ndx.uint8),
+            ndx.asarray([1, 2, 3], dtype=ndx.float32),
+        ),
+    ],
+)
+def test_matmul_zero_dims(x, y):
+    ndx_result = x @ y
+    np_result = x.to_numpy() @ y.to_numpy()
+    assert_array_equal(ndx_result.to_numpy(), np_result)

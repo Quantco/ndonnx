@@ -437,7 +437,25 @@ def clip(input: _CoreArray, min: _CoreArray, max: _CoreArray) -> _CoreArray:
 
 @eager_propagate
 def matmul(a: _CoreArray, b: _CoreArray) -> _CoreArray:
-    return _CoreArray(op.matmul(a.var, b.var))
+    # TODO(adityagoel4512): this requires an upstream patch in onnxruntime
+    # onnxruntime goes into UB with zero size inputs
+    (out,) = op.if_(
+        op.equal(op.size(a.var), op.const(0, dtype=np.int64)),
+        then_branch=lambda: [
+            op.const(
+                np.zeros(
+                    (),
+                    dtype=np.result_type(
+                        a.var.unwrap_tensor().dtype, b.var.unwrap_tensor().dtype
+                    ),
+                )
+            ),
+        ],
+        else_branch=lambda: [
+            op.matmul(a.var, b.var),
+        ],
+    )
+    return _CoreArray(out)
 
 
 @eager_propagate
