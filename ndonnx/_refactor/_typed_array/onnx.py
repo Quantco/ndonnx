@@ -100,7 +100,7 @@ class _OnnxDType(DType[TY_ARRAY]):
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
-    def _arange(
+    def __ndx_arange__(
         self,
         start: int | float,
         stop: int | float,
@@ -124,7 +124,7 @@ class _OnnxDType(DType[TY_ARRAY]):
 
         return self._tyarr_class(var)
 
-    def _eye(
+    def __ndx_eye__(
         self,
         n_rows: int,
         n_cols: int | None = None,
@@ -139,13 +139,13 @@ class _OnnxDType(DType[TY_ARRAY]):
 
         return self._tyarr_class(var)
 
-    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
+    def __ndx_ones__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
         scalar = self._tyarr_class(op.const(1, np_dtype))
 
         return scalar.broadcast_to(shape)
 
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
+    def __ndx_zeros__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
         scalar = self._tyarr_class(op.const(0, np_dtype))
 
@@ -160,7 +160,7 @@ class Utf8(_OnnxDType["TyArrayUtf8"]):
     def _tyarr_class(self) -> type[TyArrayUtf8]:
         return TyArrayUtf8
 
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayUtf8:
+    def __ndx_zeros__(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayUtf8:
         # NumPy returns empty strings for `zeros` with string data
         # types. We follow that lead.
         np_dtype = self.unwrap_numpy()

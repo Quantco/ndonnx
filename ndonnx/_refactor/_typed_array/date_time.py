@@ -81,17 +81,17 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
             author="ndonnx", type_name=self.__class__.__name__, meta={"unit": self.unit}
         )
 
-    def _arange(
+    def __ndx_arange__(
         self,
         start: int | float,
         stop: int | float,
         step: int | float = 1,
     ) -> BASE_DT_ARRAY:
-        data = onnx.int64._arange(start, stop, step)
+        data = onnx.int64.__ndx_arange__(start, stop, step)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 
-    def _eye(
+    def __ndx_eye__(
         self,
         n_rows: int,
         n_cols: int | None = None,
@@ -99,21 +99,23 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         *,
         k: int = 0,
     ) -> BASE_DT_ARRAY:
-        data = onnx.int64._eye(n_rows, n_cols, k=k)
+        data = onnx.int64.__ndx_eye__(n_rows, n_cols, k=k)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 
-    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> BASE_DT_ARRAY:
+    def __ndx_ones__(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> BASE_DT_ARRAY:
         from .funcs import astyarray
 
-        data = onnx.int64._ones(shape)
+        data = onnx.int64.__ndx_ones__(shape)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 
-    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> BASE_DT_ARRAY:
+    def __ndx_zeros__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> BASE_DT_ARRAY:
         from .funcs import astyarray
 
-        data = onnx.int64._zeros(shape)
+        data = onnx.int64.__ndx_zeros__(shape)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 

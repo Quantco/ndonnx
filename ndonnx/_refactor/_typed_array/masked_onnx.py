@@ -68,17 +68,17 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         mask = onnx.bool_._argument(shape)
         return self._tyarr_class(data=data, mask=mask)
 
-    def _arange(
+    def __ndx_arange__(
         self,
         start: int | float,
         stop: int | float,
         step: int | float = 1,
     ) -> TY_MA_ARRAY_ONNX:
         # Get everything onto the same type
-        data = self._unmasked_dtype._arange(start, stop, step)
+        data = self._unmasked_dtype.__ndx_arange__(start, stop, step)
         return self._tyarr_class(data=data, mask=None)
 
-    def _eye(
+    def __ndx_eye__(
         self,
         n_rows: int,
         n_cols: int | None = None,
@@ -86,16 +86,20 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         *,
         k: int = 0,
     ) -> TY_MA_ARRAY_ONNX:
-        data = self._unmasked_dtype._eye(n_rows, n_cols, k=k)
+        data = self._unmasked_dtype.__ndx_eye__(n_rows, n_cols, k=k)
 
         return self._tyarr_class(data=data, mask=None)
 
-    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_MA_ARRAY_ONNX:
-        data = self._unmasked_dtype._ones(shape)
+    def __ndx_ones__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype.__ndx_ones__(shape)
         return self._tyarr_class(data=data, mask=None)
 
-    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_MA_ARRAY_ONNX:
-        data = self._unmasked_dtype._zeros(shape)
+    def __ndx_zeros__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype.__ndx_zeros__(shape)
         return self._tyarr_class(data=data, mask=None)
 
 
@@ -428,7 +432,7 @@ class TyMaArray(TyMaArrayBase):
         value: Self,
         /,
     ) -> None:
-        self.dtype._ones
+        self.dtype.__ndx_ones__
         self.data.put(key, value.data)
         if value.mask is not None:
             if self.mask is None:

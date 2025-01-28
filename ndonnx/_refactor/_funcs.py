@@ -69,7 +69,7 @@ def arange(
                 f"unexpected type for 'start', 'stop', or 'step': `{type(el)}`"
             )
 
-    return Array._from_tyarray(dtype._arange(start, stop, step))
+    return Array._from_tyarray(tyfuncs.arange(dtype, start, stop, step))
 
 
 def argmax(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:
@@ -450,7 +450,7 @@ def ones(
 ) -> Array:
     dtype = dtype or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
-    return Array._from_tyarray(dtype._ones(shape))
+    return Array._from_tyarray(tyfuncs.ones(dtype, shape))
 
 
 def ones_like(
@@ -654,7 +654,7 @@ def zeros(
 ) -> Array:
     dtype = dtype or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
-    return Array._from_tyarray(dtype._zeros(shape))
+    return Array._from_tyarray(tyfuncs.zeros(dtype, shape))
 
 
 def zeros_like(

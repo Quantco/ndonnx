@@ -106,31 +106,6 @@ class CategoricalDType(DType["CategoricalArray"]):
             meta={"categories": list(self.categories), "ordered": self._ordered},
         )
 
-    # Construction functions
-    def _arange(
-        self,
-        start: int | float,
-        stop: int | float,
-        step: int | float = 1,
-    ) -> CategoricalArray:
-        raise NotImplementedError
-
-    def _eye(
-        self,
-        n_rows: int,
-        n_cols: int | None = None,
-        /,
-        *,
-        k: int = 0,
-    ) -> CategoricalArray:
-        raise NotImplementedError
-
-    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> CategoricalArray:
-        raise NotImplementedError
-
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> CategoricalArray:
-        raise NotImplementedError
-
 
 class CategoricalArray(TyArrayBase):
     dtype: CategoricalDType

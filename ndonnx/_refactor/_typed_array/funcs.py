@@ -243,3 +243,47 @@ def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     if res is NotImplemented:
         res = x2.__ndx_minimum__(x1)
     return _validate(x1, x2, res, "minimum")
+
+
+def arange(
+    dtype: DType[TY_ARRAY_BASE],
+    start: int | float,
+    stop: int | float,
+    step: int | float = 1,
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_arange__(start, stop, step)
+    if res is NotImplemented:
+        raise TypeError(f"'arange' is not implemented for `{dtype}`")
+    return res
+
+
+def eye(
+    dtype: DType[TY_ARRAY_BASE],
+    n_rows: int,
+    n_cols: int | None = None,
+    /,
+    *,
+    k: int = 0,
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_eye__(n_rows, n_cols, k=k)
+    if res is NotImplemented:
+        raise TypeError(f"'eye' is not implemented for `{dtype}`")
+    return res
+
+
+def ones(
+    dtype: DType[TY_ARRAY_BASE], shape: tuple[int, ...] | onnx.TyArrayInt64
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_ones__(shape)
+    if res is NotImplemented:
+        raise TypeError(f"'ones' is not implemented for `{dtype}`")
+    return res
+
+
+def zeros(
+    dtype: DType[TY_ARRAY_BASE], shape: tuple[int, ...] | onnx.TyArrayInt64
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_zeros__(shape)
+    if res is NotImplemented:
+        raise TypeError(f"'zeros' is not implemented for `{dtype}`")
+    return res

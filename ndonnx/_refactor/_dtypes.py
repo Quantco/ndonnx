@@ -55,29 +55,31 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         raise NotImplementedError
 
     # Construction functions
-    @abstractmethod
-    def _arange(
+    def __ndx_arange__(
         self,
         start: int | float,
         stop: int | float,
         step: int | float = 1,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE:
+        return NotImplemented
 
-    @abstractmethod
-    def _eye(
+    def __ndx_eye__(
         self,
         n_rows: int,
         n_cols: int | None = None,
         /,
         *,
         k: int = 0,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE:
+        return NotImplemented
 
-    @abstractmethod
-    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE: ...
+    def __ndx_ones__(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE:
+        return NotImplemented
 
-    @abstractmethod
-    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE: ...
+    def __ndx_zeros__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> TY_ARRAY_BASE:
+        return NotImplemented
 
     def __eq__(self, other) -> bool:
         if type(self) is not type(other):
