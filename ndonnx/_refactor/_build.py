@@ -11,7 +11,7 @@ from ._schema import SchemaV1
 
 
 def build(
-    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=True
+    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=False
 ) -> onnx.ModelProto:
     ins = _arrays_to_vars(inputs)
     outs = _arrays_to_vars(outputs)
