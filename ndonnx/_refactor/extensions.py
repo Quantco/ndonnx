@@ -217,11 +217,13 @@ def get_mask(x: ndx.Array, /) -> ndx.Array | None:
 
 
 def get_data(x: ndx.Array, /) -> ndx.Array:
-    """Get data part of a masked array.
+    """Get data part of a masked, datetime or timedelta array.
 
     If the ``x`` is not masked, return ``x``.
     """
-    if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
+    if isinstance(
+        x._tyarray, tydx.masked_onnx.TyMaArray | tydx.date_time.TimeBaseArray
+    ):
         return ndx.Array._from_tyarray(x._tyarray.data)
     return ndx.Array._from_tyarray(x._tyarray)
 

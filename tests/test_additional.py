@@ -172,7 +172,8 @@ def test_static_map_unimplemented_for_nullable():
         # Optimizations for 0 and 1 test_items
         (np.array(["hello", "world"]), ["hello"], [True, False]),
         (np.array(["hello", "world"]), [], [False, False]),
-        # Note: this is a breaking change in the "typed array" refactor
+        # Note: this is a breaking change in the "typed array"
+        # refactor, but follows NumPy semantics
         (np.asarray([np.nan, 1]), [np.nan], [False, False]),
         (np.asarray([np.nan, 1]), [np.nan, 1], [False, True]),
         (

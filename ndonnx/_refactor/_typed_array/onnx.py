@@ -800,6 +800,10 @@ class TyArray(TyArrayBase):
         return safe_cast(TyArrayBool, self.apply_mapping(mapping, False))
 
     def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+        if not mapping:
+            return safe_cast(
+                TyArray, astyarray(default).broadcast_to(self.dynamic_shape)
+            )
         np_arr_dtype = self.dtype.unwrap_numpy()
         np_keys = np.array(list(mapping.keys()))
 
@@ -1378,13 +1382,13 @@ class TyArrayInteger(TyArrayNumber):
     def round(self) -> Self:
         return self.copy()
 
-    def isfinite(self) -> TyArrayBool:  # type: ignore
+    def isfinite(self) -> TyArrayBool:
         return TyArrayBool(op.const(True)).broadcast_to(self.dynamic_shape)
 
-    def isnan(self) -> TyArrayBool:  # type: ignore
+    def isnan(self) -> TyArrayBool:
         return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
-    def isinf(self) -> TyArrayBool:  # type: ignore
+    def isinf(self) -> TyArrayBool:
         return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def trunc(self) -> Self:
@@ -1697,6 +1701,9 @@ class TyArrayBool(TyArray):
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         # Use numeric implementation
         return self.astype(uint8).nonzero()
+
+    def isnan(self) -> TyArrayBool:
+        return TyArrayBool(op.const(False)).broadcast_to(self.dynamic_shape)
 
     def logical_not(self) -> Self:
         return ~self
