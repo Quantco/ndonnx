@@ -464,3 +464,19 @@ def test_isin_with_type_promotion(np_dtype):
     res = ndx.extensions.isin(ndx.asarray(np_arr), test_elements)
 
     np.testing.assert_equal(res.unwrap_numpy(), np_res, strict=True)
+
+
+@pytest.mark.parametrize(
+    "arrays",
+    [
+        (np.asarray([1, 2, 3]), np.asarray([5])),
+        (np.asarray([[1], [2], [3]]), np.asarray([5])),
+        (np.asarray([[1], [2], [3]]), np.asarray([5]), -5),
+    ],
+)
+def test_broadcast_shapes(arrays):
+    np_result = np.broadcast_arrays(*arrays)
+    ndx_arrays = [ndx.asarray(arr) for arr in arrays]
+    ndx_result = ndx.broadcast_arrays(*ndx_arrays)
+    for np_arr, ndx_arr in zip(np_result, ndx_result):
+        np.testing.assert_equal(np_arr, ndx_arr.unwrap_numpy())

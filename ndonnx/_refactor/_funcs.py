@@ -104,6 +104,21 @@ def broadcast_arrays(*arrays: Array) -> list[Array]:
     if len(arrays) < 2:
         return [a.copy() for a in arrays]
 
+    def numeric_like(x):
+        if isdtype(x, "numeric"):
+            return x
+        else:
+            return zeros_like(x, dtype=ndx.int64)
+
+    it = iter(arrays)
+    ret = numeric_like(next(it))
+    while (x := next(it, None)) is not None:
+        ret = ret + numeric_like(x)
+
+    target_shape = ndx.extensions.shape(ret)
+
+    return [broadcast_to(a, target_shape) for a in arrays]
+
     # TODO: Create upstream issue for a variadic broadcasting operator
     # in the ONNX standard.
     for a in arrays:
