@@ -20,8 +20,8 @@ def build(
 
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
-            input_schema={k: v.dtype._infov1 for k, v in inputs.items()},
-            output_schema={k: v.dtype._infov1 for k, v in outputs.items()},
+            input_schema={k: v.dtype.__ndx_infov1__ for k, v in inputs.items()},
+            output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
             version=1,
         ).to_json()
     }

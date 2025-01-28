@@ -58,7 +58,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         raise NotImplementedError
 
     @property
-    def _infov1(self) -> DTypeInfoV1:
+    def __ndx_infov1__(self) -> DTypeInfoV1:
         return DTypeInfoV1(
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )

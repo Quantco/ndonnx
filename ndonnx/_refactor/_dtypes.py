@@ -51,7 +51,7 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
     @property
     @abstractmethod
-    def _infov1(self) -> DTypeInfoV1:
+    def __ndx_infov1__(self) -> DTypeInfoV1:
         raise NotImplementedError
 
     # Construction functions

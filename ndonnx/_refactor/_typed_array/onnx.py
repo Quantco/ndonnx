@@ -95,7 +95,7 @@ class _OnnxDType(DType[TY_ARRAY]):
         return self._tyarr_class(var)
 
     @property
-    def _infov1(self) -> DTypeInfoV1:
+    def __ndx_infov1__(self) -> DTypeInfoV1:
         return DTypeInfoV1(
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )

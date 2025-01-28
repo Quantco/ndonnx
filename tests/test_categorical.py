@@ -17,7 +17,7 @@ def test_dtype_repr():
 def test_dtype_schema():
     dtype = CategoricalDType(categories=["a", "b"], ordered=True)
 
-    assert dtype._infov1.meta == {"categories": ["a", "b"], "ordered": True}
+    assert dtype.__ndx_infov1__.meta == {"categories": ["a", "b"], "ordered": True}
 
 
 def test_cast_to_and_from_utf8():
