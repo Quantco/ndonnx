@@ -70,9 +70,9 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
 
-    def _argument(self, shape: OnnxShape) -> BASE_DT_ARRAY:
-        data = onnx.int64._argument(shape)
-        is_nat = onnx.bool_._argument(shape)
+    def __ndx_argument__(self, shape: OnnxShape) -> BASE_DT_ARRAY:
+        data = onnx.int64.__ndx_argument__(shape)
+        is_nat = onnx.bool_.__ndx_argument__(shape)
         return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
 
     @property

@@ -63,9 +63,9 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
-    def _argument(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
-        data = as_non_nullable(self)._argument(shape)
-        mask = onnx.bool_._argument(shape)
+    def __ndx_argument__(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype.__ndx_argument__(shape)
+        mask = onnx.bool_.__ndx_argument__(shape)
         return self._tyarr_class(data=data, mask=mask)
 
     def __ndx_arange__(
@@ -793,10 +793,3 @@ _core_to_nullable_core: dict[onnx._OnnxDType, NCoreDTypes] = {
 
 def as_nullable(dtype: onnx._OnnxDType) -> NCoreDTypes:
     return _core_to_nullable_core[dtype]
-
-
-def as_non_nullable(dtype: _MaOnnxDType) -> onnx._OnnxDType:
-    mapping: dict[_MaOnnxDType, onnx._OnnxDType] = {
-        v: k for k, v in _core_to_nullable_core.items()
-    }
-    return mapping[dtype]

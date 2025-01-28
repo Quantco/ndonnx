@@ -640,13 +640,13 @@ def test_prod(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=ndx.as_non_nullable(dtype).to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype._unmasked_dtype.unwrap_numpy())
         input = np.ma.masked_array(input, mask=False)
     else:
-        input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype.unwrap_numpy())
     actual = np.prod(input)
 
-    assert_array_equal(y.to_numpy(), actual)
+    assert_array_equal(y.unwrap_numpy(), actual)
 
 
 @pytest.mark.parametrize(
@@ -664,7 +664,7 @@ def test_prod_unsigned(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=ndx.as_non_nullable(dtype).to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype._unmasked_dtype.to_numpy_dtype())
         input = np.ma.masked_array(input, mask=False)
     else:
         input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())

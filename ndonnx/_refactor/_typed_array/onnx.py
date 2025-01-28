@@ -90,7 +90,7 @@ class _OnnxDType(DType[TY_ARRAY]):
 
         return NotImplemented
 
-    def _argument(self, shape: OnnxShape) -> TY_ARRAY:
+    def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY:
         var = argument(Tensor(self.unwrap_numpy(), shape))
         return self._tyarr_class(var)
 

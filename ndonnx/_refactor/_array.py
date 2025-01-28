@@ -66,7 +66,7 @@ class Array:
             raise ValueError("Invalid arguments.")
 
         if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._tyarray = dtype._argument(shape)
+            self._tyarray = dtype.__ndx_argument__(shape)
             return
         if isinstance(value, np.ndarray):
             raise NotImplementedError

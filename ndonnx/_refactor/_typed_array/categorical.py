@@ -94,8 +94,8 @@ class CategoricalDType(DType["CategoricalArray"]):
     def _tyarr_class(self) -> type[CategoricalArray]:
         return CategoricalArray
 
-    def _argument(self, shape: OnnxShape) -> CategoricalArray:
-        codes = onnx.uint16._argument(shape)
+    def __ndx_argument__(self, shape: OnnxShape) -> CategoricalArray:
+        codes = onnx.uint16.__ndx_argument__(shape)
         return CategoricalArray(codes, dtype=self)
 
     @property
