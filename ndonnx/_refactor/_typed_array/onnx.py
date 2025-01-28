@@ -461,7 +461,18 @@ class TyArray(TyArrayBase):
         else:
             value_correct_shape = value.broadcast_to(value_shape)
         self.var = op.scatter_nd(self.var, key.var, value_correct_shape.var)
-        return
+
+    def put(
+        self,
+        key: TyArrayInt64,
+        value: Self,
+        /,
+    ) -> None:
+        data = self.reshape((-1,))
+        if key.ndim == 1:
+            key = key.reshape((-1, 1))
+        data._setitem_int_array(key, value)
+        self.var = data.reshape(self.dynamic_shape).var
 
     @property
     def dynamic_shape(self) -> TyArrayInt64:

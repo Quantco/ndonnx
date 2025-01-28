@@ -100,8 +100,6 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
 
 class _NNumber(_MaOnnxDType):
-    _unmasked_dtype: onnx.NumericDTypes
-
     def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, onnx.NumericDTypes | int | float):
             core_result = onnx._result_type(self._unmasked_dtype, rhs)
@@ -412,19 +410,32 @@ class TyMaArray(TyMaArrayBase):
 
     def __setitem__(self, index: SetitemIndex, value: Self) -> None:
         self.data[index] = value.data
-        new_mask = _merge_masks(
-            None if self.mask is None else self.mask[index], value.mask
-        )
-        if new_mask is None:
+        if self.mask is None and value.mask is None:
             return
         if self.mask is None:
-            shape = self.dynamic_shape
-            self.mask = safe_cast(
-                onnx.TyArrayBool, astyarray(False).broadcast_to(shape)
+            # Create a new mask for self
+            self.mask = astyarray(False, dtype=onnx.bool_).broadcast_to(
+                self.dynamic_shape
             )
-            self.mask[index] = new_mask
+        if value.mask is None:
+            self.mask[index] = astyarray(False, dtype=onnx.bool_)
         else:
-            self.mask[index] = new_mask
+            self.mask[index] = value.mask
+
+    def put(
+        self,
+        key: onnx.TyArrayInt64,
+        value: Self,
+        /,
+    ) -> None:
+        self.dtype._ones
+        self.data.put(key, value.data)
+        if value.mask is not None:
+            if self.mask is None:
+                self.mask = astyarray(False, dtype=onnx.bool_).broadcast_to(
+                    self.dynamic_shape
+                )
+            self.mask.put(key, value.mask)
 
     def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
         # Implemented under the assumption that we know about `onnx`, but not py_scalars

@@ -174,7 +174,21 @@ class TimeBaseArray(TyArrayBase):
         value: Self,
         /,
     ) -> None:
-        raise NotImplementedError
+        if self.dtype != value.dtype:
+            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+        self.data[key] = value.data
+        self.is_nat[key] = value.is_nat
+
+    def put(
+        self,
+        key: onnx.TyArrayInt64,
+        value: Self,
+        /,
+    ) -> None:
+        if self.dtype != value.dtype:
+            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+        self.data.put(key, value.data)
+        self.is_nat.put(key, value.is_nat)
 
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
@@ -299,7 +313,6 @@ class TyArrayTimeDelta(TimeBaseArray):
     def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
-        res_type = dtype._tyarr_class
         if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, _NAT_SENTINEL.astype(onnx.int64), self.data)
             return data.astype(dtype)
@@ -316,9 +329,12 @@ class TyArrayTimeDelta(TimeBaseArray):
             if power > 0:
                 data = data * np.pow(10, power)
             if power < 0:
-                data = data / np.pow(10, abs(power))
+                data = data // np.pow(10, abs(power))
 
-            return safe_cast(res_type, data)
+            data = safe_cast(onnx.TyArrayInt64, data)
+            # TODO: Figure out why mypy does not like the blow
+            return dtype._tyarr_class(is_nat=self.is_nat, data=data, unit=dtype.unit)  # type: ignore
+
         return NotImplemented
 
     def unwrap_numpy(self) -> np.ndarray:

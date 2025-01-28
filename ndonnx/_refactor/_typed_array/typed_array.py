@@ -61,6 +61,15 @@ class TyArrayBase(ABC):
         /,
     ) -> None: ...
 
+    @abstractmethod
+    def put(
+        self,
+        key: TyArrayInt64,
+        value: Self,
+        /,
+    ) -> None:
+        """Set elements with semantics identical to `numpy.put` with `mode="raise"."""
+
     @property
     @abstractmethod
     def dynamic_shape(self) -> TyArrayInt64: ...

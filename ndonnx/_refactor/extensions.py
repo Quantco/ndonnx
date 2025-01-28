@@ -224,3 +224,23 @@ def get_data(x: ndx.Array, /) -> ndx.Array:
     if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
         return ndx.Array._from_tyarray(x._tyarray.data)
     return ndx.Array._from_tyarray(x._tyarray)
+
+
+def put(a: ndx.Array, indices: ndx.Array, updates: ndx.Array, /) -> None:
+    """Replaces specified elements of an array with given values.
+
+    This function follows the semantics of `numpy.put` with
+    `mode="raises". The data types of the update array and the updates
+    must match. The indices must be provided as a 1D int64 array.
+    """
+    from ._typed_array.onnx import TyArrayInt64
+
+    if not isinstance(indices._tyarray, TyArrayInt64):
+        raise TypeError(
+            f"'indices' must be provided as an int64 tensor, found `{indices.dtype}`"
+        )
+    if a.dtype != updates.dtype:
+        raise TypeError(
+            f"data types of 'a' (`{a.dtype}`) and 'updates' (`{updates.dtype}`) must match."
+        )
+    a._tyarray.put(indices._tyarray, updates._tyarray)

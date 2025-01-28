@@ -158,7 +158,19 @@ class CategoricalArray(TyArrayBase):
         value: Self,
         /,
     ) -> None:
+        if self.dtype != value.dtype:
+            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
         self.codes[key] = value.codes
+
+    def put(
+        self,
+        key: TyArrayInt64,
+        value: Self,
+        /,
+    ) -> None:
+        if self.dtype != value.dtype:
+            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+        self.codes.put(key, value.codes)
 
     @property
     def dynamic_shape(self) -> TyArrayInt64:

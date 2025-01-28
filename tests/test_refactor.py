@@ -464,3 +464,17 @@ def test_isin_with_type_promotion(np_dtype):
     res = ndx.extensions.isin(ndx.asarray(np_arr), test_elements)
 
     np.testing.assert_equal(res.unwrap_numpy(), np_res, strict=True)
+
+
+@pytest.mark.parametrize(
+    "np_dtype",
+    [np.int64, np.uint16, np.dtype("datetime64[s]"), np.dtype("timedelta64[s]")],
+)
+def test_put(np_dtype):
+    np_idx = np.array([0, 2], np.int64)
+    np_arr = np.array([1, 2, 3], dtype=np_dtype)
+    arr = ndx.asarray(np_arr)
+    idx = ndx.asarray(np_idx)
+
+    np.put(np_arr, np_idx, np.asarray(5, dtype=np_dtype))
+    ndx.extensions.put(arr, idx, ndx.asarray(5, dtype=dtypes.from_numpy(np_dtype)))

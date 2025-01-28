@@ -144,6 +144,10 @@ def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
         # though.
         return date_time.DateTime(unit=unit)  # type: ignore
 
+    if np_dtype.kind == "m":
+        unit = np.datetime_data(np_dtype)[0]
+        return date_time.TimeDelta(unit=unit)  # type: ignore
+
     # "T" i.e. "Text" is the kind used for `StringDType` in numpy >= 2
     # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype
     if np_dtype.kind in ["U", "T"]:
