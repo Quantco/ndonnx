@@ -256,12 +256,12 @@ class Array:
 
     @property
     def device(self):
-        return ndonnx_device
+        return device
 
     def to_device(
-        self, device: NdonnxDevice, /, *, stream: int | Any | None = None
+        self, device: _Device, /, *, stream: int | Any | None = None
     ) -> Array:
-        if device is not ndonnx_device:
+        if device is not device:
             raise ValueError("Cannot move Array to a different device")
         if stream is not None:
             raise ValueError("The 'stream' parameter is not supported in ndonnx.")
@@ -592,19 +592,23 @@ class Array:
         return ndx.any(self, axis=axis, keepdims=False)
 
 
-class NdonnxDevice:
+class _Device:
+    # We would rather not give users the impression that their arrays
+    # are tied to a specific device when serializing an ONNX graph as
+    # such a concept does not exist in the ONNX standard.
+
     def __str__(self):
         return "ndonnx device"
 
     def __eq__(self, other):
-        return type(other) is NdonnxDevice
+        return type(other) is _Device
 
 
-ndonnx_device = NdonnxDevice()
+device = _Device()
 
 
 __all__ = [
     "Array",
     "array",
-    "ndonnx_device",
+    "device",
 ]
