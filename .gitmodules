@@ -1,3 +1,4 @@
 [submodule "array-api-tests"]
 	path = api-coverage-tests
-	url = git@github.com:data-apis/array-api-tests.git
+	url = git@github.com:adityagoel4512/array-api-tests.git
+	branch = skip-unused-kinds-in-default
