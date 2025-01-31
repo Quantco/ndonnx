@@ -2,6 +2,13 @@
 array_api_tests/test_searching_functions.py::test_argmin
 array_api_tests/test_searching_functions.py::test_argmax
 
+# Requires a distinct scalar type or zero-dim coercion.
+array-api-tests/meta_tests/test_array_helpers.py::test_exactly_equal
+array-api-tests/meta_tests/test_array_helpers.py::test_notequal
+
+# Requires complex
+array-api-tests/meta_tests/test_hypothesis_helpers.py::test_specified_kwargs
+
 array_api_tests/test_constants.py::test_newaxis
 array_api_tests/test_creation_functions.py::test_eye
 array_api_tests/test_creation_functions.py::test_meshgrid
