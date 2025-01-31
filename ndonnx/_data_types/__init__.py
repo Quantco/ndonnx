@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -28,6 +28,8 @@ from .aliases import (
     uint32,
     uint64,
     utf8,
+    canonical_name,
+    kinds,
 )
 from .classes import (
     Floating,
@@ -145,4 +147,6 @@ __all__ = [
     "CastMixin",
     "CastError",
     "Dtype",
+    "canonical_name",
+    "kinds",
 ]

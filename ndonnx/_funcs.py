@@ -267,20 +267,7 @@ def iinfo(dtype):
 
 def isdtype(dtype, kind) -> bool:
     if isinstance(kind, str):
-        if kind == "bool":
-            return dtype == dtypes.bool
-        elif kind == "signed integer":
-            return dtype in (dtypes.int8, dtypes.int16, dtypes.int32, dtypes.int64)
-        elif kind == "unsigned integer":
-            return dtype in (dtypes.uint8, dtypes.uint16, dtypes.uint32, dtypes.uint64)
-        elif kind == "integral":
-            return isinstance(dtype, dtypes.Integral)
-        elif kind == "real floating":
-            return isinstance(dtype, dtypes.Floating)
-        elif kind == "complex floating":
-            raise ValueError("'complex floating' is not supported")
-        elif kind == "numeric":
-            return isinstance(dtype, dtypes.Numerical)
+        return kind in dtypes.kinds(dtype)
     elif isinstance(kind, dtypes.CoreType):
         return dtype == kind
     elif isinstance(kind, tuple):

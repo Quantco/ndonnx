@@ -1,5 +1,11 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ndonnx import CoreType
 
 from .classes import (
     Boolean,
@@ -55,3 +61,52 @@ nuint16: NUInt16 = NUInt16()
 nuint32: NUInt32 = NUInt32()
 nuint64: NUInt64 = NUInt64()
 nutf8: NUtf8 = NUtf8()
+
+
+_canonical_names = {
+    bool: "bool",
+    float32: "float32",
+    float64: "float64",
+    int8: "int8",
+    int16: "int16",
+    int32: "int32",
+    int64: "int64",
+    uint8: "uint8",
+    uint16: "uint16",
+    uint32: "uint32",
+    uint64: "uint64",
+    utf8: "utf8",
+}
+
+
+def canonical_name(dtype: CoreType) -> str:
+    """Return the canonical name of the data type."""
+    if dtype in _canonical_names:
+        return _canonical_names[dtype]
+    else:
+        raise ValueError(f"Unknown data type: {dtype}")
+
+
+_kinds = {
+    bool: ("bool",),
+    int8: ("signed integer", "integer", "numeric"),
+    int16: ("signed integer", "integer", "numeric"),
+    int32: ("signed integer", "integer", "numeric"),
+    int64: ("signed integer", "integer", "numeric"),
+    uint8: ("unsigned integer", "integer", "numeric"),
+    uint16: ("unsigned integer", "integer", "numeric"),
+    uint32: ("unsigned integer", "integer", "numeric"),
+    uint64: ("unsigned integer", "integer", "numeric"),
+    float32: ("floating", "numeric"),
+    float64: ("floating", "numeric"),
+}
+
+
+def kinds(dtype: CoreType) -> tuple[str, ...]:
+    """Return the kinds of the data type."""
+    if dtype in _kinds:
+        return _kinds[dtype]
+    elif dtype == utf8:
+        raise ValueError(f"We don't yet define a kind for {dtype}")
+    else:
+        raise ValueError(f"Unknown data type: {dtype}")

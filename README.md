@@ -43,7 +43,7 @@ pytest tests -n auto
 
 It has a couple of key features:
 
-- It implements the [`Array API`](https://data-apis.org/array-api/) standard. Standard compliant code can be executed without changes across numerous backends such as like `NumPy`, `JAX` and now `ndonnx`.
+- It implements the [`Array API`](https://data-apis.org/array-api/) standard. Standard compliant code can be executed without changes across numerous backends such as like NumPy, JAX and now ndonnx.
 
   ```python
   import numpy as np
@@ -93,7 +93,7 @@ In the future we will be enabling a stable API for an extensible data type syste
 
 ## Array API coverage
 
-Array API compatibility is tracked in `api-coverage-tests`. Missing coverage is tracked in the `skips.txt` file. Contributions are welcome!
+Array API compatibility is tracked in `array-api-tests`. Missing coverage is tracked in the `skips.txt` file. Contributions are welcome!
 
 Summary(1119 total):
 

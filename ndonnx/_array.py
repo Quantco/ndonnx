@@ -1,11 +1,11 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
 import typing
 from collections.abc import Callable
-from typing import Union
+from typing import Any, Union
 
 import numpy as np
 import spox.opset.ai.onnx.v19 as op
@@ -253,6 +253,19 @@ class Array:
             return tuple(map(int, shape_array))
         else:
             return static_shape(self)
+
+    @property
+    def device(self):
+        return device
+
+    def to_device(
+        self, device: _Device, /, *, stream: int | Any | None = None
+    ) -> Array:
+        if device != self.device:
+            raise ValueError("Cannot move Array to a different device")
+        if stream is not None:
+            raise ValueError("The 'stream' parameter is not supported in ndonnx.")
+        return self.copy()
 
     @property
     def values(self) -> Array:
@@ -579,7 +592,23 @@ class Array:
         return ndx.any(self, axis=axis, keepdims=False)
 
 
+class _Device:
+    # We would rather not give users the impression that their arrays
+    # are tied to a specific device when serializing an ONNX graph as
+    # such a concept does not exist in the ONNX standard.
+
+    def __str__(self):
+        return "ndonnx device"
+
+    def __eq__(self, other):
+        return type(other) is _Device
+
+
+device = _Device()
+
+
 __all__ = [
     "Array",
     "array",
+    "device",
 ]
