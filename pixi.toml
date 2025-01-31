@@ -49,7 +49,7 @@ test = "pytest"
 test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
 
 [feature.test.tasks.arrayapitests]
-cmd = "pytest api-coverage-tests/array_api_tests/ -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg --skips-file=skips.txt --xfails-file=xfails.txt"
+cmd = "pytest array_api_tests/ -v -rfX --json-report --json-report-file=api-coverage-tests.json -n auto --disable-deadline --disable-extension linalg --skips-file=skips.txt --xfails-file=xfails.txt"
 [feature.test.tasks.arrayapitests.env]
 ARRAY_API_TESTS_MODULE = "ndonnx"
 ARRAY_API_TESTS_VERSION = "2023.12"

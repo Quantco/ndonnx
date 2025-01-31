@@ -261,7 +261,7 @@ class Array:
     def to_device(
         self, device: _Device, /, *, stream: int | Any | None = None
     ) -> Array:
-        if device is not device:
+        if device != self.device:
             raise ValueError("Cannot move Array to a different device")
         if stream is not None:
             raise ValueError("The 'stream' parameter is not supported in ndonnx.")

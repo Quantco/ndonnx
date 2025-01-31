@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import ndonnx as ndx
-from ndonnx._array import device
+from ndonnx._array import _Device, device
 from ndonnx._data_types import canonical_name
 
 
@@ -25,16 +25,16 @@ class ArrayNamespaceInfo:
         ndx.uint64,
     ]
 
-    def capabilities(self) -> dict:
+    def capabilities(self) -> dict[str, bool]:
         return {
             "boolean indexing": True,
             "data-dependent shapes": True,
         }
 
-    def default_device(self):
+    def default_device(self) -> _Device:
         return device
 
-    def devices(self) -> list:
+    def devices(self) -> list[_Device]:
         return [device]
 
     def dtypes(
