@@ -478,3 +478,19 @@ def test_put(np_dtype):
 
     np.put(np_arr, np_idx, np.asarray(5, dtype=np_dtype))
     ndx.extensions.put(arr, idx, ndx.asarray(5, dtype=dtypes.from_numpy(np_dtype)))
+
+
+@pytest.mark.parametrize(
+    "arrays",
+    [
+        (np.asarray([1, 2, 3]), np.asarray([5])),
+        (np.asarray([[1], [2], [3]]), np.asarray([5])),
+        (np.asarray([[1], [2], [3]]), np.asarray([5]), -5),
+    ],
+)
+def test_broadcast_shapes(arrays):
+    np_result = np.broadcast_arrays(*arrays)
+    ndx_arrays = [ndx.asarray(arr) for arr in arrays]
+    ndx_result = ndx.broadcast_arrays(*ndx_arrays)
+    for np_arr, ndx_arr in zip(np_result, ndx_result):
+        np.testing.assert_equal(np_arr, ndx_arr.unwrap_numpy())
