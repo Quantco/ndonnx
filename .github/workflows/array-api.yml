@@ -63,7 +63,7 @@ jobs:
                   repo: context.repo.repo,
                   title: "Weekly run failure: Array API coverage",
                   body: "The weekly run of the Array API test suite failed. See https://github.com/Quantco/ndonnx/actions/runs/${{ github.run_id }} for details.",
-                  assignees: ["adityagoel4512", "cbourjau", "neNasko1"],
+                  assignees: ["adityagoel4512", "cbourjau"],
                   labels: ["[bot] Weekly run"]
                 })
               }
