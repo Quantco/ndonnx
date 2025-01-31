@@ -2,11 +2,7 @@
 array_api_tests/test_searching_functions.py::test_argmin
 array_api_tests/test_searching_functions.py::test_argmax
 
-array_api_tests/test_constants.py::test_newaxis
-array_api_tests/test_creation_functions.py::test_eye
 array_api_tests/test_creation_functions.py::test_meshgrid
-array_api_tests/test_data_type_functions.py::test_can_cast
-array_api_tests/test_data_type_functions.py::test_isdtype
 array_api_tests/test_has_names.py::test_has_names[array_method-__complex__]
 array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack__]
 array_api_tests/test_has_names.py::test_has_names[array_method-__dlpack_device__]

@@ -89,16 +89,16 @@ def canonical_name(dtype: CoreType) -> str:
 
 _kinds = {
     bool: ("bool",),
-    int8: ("signed integer", "integer", "numeric"),
-    int16: ("signed integer", "integer", "numeric"),
-    int32: ("signed integer", "integer", "numeric"),
-    int64: ("signed integer", "integer", "numeric"),
-    uint8: ("unsigned integer", "integer", "numeric"),
-    uint16: ("unsigned integer", "integer", "numeric"),
-    uint32: ("unsigned integer", "integer", "numeric"),
-    uint64: ("unsigned integer", "integer", "numeric"),
-    float32: ("floating", "numeric"),
-    float64: ("floating", "numeric"),
+    int8: ("signed integer", "integral", "numeric"),
+    int16: ("signed integer", "integral", "numeric"),
+    int32: ("signed integer", "integral", "numeric"),
+    int64: ("signed integer", "integral", "numeric"),
+    uint8: ("unsigned integer", "integral", "numeric"),
+    uint16: ("unsigned integer", "integral", "numeric"),
+    uint32: ("unsigned integer", "integral", "numeric"),
+    uint64: ("unsigned integer", "integral", "numeric"),
+    float32: ("real floating", "numeric"),
+    float64: ("real floating", "numeric"),
 }
 
 
