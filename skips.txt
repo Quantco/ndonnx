@@ -1,5 +1,7 @@
-# The following tests cause segfaults
+# Requires a distinct scalar type or zero-dim coercion.
+array_api_tests/meta_tests
 
+# The following tests cause segfaults
 array_api_tests/test_manipulation_functions.py::test_roll
 array_api_tests/test_data_type_functions.py::test_broadcast_arrays
 

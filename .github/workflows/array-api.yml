@@ -8,7 +8,7 @@ on:
   # to the main branch and tags.
   push:
     branches:
-      - "main"
+      - "*"
     tags:
       - "*"
   schedule:
