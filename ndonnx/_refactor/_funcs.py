@@ -119,19 +119,6 @@ def broadcast_arrays(*arrays: Array) -> list[Array]:
 
     return [broadcast_to(a, target_shape) for a in arrays]
 
-    # TODO: Create upstream issue for a variadic broadcasting operator
-    # in the ONNX standard.
-    for a in arrays:
-        for el in a.shape:
-            if not isinstance(el, int):
-                raise ValueError(
-                    "broadcasting dynamic dimensions is not (yet) supported."
-                )
-
-    res = np.broadcast_shapes(*[a.shape for a in arrays])  # type: ignore
-
-    return [broadcast_to(a, tuple(res)) for a in arrays]
-
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
     from ._typed_array.onnx import TyArrayInt64
