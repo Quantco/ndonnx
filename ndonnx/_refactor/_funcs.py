@@ -104,18 +104,20 @@ def broadcast_arrays(*arrays: Array) -> list[Array]:
     if len(arrays) < 2:
         return [a.copy() for a in arrays]
 
-    # TODO: Create upstream issue for a variadic broadcasting operator
-    # in the ONNX standard.
-    for a in arrays:
-        for el in a.shape:
-            if not isinstance(el, int):
-                raise ValueError(
-                    "broadcasting dynamic dimensions is not (yet) supported."
-                )
+    def numeric_like(x):
+        if isdtype(x, "numeric"):
+            return x
+        else:
+            return zeros_like(x, dtype=ndx.int64)
 
-    res = np.broadcast_shapes(*[a.shape for a in arrays])  # type: ignore
+    it = iter(arrays)
+    ret = numeric_like(next(it))
+    while (x := next(it, None)) is not None:
+        ret = ret + numeric_like(x)
 
-    return [broadcast_to(a, tuple(res)) for a in arrays]
+    target_shape = ndx.extensions.shape(ret)
+
+    return [broadcast_to(a, target_shape) for a in arrays]
 
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
