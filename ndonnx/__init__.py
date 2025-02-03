@@ -167,6 +167,7 @@ from ._constants import (
     inf,
     nan,
     pi,
+    newaxis,
 )
 
 try:
@@ -185,6 +186,7 @@ __all__ = [
     "inf",
     "nan",
     "pi",
+    "newaxis",
     "arange",
     "asarray",
     "empty",
