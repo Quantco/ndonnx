@@ -74,14 +74,13 @@ class _OnnxDType(DType[TY_ARRAY]):
         # Should never happen
         raise ValueError(f"'{self}' does not have a corresponding NumPy data type")
 
-    @property
     @abstractmethod
-    def _tyarr_class(self) -> type[TY_ARRAY]: ...
+    def _build(self, var: Var) -> TY_ARRAY: ...
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY:
         if isinstance(arr, TyArray):
             var = op.cast(arr.var, to=self.unwrap_numpy())
-            return safe_cast(self._tyarr_class, ascoredata(var))
+            return self._build(var)
         return NotImplemented
 
     def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
@@ -92,7 +91,7 @@ class _OnnxDType(DType[TY_ARRAY]):
 
     def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY:
         var = argument(Tensor(self.unwrap_numpy(), shape))
-        return self._tyarr_class(var)
+        return self._build(var)
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
@@ -122,7 +121,7 @@ class _OnnxDType(DType[TY_ARRAY]):
             op.const(step_, np_dtype),
         )
 
-        return self._tyarr_class(var)
+        return self._build(var)
 
     def __ndx_eye__(
         self,
@@ -137,17 +136,17 @@ class _OnnxDType(DType[TY_ARRAY]):
         mat = np.eye(n_rows, n_cols, k=k, dtype=self.unwrap_numpy())
         var = op.const(mat)
 
-        return self._tyarr_class(var)
+        return self._build(var)
 
     def __ndx_ones__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
-        scalar = self._tyarr_class(op.const(1, np_dtype))
+        scalar = self._build(op.const(1, np_dtype))
 
         return scalar.broadcast_to(shape)
 
     def __ndx_zeros__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
         np_dtype = self.unwrap_numpy()
-        scalar = self._tyarr_class(op.const(0, np_dtype))
+        scalar = self._build(op.const(0, np_dtype))
 
         return scalar.broadcast_to(shape)
 
@@ -156,23 +155,21 @@ class _Number(_OnnxDType[TY_ARRAY]): ...
 
 
 class Utf8(_OnnxDType["TyArrayUtf8"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayUtf8]:
-        return TyArrayUtf8
+    def _build(self, var: Var) -> TyArrayUtf8:
+        return TyArrayUtf8(var)
 
     def __ndx_zeros__(self, shape: tuple[int, ...] | TyArrayInt64) -> TyArrayUtf8:
         # NumPy returns empty strings for `zeros` with string data
         # types. We follow that lead.
         np_dtype = self.unwrap_numpy()
-        scalar = self._tyarr_class(op.const("", np_dtype))
+        scalar = self._build(op.const("", np_dtype))
 
         return scalar.broadcast_to(shape)
 
 
 class Boolean(_OnnxDType["TyArrayBool"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayBool]:
-        return TyArrayBool
+    def _build(self, var: Var) -> TyArrayBool:
+        return TyArrayBool(var)
 
 
 class Integer(_Number[TY_ARRAY]): ...
@@ -182,69 +179,58 @@ class Floating(_Number[TY_ARRAY]): ...
 
 
 class Int8(Integer["TyArrayInt8"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayInt8]:
-        return TyArrayInt8
+    def _build(self, var: Var) -> TyArrayInt8:
+        return TyArrayInt8(var)
 
 
 class Int16(Integer["TyArrayInt16"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayInt16]:
-        return TyArrayInt16
+    def _build(self, var: Var) -> TyArrayInt16:
+        return TyArrayInt16(var)
 
 
 class Int32(Integer["TyArrayInt32"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayInt32]:
-        return TyArrayInt32
+    def _build(self, var: Var) -> TyArrayInt32:
+        return TyArrayInt32(var)
 
 
 class Int64(Integer["TyArrayInt64"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayInt64]:
-        return TyArrayInt64
+    def _build(self, var: Var) -> TyArrayInt64:
+        return TyArrayInt64(var)
 
 
 class UInt8(Integer["TyArrayUInt8"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayUInt8]:
-        return TyArrayUInt8
+    def _build(self, var: Var) -> TyArrayUInt8:
+        return TyArrayUInt8(var)
 
 
 class UInt16(Integer["TyArrayUInt16"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayUInt16]:
-        return TyArrayUInt16
+    def _build(self, var: Var) -> TyArrayUInt16:
+        return TyArrayUInt16(var)
 
 
 class UInt32(Integer["TyArrayUInt32"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayUInt32]:
-        return TyArrayUInt32
+    def _build(self, var: Var) -> TyArrayUInt32:
+        return TyArrayUInt32(var)
 
 
 class UInt64(Integer["TyArrayUInt64"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayUInt64]:
-        return TyArrayUInt64
+    def _build(self, var: Var) -> TyArrayUInt64:
+        return TyArrayUInt64(var)
 
 
 class Float16(Floating["TyArrayFloat16"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayFloat16]:
-        return TyArrayFloat16
+    def _build(self, var: Var) -> TyArrayFloat16:
+        return TyArrayFloat16(var)
 
 
 class Float32(Floating["TyArrayFloat32"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayFloat32]:
-        return TyArrayFloat32
+    def _build(self, var: Var) -> TyArrayFloat32:
+        return TyArrayFloat32(var)
 
 
 class Float64(Floating["TyArrayFloat64"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayFloat64]:
-        return TyArrayFloat64
+    def _build(self, var: Var) -> TyArrayFloat64:
+        return TyArrayFloat64(var)
 
 
 # Non-nullable Singleton instances
@@ -278,7 +264,6 @@ DTypes = NumericDTypes | Utf8 | Boolean
 
 
 class TyArray(TyArrayBase):
-    dtype: _OnnxDType
     var: Var
 
     def __init__(self, var: Var):
@@ -473,6 +458,14 @@ class TyArray(TyArrayBase):
             key = key.reshape((-1, 1))
         data._setitem_int_array(key, value)
         self.var = data.reshape(self.dynamic_shape).var
+
+    @property
+    def dtype(self) -> _OnnxDType:
+        # This property is overwritten downstream. We define it here
+        # to be able to use `safe_cast` with TyArray (MyPy does not accept an
+        # abstract `T` in `type[T]`
+        # https://github.com/python/mypy/issues/4717)
+        raise NotImplementedError
 
     @property
     def dynamic_shape(self) -> TyArrayInt64:
@@ -853,7 +846,9 @@ class TyArray(TyArrayBase):
 
 
 class TyArrayUtf8(TyArray):
-    dtype = utf8
+    @property
+    def dtype(self) -> Utf8:
+        return utf8
 
     def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         if isinstance(other, TyArrayUtf8 | str):
@@ -873,10 +868,6 @@ class TyArrayUtf8(TyArray):
 
 
 class TyArrayNumber(TyArray):
-    # The standard has a separate data type for boolean arrays
-    # (see `isdtype` for details).
-    dtype: _Number
-
     def _arg_minmax(
         self, spox_op, /, *, axis: int | None = None, keepdims: bool = False
     ) -> TyArrayInt64:
@@ -1294,8 +1285,6 @@ class TyArrayNumber(TyArray):
 
 
 class TyArrayInteger(TyArrayNumber):
-    dtype: Integer
-
     def _apply_int_only(
         self,
         other: TyArrayBase | _PyScalar,
@@ -1446,8 +1435,6 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 
 
 class TyArrayFloating(TyArrayNumber):
-    dtype: Floating
-
     def __mod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
             a, b = promote(self, other)
@@ -1642,7 +1629,9 @@ class TyArrayFloating(TyArrayNumber):
 
 
 class TyArrayBool(TyArray):
-    dtype = bool_
+    @property
+    def dtype(self) -> Boolean:
+        return bool_
 
     def _apply(
         self,
@@ -1722,53 +1711,75 @@ class TyArrayBool(TyArray):
 
 
 class TyArrayInt8(TyArraySignedInteger):
-    dtype = int8
+    @property
+    def dtype(self) -> Int8:
+        return int8
 
 
 class TyArrayInt16(TyArraySignedInteger):
-    dtype = int16
+    @property
+    def dtype(self) -> Int16:
+        return int16
 
 
 class TyArrayInt32(TyArraySignedInteger):
-    dtype = int32
+    @property
+    def dtype(self) -> Int32:
+        return int32
 
 
 class TyArrayInt64(TyArraySignedInteger):
-    dtype = int64
+    @property
+    def dtype(self) -> Int64:
+        return int64
 
 
 class TyArrayUInt8(TyArrayUnsignedInteger):
-    dtype = uint8
+    @property
+    def dtype(self) -> UInt8:
+        return uint8
 
 
 class TyArrayUInt16(TyArrayUnsignedInteger):
-    dtype = uint16
+    @property
+    def dtype(self) -> UInt16:
+        return uint16
 
 
 class TyArrayUInt32(TyArrayUnsignedInteger):
-    dtype = uint32
+    @property
+    def dtype(self) -> UInt32:
+        return uint32
 
 
 class TyArrayUInt64(TyArrayUnsignedInteger):
-    dtype = uint64
+    @property
+    def dtype(self) -> UInt64:
+        return uint64
 
 
 class TyArrayFloat16(TyArrayFloating):
-    dtype = float16
+    @property
+    def dtype(self) -> Float16:
+        return float16
 
 
 class TyArrayFloat32(TyArrayFloating):
-    dtype = float32
+    @property
+    def dtype(self) -> Float32:
+        return float32
 
 
 class TyArrayFloat64(TyArrayFloating):
-    dtype = float64
+    @property
+    def dtype(self) -> Float64:
+        return float64
 
 
 def ascoredata(var: Var) -> TyArray:
     dtype = from_numpy(var.unwrap_tensor().dtype)
 
-    return dtype._tyarr_class(var)
+    return dtype._build(var)
 
 
 def const(obj: bool | int | float | str | np.ndarray) -> TyArray:

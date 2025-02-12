@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import operator
+from abc import abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
@@ -48,6 +49,11 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
             raise TypeError(f"unsupported time unit `{unit}`")
         self.unit = unit
 
+    @abstractmethod
+    def _build(
+        self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
+    ) -> BASE_DT_ARRAY: ...
+
     def __ndx_cast_from__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:
         if isinstance(arr, onnx.TyArrayInteger):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
@@ -60,7 +66,7 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
         #     is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
         else:
             return NotImplemented
-        return self._tyarr_class(is_nat=is_nat, data=data, unit=self.unit)
+        return self._build(is_nat=is_nat, data=data, unit=self.unit)
 
     def __ndx_result_type__(self, other: DType | _PyScalar) -> DType:
         if isinstance(other, int):
@@ -73,7 +79,7 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     def __ndx_argument__(self, shape: OnnxShape) -> BASE_DT_ARRAY:
         data = onnx.int64.__ndx_argument__(shape)
         is_nat = onnx.bool_.__ndx_argument__(shape)
-        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data, is_nat=is_nat, unit=self.unit)
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
@@ -89,7 +95,7 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     ) -> BASE_DT_ARRAY:
         data = onnx.int64.__ndx_arange__(start, stop, step)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data, is_nat=is_nat, unit=self.unit)
 
     def __ndx_eye__(
         self,
@@ -101,14 +107,14 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     ) -> BASE_DT_ARRAY:
         data = onnx.int64.__ndx_eye__(n_rows, n_cols, k=k)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data, is_nat=is_nat, unit=self.unit)
 
     def __ndx_ones__(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> BASE_DT_ARRAY:
         from .funcs import astyarray
 
         data = onnx.int64.__ndx_ones__(shape)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data, is_nat=is_nat, unit=self.unit)
 
     def __ndx_zeros__(
         self, shape: tuple[int, ...] | onnx.TyArrayInt64
@@ -117,22 +123,21 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
 
         data = onnx.int64.__ndx_zeros__(shape)
         is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._tyarr_class(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data, is_nat=is_nat, unit=self.unit)
 
 
-class DateTime(BaseTimeDType):
-    @property
-    def _tyarr_class(self) -> type[TyArrayDateTime]:
-        return TyArrayDateTime
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self.unit}]"
+class DateTime(BaseTimeDType["TyArrayDateTime"]):
+    def _build(
+        self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
+    ) -> TyArrayDateTime:
+        return TyArrayDateTime(is_nat=is_nat, data=data, unit=unit)
 
 
-class TimeDelta(BaseTimeDType):
-    @property
-    def _tyarr_class(self) -> type[TyArrayTimeDelta]:
-        return TyArrayTimeDelta
+class TimeDelta(BaseTimeDType["TyArrayTimeDelta"]):
+    def _build(
+        self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
+    ) -> TyArrayTimeDelta:
+        return TyArrayTimeDelta(is_nat=is_nat, data=data, unit=unit)
 
 
 TIME_DTYPE = TypeVar("TIME_DTYPE", bound=DateTime | TimeDelta)
@@ -142,12 +147,15 @@ class TimeBaseArray(TyArrayBase):
     # TimeDelta and DateTime share the same memory layout. We can
     # therefore share some functionality.
 
-    dtype: DateTime | TimeDelta
     is_nat: onnx.TyArrayBool
     data: onnx.TyArrayInt64
 
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def dtype(self) -> BaseTimeDType: ...
 
     def copy(self) -> Self:
         # We want to copy the component arrays, too.
@@ -305,19 +313,24 @@ class TimeBaseArray(TyArrayBase):
 
 
 class TyArrayTimeDelta(TimeBaseArray):
-    dtype: TimeDelta
+    _dtype: TimeDelta
 
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
         self.is_nat = safe_cast(onnx.TyArrayBool, is_nat)
         self.data = safe_cast(onnx.TyArrayInt64, data)
-        self.dtype = TimeDelta(unit)
+        self._dtype = TimeDelta(unit)
+
+    @property
+    def dtype(self) -> TimeDelta:
+        return self._dtype
 
     def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
+        # TODO: Figure out why mypy/pyright are taking such an offense in this method
         if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, _NAT_SENTINEL.astype(onnx.int64), self.data)
-            return data.astype(dtype)
+            return data.astype(dtype)  # type: ignore
         if isinstance(dtype, TimeDelta):
             powers = {
                 "s": 0,
@@ -325,7 +338,7 @@ class TyArrayTimeDelta(TimeBaseArray):
                 "us": 6,
                 "ns": 9,
             }
-            power = powers[dtype.unit] - powers[self.dtype.unit]
+            power = powers[dtype.unit] - powers[self.dtype.unit]  # type: ignore
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
 
             if power > 0:
@@ -335,7 +348,7 @@ class TyArrayTimeDelta(TimeBaseArray):
 
             data = safe_cast(onnx.TyArrayInt64, data)
             # TODO: Figure out why mypy does not like the blow
-            return dtype._tyarr_class(is_nat=self.is_nat, data=data, unit=dtype.unit)  # type: ignore
+            return dtype._build(is_nat=self.is_nat, data=data, unit=dtype.unit)  # type: ignore
 
         return NotImplemented
 
@@ -398,12 +411,16 @@ class TyArrayTimeDelta(TimeBaseArray):
 
 
 class TyArrayDateTime(TimeBaseArray):
-    dtype: DateTime
+    _dtype: DateTime
 
     def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
         self.is_nat = safe_cast(onnx.TyArrayBool, is_nat)
         self.data = safe_cast(onnx.TyArrayInt64, data)
-        self.dtype = DateTime(unit)
+        self._dtype = DateTime(unit)
+
+    @property
+    def dtype(self) -> DateTime:
+        return self._dtype
 
     def unwrap_numpy(self) -> np.ndarray:
         is_nat = self.is_nat.unwrap_numpy()
@@ -416,10 +433,10 @@ class TyArrayDateTime(TimeBaseArray):
     def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
-        res_type = dtype._tyarr_class
+        # TODO: Figure out why mypy/pyright don't like this method
         if isinstance(dtype, onnx.IntegerDTypes):
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
-            return data.astype(dtype)
+            return data.astype(dtype)  # type: ignore
         if isinstance(dtype, DateTime):
             powers = {
                 "s": 0,
@@ -427,7 +444,7 @@ class TyArrayDateTime(TimeBaseArray):
                 "us": 6,
                 "ns": 9,
             }
-            power = powers[dtype.unit] - powers[self.dtype.unit]
+            power = powers[dtype.unit] - powers[self.dtype.unit]  # type: ignore
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
 
             if power > 0:
@@ -435,7 +452,7 @@ class TyArrayDateTime(TimeBaseArray):
             if power < 0:
                 data = data / np.pow(10, abs(power))
 
-            return safe_cast(res_type, data)
+            return dtype._build(is_nat=self.is_nat, data=data, unit=dtype.unit)  # type: ignore
         return NotImplemented
 
     def _coerce_to_time_delta(

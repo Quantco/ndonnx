@@ -27,16 +27,6 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         self, other: DType | _Py_Scalar
     ) -> DType | NotImplementedType: ...
 
-    @property
-    @abstractmethod
-    def _tyarr_class(self) -> type[TY_ARRAY_BASE]:
-        """Consider using  ``TyArrayBase.astype`` or ``_argument`` instead.
-
-        Those functions better provide the dtype instance (with it's state) to the newly
-        instantiated array.
-        """
-        ...
-
     @abstractmethod
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_BASE:
         """Convert the given array to this data type.

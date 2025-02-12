@@ -25,8 +25,6 @@ _PyScalar = bool | int | float | str
 
 
 class TyArrayBase(ABC):
-    dtype: DType[Self]
-
     @abstractmethod
     def __init__(self): ...
 
@@ -69,6 +67,10 @@ class TyArrayBase(ABC):
         /,
     ) -> None:
         """Set elements with semantics identical to `numpy.put` with `mode="raise"."""
+
+    @property
+    @abstractmethod
+    def dtype(self) -> DType[Self]: ...
 
     @property
     @abstractmethod

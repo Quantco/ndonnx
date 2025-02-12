@@ -90,10 +90,6 @@ class CategoricalDType(DType["CategoricalArray"]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(categories={self.categories}, ordered={self._ordered})"
 
-    @property
-    def _tyarr_class(self) -> type[CategoricalArray]:
-        return CategoricalArray
-
     def __ndx_argument__(self, shape: OnnxShape) -> CategoricalArray:
         codes = onnx.uint16.__ndx_argument__(shape)
         return CategoricalArray(codes, dtype=self)
@@ -108,13 +104,17 @@ class CategoricalDType(DType["CategoricalArray"]):
 
 
 class CategoricalArray(TyArrayBase):
-    dtype: CategoricalDType
+    _dtype: CategoricalDType
     # TODO: Flexible data type?
     codes: onnx.TyArrayUInt16
 
     def __init__(self, codes: onnx.TyArrayUInt16, dtype: CategoricalDType):
         self.codes = codes
-        self.dtype = dtype
+        self._dtype = dtype
+
+    @property
+    def dtype(self) -> CategoricalDType:
+        return self._dtype
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         mapping = dict(enumerate(self.dtype.categories))

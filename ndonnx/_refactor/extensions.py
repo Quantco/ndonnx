@@ -197,11 +197,14 @@ def make_nullable(
         return ndx.Array._from_tyarray(tyarr)
     if isinstance(x._tyarray, tydx.date_time.TimeBaseArray):
         # TODO: The semantics of this branch are very odd!
-        is_nat = tydx.masked_onnx._merge_masks(x._tyarray.is_nat, null._tyarray)
-        tyarr = x.dtype._tyarr_class(
-            is_nat, x._tyarray.data, unit=x._tyarray.dtype.unit
+        is_nat = x._tyarray.is_nat
+        merged = tydx.masked_onnx._merge_masks(is_nat, null._tyarray)
+        if merged is not None:
+            is_nat = merged
+        return ndx.Array._from_tyarray(
+            x._tyarray.dtype._build(is_nat, x._tyarray.data, unit=x._tyarray.dtype.unit)
         )
-        return ndx.Array._from_tyarray(tyarr)
+
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"
     )
