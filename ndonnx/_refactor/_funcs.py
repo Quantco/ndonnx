@@ -380,7 +380,7 @@ def full(
             # is technically supported by the ONNX standard, but quite odd
             # and seemingly broken in the onnxruntime.
             return reshape(asarray([], dtype=dtype), shape=shape)
-    return broadcast_to(asarray([fill_value], dtype=dtype), shape)
+    return broadcast_to(asarray(fill_value, dtype=dtype), shape)
 
 
 def full_like(

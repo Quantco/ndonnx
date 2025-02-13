@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 Unit = Literal["ns", "s"]
 
 _NAT_SENTINEL = onnx.const(np.iinfo(np.int64).min).astype(onnx.int64)
-BASE_DT_ARRAY = TypeVar("BASE_DT_ARRAY", bound="TimeBaseArray")
+BASE_DT_ARRAY = TypeVar("BASE_DT_ARRAY", bound="TimeBaseArray", covariant=True)
 
 _PyScalar = bool | int | float | str
 
@@ -138,9 +138,6 @@ class TimeDelta(BaseTimeDType["TyArrayTimeDelta"]):
         self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
     ) -> TyArrayTimeDelta:
         return TyArrayTimeDelta(is_nat=is_nat, data=data, unit=unit)
-
-
-TIME_DTYPE = TypeVar("TIME_DTYPE", bound=DateTime | TimeDelta)
 
 
 class TimeBaseArray(TyArrayBase):
@@ -397,17 +394,19 @@ class TyArrayTimeDelta(TimeBaseArray):
         return NotImplemented
 
     def _eqcomp(self, other) -> onnx.TyArrayBool:
-        if not isinstance(other.dtype, TimeDelta):
+        if not isinstance(other, TyArrayBase):
             return NotImplemented
-        if self.dtype.unit != other.dtype.unit:
-            raise TypeError(
-                "comparison between different units is not implemented, yet"
-            )
+        # TODO: Figure out what is missing to be able to narrow `other` via the data type
+        if isinstance(other, TyArrayTimeDelta):
+            if self.dtype.unit != other.dtype.unit:
+                raise TypeError(
+                    "comparison between different units is not implemented, yet"
+                )
 
-        res = self.data == other.data
-        is_nat = self.is_nat | other.is_nat
-
-        return res & ~is_nat
+            res = self.data == other.data
+            is_nat = self.is_nat | other.is_nat
+            return safe_cast(onnx.TyArrayBool, res & ~is_nat)
+        return NotImplemented
 
 
 class TyArrayDateTime(TimeBaseArray):
@@ -569,7 +568,10 @@ class TyArrayDateTime(TimeBaseArray):
         return self._apply_comp(operator.gt, other)
 
     def _eqcomp(self, other) -> onnx.TyArrayBool:
-        if not isinstance(other.dtype, DateTime):
+        if not isinstance(other, TyArrayBase):
+            return NotImplemented
+
+        if not isinstance(other, TyArrayDateTime):
             return NotImplemented
         if self.dtype.unit != other.dtype.unit:
             raise TypeError(
@@ -579,7 +581,7 @@ class TyArrayDateTime(TimeBaseArray):
         res = self.data == other.data
         is_nat = self.is_nat | other.is_nat
 
-        return res & ~is_nat
+        return safe_cast(onnx.TyArrayBool, res & ~is_nat)
 
 
 def _apply_op(

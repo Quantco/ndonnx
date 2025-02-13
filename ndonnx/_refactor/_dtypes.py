@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from ._types import OnnxShape
 
 
-TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
+TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase", covariant=True)
 _Py_Scalar = bool | int | float | str
 
 

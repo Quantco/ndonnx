@@ -178,9 +178,9 @@ def make_nullable(
     null = None if null is None else null.copy()
 
     if null is None:
-        if isinstance(x, TyMaArray):
+        if isinstance(x._tyarray, TyMaArray):
             return x
-        if isinstance(x, tydx.onnx.TyArray):
+        if isinstance(x._tyarray, tydx.onnx.TyArray):
             return ndx.Array._from_tyarray(
                 tydx.masked_onnx.asncoredata(x._tyarray, None)
             )

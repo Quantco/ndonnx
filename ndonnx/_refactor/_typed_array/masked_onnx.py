@@ -322,8 +322,11 @@ def _make_unary_member_same_type(fun_name: str):
 class TyMaArrayBase(TyArrayBase):
     """Typed masked array object."""
 
-    data: TyArrayBase
     mask: onnx.TyArrayBool | None
+
+    @property
+    @abstractmethod
+    def data(self) -> TyArrayBase: ...
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         reps = {}
@@ -335,22 +338,32 @@ class TyMaArrayBase(TyArrayBase):
 
 
 class TyMaArray(TyMaArrayBase):
-    """Masked version of core types.
+    """Masked version of core types."""
 
-    The (subclasses) of this class are implemented such that they only
-    know about `_ArrayCoreType`s, but not `_PyScalar`s.
-    """
-
-    # TODO: Things should be easier if they were to know about PyScalars
-
-    dtype: _MaOnnxDType
+    _dtype: _MaOnnxDType
     # Specialization of data from `Data` to `_ArrayCoreType`
-    data: onnx.TyArray
+    _data: onnx.TyArray
 
     def __init__(self, data: onnx.TyArray, mask: onnx.TyArrayBool | None):
-        self.dtype = as_nullable(data.dtype)
         self.data = data
         self.mask = mask
+
+    @property
+    def dtype(self) -> _MaOnnxDType:
+        # Implemented in child class
+        raise NotImplementedError
+
+    @property
+    def data(self) -> onnx.TyArray:
+        return self._data
+
+    @data.setter
+    def data(self, data: onnx.TyArray):
+        if data.dtype != self.dtype._unmasked_dtype:
+            raise ValueError(
+                f"expected data of type `{self.dtype._unmasked_dtype}` found `{data.dtype}`"
+            )
+        self._data = data
 
     def disassemble(self) -> dict[str, Var]:
         return (
@@ -530,23 +543,27 @@ class TyMaArray(TyMaArrayBase):
 
 
 class TyMaArrayString(TyMaArray):
-    dtype = nutf8
+    @property
+    def dtype(self) -> NUtf8:
+        return nutf8
 
     __add__, __radd__ = _make_binary_pair(operator.add)  # type: ignore
 
 
 class TyMaArrayNumber(TyMaArray):
-    dtype: NCoreNumericDTypes
+    @property
+    def dtype(self) -> NCoreNumericDTypes:
+        raise NotImplementedError
 
     def clip(
         self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
     ) -> Self:
-        allowed_types = int | float | onnx.TyArray | TyMaArrayNumber | None
-        if not isinstance(min, allowed_types):
+        allowed_types = int | float | onnx.TyArray | TyMaArrayNumber
+        if min is not None and not isinstance(min, allowed_types):
             raise TypeError(
                 f"'clip' is not implemented for argument 'min' with data type `{min.dtype}`"
             )
-        if not isinstance(max, allowed_types):
+        if max is not None and not isinstance(max, allowed_types):
             raise TypeError(
                 f"'clip' is not implemented for argument 'max' with data type `{max.dtype}`"
             )
@@ -653,7 +670,9 @@ class TyMaArrayNumber(TyMaArray):
 
 
 class TyMaArrayInteger(TyMaArrayNumber):
-    dtype: NCoreIntegerDTypes
+    @property
+    def dtype(self) -> NCoreIntegerDTypes:
+        raise NotImplementedError
 
     __and__, __rand__ = _make_binary_pair(operator.and_)  # type: ignore
     __or__, __ror__ = _make_binary_pair(operator.or_)  # type: ignore
@@ -664,7 +683,9 @@ class TyMaArrayInteger(TyMaArrayNumber):
 
 
 class TyMaArrayFloating(TyMaArrayNumber):
-    dtype: NCoreFloatingDTypes
+    @property
+    def dtype(self) -> NCoreFloatingDTypes:
+        raise NotImplementedError
 
     acos = _make_unary_member_same_type("acos")  # type: ignore
     acosh = _make_unary_member_same_type("acosh")  # type: ignore
@@ -685,7 +706,9 @@ class TyMaArrayFloating(TyMaArrayNumber):
 
 
 class TyMaArrayBool(TyMaArray):
-    dtype = nbool
+    @property
+    def dtype(self) -> NBoolean:
+        return nbool
 
     __invert__ = _make_unary_member_same_type("__invert__")  # type: ignore
 
@@ -697,47 +720,69 @@ class TyMaArrayBool(TyMaArray):
 
 
 class TyMaArrayInt8(TyMaArrayInteger):
-    dtype = nint8
+    @property
+    def dtype(self) -> NInt8:
+        return nint8
 
 
 class TyMaArrayInt16(TyMaArrayInteger):
-    dtype = nint16
+    @property
+    def dtype(self) -> NInt16:
+        return nint16
 
 
 class TyMaArrayInt32(TyMaArrayInteger):
-    dtype = nint32
+    @property
+    def dtype(self) -> NInt32:
+        return nint32
 
 
 class TyMaArrayInt64(TyMaArrayInteger):
-    dtype = nint64
+    @property
+    def dtype(self) -> NInt64:
+        return nint64
 
 
 class TyMaArrayUInt8(TyMaArrayInteger):
-    dtype = nuint8
+    @property
+    def dtype(self) -> NUInt8:
+        return nuint8
 
 
 class TyMaArrayUInt16(TyMaArrayInteger):
-    dtype = nuint16
+    @property
+    def dtype(self) -> NUInt16:
+        return nuint16
 
 
 class TyMaArrayUInt32(TyMaArrayInteger):
-    dtype = nuint32
+    @property
+    def dtype(self) -> NUInt32:
+        return nuint32
 
 
 class TyMaArrayUInt64(TyMaArrayInteger):
-    dtype = nuint64
+    @property
+    def dtype(self) -> NUInt64:
+        return nuint64
 
 
 class TyMaArrayFloat16(TyMaArrayFloating):
-    dtype = nfloat16
+    @property
+    def dtype(self) -> NFloat16:
+        return nfloat16
 
 
 class TyMaArrayFloat32(TyMaArrayFloating):
-    dtype = nfloat32
+    @property
+    def dtype(self) -> NFloat32:
+        return nfloat32
 
 
 class TyMaArrayFloat64(TyMaArrayFloating):
-    dtype = nfloat64
+    @property
+    def dtype(self) -> NFloat64:
+        return nfloat64
 
 
 def _merge_masks(

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from .._array import OnnxShape
     from .indexing import BoolMask, GetitemItem, SetitemItem
 
+TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
@@ -35,7 +36,7 @@ VALUE = TypeVar("VALUE", int, float, str)
 _PyScalar = bool | int | float | str
 
 
-class _OnnxDType(DType[TY_ARRAY]):
+class _OnnxDType(DType[TY_ARRAY_co]):
     """Data types with a direct representation in the ONNX standard."""
 
     def unwrap_numpy(self) -> np.dtype:
@@ -75,9 +76,9 @@ class _OnnxDType(DType[TY_ARRAY]):
         raise ValueError(f"'{self}' does not have a corresponding NumPy data type")
 
     @abstractmethod
-    def _build(self, var: Var) -> TY_ARRAY: ...
+    def _build(self, var: Var) -> TY_ARRAY_co: ...
 
-    def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY:
+    def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_co:
         if isinstance(arr, TyArray):
             var = op.cast(arr.var, to=self.unwrap_numpy())
             return self._build(var)
@@ -89,7 +90,7 @@ class _OnnxDType(DType[TY_ARRAY]):
 
         return NotImplemented
 
-    def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY:
+    def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY_co:
         var = argument(Tensor(self.unwrap_numpy(), shape))
         return self._build(var)
 
@@ -104,7 +105,7 @@ class _OnnxDType(DType[TY_ARRAY]):
         start: int | float,
         stop: int | float,
         step: int | float = 1,
-    ) -> TY_ARRAY:
+    ) -> TY_ARRAY_co:
         np_dtype = self.unwrap_numpy()
         np_arr = np.array([start, stop, step])
 
@@ -130,7 +131,7 @@ class _OnnxDType(DType[TY_ARRAY]):
         /,
         *,
         k: int = 0,
-    ) -> TY_ARRAY:
+    ) -> TY_ARRAY_co:
         n_cols = n_rows if n_cols is None else n_cols
         # There is no adequate ONNX operator
         mat = np.eye(n_rows, n_cols, k=k, dtype=self.unwrap_numpy())
@@ -138,20 +139,20 @@ class _OnnxDType(DType[TY_ARRAY]):
 
         return self._build(var)
 
-    def __ndx_ones__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
+    def __ndx_ones__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_co:
         np_dtype = self.unwrap_numpy()
         scalar = self._build(op.const(1, np_dtype))
 
         return scalar.broadcast_to(shape)
 
-    def __ndx_zeros__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY:
+    def __ndx_zeros__(self, shape: tuple[int, ...] | TyArrayInt64) -> TY_ARRAY_co:
         np_dtype = self.unwrap_numpy()
         scalar = self._build(op.const(0, np_dtype))
 
         return scalar.broadcast_to(shape)
 
 
-class _Number(_OnnxDType[TY_ARRAY]): ...
+class _Number(_OnnxDType[TY_ARRAY_co]): ...
 
 
 class Utf8(_OnnxDType["TyArrayUtf8"]):
@@ -172,10 +173,10 @@ class Boolean(_OnnxDType["TyArrayBool"]):
         return TyArrayBool(var)
 
 
-class Integer(_Number[TY_ARRAY]): ...
+class Integer(_Number[TY_ARRAY_co]): ...
 
 
-class Floating(_Number[TY_ARRAY]): ...
+class Floating(_Number[TY_ARRAY_co]): ...
 
 
 class Int8(Integer["TyArrayInt8"]):
@@ -1388,11 +1389,15 @@ class TyArraySignedInteger(TyArrayInteger):
     # The array-api standard defines the right shift as arithmetic
     # (i.e. sign-propagating). The ONNX standard is logical.
 
-    def __rshift__(self, other) -> TyArrayBase:
-        return self // (2**other)
+    def __rshift__(self, other) -> TyArray:
+        if isinstance(other, TyArraySignedInteger | int):
+            return safe_cast(TyArray, self // (2**other))
+        return NotImplemented
 
-    def __rrshift__(self, other) -> TyArrayBase:
-        return other // (2**self)
+    def __rrshift__(self, other) -> TyArray:
+        if isinstance(other, int):
+            return safe_cast(TyArray, other // (2**self))
+        return NotImplemented
 
 
 class TyArrayUnsignedInteger(TyArrayInteger):
