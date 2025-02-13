@@ -10,13 +10,13 @@ from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
 
 import numpy as np
-import spox.opset.ai.onnx.v21 as op
 from spox import Tensor, Var, argument
 from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
 from .._schema import DTypeInfoV1
-from . import TyArrayBase, astyarray, ort_compat, promote, safe_cast
+from . import TyArrayBase, astyarray, promote, safe_cast
+from . import ort_compat as op
 from .indexing import (
     FancySlice,
     _key_to_indices,
@@ -116,7 +116,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         # Get everything onto the same type
         start_, stop_, step_ = np.array([start, stop, step], dtype=np_dtype)
 
-        var = ort_compat.range(
+        var = op.range(
             op.const(start_, np_dtype),
             op.const(stop_, np_dtype),
             op.const(step_, np_dtype),
@@ -425,7 +425,7 @@ class TyArray(TyArrayBase):
             idx = [...] + diff * [None]
             key = key[tuple(idx)]
 
-        self.var = ort_compat.where(key.var, value.var, self.var)
+        self.var = op.where(key.var, value.var, self.var)
         return
 
     def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
@@ -560,9 +560,7 @@ class TyArray(TyArrayBase):
 
         # Note: reduce_min, which would support uint8s, appears to be buggy on the onnxruntime
         # side. Thus we use reduce_prod for now.
-        var = ort_compat.reduce_prod(
-            bools.astype(int32).var, axes=axes, keepdims=keepdims
-        )
+        var = op.reduce_prod(bools.astype(int32).var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayInt32(var).astype(bool_))
 
     def any(
@@ -584,9 +582,7 @@ class TyArray(TyArrayBase):
         axes = op.const(list(axis), np.int64) if axis else None
 
         # Accumulate in float32 to avoid possible overflowing issues
-        var = ort_compat.reduce_sum(
-            bools.astype(float32).var, axes=axes, keepdims=keepdims
-        )
+        var = op.reduce_sum(bools.astype(float32).var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayFloat32(var).astype(bool_))
 
     def as_core_dtype(self, dtype: DTypes) -> TyArray:
@@ -743,16 +739,16 @@ class TyArray(TyArrayBase):
             )
 
     def tril(self, /, *, k: int = 0) -> Self:
-        var = ort_compat.trilu(self.var, k=op.const(k, dtype=np.int64), upper=False)
+        var = op.trilu(self.var, k=op.const(k, dtype=np.int64), upper=False)
         return type(self)(var)
 
     def triu(self, /, *, k: int = 0) -> Self:
-        var = ort_compat.trilu(self.var, k=op.const(k, dtype=np.int64), upper=True)
+        var = op.trilu(self.var, k=op.const(k, dtype=np.int64), upper=True)
         return type(self)(var)
 
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         flattened = self.reshape((-1,))
-        res = ort_compat.unique(flattened.var, sorted=True)
+        res = op.unique(flattened.var, sorted=True)
         values, indices, inverse_indices, counts = (
             type(self)(res[0]),
             TyArrayInt64(res[1]),
@@ -773,7 +769,7 @@ class TyArray(TyArrayBase):
     def _eqcomp(self, other) -> TyArrayBase:
         if isinstance(other, TyArray | bool | int | float | str):
             a, b = promote(self, other)
-            var = ort_compat.equal(a.var, b.var)
+            var = op.equal(a.var, b.var)
             return TyArrayBool(var)
         return NotImplemented
 
@@ -816,7 +812,7 @@ class TyArray(TyArrayBase):
         else:
             default_ = np.array([default], dtype=values.dtype)
 
-        var = ort_compat.label_encoder(
+        var = op.label_encoder(
             self.var,
             keys_tensor=np_keys.astype(result_np_dtype_key),
             values_tensor=values,
@@ -840,7 +836,7 @@ class TyArray(TyArrayBase):
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(y, TyArray):
             x, y = promote(self, y)
-            var = ort_compat.where(cond.var, x.var, y.var)
+            var = op.where(cond.var, x.var, y.var)
             return type(x)(var)
 
         return NotImplemented
@@ -889,12 +885,12 @@ class TyArrayNumber(TyArray):
     def argmax(
         self, /, *, axis: int | None = None, keepdims: bool = False
     ) -> TyArrayInt64:
-        return self._arg_minmax(ort_compat.arg_max, axis=axis, keepdims=keepdims)
+        return self._arg_minmax(op.arg_max, axis=axis, keepdims=keepdims)
 
     def argmin(
         self, /, *, axis: int | None = None, keepdims: bool = False
     ) -> TyArrayInt64:
-        return self._arg_minmax(ort_compat.arg_min, axis=axis, keepdims=keepdims)
+        return self._arg_minmax(op.arg_min, axis=axis, keepdims=keepdims)
 
     def argsort(
         self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
@@ -902,7 +898,7 @@ class TyArrayNumber(TyArray):
         if axis < 0:
             axis += self.ndim
         k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
-        _values, indices = ort_compat.top_k(
+        _values, indices = op.top_k(
             self.var, k, axis=axis, largest=descending, sorted=stable
         )
         return TyArrayInt64(indices)
@@ -917,7 +913,7 @@ class TyArrayNumber(TyArray):
         min_ = None if min is None else min.astype(self.dtype).var
         max_ = None if max is None else max.astype(self.dtype).var
 
-        var = ort_compat.clip(self.var, min_, max_)
+        var = op.clip(self.var, min_, max_)
 
         return type(self)(var)
 
@@ -949,7 +945,7 @@ class TyArrayNumber(TyArray):
         out = safe_cast(
             type(self),
             ascoredata(
-                ort_compat.cumsum(
+                op.cumsum(
                     self.var,
                     op.const(axis_, np.int64),
                     exclusive=False,
@@ -1017,7 +1013,7 @@ class TyArrayNumber(TyArray):
 
         axes = _axis_var(axis, self.ndim)
         return type(self)(
-            ort_compat.reduce_max(
+            op.reduce_max(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
@@ -1030,7 +1026,7 @@ class TyArrayNumber(TyArray):
 
         axes = _axis_var(axis, self.ndim)
         return type(self)(
-            ort_compat.reduce_min(
+            op.reduce_min(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
@@ -1064,7 +1060,7 @@ class TyArrayNumber(TyArray):
         keepdims: bool = False,
     ) -> TyArrayBase:
         return self._reduce(
-            "prod", ort_compat.reduce_prod, axis=axis, dtype=dtype, keepdims=keepdims
+            "prod", op.reduce_prod, axis=axis, dtype=dtype, keepdims=keepdims
         )
 
     def sort(
@@ -1073,7 +1069,7 @@ class TyArrayNumber(TyArray):
         if axis < 0:
             axis += self.ndim
         k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
-        values, _indices = ort_compat.top_k(
+        values, _indices = op.top_k(
             self.var, k, axis=axis, largest=descending, sorted=stable
         )
         return type(self)(values)
@@ -1107,14 +1103,14 @@ class TyArrayNumber(TyArray):
         keepdims: bool = False,
     ) -> TyArrayBase:
         return self._reduce(
-            "sum", ort_compat.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
+            "sum", op.reduce_sum, axis=axis, dtype=dtype, keepdims=keepdims
         )
 
     def __abs__(self) -> Self:
         return type(self)(op.abs(self.var))
 
     def __neg__(self) -> TyArray:
-        return type(self)(ort_compat.neg(self.var))
+        return type(self)(op.neg(self.var))
 
     def __pos__(self) -> Self:
         return self.copy()
@@ -1145,14 +1141,10 @@ class TyArrayNumber(TyArray):
     def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase: ...
 
     def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.add, forward=True, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.add, forward=True, result_type=TyArrayNumber)
 
     def __radd__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.add, forward=False, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.add, forward=False, result_type=TyArrayNumber)
 
     @overload
     def __ge__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
@@ -1162,68 +1154,46 @@ class TyArrayNumber(TyArray):
 
     def __ge__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return self._apply(
-            other, ort_compat.greater_or_equal, forward=True, result_type=TyArrayBool
+            other, op.greater_or_equal, forward=True, result_type=TyArrayBool
         )
 
     def __gt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.greater, forward=True, result_type=TyArrayBool
-        )
+        return self._apply(other, op.greater, forward=True, result_type=TyArrayBool)
 
     def __le__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return self._apply(
-            other, ort_compat.less_or_equal, forward=True, result_type=TyArrayBool
+            other, op.less_or_equal, forward=True, result_type=TyArrayBool
         )
 
     def __lt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.less, forward=True, result_type=TyArrayBool
-        )
+        return self._apply(other, op.less, forward=True, result_type=TyArrayBool)
 
     def __matmul__(self, other) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.matmul, forward=True, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.matmul, forward=True, result_type=TyArrayNumber)
 
     def __mul__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.mul, forward=True, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.mul, forward=True, result_type=TyArrayNumber)
 
     def __rmul__(self, other: int | float) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.mul, forward=False, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.mul, forward=False, result_type=TyArrayNumber)
 
     def __pow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.pow, forward=True, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.pow, forward=True, result_type=TyArrayNumber)
 
     def __rpow__(self, other) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.pow, forward=False, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.pow, forward=False, result_type=TyArrayNumber)
 
     def __sub__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.sub, forward=True, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.sub, forward=True, result_type=TyArrayNumber)
 
     def __rsub__(self, other) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.sub, forward=False, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.sub, forward=False, result_type=TyArrayNumber)
 
     def __truediv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.div, forward=True, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.div, forward=True, result_type=TyArrayNumber)
 
     def __rtruediv__(self, other) -> TyArrayBase:
-        return self._apply(
-            other, ort_compat.div, forward=False, result_type=TyArrayNumber
-        )
+        return self._apply(other, op.div, forward=False, result_type=TyArrayNumber)
 
     def __floordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         if isinstance(other, TyArrayNumber | int | float):
@@ -1241,17 +1211,17 @@ class TyArrayNumber(TyArray):
         if self.ndim == 0:
             raise ValueError("'nonzero' is not defined for scalar arrays")
 
-        res = TyArrayInt64(ort_compat.non_zero(self.var))
+        res = TyArrayInt64(op.non_zero(self.var))
         out = []
         for i in range(self.ndim):
             out.append(res[i, :])
         return tuple(out)
 
     def sign(self) -> Self:
-        return type(self)(ort_compat.sign(self.var))
+        return type(self)(op.sign(self.var))
 
     def sqrt(self) -> Self:
-        return type(self)(ort_compat.sqrt(self.var))
+        return type(self)(op.sqrt(self.var))
 
     def square(self) -> TyArray:
         return safe_cast(TyArray, self**2)
@@ -1265,7 +1235,7 @@ class TyArrayNumber(TyArray):
     def __ndx_maximum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
         return self._apply(
             rhs,
-            lambda a, b: ort_compat.max([a, b]),
+            lambda a, b: op.max([a, b]),
             forward=True,
             result_type=TyArrayNumber,
         )
@@ -1279,7 +1249,7 @@ class TyArrayNumber(TyArray):
     def __ndx_minimum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
         return self._apply(
             rhs,
-            lambda a, b: ort_compat.min([a, b]),
+            lambda a, b: op.min([a, b]),
             forward=True,
             result_type=TyArrayNumber,
         )
@@ -1348,14 +1318,14 @@ class TyArrayInteger(TyArrayNumber):
     def __lshift__(self, other) -> TyArrayBase:
         return self._apply_int_only(
             other,
-            lambda a, b: ort_compat.bit_shift(a, b, direction="LEFT"),
+            lambda a, b: op.bit_shift(a, b, direction="LEFT"),
             forward=True,
         )
 
     def __rlshift__(self, other) -> TyArrayBase:
         return self._apply_int_only(
             other,
-            lambda a, b: ort_compat.bit_shift(a, b, direction="LEFT"),
+            lambda a, b: op.bit_shift(a, b, direction="LEFT"),
             forward=False,
         )
 
@@ -1390,7 +1360,7 @@ class TyArraySignedInteger(TyArrayInteger):
     # (i.e. sign-propagating). The ONNX standard is logical.
 
     def __rshift__(self, other) -> TyArray:
-        if isinstance(other, TyArraySignedInteger | int):
+        if isinstance(other, TyArrayInteger | int):
             return safe_cast(TyArray, self // (2**other))
         return NotImplemented
 
@@ -1425,16 +1395,16 @@ class TyArrayUnsignedInteger(TyArrayInteger):
         # (i.e. sign-propagating). The ONNX standard is logical. We
         # can use a more efficient implementation if we know that
         # there is no sign.
-        if isinstance(other, TyArrayUnsignedInteger | int):
+        if isinstance(other, TyArrayInteger | int):
             a, b = promote(self, other)
-            var = ort_compat.bit_shift(a.var, b.var, direction="RIGHT")
-            return safe_cast(TyArrayUnsignedInteger, ascoredata(var))
+            var = op.bit_shift(a.var, b.var, direction="RIGHT")
+            return safe_cast(TyArrayInteger, ascoredata(var))
         return super().__rshift__(other)
 
     def __rrshift__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayUnsignedInteger | int):
             b, a = promote(self, other)
-            var = ort_compat.bit_shift(a.var, b.var, direction="RIGHT")
+            var = op.bit_shift(a.var, b.var, direction="RIGHT")
             return safe_cast(TyArrayUnsignedInteger, ascoredata(var))
         return NotImplemented
 
@@ -1501,7 +1471,7 @@ class TyArrayFloating(TyArrayNumber):
         summed = type(self)(
             # TODO: File bug:
             # ONNX is unclear about the semantics for `reduce_mean` for empty arrays
-            ort_compat.reduce_sum(
+            op.reduce_sum(
                 self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
@@ -1575,28 +1545,28 @@ class TyArrayFloating(TyArrayNumber):
 
     # Element-wise for floating point
     def acos(self) -> Self:
-        return type(self)(ort_compat.acos(self.var))
+        return type(self)(op.acos(self.var))
 
     def acosh(self) -> Self:
-        return type(self)(ort_compat.acosh(self.var))
+        return type(self)(op.acosh(self.var))
 
     def asin(self) -> Self:
-        return type(self)(ort_compat.asin(self.var))
+        return type(self)(op.asin(self.var))
 
     def asinh(self) -> Self:
-        return type(self)(ort_compat.asinh(self.var))
+        return type(self)(op.asinh(self.var))
 
     def atan(self) -> Self:
-        return type(self)(ort_compat.atan(self.var))
+        return type(self)(op.atan(self.var))
 
     def atanh(self) -> Self:
-        return type(self)(ort_compat.atanh(self.var))
+        return type(self)(op.atanh(self.var))
 
     def cos(self) -> Self:
-        return type(self)(ort_compat.cos(self.var))
+        return type(self)(op.cos(self.var))
 
     def cosh(self) -> Self:
-        return type(self)(ort_compat.cosh(self.var))
+        return type(self)(op.cosh(self.var))
 
     def exp(self) -> Self:
         return type(self)(op.exp(self.var))
@@ -1613,16 +1583,16 @@ class TyArrayFloating(TyArrayNumber):
         return safe_cast(type(self), res)
 
     def sin(self) -> Self:
-        return type(self)(ort_compat.sin(self.var))
+        return type(self)(op.sin(self.var))
 
     def sinh(self) -> Self:
-        return type(self)(ort_compat.sinh(self.var))
+        return type(self)(op.sinh(self.var))
 
     def tan(self) -> Self:
-        return type(self)(ort_compat.tan(self.var))
+        return type(self)(op.tan(self.var))
 
     def tanh(self) -> Self:
-        return type(self)(ort_compat.tanh(self.var))
+        return type(self)(op.tanh(self.var))
 
     def trunc(self) -> Self:
         from .funcs import where
