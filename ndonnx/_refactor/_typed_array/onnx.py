@@ -360,7 +360,7 @@ class TyArray(TyArrayBase):
             raise IndexError("Shape of 'key' is incompatible with shape of 'self'")
         if key.ndim > self.ndim:
             raise IndexError(
-                "rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
+                f"rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
             )
         if key.ndim == 0:
             key = key[None, ...]

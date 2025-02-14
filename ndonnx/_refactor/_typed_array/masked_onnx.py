@@ -855,5 +855,7 @@ _core_to_nullable_core: dict[onnx._OnnxDType, NCoreDTypes] = {
 }
 
 
-def as_nullable(dtype: onnx._OnnxDType) -> NCoreDTypes:
+def as_nullable(dtype: onnx._OnnxDType | NCoreDTypes) -> NCoreDTypes:
+    if isinstance(dtype, NCoreDTypes):
+        return dtype
     return _core_to_nullable_core[dtype]

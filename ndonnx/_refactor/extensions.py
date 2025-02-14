@@ -160,7 +160,7 @@ def make_nullable(
         Array of booleans indicating whether each element of ``x`` is null.
 
     merge_strategy: Literal["raise", "merge"]
-        If `"raise"` a ``TypeError`` is raised if ``x`` is already of
+        If `"raise"`, a ``TypeError`` is raised if ``x`` is already of
         a nullable data type. If `"merge"` is provided, any mask
         existing on ``x`` is merged with ``null``.
 

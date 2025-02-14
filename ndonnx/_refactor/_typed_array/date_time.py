@@ -167,7 +167,9 @@ class TimeBaseArray(TyArrayBase):
         }
 
     def __ndx_value_repr__(self):
-        return {"data": str(self.unwrap_numpy().astype(str).tolist())}
+        if self.data.var._value is not None:
+            return {"data": str(self.unwrap_numpy().astype(str).tolist())}
+        return {"data": "*lazy*"}
 
     def __getitem__(self, index: GetitemIndex) -> Self:
         is_nat = self.is_nat[index]

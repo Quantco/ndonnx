@@ -494,3 +494,9 @@ def test_broadcast_shapes(arrays):
     ndx_result = ndx.broadcast_arrays(*ndx_arrays)
     for np_arr, ndx_arr in zip(np_result, ndx_result):
         np.testing.assert_equal(np_arr, ndx_arr.unwrap_numpy())
+
+
+def test_array_repr_lazy():
+    arr = ndx.Array(shape=("N",), dtype=ndx.DateTime("s"))
+    res = repr(arr)
+    assert res == "array(data: *lazy*, shape=('N',), dtype=DateTime[s])"
