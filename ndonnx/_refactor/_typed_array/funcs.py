@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import numpy as np
 from spox import Var
 
-from .._dtypes import DType, from_numpy
+from .._dtypes import DType
 from .typed_array import TyArrayBase
 from .utils import promote
 
@@ -27,14 +27,18 @@ _NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 def _infer_sequence(
     val: _NestedSequence,
 ) -> DType:
+    from . import onnx
+
     types = set()
     for item in val:
         if isinstance(item, Sequence) and not isinstance(item, str):
             types.add(_infer_sequence(item))
         else:
             types.add(_infer_dtype(item))
-    if len(types) != 1:
+    if len(types) > 1:
         raise ValueError(f"Cannot infer dtype for nested sequence: {val}")
+    if len(types) == 0:
+        return onnx.float64
     return types.pop()
 
 
@@ -44,7 +48,7 @@ def _infer_dtype(
     from . import masked_onnx, onnx
 
     if isinstance(val, np.ndarray):
-        core_type = from_numpy(val.dtype)
+        core_type = onnx.from_numpy(val.dtype)
         if isinstance(val, np.ma.MaskedArray):
             return masked_onnx.as_nullable(core_type)
         else:
@@ -52,7 +56,7 @@ def _infer_dtype(
     elif isinstance(val, TyArrayBase):
         return val.dtype
     elif isinstance(val, Var):
-        return from_numpy(val.unwrap_tensor().dtype)
+        return onnx.from_numpy(val.unwrap_tensor().dtype)
     elif isinstance(val, bool):
         return onnx.bool_
     elif isinstance(val, int):
@@ -63,8 +67,22 @@ def _infer_dtype(
         return onnx.utf8
     elif isinstance(val, Sequence):
         return _infer_sequence(val)
+    elif isinstance(val, np.generic):
+        return onnx.from_numpy(val.dtype)
     else:
         raise ValueError(f"Unable to infer dtype from {val}")
+
+
+@overload
+def astyarray(
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: DType[TY_ARRAY_BASE]
+) -> TY_ARRAY_BASE: ...
+
+
+@overload
+def astyarray(
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: None | DType = None
+) -> TyArrayBase: ...
 
 
 def astyarray(
@@ -225,3 +243,47 @@ def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     if res is NotImplemented:
         res = x2.__ndx_minimum__(x1)
     return _validate(x1, x2, res, "minimum")
+
+
+def arange(
+    dtype: DType[TY_ARRAY_BASE],
+    start: int | float,
+    stop: int | float,
+    step: int | float = 1,
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_arange__(start, stop, step)
+    if res is NotImplemented:
+        raise TypeError(f"'arange' is not implemented for `{dtype}`")
+    return res
+
+
+def eye(
+    dtype: DType[TY_ARRAY_BASE],
+    n_rows: int,
+    n_cols: int | None = None,
+    /,
+    *,
+    k: int = 0,
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_eye__(n_rows, n_cols, k=k)
+    if res is NotImplemented:
+        raise TypeError(f"'eye' is not implemented for `{dtype}`")
+    return res
+
+
+def ones(
+    dtype: DType[TY_ARRAY_BASE], shape: tuple[int, ...] | onnx.TyArrayInt64
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_ones__(shape)
+    if res is NotImplemented:
+        raise TypeError(f"'ones' is not implemented for `{dtype}`")
+    return res
+
+
+def zeros(
+    dtype: DType[TY_ARRAY_BASE], shape: tuple[int, ...] | onnx.TyArrayInt64
+) -> TY_ARRAY_BASE:
+    res = dtype.__ndx_zeros__(shape)
+    if res is NotImplemented:
+        raise TypeError(f"'zeros' is not implemented for `{dtype}`")
+    return res

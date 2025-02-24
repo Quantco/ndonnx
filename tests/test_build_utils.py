@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import pytest
@@ -107,5 +107,5 @@ def test_schema_against_snapshots(dtype):
     assert expected_schemas == candidate_schemas
 
     # test json round trip of schema data
-    assert candidate_schemas["input_schema"]["a"] == a.dtype._infov1.__dict__
-    assert candidate_schemas["output_schema"]["b"] == b.dtype._infov1.__dict__
+    assert candidate_schemas["input_schema"]["a"] == a.dtype.__ndx_infov1__.__dict__
+    assert candidate_schemas["output_schema"]["b"] == b.dtype.__ndx_infov1__.__dict__

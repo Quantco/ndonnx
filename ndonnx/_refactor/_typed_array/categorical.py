@@ -75,7 +75,7 @@ class CategoricalDType(DType["CategoricalArray"]):
     def __ndx_create__(
         self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
     ) -> CategoricalArray:
-        raise NotImplementedError("TODO")
+        return onnx.utf8.__ndx_create__(val).astype(self)
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> CategoricalArray:
         if not isinstance(arr, onnx.TyArrayUtf8):
@@ -97,56 +97,31 @@ class CategoricalDType(DType["CategoricalArray"]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(categories={self.categories}, ordered={self._ordered})"
 
-    @property
-    def _tyarr_class(self) -> type[CategoricalArray]:
-        return CategoricalArray
-
-    def _argument(self, shape: OnnxShape) -> CategoricalArray:
-        codes = onnx.uint16._argument(shape)
+    def __ndx_argument__(self, shape: OnnxShape) -> CategoricalArray:
+        codes = onnx.uint16.__ndx_argument__(shape)
         return CategoricalArray(codes, dtype=self)
 
     @property
-    def _infov1(self) -> DTypeInfoV1:
+    def __ndx_infov1__(self) -> DTypeInfoV1:
         return DTypeInfoV1(
             author="ndonnx",
             type_name=self.__class__.__name__,
             meta={"categories": list(self.categories), "ordered": self._ordered},
         )
 
-    # Construction functions
-    def _arange(
-        self,
-        start: int | float,
-        stop: int | float,
-        step: int | float = 1,
-    ) -> CategoricalArray:
-        raise NotImplementedError
-
-    def _eye(
-        self,
-        n_rows: int,
-        n_cols: int | None = None,
-        /,
-        *,
-        k: int = 0,
-    ) -> CategoricalArray:
-        raise NotImplementedError
-
-    def _ones(self, shape: tuple[int, ...] | TyArrayInt64) -> CategoricalArray:
-        raise NotImplementedError
-
-    def _zeros(self, shape: tuple[int, ...] | TyArrayInt64) -> CategoricalArray:
-        raise NotImplementedError
-
 
 class CategoricalArray(TyArrayBase):
-    dtype: CategoricalDType
+    _dtype: CategoricalDType
     # TODO: Flexible data type?
     codes: onnx.TyArrayUInt16
 
     def __init__(self, codes: onnx.TyArrayUInt16, dtype: CategoricalDType):
         self.codes = codes
-        self.dtype = dtype
+        self._dtype = dtype
+
+    @property
+    def dtype(self) -> CategoricalDType:
+        return self._dtype
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         mapping = dict(enumerate(self.dtype.categories))

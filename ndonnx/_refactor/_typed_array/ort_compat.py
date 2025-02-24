@@ -16,6 +16,39 @@ import numpy as np
 import spox.opset.ai.onnx.ml.v4 as ml
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
+from spox.opset.ai.onnx.v21 import abs as abs
+from spox.opset.ai.onnx.v21 import and_ as and_
+from spox.opset.ai.onnx.v21 import bitwise_and as bitwise_and
+from spox.opset.ai.onnx.v21 import bitwise_not as bitwise_not
+from spox.opset.ai.onnx.v21 import bitwise_or as bitwise_or
+from spox.opset.ai.onnx.v21 import bitwise_xor as bitwise_xor
+from spox.opset.ai.onnx.v21 import cast as cast
+from spox.opset.ai.onnx.v21 import ceil as ceil
+from spox.opset.ai.onnx.v21 import compress as compress
+from spox.opset.ai.onnx.v21 import concat as concat
+from spox.opset.ai.onnx.v21 import const as const
+from spox.opset.ai.onnx.v21 import exp as exp  # Only for floats in both standards
+from spox.opset.ai.onnx.v21 import expand as expand
+from spox.opset.ai.onnx.v21 import floor as floor
+from spox.opset.ai.onnx.v21 import gather as gather
+from spox.opset.ai.onnx.v21 import isinf as isinf
+from spox.opset.ai.onnx.v21 import isnan as isnan
+from spox.opset.ai.onnx.v21 import log as log
+from spox.opset.ai.onnx.v21 import mod as mod
+from spox.opset.ai.onnx.v21 import not_ as not_
+from spox.opset.ai.onnx.v21 import or_ as or_
+from spox.opset.ai.onnx.v21 import reshape as reshape
+from spox.opset.ai.onnx.v21 import round as round
+from spox.opset.ai.onnx.v21 import scatter_nd as scatter_nd
+from spox.opset.ai.onnx.v21 import shape as shape
+from spox.opset.ai.onnx.v21 import size as size
+from spox.opset.ai.onnx.v21 import slice as slice
+from spox.opset.ai.onnx.v21 import squeeze as squeeze
+from spox.opset.ai.onnx.v21 import string_concat as string_concat
+from spox.opset.ai.onnx.v21 import tile as tile
+from spox.opset.ai.onnx.v21 import transpose as transpose
+from spox.opset.ai.onnx.v21 import unsqueeze as unsqueeze
+from spox.opset.ai.onnx.v21 import xor as xor
 
 
 class Warn:
@@ -136,7 +169,6 @@ div = _wrap_binary(
 )
 
 _mapping_float_only: _MappingDictType = {(np.float64,): Warn(np.float32)}
-abs = op.abs
 acos = _wrap_unary(op.acos, _mapping_float_only)
 acosh = _wrap_unary(op.acosh, _mapping_float_only)
 asin = _wrap_unary(op.asin, _mapping_float_only)

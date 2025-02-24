@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from dataclasses import dataclass
@@ -26,7 +26,7 @@ def iinfo(ty: DType | Array, /) -> Iinfo:
     if isinstance(ty, Array):
         ty = ty.dtype
     if isinstance(ty, masked_onnx.NCoreIntegerDTypes):
-        npdtype = masked_onnx.as_non_nullable(ty).unwrap_numpy()
+        npdtype = ty._unmasked_dtype.unwrap_numpy()
     elif isinstance(ty, onnx.IntegerDTypes):
         npdtype = ty.unwrap_numpy()
     else:
@@ -55,7 +55,7 @@ def finfo(ty: DType | Array, /):
     if isinstance(ty, Array):
         ty = ty.dtype
     if isinstance(ty, masked_onnx.NCoreFloatingDTypes):
-        npdtype = masked_onnx.as_non_nullable(ty).unwrap_numpy()
+        npdtype = ty._unmasked_dtype.unwrap_numpy()
     elif isinstance(ty, onnx.FloatingDTypes):
         npdtype = ty.unwrap_numpy()
     else:

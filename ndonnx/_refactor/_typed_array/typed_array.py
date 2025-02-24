@@ -6,7 +6,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
 import numpy as np
 from typing_extensions import Self
@@ -22,11 +22,10 @@ if TYPE_CHECKING:
     from .onnx import KEY, VALUE, TyArrayBool, TyArrayInt64, TyArrayInteger
 
 _PyScalar = bool | int | float | str
+_Self_co = TypeVar("_Self_co", bound="TyArrayBase", covariant=True)
 
 
 class TyArrayBase(ABC):
-    dtype: DType[Self]
-
     @abstractmethod
     def __init__(self): ...
 
@@ -69,6 +68,10 @@ class TyArrayBase(ABC):
         /,
     ) -> None:
         """Set elements with semantics identical to `numpy.put` with `mode="raise"."""
+
+    @property
+    @abstractmethod
+    def dtype(self: _Self_co) -> DType[_Self_co]: ...
 
     @property
     @abstractmethod
@@ -523,6 +526,9 @@ class TyArrayBase(ABC):
     def __floordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
+    def __rfloordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+        return NotImplemented
+
     def __ge__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
@@ -548,6 +554,9 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __pow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+        return NotImplemented
+
+    def __rpow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
         return NotImplemented
 
     def __rshift__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:

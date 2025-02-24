@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
@@ -202,7 +202,7 @@ def _normalize_getitem_key_item(key: GetitemItem) -> GetitemItem:
 
 def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
     """Compute expanded indices for ``key`` for an array of shape ``shape``."""
-    # TODO: Allow dynamic inputs to DType._arange?
+    # TODO: Allow dynamic inputs to DType.__ndx_arange__?
     import ndonnx._refactor as ndx
 
     from . import ort_compat
@@ -230,7 +230,7 @@ def _get_indices(
 
     Slice members must be of type ``int`` or ``None`` while `length` may be an array.
     """
-    from .funcs import astyarray, maximum, minimum, safe_cast, where
+    from .funcs import astyarray, maximum, minimum, where
     from .onnx import TyArrayBool, TyArrayInt64, int64
 
     length_ = astyarray(length)
