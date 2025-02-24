@@ -776,7 +776,7 @@ class TyArray(TyArrayBase):
         # delegate all work to ``DType.__ndx_cast_from__``
         return NotImplemented
 
-    def _eqcomp(self, other) -> TyArrayBase:
+    def _eqcomp(self, other) -> TyArrayBool:
         if isinstance(other, TyArray | bool | int | float | str):
             a, b = promote(self, other)
             var = ort_compat.equal(a.var, b.var)

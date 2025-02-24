@@ -50,7 +50,8 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:
         if isinstance(arr, onnx.TyArrayInteger):
-            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
+            data = arr.astype(onnx.int64)
+            # data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
             is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
         elif isinstance(arr, onnx.TyArrayFloating):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
@@ -175,7 +176,7 @@ class TimeBaseArray(TyArrayBase):
         /,
     ) -> None:
         if self.dtype != value.dtype:
-            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+            raise TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
         self.data[key] = value.data
         self.is_nat[key] = value.is_nat
 
