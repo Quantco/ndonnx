@@ -4,13 +4,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
+from .._types import NestedSequence, OnnxShape, PyScalar
 from . import onnx
 from .typed_array import TyArrayBase
 
@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from spox import Var
     from typing_extensions import Self
 
-    from .._array import OnnxShape
     from .indexing import (
         GetitemIndex,
         SetitemIndex,
@@ -29,8 +28,6 @@ if TYPE_CHECKING:
 
 
 _N_MAX_CATEGORIES = np.iinfo(np.uint16).max
-_PyScalar = bool | int | float | str
-_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
 class CategoricalDType(DType["CategoricalArray"]):
@@ -73,7 +70,7 @@ class CategoricalDType(DType["CategoricalArray"]):
         return self._ordered
 
     def __ndx_create__(
-        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> CategoricalArray:
         return onnx.utf8.__ndx_create__(val).astype(self)
 
@@ -90,7 +87,7 @@ class CategoricalDType(DType["CategoricalArray"]):
         return CategoricalArray(codes=codes, dtype=self)
 
     def __ndx_result_type__(
-        self, other: DType | _PyScalar
+        self, other: DType | PyScalar
     ) -> DType | NotImplementedType:
         return NotImplemented
 
@@ -203,11 +200,11 @@ class CategoricalArray(TyArrayBase):
 
         return cats.astype(dtype)
 
-    def _eqcomp(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:  # type: ignore
+    def _eqcomp(self, other: TyArrayBase | PyScalar) -> TyArrayBase:  # type: ignore
         from .._infos import iinfo
         from .funcs import astyarray
 
-        if isinstance(other, _PyScalar):
+        if isinstance(other, PyScalar):
             if isinstance(other, bool | int | float):
                 return NotImplemented
             other = astyarray(other, dtype=onnx.utf8)

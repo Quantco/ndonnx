@@ -12,16 +12,15 @@ import numpy as np
 from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType
+from .._types import OnnxShape, PyScalar
 from .utils import normalize_axes_tuple
 
 if TYPE_CHECKING:
     from spox import Var
 
-    from .._array import OnnxShape
     from .indexing import GetitemIndex, SetitemIndex
     from .onnx import KEY, VALUE, TyArrayBool, TyArrayInt64, TyArrayInteger
 
-_PyScalar = bool | int | float | str
 _Self_co = TypeVar("_Self_co", bound="TyArrayBase", covariant=True)
 
 
@@ -122,7 +121,7 @@ class TyArrayBase(ABC):
     # TODO: Make this a __ndx_*__ method
     @abstractmethod
     def _eqcomp(
-        self, other: TyArrayBase | _PyScalar
+        self, other: TyArrayBase | PyScalar
     ) -> TyArrayBase | NotImplementedType:
         """Implementation of equal-comparison.
 
@@ -517,67 +516,67 @@ class TyArrayBase(ABC):
     def __invert__(self) -> Self:
         raise _make_type_error("__invert__", self.dtype)
 
-    def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __and__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __and__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __floordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rfloordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __rfloordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __ge__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __ge__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __gt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __gt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __le__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __le__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __lshift__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __lshift__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __lt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __lt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __mod__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __mod__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __mul__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __or__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __or__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __pow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __pow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rpow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __rpow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __rshift__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __rshift__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __sub__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __truediv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __xor__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __xor__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
-    def __ne__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:  # type: ignore
+    def __ne__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:  # type: ignore
         return ~(self == other)
 
     # mypy believes that __eq__ should return a `bool` but the docs say we can return whatever:
     # https://docs.python.org/3/reference/datamodel.html#object.__eq__
-    def __eq__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:  # type: ignore
-        if not isinstance(other, TyArrayBase | _PyScalar):
+    def __eq__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:  # type: ignore
+        if not isinstance(other, TyArrayBase | PyScalar):
             return False
 
         res = self._eqcomp(other)
@@ -622,12 +621,12 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __ndx_maximum__(
-        self, other: TyArrayBase | _PyScalar, /
+        self, other: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
     def __ndx_minimum__(
-        self, other: TyArrayBase | _PyScalar, /
+        self, other: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 

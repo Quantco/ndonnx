@@ -19,11 +19,8 @@ if TYPE_CHECKING:
     from spox import Var
     from typing_extensions import Self
 
-    from .._array import OnnxShape
+    from .._types import NestedSequence, OnnxShape, PyScalar
     from .indexing import GetitemIndex, SetitemIndex
-
-_PyScalar = bool | int | float | str | None
-_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 OBJECT_ARRAY = TypeVar("OBJECT_ARRAY", bound="TyObjectArray")
 OBJECT_ARRAY_co = TypeVar("OBJECT_ARRAY_co", bound="TyObjectArray", covariant=True)
@@ -31,7 +28,7 @@ OBJECT_ARRAY_co = TypeVar("OBJECT_ARRAY_co", bound="TyObjectArray", covariant=Tr
 
 class ObjectDtype(DType[OBJECT_ARRAY_co]):
     def __ndx_create__(
-        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> OBJECT_ARRAY_co:
         if val is None:
             return TyObjectArray(
@@ -95,7 +92,7 @@ class ObjectDtype(DType[OBJECT_ARRAY_co]):
         else:
             raise NotImplementedError
 
-    def __ndx_result_type__(self, other: DType | _PyScalar) -> DType:
+    def __ndx_result_type__(self, other: DType | PyScalar) -> DType:
         if (
             isinstance(other, str)
             or other is None
@@ -308,8 +305,8 @@ class TyObjectArray(TyArrayBase):
             string_data=string_data,
         )
 
-    def __add__(self, rhs: TyArrayBase | _PyScalar) -> Self:
-        from .funcs import where
+    def __add__(self, rhs: TyArrayBase | PyScalar) -> Self:
+        from .funcs import astyarray, where
 
         rhs_array = self.dtype.__ndx_create__(rhs)
         return type(self)(
@@ -321,7 +318,7 @@ class TyObjectArray(TyArrayBase):
             string_data=self.string_data + rhs.string_data,  # type: ignore
         )
 
-    def _eqcomp(self, other: TyArrayBase | _PyScalar) -> onnx.TyArrayBool:  # type: ignore
+    def _eqcomp(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:  # type: ignore
         from .funcs import where
 
         if isinstance(other, onnx.TyArrayUtf8):
@@ -349,6 +346,36 @@ class TyObjectArray(TyArrayBase):
                 variant == self._nan_encoding, np.asarray(np.nan, dtype=object), out
             ),
         ).astype(object)
+
+
+# TODO: why can I not define "asarray" for my dtype? If I can, how do I do this?
+def _asarray(item: PyScalar | TyArrayBase) -> TyObjectArray:
+    if item is None:
+        return TyObjectArray(
+            variant=astyarray(TyObjectArray._none_encoding, dtype=onnx.uint8),
+            string_data=astyarray("<NONE>", dtype=onnx.utf8),
+        )
+    elif isinstance(item, float) and np.isnan(item):
+        return TyObjectArray(
+            variant=astyarray(TyObjectArray._nan_encoding, dtype=onnx.uint8),
+            string_data=astyarray("<NAN>", dtype=onnx.utf8),
+        )
+    elif isinstance(item, str):
+        return TyObjectArray(
+            variant=astyarray(TyObjectArray._string_encoding, dtype=onnx.uint8),
+            string_data=astyarray(item, dtype=onnx.utf8),
+        )
+    elif isinstance(item, onnx.TyArrayUtf8):
+        return TyObjectArray(
+            variant=astyarray(
+                TyObjectArray._string_encoding, dtype=onnx.uint8
+            ).broadcast_to(item.dynamic_shape),
+            string_data=item,
+        )
+    elif isinstance(item, TyObjectArray):
+        return item.copy()
+    else:
+        raise TypeError(f"Cannot turn {item} into a {TyObjectArray}")
 
 
 object_dtype: ObjectDtype = ObjectDtype()

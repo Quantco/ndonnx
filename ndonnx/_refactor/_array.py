@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 import operator as std_ops
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Any, Optional, overload
@@ -23,15 +23,14 @@ from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
     from ._typed_array.indexing import GetitemIndex as TyGetitemIndex
-    from ._types import GetitemIndex, OnnxShape, SetitemIndex
+    from ._types import GetitemIndex, NestedSequence, OnnxShape, PyScalar, SetitemIndex
 
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
-_PyScalar = bool | int | float | str
 
 
 def _make_binary(
-    tyarr_op: Callable[[TyArrayBase | _PyScalar, TyArrayBase | _PyScalar], TyArrayBase],
+    tyarr_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
 ) -> tuple[_BinaryOp, _BinaryOp]:
     def binary_op_forward(self, other):
         return _apply_op(self, other, tyarr_op)
@@ -309,11 +308,8 @@ class Array:
         return f"array({value_repr}, shape={shape}, dtype={self.dtype})"
 
 
-NestedSequence = Sequence["bool | int | float | str | NestedSequence"]
-
-
 def asarray(
-    obj: Array | bool | int | float | str | np.ndarray | NestedSequence | Var,
+    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
     /,
     *,
     dtype: DType | None = None,
@@ -337,9 +333,9 @@ def _astyarray_or_pyscalar(
 
 
 def _apply_op(
-    lhs: _PyScalar | Array,
-    rhs: _PyScalar | Array,
-    op: Callable[[TyArrayBase | _PyScalar, TyArrayBase | _PyScalar], TyArrayBase],
+    lhs: PyScalar | Array,
+    rhs: PyScalar | Array,
+    op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
 ) -> Array | NotImplementedType:
     lhs_ = _astyarray_or_pyscalar(lhs)
     rhs_ = _astyarray_or_pyscalar(rhs)

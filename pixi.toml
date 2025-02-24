@@ -13,7 +13,6 @@ numpy = "*"
 spox = ">=0.10"
 typing_extensions = "*"
 onnx = "*"
-pandas = ">=2.2.3,<3"
 
 [host-dependencies]
 pip = "*"
@@ -44,6 +43,8 @@ hypothesis = "*"
 onnxruntime = "*"
 mypy = "*"
 ndindex = "*"
+pandas = ">=2.2.3,<3"
+
 
 [feature.test.tasks]
 test = "pytest"

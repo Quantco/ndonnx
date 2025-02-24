@@ -15,6 +15,7 @@ from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
 from .._schema import DTypeInfoV1
+from .._types import NestedSequence, OnnxShape, PyScalar
 from . import TyArrayBase, astyarray, promote, safe_cast, where
 from . import ort_compat as op
 from .indexing import (
@@ -25,16 +26,12 @@ from .indexing import (
 )
 
 if TYPE_CHECKING:
-    from .._array import OnnxShape
     from .indexing import BoolMask, GetitemItem, SetitemItem
 
 TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
-
-_PyScalar = bool | int | float | str
-_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
 class _OnnxDType(DType[TY_ARRAY_co]):
@@ -85,18 +82,18 @@ class _OnnxDType(DType[TY_ARRAY_co]):
             return self._build(var)
         return NotImplemented
 
-    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
-        if isinstance(rhs, _OnnxDType | _PyScalar):
+    def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
+        if isinstance(rhs, _OnnxDType | PyScalar):
             return _result_type(self, rhs)
 
         return NotImplemented
 
     def __ndx_create__(
-        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_ARRAY_co:
         if isinstance(val, Var):
             return ascoredata(val).astype(self)
-        elif isinstance(val, _PyScalar | np.ndarray | np.generic):
+        elif isinstance(val, PyScalar | np.ndarray | np.generic):
             return const(val).astype(self)
         elif isinstance(val, Sequence):
             return self.__ndx_create__(np.asarray(val))
@@ -858,7 +855,7 @@ class TyArrayUtf8(TyArray):
     def dtype(self) -> Utf8:
         return utf8
 
-    def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         if isinstance(other, TyArrayUtf8 | str):
             a, b = promote(self, other)
             var = op.string_concat(a.var, b.var)
@@ -866,7 +863,7 @@ class TyArrayUtf8(TyArray):
 
         return NotImplemented
 
-    def __radd__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         if isinstance(other, str):
             b, a = promote(self, other)
             var = op.string_concat(a.var, b.var)
@@ -1126,7 +1123,7 @@ class TyArrayNumber(TyArray):
 
     def _apply(
         self,
-        other: TyArrayBase | _PyScalar,
+        other: TyArrayBase | PyScalar,
         op: Callable[[Var, Var], Var],
         forward: bool,
         result_type: type[TY_ARRAY],
@@ -1147,64 +1144,64 @@ class TyArrayNumber(TyArray):
     def __add__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
 
     @overload
-    def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase: ...
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
 
-    def __add__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.add, forward=True, result_type=TyArrayNumber)
 
-    def __radd__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.add, forward=False, result_type=TyArrayNumber)
 
     @overload
     def __ge__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
 
     @overload
-    def __ge__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase: ...
+    def __ge__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
 
-    def __ge__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __ge__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(
             other, op.greater_or_equal, forward=True, result_type=TyArrayBool
         )
 
-    def __gt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __gt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.greater, forward=True, result_type=TyArrayBool)
 
-    def __le__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __le__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(
             other, op.less_or_equal, forward=True, result_type=TyArrayBool
         )
 
-    def __lt__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __lt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.less, forward=True, result_type=TyArrayBool)
 
     def __matmul__(self, other) -> TyArrayBase:
         return self._apply(other, op.matmul, forward=True, result_type=TyArrayNumber)
 
-    def __mul__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=True, result_type=TyArrayNumber)
 
     def __rmul__(self, other: int | float) -> TyArrayBase:
         return self._apply(other, op.mul, forward=False, result_type=TyArrayNumber)
 
-    def __pow__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __pow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.pow, forward=True, result_type=TyArrayNumber)
 
     def __rpow__(self, other) -> TyArrayBase:
         return self._apply(other, op.pow, forward=False, result_type=TyArrayNumber)
 
-    def __sub__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.sub, forward=True, result_type=TyArrayNumber)
 
     def __rsub__(self, other) -> TyArrayBase:
         return self._apply(other, op.sub, forward=False, result_type=TyArrayNumber)
 
-    def __truediv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.div, forward=True, result_type=TyArrayNumber)
 
     def __rtruediv__(self, other) -> TyArrayBase:
         return self._apply(other, op.div, forward=False, result_type=TyArrayNumber)
 
-    def __floordiv__(self, other: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         if isinstance(other, TyArrayNumber | int | float):
             promo_result, _ = promote(self, other)
             return (self / other).floor().astype(promo_result.dtype)
@@ -1239,9 +1236,9 @@ class TyArrayNumber(TyArray):
     def __ndx_maximum__(self, rhs: TyArrayNumber | int | float, /) -> TyArrayNumber: ...
 
     @overload
-    def __ndx_maximum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase: ...
+    def __ndx_maximum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase: ...
 
-    def __ndx_maximum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
+    def __ndx_maximum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase:
         return self._apply(
             rhs,
             lambda a, b: op.max([a, b]),
@@ -1253,9 +1250,9 @@ class TyArrayNumber(TyArray):
     def __ndx_minimum__(self, rhs: TyArrayNumber | int | float, /) -> TyArrayNumber: ...
 
     @overload
-    def __ndx_minimum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase: ...
+    def __ndx_minimum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase: ...
 
-    def __ndx_minimum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
+    def __ndx_minimum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase:
         return self._apply(
             rhs,
             lambda a, b: op.min([a, b]),
@@ -1267,7 +1264,7 @@ class TyArrayNumber(TyArray):
 class TyArrayInteger(TyArrayNumber):
     def _apply_int_only(
         self,
-        other: TyArrayBase | _PyScalar,
+        other: TyArrayBase | PyScalar,
         op: Callable[[Var, Var], Var],
         forward: bool,
     ) -> TyArrayInteger | NotImplementedType:
@@ -1280,7 +1277,7 @@ class TyArrayInteger(TyArrayNumber):
             return safe_cast(TyArrayInteger, ascoredata(var))
         return NotImplemented
 
-    def __truediv__(self, rhs: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def __truediv__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
         if isinstance(rhs, TyArrayNumber):
             return self.astype(float64) / rhs.astype(float64)
@@ -1612,7 +1609,7 @@ class TyArrayBool(TyArray):
 
     def _apply(
         self,
-        other: TyArrayBase | _PyScalar,
+        other: TyArrayBase | PyScalar,
         op: Callable[[Var, Var], Var],
         forward: bool,
     ) -> TyArrayBool | NotImplementedType:
@@ -1646,22 +1643,22 @@ class TyArrayBool(TyArray):
     def __invert__(self) -> Self:
         return type(self)(op.not_(self.var))
 
-    def __ndx_logical_and__(self, other: TyArrayBase | _PyScalar, /) -> Self:
+    def __ndx_logical_and__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.and_, forward=True).var)
 
-    def __ndx_rlogical_and__(self, other: TyArrayBase | _PyScalar, /) -> Self:
+    def __ndx_rlogical_and__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.and_, forward=False).var)
 
-    def __ndx_logical_xor__(self, other: TyArrayBase | _PyScalar, /) -> Self:
+    def __ndx_logical_xor__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.xor, forward=True).var)
 
-    def __ndx_rlogical_xor__(self, other: TyArrayBase | _PyScalar, /) -> Self:
+    def __ndx_rlogical_xor__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.xor, forward=False).var)
 
-    def __ndx_logical_or__(self, other: TyArrayBase | _PyScalar, /) -> Self:
+    def __ndx_logical_or__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.or_, forward=True).var)
 
-    def __ndx_rlogical_or__(self, other: TyArrayBase | _PyScalar, /) -> Self:
+    def __ndx_rlogical_or__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.or_, forward=False).var)
 
     def nonzero(self) -> tuple[TyArrayInt64, ...]:

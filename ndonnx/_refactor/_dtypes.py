@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Generic, TypeVar
 from warnings import warn
@@ -16,18 +15,16 @@ from ._schema import DTypeInfoV1
 
 if TYPE_CHECKING:
     from ._typed_array import TyArrayBase, onnx
-    from ._types import OnnxShape
+    from ._types import NestedSequence, OnnxShape, PyScalar
 
 
 TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase", covariant=True)
-_Py_Scalar = bool | int | float | str
-NestedSequence = Sequence["bool | int | float | str | NestedSequence"]
 
 
 class DType(ABC, Generic[TY_ARRAY_BASE]):
     def __ndx_create__(
         self,
-        val: _Py_Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+        val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     ) -> TY_ARRAY_BASE:
         raise NotImplementedError(
             f"'__ndx_create__' has not been created for data type {self}"
@@ -35,7 +32,7 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
     @abstractmethod
     def __ndx_result_type__(
-        self, other: DType | _Py_Scalar
+        self, other: DType | PyScalar
     ) -> DType | NotImplementedType: ...
 
     @abstractmethod

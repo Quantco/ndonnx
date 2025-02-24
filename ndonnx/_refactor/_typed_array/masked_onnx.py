@@ -14,6 +14,7 @@ from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
+from .._types import NestedSequence, OnnxShape, PyScalar
 from . import (
     TyArrayBase,
     astyarray,
@@ -28,7 +29,6 @@ from . import (
 if TYPE_CHECKING:
     from spox import Var
 
-    from .._types import OnnxShape
     from .indexing import GetitemIndex, SetitemIndex
     from .onnx import VALUE
 
@@ -43,15 +43,12 @@ NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="NCoreIntegerDTypes
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
 
-_PyScalar = bool | int | float | str
-_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
-
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
     _unmasked_dtype: onnx._OnnxDType
 
     def __ndx_create__(
-        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_MA_ARRAY_ONNX:
         if isinstance(val, np.ma.MaskedArray):
             data = safe_cast(onnx.TyArray, astyarray(val.data))
@@ -126,7 +123,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
 
 class _NNumber(_MaOnnxDType):
-    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, onnx.NumericDTypes | int | float):
             core_result = onnx._result_type(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NCoreNumericDTypes):
@@ -142,7 +139,7 @@ class _NNumber(_MaOnnxDType):
 class NUtf8(_MaOnnxDType):
     _unmasked_dtype = onnx.utf8
 
-    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, onnx.Utf8 | str):
             return self
         return NotImplemented
@@ -156,7 +153,7 @@ class NUtf8(_MaOnnxDType):
 class NBoolean(_MaOnnxDType):
     _unmasked_dtype = onnx.bool_
 
-    def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
+    def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         return NotImplemented
 
     def _build(
@@ -298,14 +295,14 @@ NCoreDTypes = NBoolean | NCoreNumericDTypes | NUtf8
 
 
 def _make_binary_pair(
-    fun: Callable[[onnx.TyArray, onnx.TyArray | _PyScalar], onnx.TyArray],
+    fun: Callable[[onnx.TyArray, onnx.TyArray | PyScalar], onnx.TyArray],
 ):
     """Helper to define dunder methods.
 
     Does not work with proper type hints, though.
     """
 
-    def forward(self, rhs: TyArrayBase | _PyScalar) -> TyArrayBase:
+    def forward(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
         return _apply_op(self, rhs, fun, True)
 
     def backward(self, lhs) -> TyArrayBase:
@@ -625,9 +622,9 @@ class TyMaArrayNumber(TyMaArray):
     ) -> TyArrayBase:
         return self.fill_null(1).prod(axis=axis, dtype=dtype, keepdims=keepdims)
 
-    def __ndx_maximum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
+    def __ndx_maximum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase:
         dtype = result_type(self, rhs)
-        if isinstance(rhs, onnx.TyArray | _PyScalar):
+        if isinstance(rhs, onnx.TyArray | PyScalar):
             rhs = astyarray(rhs, dtype=dtype)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
@@ -638,9 +635,9 @@ class TyMaArrayNumber(TyMaArray):
 
         return NotImplemented
 
-    def __ndx_minimum__(self, rhs: TyArrayBase | _PyScalar, /) -> TyArrayBase:
+    def __ndx_minimum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase:
         dtype = result_type(self, rhs)
-        if isinstance(rhs, onnx.TyArray | _PyScalar):
+        if isinstance(rhs, onnx.TyArray | PyScalar):
             rhs = astyarray(rhs, dtype=dtype)
         if isinstance(rhs, TyMaArray):
             lhs_ = unmask_core(self)
@@ -827,12 +824,12 @@ def unmask_core(arr: onnx.TyArray | TyMaArray) -> onnx.TyArray:
 
 def _apply_op(
     this: TyMaArray,
-    other: TyArrayBase | _PyScalar,
-    op: Callable[[onnx.TyArray, onnx.TyArray | _PyScalar], onnx.TyArray],
+    other: TyArrayBase | PyScalar,
+    op: Callable[[onnx.TyArray, onnx.TyArray | PyScalar], onnx.TyArray],
     forward: bool,
 ) -> TyMaArray:
     """Apply an operation by passing it through to the data member."""
-    if isinstance(other, _PyScalar):
+    if isinstance(other, PyScalar):
         dtype = result_type(this, other)
         other = astyarray(other, dtype)
     if isinstance(other, onnx.TyArray):
