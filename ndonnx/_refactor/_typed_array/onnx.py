@@ -1760,8 +1760,14 @@ def ascoredata(var: Var) -> TyArray:
 def const(obj: bool | int | float | str | np.ndarray) -> TyArray:
     """Create a constant from the given value if it can be expressed as an ONNX data
     type."""
-    obj = np.asarray(obj)
-
+    # don't blindly fall back to NumPy to maintain better np1x
+    # compatibility on Windows which defaults to int32
+    if isinstance(obj, bool):
+        obj = np.asarray(obj, dtype=bool)
+    if isinstance(obj, int):
+        obj = np.asarray(obj, dtype=np.int64)
+    else:
+        obj = np.asarray(obj)
     return ascoredata(op.const(obj))
 
 

@@ -463,7 +463,7 @@ def test_isin_with_type_promotion(np_dtype):
 
     res = ndx.extensions.isin(ndx.asarray(np_arr), test_elements)
 
-    np.testing.assert_equal(res.unwrap_numpy(), np_res, strict=True)
+    np.testing.assert_array_equal(res.unwrap_numpy(), np_res, strict=True)
 
 
 @pytest.mark.parametrize(
