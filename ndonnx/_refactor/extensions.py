@@ -249,3 +249,80 @@ def put(a: ndx.Array, indices: ndx.Array, updates: ndx.Array, /) -> None:
             f"data types of 'a' (`{a.dtype}`) and 'updates' (`{updates.dtype}`) must match."
         )
     a._tyarray.put(indices._tyarray, updates._tyarray)
+
+
+def _year_is_leap_year(year: ndx.Array) -> ndx.Array:
+    cycle4 = (year % 4) == 0
+    cycle100 = (year % 100) == 0
+    cycle400 = (year % 400) == 0
+
+    return cycle4 & (cycle100 | cycle400)
+
+
+def _number_of_days_and_leap_days_since_16000101(
+    dt: ndx.Array,
+) -> tuple[ndx.Array, ndx.Array]:
+    """Compute number of leap days between `dt` and 1600-01-01 (closest year that aligns
+    the 4, 100, and 400 year cycles of leap years)."""
+    base = np.asarray("1600-01-01", "datetime64[s]").astype(np.int64)
+
+    delta_s = dt.astype(ndx.DateTime("s")).astype(ndx.int64) - ndx.asarray(base)
+    # delta in hours (not days due to the latter use of astro-years)
+    delta = delta_s // (60 * 60)
+
+    # Compute number of passed leap years between base and arr
+    hours_in_astro_year = int(24 * 365.25)
+    cycle4 = delta // (4 * hours_in_astro_year)
+    cycle100 = delta // (100 * hours_in_astro_year)
+    cycle400 = delta // (400 * hours_in_astro_year)
+    leaps = cycle4 - cycle100 + cycle400
+
+    # add days to align again with the first of January
+    # delta += (31 + 28) * 24
+    # Convert from hours to days
+    delta_days = delta // 24
+
+    return delta_days, leaps
+
+
+def datetime_to_year_month_day(
+    arr: ndx.Array,
+) -> tuple[ndx.Array, ndx.Array, ndx.Array]:
+    """Split date time elements of the provided array into year, month, and day
+    components."""
+    if not isinstance(arr.dtype, ndx.DateTime):
+        raise TypeError(
+            f"expected array with date time data type but got `{arr.dtype}` instead"
+        )
+    # Compute number of passed leap years between base and arr
+    delta_days, leaps = _number_of_days_and_leap_days_since_16000101(arr)
+
+    # # Offset by 1 since month counts start at 1
+    # delta_days -= 1
+    delta_days_no_leaps = delta_days - leaps
+    years_delta = delta_days_no_leaps // 365
+    year = years_delta + 1600
+
+    is_leap = _year_is_leap_year(year)
+    days_in_year_astro = delta_days_no_leaps % 365
+    days_in_year = days_in_year_astro + (
+        is_leap & (days_in_year_astro >= (31 + 28))
+    ).astype(ndx.int64)
+
+    month = ndx.full_like(arr, 1, dtype=ndx.int16)
+    days_in_months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    month_edges = np.cumsum(days_in_months)
+    for edge in month_edges:
+        month += (days_in_year_astro > edge).astype(ndx.int16)
+
+    days_in_past_months = np.cumsum([0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30])
+    days_in_past_months_leap = np.cumsum(
+        [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30]
+    )
+    day = days_in_year - ndx.extensions.static_map(
+        month + _year_is_leap_year(year).astype(ndx.int16) * 100,
+        mapping={k: v for (k, v) in enumerate(days_in_past_months, start=1)}
+        | {k: v for (k, v) in enumerate(days_in_past_months_leap, start=101)},
+    )
+
+    return year, month, day

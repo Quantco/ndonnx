@@ -193,3 +193,35 @@ def test_clip(data, min, max):
     ).unwrap_numpy()
 
     np.testing.assert_array_equal(actual, desired, strict=True)
+
+
+@pytest.mark.parametrize(
+    "date",
+    [
+        "1970-01-01",
+        "2070-01-01",
+        "2370-01-01",
+        "1670-01-01",
+        "1270-01-01",
+        "1270-01-02",
+        "1999-02-28",
+        "1999-03-01",
+        "2000-02-29",
+        "2000-03-01",
+    ],
+)
+def test_day_month_year(date):
+    np_arr = np.asarray(date, dtype="datetime64[s]")
+    arr = ndx.asarray(np_arr)
+
+    np_y = np_arr.astype("datetime64[Y]").astype(int) + 1970
+    np_m = np_arr.astype("datetime64[M]").astype(int) % 12 + 1
+    np_d = (np_arr.astype("datetime64[D]") - np_arr.astype("datetime64[M]")).astype(
+        int
+    ) + 1
+
+    y, m, d = ndx.extensions.datetime_to_year_month_day(arr)
+
+    np.testing.assert_array_equal(y.unwrap_numpy(), np_y)
+    np.testing.assert_array_equal(m.unwrap_numpy(), np_m)
+    np.testing.assert_array_equal(d.unwrap_numpy(), np_d)
