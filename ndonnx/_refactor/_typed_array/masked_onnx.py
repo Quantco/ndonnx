@@ -43,10 +43,24 @@ NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="NCoreIntegerDTypes
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
 
 _PyScalar = bool | int | float | str
+_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
     _unmasked_dtype: onnx._OnnxDType
+
+    def __ndx_create__(
+        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+    ) -> TY_MA_ARRAY_ONNX:
+        if isinstance(val, np.ma.MaskedArray):
+            data = safe_cast(onnx.TyArray, astyarray(val.data))
+            if val.mask is np.ma.nomask:
+                mask = None
+            else:
+                mask = safe_cast(onnx.TyArrayBool, onnx.const(val.mask))
+            return asncoredata(data, mask)
+        else:
+            return asncoredata(self._unmasked_dtype.__ndx_create__(val), None)
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
         if isinstance(arr, onnx.TyArray):

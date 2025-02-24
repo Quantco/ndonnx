@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
 _N_MAX_CATEGORIES = np.iinfo(np.uint16).max
 _PyScalar = bool | int | float | str
+_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
 class CategoricalDType(DType["CategoricalArray"]):
@@ -69,6 +71,11 @@ class CategoricalDType(DType["CategoricalArray"]):
     @property
     def ordered(self) -> bool:
         return self._ordered
+
+    def __ndx_create__(
+        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+    ) -> CategoricalArray:
+        raise NotImplementedError("TODO")
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> CategoricalArray:
         if not isinstance(arr, onnx.TyArrayUtf8):

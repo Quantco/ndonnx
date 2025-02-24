@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import reduce
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
@@ -9,9 +10,9 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import numpy as np
 from spox import Var
 
-from .._dtypes import DType
+from .._dtypes import DType, from_numpy
 from .typed_array import TyArrayBase
-from .utils import promote, safe_cast
+from .utils import promote
 
 if TYPE_CHECKING:
     from .. import Array
@@ -20,18 +21,50 @@ if TYPE_CHECKING:
 
 
 _PyScalar = bool | int | float | str
+_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
-@overload
-def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: DType[TY_ARRAY_BASE]
-) -> TY_ARRAY_BASE: ...
+def _infer_sequence(
+    val: _NestedSequence,
+) -> DType:
+    types = set()
+    for item in val:
+        if isinstance(item, Sequence) and not isinstance(item, str):
+            types.add(_infer_sequence(item))
+        else:
+            types.add(_infer_dtype(item))
+    if len(types) != 1:
+        raise ValueError(f"Cannot infer dtype for nested sequence: {val}")
+    return types.pop()
 
 
-@overload
-def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: None | DType = None
-) -> TyArrayBase: ...
+def _infer_dtype(
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence,
+) -> DType:
+    from . import masked_onnx, onnx
+
+    if isinstance(val, np.ndarray):
+        core_type = from_numpy(val.dtype)
+        if isinstance(val, np.ma.MaskedArray):
+            return masked_onnx.as_nullable(core_type)
+        else:
+            return core_type
+    elif isinstance(val, TyArrayBase):
+        return val.dtype
+    elif isinstance(val, Var):
+        return from_numpy(val.unwrap_tensor().dtype)
+    elif isinstance(val, bool):
+        return onnx.bool_
+    elif isinstance(val, int):
+        return onnx.int64
+    elif isinstance(val, float):
+        return onnx.float64
+    elif isinstance(val, str):
+        return onnx.utf8
+    elif isinstance(val, Sequence):
+        return _infer_sequence(val)
+    else:
+        raise ValueError(f"Unable to infer dtype from {val}")
 
 
 def astyarray(
@@ -43,61 +76,10 @@ def astyarray(
     This function always copies
     """
     from .. import Array
-    from . import TyArrayBase, masked_onnx, onnx
-    from .date_time import DateTime, TimeDelta, validate_unit
 
-    if isinstance(val, np.generic):
-        val = np.array(val)
-
-    if isinstance(val, TyArrayBase):
-        return val.copy() if dtype is None else val.astype(dtype).copy()
-
-    if isinstance(val, Array):
-        return val._tyarray.copy()
-
-    arr: TyArrayBase
-    if isinstance(val, _PyScalar):
-        if dtype is None:
-            return onnx.const(val)
-        return onnx.const(val).astype(dtype)
-    elif isinstance(val, Var):
-        arr = onnx.ascoredata(val)
-        if dtype is not None:
-            arr = arr.astype(dtype)
-    elif isinstance(val, np.ma.MaskedArray):
-        data = safe_cast(onnx.TyArray, astyarray(val.data))
-        if val.mask is np.ma.nomask:
-            mask = None
-        else:
-            mask = safe_cast(onnx.TyArrayBool, onnx.const(val.mask))
-        arr = masked_onnx.asncoredata(data, mask)
-    elif isinstance(val, np.ndarray):
-        if val.dtype.kind == "O" and all(isinstance(el, str) for el in val.flat):
-            arr = safe_cast(onnx.TyArrayUtf8, onnx.const(val.astype(str)))
-        elif val.dtype.kind == "M":
-            unit, count = np.datetime_data(val.dtype)
-            unit = validate_unit(unit)
-            if count != 1:
-                raise ValueError(
-                    "cannot create datetime with unit count other than '1'"
-                )
-            arr = astyarray(val.astype(np.int64)).astype(DateTime(unit=unit))
-        elif val.dtype.kind == "m":
-            unit, count = np.datetime_data(val.dtype)
-            unit = validate_unit(unit)
-            if count != 1:
-                raise ValueError(
-                    "cannot create timedelta with unit count other than '1'"
-                )
-            arr = astyarray(val.astype(np.int64)).astype(TimeDelta(unit=unit))
-        else:
-            arr = onnx.const(val)
-    else:
-        raise ValueError(f"failed to convert `{type(val)}` to typed array")
-
-    if dtype is not None:
-        return arr.astype(dtype, copy=True)
-    return arr
+    val = val if not isinstance(val, Array) else val._tyarray
+    inferred_dtype = _infer_dtype(val) if dtype is None else dtype
+    return inferred_dtype.__ndx_create__(val)
 
 
 def concat(

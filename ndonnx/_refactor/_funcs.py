@@ -355,16 +355,7 @@ def full(
     device: None | Device = None,
 ) -> Array:
     if dtype is None:
-        if isinstance(fill_value, bool):
-            dtype = ndx.bool
-        elif isinstance(fill_value, int):
-            dtype = ndx._default_int
-        elif isinstance(fill_value, float):
-            dtype = ndx._default_float
-        elif isinstance(fill_value, str):
-            dtype = ndx.utf8
-        else:
-            raise TypeError(f"Unexpected 'fill_value' type `{type(fill_value)}`")
+        dtype = tyfuncs._infer_dtype(fill_value)
 
     if isinstance(shape, int):
         shape = (shape,)

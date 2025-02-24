@@ -33,6 +33,7 @@ KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
 
 _PyScalar = bool | int | float | str
+_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
 class _OnnxDType(DType[TY_ARRAY]):
@@ -89,6 +90,25 @@ class _OnnxDType(DType[TY_ARRAY]):
             return _result_type(self, rhs)
 
         return NotImplemented
+
+    def __ndx_create__(
+        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+    ) -> TY_ARRAY:
+        if isinstance(val, Var):
+            return ascoredata(val)
+        elif isinstance(val, _PyScalar | np.ndarray):
+            return const(val)
+        elif isinstance(val, Sequence):
+            return self.__ndx_create__(np.asarray(val))
+        elif isinstance(val, TyArrayBase):
+            if val.dtype == self:
+                return val.copy()
+            else:
+                raise TypeError(
+                    f"Attempted to construct an array with dtype {self} from var {val}"
+                )
+        else:
+            raise ValueError(f"Cannot create array with dtype {self} from {val}")
 
     def _argument(self, shape: OnnxShape) -> TY_ARRAY:
         var = argument(Tensor(self.unwrap_numpy(), shape))

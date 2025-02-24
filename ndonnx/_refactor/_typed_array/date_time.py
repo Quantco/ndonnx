@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import operator
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 import numpy as np
@@ -36,6 +36,7 @@ _NAT_SENTINEL = onnx.const(np.iinfo(np.int64).min).astype(onnx.int64)
 BASE_DT_ARRAY = TypeVar("BASE_DT_ARRAY", bound="TimeBaseArray")
 
 _PyScalar = bool | int | float | str
+_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
 
 
 class BaseTimeDType(DType[BASE_DT_ARRAY]):
@@ -127,11 +128,39 @@ class DateTime(BaseTimeDType):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self.unit}]"
 
+    def __ndx_create__(
+        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+    ) -> TyArrayDateTime:
+        if isinstance(val, np.ndarray) and val.dtype.kind == "M":
+            unit, count = np.datetime_data(val.dtype)
+            unit = validate_unit(unit)
+            if count != 1:
+                raise ValueError(
+                    "cannot create datetime with unit count other than '1'"
+                )
+            return astyarray(val.astype(np.int64)).astype(DateTime(unit=unit))
+        else:
+            raise ValueError(f"Unable to create an array with dtype {self} from {val}")
+
 
 class TimeDelta(BaseTimeDType):
     @property
     def _tyarr_class(self) -> type[TyArrayTimeDelta]:
         return TyArrayTimeDelta
+
+    def __ndx_create__(
+        self, val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence
+    ) -> TyArrayTimeDelta:
+        if isinstance(val, np.ndarray) and val.dtype.kind == "m":
+            unit, count = np.datetime_data(val.dtype)
+            unit = validate_unit(unit)
+            if count != 1:
+                raise ValueError(
+                    "cannot create datetime with unit count other than '1'"
+                )
+            return astyarray(val.astype(np.int64)).astype(TimeDelta(unit=unit))
+        else:
+            raise ValueError(f"Unable to create an array with dtype {self} from {val}")
 
 
 TIME_DTYPE = TypeVar("TIME_DTYPE", bound=DateTime | TimeDelta)
@@ -176,7 +205,9 @@ class TimeBaseArray(TyArrayBase):
         /,
     ) -> None:
         if self.dtype != value.dtype:
-            raise TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+            raise TypeError(
+                f"data type of 'value' must much array's, found `{value.dtype}`"
+            )
         self.data[key] = value.data
         self.is_nat[key] = value.is_nat
 

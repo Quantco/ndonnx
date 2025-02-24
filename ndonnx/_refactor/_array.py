@@ -309,7 +309,7 @@ class Array:
         return f"array({value_repr}, shape={shape}, dtype={self.dtype})"
 
 
-NestedSequence = Sequence["Array | bool | int | float | NestedSequence"]
+NestedSequence = Sequence["bool | int | float | str | NestedSequence"]
 
 
 def asarray(
@@ -320,57 +320,7 @@ def asarray(
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
-    if isinstance(obj, Var | str):
-        obj = Array._from_tyarray(astyarray(obj))
-        if dtype is None:
-            return obj
-        return obj.astype(dtype)
-    elif isinstance(obj, Array):
-        if copy is None:
-            # We try to copy if possible.
-            # TODO: Implement stricter failures cases according to standard
-            copy = False
-        if copy:
-            obj = Array._from_tyarray(obj._tyarray.copy())
-        if dtype:
-            return obj.astype(dtype, copy=copy)
-        return obj
-    elif isinstance(obj, bool | int | float) and dtype is not None:
-        # Avoid adding an unnecessary cast into the graph
-        return Array._from_tyarray(astyarray(obj, dtype=dtype))
-    elif isinstance(obj, bool):
-        obj = np.asarray(obj, dtype=np.bool_)
-    elif isinstance(obj, int):
-        obj = np.asarray(obj, dtype=np.int64)
-    elif isinstance(obj, float):
-        obj = np.asarray(obj, dtype=np.float64)
-    elif isinstance(obj, np.ndarray):
-        pass
-    elif isinstance(obj, Sequence):
-        return _asarray_sequence(obj, dtype=dtype, copy=copy)
-    else:
-        TypeError(f"Unexpected input type: `{type(obj)}`")
-    data = astyarray(obj)
-    if dtype:
-        data = data.astype(dtype)
-    return Array._from_tyarray(data)
-
-
-def _asarray_sequence(
-    seq: NestedSequence, dtype: DType | None, copy: bool | None
-) -> Array:
-    from ._funcs import concat
-
-    arrays = [asarray(el, dtype=dtype, copy=copy) for el in seq]
-    unwrapped = []
-    for arr in arrays:
-        try:
-            unwrapped.append(arr.unwrap_numpy())
-        except ValueError:
-            break
-    else:
-        return asarray(np.asarray(unwrapped), dtype=dtype, copy=copy)
-    return concat(arrays)
+    return Array._from_tyarray(astyarray(obj, dtype=dtype))
 
 
 def _astyarray_or_pyscalar(
