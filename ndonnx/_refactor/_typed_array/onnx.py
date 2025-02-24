@@ -15,7 +15,7 @@ from typing_extensions import Self
 
 from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
 from .._schema import DTypeInfoV1
-from . import TyArrayBase, astyarray, promote, safe_cast
+from . import TyArrayBase, astyarray, promote, safe_cast, where
 from . import ort_compat as op
 from .indexing import (
     FancySlice,
@@ -589,8 +589,6 @@ class TyArray(TyArrayBase):
         raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
-        from .funcs import astyarray
-
         if isinstance(shape, tuple):
             shape = astyarray(np.array(shape), dtype=int64)
         if shape.ndim != 1:
@@ -774,8 +772,6 @@ class TyArray(TyArrayBase):
         return NotImplemented
 
     def isin(self, items: Sequence[VALUE]) -> TyArrayBool:
-        from .funcs import astyarray
-
         # Filter out nan values since we never want to compare equal to them (NumPy semantics)
         items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
 
@@ -925,8 +921,6 @@ class TyArrayNumber(TyArray):
         dtype: DType | None = None,
         include_initial: bool = False,
     ) -> TyArrayBase:
-        from .funcs import astyarray
-
         dtype_ = self._accumulation_dtype(dtype)
         if self.dtype != dtype_:
             return self.astype(dtype_).cumulative_sum(
@@ -1438,8 +1432,6 @@ class TyArrayFloating(TyArrayNumber):
     ) -> Self:
         # ONNX standard does not define nan handling so we have to do
         # some special handling for floating points
-        from .funcs import astyarray, where
-
         res = super().max(axis=axis, keepdims=keepdims)
 
         is_nan = self.isnan().any(axis=axis, keepdims=keepdims)
@@ -1452,7 +1444,6 @@ class TyArrayFloating(TyArrayNumber):
     ) -> Self:
         # ONNX standard does not define nan handling so we have to do
         # some special handling for floating points
-        from .funcs import astyarray, where
 
         res = super().min(axis=axis, keepdims=keepdims)
 
@@ -1502,8 +1493,6 @@ class TyArrayFloating(TyArrayNumber):
         correction: int | float = 0.0,
         keepdims: bool = False,
     ) -> Self:
-        from .funcs import astyarray, where
-
         if axis is None:
             size = self.dynamic_size
             means = self.mean()
@@ -1595,8 +1584,6 @@ class TyArrayFloating(TyArrayNumber):
         return type(self)(op.tanh(self.var))
 
     def trunc(self) -> Self:
-        from .funcs import where
-
         return safe_cast(
             type(self),
             where(safe_cast(TyArrayBool, self < 0), self.ceil(), self.floor()),
@@ -1673,8 +1660,6 @@ class TyArrayBool(TyArray):
         return ~self
 
     def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
-        from .funcs import astyarray, where
-
         mapping_ = {bool(k): v for k, v in mapping.items()}
 
         true_val = mapping_.get(True, default)
