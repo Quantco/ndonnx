@@ -75,18 +75,20 @@ def _infer_dtype(
 
 @overload
 def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: DType[TY_ARRAY_BASE]
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array | _NestedSequence,
+    dtype: DType[TY_ARRAY_BASE],
 ) -> TY_ARRAY_BASE: ...
 
 
 @overload
 def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array, dtype: None | DType = None
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array | _NestedSequence,
+    dtype: None | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array,
+    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array | _NestedSequence,
     dtype: None | DType[TY_ARRAY_BASE] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
