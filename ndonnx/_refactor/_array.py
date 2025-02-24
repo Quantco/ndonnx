@@ -66,7 +66,7 @@ class Array:
             raise ValueError("Invalid arguments.")
 
         if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._tyarray = dtype._argument(shape)
+            self._tyarray = dtype.__ndx_argument__(shape)
             return
         if isinstance(value, np.ndarray):
             raise NotImplementedError
@@ -320,7 +320,10 @@ def asarray(
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
-    return Array._from_tyarray(astyarray(obj, dtype=dtype))
+    if isinstance(obj, Array):
+        return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
+    else:
+        return Array._from_tyarray(astyarray(obj, dtype=dtype))
 
 
 def _astyarray_or_pyscalar(

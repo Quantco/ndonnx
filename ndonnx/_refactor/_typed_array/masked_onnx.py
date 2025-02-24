@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import operator
+from abc import abstractmethod
 from collections.abc import Callable, Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
@@ -40,7 +41,7 @@ NCORE_NUMERIC_DTYPES = TypeVar("NCORE_NUMERIC_DTYPES", bound="NCoreNumericDTypes
 NCORE_FLOATING_DTYPES = TypeVar("NCORE_FLOATING_DTYPES", bound="NCoreFloatingDTypes")
 NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="NCoreIntegerDTypes")
 
-TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray")
+TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
 
 _PyScalar = bool | int | float | str
 _NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
@@ -58,9 +59,16 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
                 mask = None
             else:
                 mask = safe_cast(onnx.TyArrayBool, onnx.const(val.mask))
-            return asncoredata(data, mask)
+            return asncoredata(data, mask).astype(self)
         else:
-            return asncoredata(self._unmasked_dtype.__ndx_create__(val), None)
+            return asncoredata(self._unmasked_dtype.__ndx_create__(val), None).astype(
+                self
+            )
+
+    @abstractmethod
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TY_MA_ARRAY_ONNX: ...
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_MA_ARRAY_ONNX:
         if isinstance(arr, onnx.TyArray):
@@ -68,31 +76,31 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         if isinstance(arr, TyMaArray):
             mask = arr.mask
             data_ = arr.data.astype(self._unmasked_dtype)
-            return self._tyarr_class(data=data_, mask=mask)
+            return self._build(data=data_, mask=mask)
         raise NotImplementedError
 
     @property
-    def _infov1(self) -> DTypeInfoV1:
+    def __ndx_infov1__(self) -> DTypeInfoV1:
         return DTypeInfoV1(
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
-    def _argument(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
-        data = as_non_nullable(self)._argument(shape)
-        mask = onnx.bool_._argument(shape)
-        return self._tyarr_class(data=data, mask=mask)
+    def __ndx_argument__(self, shape: OnnxShape) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype.__ndx_argument__(shape)
+        mask = onnx.bool_.__ndx_argument__(shape)
+        return self._build(data=data, mask=mask)
 
-    def _arange(
+    def __ndx_arange__(
         self,
         start: int | float,
         stop: int | float,
         step: int | float = 1,
     ) -> TY_MA_ARRAY_ONNX:
         # Get everything onto the same type
-        data = self._unmasked_dtype._arange(start, stop, step)
-        return self._tyarr_class(data=data, mask=None)
+        data = self._unmasked_dtype.__ndx_arange__(start, stop, step)
+        return self._build(data=data, mask=None)
 
-    def _eye(
+    def __ndx_eye__(
         self,
         n_rows: int,
         n_cols: int | None = None,
@@ -100,17 +108,21 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         *,
         k: int = 0,
     ) -> TY_MA_ARRAY_ONNX:
-        data = self._unmasked_dtype._eye(n_rows, n_cols, k=k)
+        data = self._unmasked_dtype.__ndx_eye__(n_rows, n_cols, k=k)
 
-        return self._tyarr_class(data=data, mask=None)
+        return self._build(data=data, mask=None)
 
-    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_MA_ARRAY_ONNX:
-        data = self._unmasked_dtype._ones(shape)
-        return self._tyarr_class(data=data, mask=None)
+    def __ndx_ones__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype.__ndx_ones__(shape)
+        return self._build(data=data, mask=None)
 
-    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_MA_ARRAY_ONNX:
-        data = self._unmasked_dtype._zeros(shape)
-        return self._tyarr_class(data=data, mask=None)
+    def __ndx_zeros__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> TY_MA_ARRAY_ONNX:
+        data = self._unmasked_dtype.__ndx_zeros__(shape)
+        return self._build(data=data, mask=None)
 
 
 class _NNumber(_MaOnnxDType):
@@ -135,9 +147,10 @@ class NUtf8(_MaOnnxDType):
             return self
         return NotImplemented
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayString]:
-        return TyMaArrayString
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayString:
+        return TyMaArrayString(data, mask)
 
 
 class NBoolean(_MaOnnxDType):
@@ -146,97 +159,109 @@ class NBoolean(_MaOnnxDType):
     def __ndx_result_type__(self, rhs: DType | _PyScalar) -> DType | NotImplementedType:
         return NotImplemented
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayBool]:
-        return TyMaArrayBool
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayBool:
+        return TyMaArrayBool(data, mask)
 
 
 class NInt8(_NNumber):
     _unmasked_dtype = onnx.int8
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayInt8]:
-        return TyMaArrayInt8
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayInt8:
+        return TyMaArrayInt8(data, mask)
 
 
 class NInt16(_NNumber):
     _unmasked_dtype = onnx.int16
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayInt16]:
-        return TyMaArrayInt16
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayInt16:
+        return TyMaArrayInt16(data, mask)
 
 
 class NInt32(_NNumber):
     _unmasked_dtype = onnx.int32
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayInt32]:
-        return TyMaArrayInt32
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayInt32:
+        return TyMaArrayInt32(data, mask)
 
 
 class NInt64(_NNumber):
     _unmasked_dtype = onnx.int64
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayInt64]:
-        return TyMaArrayInt64
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayInt64:
+        return TyMaArrayInt64(data, mask)
 
 
 class NUInt8(_NNumber):
     _unmasked_dtype = onnx.uint8
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayUInt8]:
-        return TyMaArrayUInt8
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayUInt8:
+        return TyMaArrayUInt8(data, mask)
 
 
 class NUInt16(_NNumber):
     _unmasked_dtype = onnx.uint16
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayUInt16]:
-        return TyMaArrayUInt16
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayUInt16:
+        return TyMaArrayUInt16(data, mask)
 
 
 class NUInt32(_NNumber):
     _unmasked_dtype = onnx.uint32
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayUInt32]:
-        return TyMaArrayUInt32
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayUInt32:
+        return TyMaArrayUInt32(data, mask)
 
 
 class NUInt64(_NNumber):
     _unmasked_dtype = onnx.uint64
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayUInt64]:
-        return TyMaArrayUInt64
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayUInt64:
+        return TyMaArrayUInt64(data, mask)
 
 
 class NFloat16(_NNumber):
     _unmasked_dtype = onnx.float16
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayFloat16]:
-        return TyMaArrayFloat16
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayFloat16:
+        return TyMaArrayFloat16(data, mask)
 
 
 class NFloat32(_NNumber):
     _unmasked_dtype = onnx.float32
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayFloat32]:
-        return TyMaArrayFloat32
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayFloat32:
+        return TyMaArrayFloat32(data, mask)
 
 
 class NFloat64(_NNumber):
     _unmasked_dtype = onnx.float64
 
-    @property
-    def _tyarr_class(self) -> type[TyMaArrayFloat64]:
-        return TyMaArrayFloat64
+    def _build(
+        self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
+    ) -> TyMaArrayFloat64:
+        return TyMaArrayFloat64(data, mask)
 
 
 # Nullable Singleton instances
@@ -313,8 +338,11 @@ def _make_unary_member_same_type(fun_name: str):
 class TyMaArrayBase(TyArrayBase):
     """Typed masked array object."""
 
-    data: TyArrayBase
     mask: onnx.TyArrayBool | None
+
+    @property
+    @abstractmethod
+    def data(self) -> TyArrayBase: ...
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         reps = {}
@@ -326,22 +354,32 @@ class TyMaArrayBase(TyArrayBase):
 
 
 class TyMaArray(TyMaArrayBase):
-    """Masked version of core types.
+    """Masked version of core types."""
 
-    The (subclasses) of this class are implemented such that they only
-    know about `_ArrayCoreType`s, but not `_PyScalar`s.
-    """
-
-    # TODO: Things should be easier if they were to know about PyScalars
-
-    dtype: _MaOnnxDType
+    _dtype: _MaOnnxDType
     # Specialization of data from `Data` to `_ArrayCoreType`
-    data: onnx.TyArray
+    _data: onnx.TyArray
 
     def __init__(self, data: onnx.TyArray, mask: onnx.TyArrayBool | None):
-        self.dtype = as_nullable(data.dtype)
         self.data = data
         self.mask = mask
+
+    @property
+    def dtype(self) -> _MaOnnxDType:
+        # Implemented in child class
+        raise NotImplementedError
+
+    @property
+    def data(self) -> onnx.TyArray:
+        return self._data
+
+    @data.setter
+    def data(self, data: onnx.TyArray):
+        if data.dtype != self.dtype._unmasked_dtype:
+            raise ValueError(
+                f"expected data of type `{self.dtype._unmasked_dtype}` found `{data.dtype}`"
+            )
+        self._data = data
 
     def disassemble(self) -> dict[str, Var]:
         return (
@@ -442,7 +480,7 @@ class TyMaArray(TyMaArrayBase):
         value: Self,
         /,
     ) -> None:
-        self.dtype._ones
+        self.dtype.__ndx_ones__
         self.data.put(key, value.data)
         if value.mask is not None:
             if self.mask is None:
@@ -458,7 +496,7 @@ class TyMaArray(TyMaArrayBase):
             raise NotImplementedError
         elif isinstance(dtype, _MaOnnxDType):
             new_data = self.data.astype(dtype._unmasked_dtype)
-            dtype._tyarr_class(data=new_data, mask=self.mask)
+            dtype._build(data=new_data, mask=self.mask)
         return NotImplemented
 
     def concat(self, others: list[Self], axis: None | int) -> Self:
@@ -521,23 +559,27 @@ class TyMaArray(TyMaArrayBase):
 
 
 class TyMaArrayString(TyMaArray):
-    dtype = nutf8
+    @property
+    def dtype(self) -> NUtf8:
+        return nutf8
 
     __add__, __radd__ = _make_binary_pair(operator.add)  # type: ignore
 
 
 class TyMaArrayNumber(TyMaArray):
-    dtype: NCoreNumericDTypes
+    @property
+    def dtype(self) -> NCoreNumericDTypes:
+        raise NotImplementedError
 
     def clip(
         self, min: TyArrayBase | None = None, max: TyArrayBase | None = None
     ) -> Self:
-        allowed_types = int | float | onnx.TyArray | TyMaArrayNumber | None
-        if not isinstance(min, allowed_types):
+        allowed_types = int | float | onnx.TyArray | TyMaArrayNumber
+        if min is not None and not isinstance(min, allowed_types):
             raise TypeError(
                 f"'clip' is not implemented for argument 'min' with data type `{min.dtype}`"
             )
-        if not isinstance(max, allowed_types):
+        if max is not None and not isinstance(max, allowed_types):
             raise TypeError(
                 f"'clip' is not implemented for argument 'max' with data type `{max.dtype}`"
             )
@@ -644,7 +686,9 @@ class TyMaArrayNumber(TyMaArray):
 
 
 class TyMaArrayInteger(TyMaArrayNumber):
-    dtype: NCoreIntegerDTypes
+    @property
+    def dtype(self) -> NCoreIntegerDTypes:
+        raise NotImplementedError
 
     __and__, __rand__ = _make_binary_pair(operator.and_)  # type: ignore
     __or__, __ror__ = _make_binary_pair(operator.or_)  # type: ignore
@@ -655,7 +699,9 @@ class TyMaArrayInteger(TyMaArrayNumber):
 
 
 class TyMaArrayFloating(TyMaArrayNumber):
-    dtype: NCoreFloatingDTypes
+    @property
+    def dtype(self) -> NCoreFloatingDTypes:
+        raise NotImplementedError
 
     acos = _make_unary_member_same_type("acos")  # type: ignore
     acosh = _make_unary_member_same_type("acosh")  # type: ignore
@@ -676,7 +722,9 @@ class TyMaArrayFloating(TyMaArrayNumber):
 
 
 class TyMaArrayBool(TyMaArray):
-    dtype = nbool
+    @property
+    def dtype(self) -> NBoolean:
+        return nbool
 
     __invert__ = _make_unary_member_same_type("__invert__")  # type: ignore
 
@@ -688,47 +736,69 @@ class TyMaArrayBool(TyMaArray):
 
 
 class TyMaArrayInt8(TyMaArrayInteger):
-    dtype = nint8
+    @property
+    def dtype(self) -> NInt8:
+        return nint8
 
 
 class TyMaArrayInt16(TyMaArrayInteger):
-    dtype = nint16
+    @property
+    def dtype(self) -> NInt16:
+        return nint16
 
 
 class TyMaArrayInt32(TyMaArrayInteger):
-    dtype = nint32
+    @property
+    def dtype(self) -> NInt32:
+        return nint32
 
 
 class TyMaArrayInt64(TyMaArrayInteger):
-    dtype = nint64
+    @property
+    def dtype(self) -> NInt64:
+        return nint64
 
 
 class TyMaArrayUInt8(TyMaArrayInteger):
-    dtype = nuint8
+    @property
+    def dtype(self) -> NUInt8:
+        return nuint8
 
 
 class TyMaArrayUInt16(TyMaArrayInteger):
-    dtype = nuint16
+    @property
+    def dtype(self) -> NUInt16:
+        return nuint16
 
 
 class TyMaArrayUInt32(TyMaArrayInteger):
-    dtype = nuint32
+    @property
+    def dtype(self) -> NUInt32:
+        return nuint32
 
 
 class TyMaArrayUInt64(TyMaArrayInteger):
-    dtype = nuint64
+    @property
+    def dtype(self) -> NUInt64:
+        return nuint64
 
 
 class TyMaArrayFloat16(TyMaArrayFloating):
-    dtype = nfloat16
+    @property
+    def dtype(self) -> NFloat16:
+        return nfloat16
 
 
 class TyMaArrayFloat32(TyMaArrayFloating):
-    dtype = nfloat32
+    @property
+    def dtype(self) -> NFloat32:
+        return nfloat32
 
 
 class TyMaArrayFloat64(TyMaArrayFloating):
-    dtype = nfloat64
+    @property
+    def dtype(self) -> NFloat64:
+        return nfloat64
 
 
 def _merge_masks(
@@ -746,7 +816,7 @@ def _merge_masks(
 
 
 def asncoredata(core_array: onnx.TyArray, mask: onnx.TyArrayBool | None) -> TyMaArray:
-    return as_nullable(core_array.dtype)._tyarr_class(core_array, mask)
+    return as_nullable(core_array.dtype)._build(core_array, mask)
 
 
 def unmask_core(arr: onnx.TyArray | TyMaArray) -> onnx.TyArray:
@@ -801,12 +871,7 @@ _core_to_nullable_core: dict[onnx._OnnxDType, NCoreDTypes] = {
 }
 
 
-def as_nullable(dtype: onnx._OnnxDType) -> NCoreDTypes:
+def as_nullable(dtype: onnx._OnnxDType | NCoreDTypes) -> NCoreDTypes:
+    if isinstance(dtype, NCoreDTypes):
+        return dtype
     return _core_to_nullable_core[dtype]
-
-
-def as_non_nullable(dtype: _MaOnnxDType) -> onnx._OnnxDType:
-    mapping: dict[_MaOnnxDType, onnx._OnnxDType] = {
-        v: k for k, v in _core_to_nullable_core.items()
-    }
-    return mapping[dtype]

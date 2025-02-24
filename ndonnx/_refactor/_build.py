@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 
@@ -11,7 +11,7 @@ from ._schema import SchemaV1
 
 
 def build(
-    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=True
+    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=False
 ) -> onnx.ModelProto:
     ins = _arrays_to_vars(inputs)
     outs = _arrays_to_vars(outputs)
@@ -20,8 +20,8 @@ def build(
 
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
-            input_schema={k: v.dtype._infov1 for k, v in inputs.items()},
-            output_schema={k: v.dtype._infov1 for k, v in outputs.items()},
+            input_schema={k: v.dtype.__ndx_infov1__ for k, v in inputs.items()},
+            output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
             version=1,
         ).to_json()
     }

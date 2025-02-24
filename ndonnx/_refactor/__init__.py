@@ -46,7 +46,6 @@ from ._typed_array.masked_onnx import (
     nutf8,
     nbool,
     as_nullable,
-    as_non_nullable,
 )
 from ._typed_array.date_time import DateTime, TimeDelta
 from ._typed_array.object_dtype import object_dtype
@@ -366,7 +365,6 @@ __all__ = [
     "Integral",
     "Numerical",
     "as_nullable",
-    "as_non_nullable",
     "CoreType",
     "UnsupportedOperationError",
     "_TyArray",

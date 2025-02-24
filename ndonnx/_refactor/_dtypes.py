@@ -19,9 +19,9 @@ if TYPE_CHECKING:
     from ._types import OnnxShape
 
 
-TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
+TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase", covariant=True)
 _Py_Scalar = bool | int | float | str
-NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
+NestedSequence = Sequence["bool | int | float | str | NestedSequence"]
 
 
 class DType(ABC, Generic[TY_ARRAY_BASE]):
@@ -38,16 +38,6 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         self, other: DType | _Py_Scalar
     ) -> DType | NotImplementedType: ...
 
-    @property
-    @abstractmethod
-    def _tyarr_class(self) -> type[TY_ARRAY_BASE]:
-        """Consider using  ``TyArrayBase.astype`` or ``_argument`` instead.
-
-        Those functions better provide the dtype instance (with it's state) to the newly
-        instantiated array.
-        """
-        ...
-
     @abstractmethod
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_BASE:
         """Convert the given array to this data type.
@@ -58,37 +48,39 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         ...
 
     @abstractmethod
-    def _argument(self, shape: OnnxShape) -> TY_ARRAY_BASE: ...
+    def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY_BASE: ...
 
     @property
     @abstractmethod
-    def _infov1(self) -> DTypeInfoV1:
+    def __ndx_infov1__(self) -> DTypeInfoV1:
         raise NotImplementedError
 
     # Construction functions
-    @abstractmethod
-    def _arange(
+    def __ndx_arange__(
         self,
         start: int | float,
         stop: int | float,
         step: int | float = 1,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE:
+        return NotImplemented
 
-    @abstractmethod
-    def _eye(
+    def __ndx_eye__(
         self,
         n_rows: int,
         n_cols: int | None = None,
         /,
         *,
         k: int = 0,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE:
+        return NotImplemented
 
-    @abstractmethod
-    def _ones(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE: ...
+    def __ndx_ones__(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE:
+        return NotImplemented
 
-    @abstractmethod
-    def _zeros(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TY_ARRAY_BASE: ...
+    def __ndx_zeros__(
+        self, shape: tuple[int, ...] | onnx.TyArrayInt64
+    ) -> TY_ARRAY_BASE:
+        return NotImplemented
 
     def __eq__(self, other) -> bool:
         if type(self) is not type(other):

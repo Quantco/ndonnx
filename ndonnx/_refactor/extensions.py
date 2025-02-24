@@ -160,7 +160,7 @@ def make_nullable(
         Array of booleans indicating whether each element of ``x`` is null.
 
     merge_strategy: Literal["raise", "merge"]
-        If `"raise"` a ``TypeError`` is raised if ``x`` is already of
+        If `"raise"`, a ``TypeError`` is raised if ``x`` is already of
         a nullable data type. If `"merge"` is provided, any mask
         existing on ``x`` is merged with ``null``.
 
@@ -178,9 +178,9 @@ def make_nullable(
     null = None if null is None else null.copy()
 
     if null is None:
-        if isinstance(x, TyMaArray):
+        if isinstance(x._tyarray, TyMaArray):
             return x
-        if isinstance(x, tydx.onnx.TyArray):
+        if isinstance(x._tyarray, tydx.onnx.TyArray):
             return ndx.Array._from_tyarray(
                 tydx.masked_onnx.asncoredata(x._tyarray, None)
             )
@@ -197,11 +197,14 @@ def make_nullable(
         return ndx.Array._from_tyarray(tyarr)
     if isinstance(x._tyarray, tydx.date_time.TimeBaseArray):
         # TODO: The semantics of this branch are very odd!
-        is_nat = tydx.masked_onnx._merge_masks(x._tyarray.is_nat, null._tyarray)
-        tyarr = x.dtype._tyarr_class(
-            is_nat, x._tyarray.data, unit=x._tyarray.dtype.unit
+        is_nat = x._tyarray.is_nat
+        merged = tydx.masked_onnx._merge_masks(is_nat, null._tyarray)
+        if merged is not None:
+            is_nat = merged
+        return ndx.Array._from_tyarray(
+            x._tyarray.dtype._build(is_nat, x._tyarray.data, unit=x._tyarray.dtype.unit)
         )
-        return ndx.Array._from_tyarray(tyarr)
+
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"
     )
@@ -217,11 +220,13 @@ def get_mask(x: ndx.Array, /) -> ndx.Array | None:
 
 
 def get_data(x: ndx.Array, /) -> ndx.Array:
-    """Get data part of a masked array.
+    """Get data part of a masked, datetime or timedelta array.
 
     If the ``x`` is not masked, return ``x``.
     """
-    if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
+    if isinstance(
+        x._tyarray, tydx.masked_onnx.TyMaArray | tydx.date_time.TimeBaseArray
+    ):
         return ndx.Array._from_tyarray(x._tyarray.data)
     return ndx.Array._from_tyarray(x._tyarray)
 

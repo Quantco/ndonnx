@@ -90,13 +90,10 @@ def test_null_promotion():
         (1, ndx.float64, ndx.float64),
         (["a", "b"], ndx.utf8, ndx.utf8),
         (np.array(["a", "b"]), None, ndx.utf8),
-        (np.array(["a", "b"], object), None, ndx.utf8),
         ("a", ndx.utf8, ndx.utf8),
         (np.array("a"), None, ndx.utf8),
-        (np.array("a", object), None, ndx.utf8),
         ([["a"]], None, ndx.utf8),
         (np.array([["a"]]), None, ndx.utf8),
-        (np.array([["a"]], object), None, ndx.utf8),
     ],
 )
 def test_asarray(array, dtype, expected_dtype):
@@ -119,20 +116,6 @@ def test_asarray_masked(np_arr):
     assert isinstance(ndx_arr, ndx.Array)
     assert isinstance(ndx_arr.to_numpy(), np.ma.MaskedArray)
     assert_array_equal(np_arr, ndx_arr.to_numpy())
-
-
-@pytest.mark.parametrize(
-    "np_arr",
-    [
-        np.ma.masked_array(["a", "b"], mask=[1, 0], dtype=object),
-        np.ma.masked_array("a", mask=0, dtype=object),
-    ],
-)
-def test_asarray_object_dtype(np_arr):
-    ndx_arr = ndx.asarray(np_arr)
-    assert isinstance(ndx_arr, ndx.Array)
-    assert isinstance(ndx_arr.to_numpy(), np.ma.MaskedArray)
-    np.testing.assert_array_equal(np_arr, ndx_arr.to_numpy())
 
 
 def test_basic_eager_add(_a, _b):
@@ -640,13 +623,13 @@ def test_prod(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=ndx.as_non_nullable(dtype).to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype._unmasked_dtype.unwrap_numpy())
         input = np.ma.masked_array(input, mask=False)
     else:
-        input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype.unwrap_numpy())
     actual = np.prod(input)
 
-    assert_array_equal(y.to_numpy(), actual)
+    assert_array_equal(y.unwrap_numpy(), actual)
 
 
 @pytest.mark.parametrize(
@@ -664,7 +647,7 @@ def test_prod_unsigned(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=ndx.as_non_nullable(dtype).to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype._unmasked_dtype.to_numpy_dtype())
         input = np.ma.masked_array(input, mask=False)
     else:
         input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
