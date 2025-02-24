@@ -309,9 +309,9 @@ class TyObjectArray(TyArrayBase):
         )
 
     def __add__(self, rhs: TyArrayBase | _PyScalar) -> Self:
-        from .funcs import astyarray, where
+        from .funcs import where
 
-        rhs_array = _asarray(rhs)
+        rhs_array = self.dtype.__ndx_create__(rhs)
         return type(self)(
             variant=where(
                 cast(onnx.TyArrayBool, self.variant != rhs_array.variant),
@@ -329,7 +329,7 @@ class TyObjectArray(TyArrayBase):
                 self.string_data == other
             )  # type: ignore
         else:
-            rhs_array = _asarray(other)
+            rhs_array = self.dtype.__ndx_create__(other)
             return where(
                 cast(onnx.TyArrayBool, self.variant == self._string_encoding),
                 (rhs_array.variant == self._string_encoding)
@@ -349,36 +349,6 @@ class TyObjectArray(TyArrayBase):
                 variant == self._nan_encoding, np.asarray(np.nan, dtype=object), out
             ),
         ).astype(object)
-
-
-# TODO: why can I not define "asarray" for my dtype? If I can, how do I do this?
-def _asarray(item: _PyScalar | TyArrayBase) -> TyObjectArray:
-    if item is None:
-        return TyObjectArray(
-            variant=astyarray(TyObjectArray._none_encoding, dtype=onnx.uint8),
-            string_data=astyarray("<NONE>", dtype=onnx.utf8),
-        )
-    elif isinstance(item, float) and np.isnan(item):
-        return TyObjectArray(
-            variant=astyarray(TyObjectArray._nan_encoding, dtype=onnx.uint8),
-            string_data=astyarray("<NAN>", dtype=onnx.utf8),
-        )
-    elif isinstance(item, str):
-        return TyObjectArray(
-            variant=astyarray(TyObjectArray._string_encoding, dtype=onnx.uint8),
-            string_data=astyarray(item, dtype=onnx.utf8),
-        )
-    elif isinstance(item, onnx.TyArrayUtf8):
-        return TyObjectArray(
-            variant=astyarray(
-                TyObjectArray._string_encoding, dtype=onnx.uint8
-            ).broadcast_to(item.dynamic_shape),
-            string_data=item,
-        )
-    elif isinstance(item, TyObjectArray):
-        return item.copy()
-    else:
-        raise TypeError(f"Cannot turn {item} into a {TyObjectArray}")
 
 
 object_dtype: ObjectDtype = ObjectDtype()
