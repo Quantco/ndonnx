@@ -55,7 +55,6 @@ class BaseTimeDType(DType[BASE_DT_ARRAY]):
     def __ndx_cast_from__(self, arr: TyArrayBase) -> BASE_DT_ARRAY:
         if isinstance(arr, onnx.TyArrayInteger):
             data = arr.astype(onnx.int64)
-            # data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
             is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
         elif isinstance(arr, onnx.TyArrayFloating):
             data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
@@ -153,10 +152,6 @@ class DateTime(BaseTimeDType["TyArrayDateTime"]):
 
 
 class TimeDelta(BaseTimeDType["TyArrayTimeDelta"]):
-    @property
-    def _tyarr_class(self) -> type[TyArrayTimeDelta]:
-        return TyArrayTimeDelta
-
     def __ndx_create__(
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TyArrayTimeDelta:

@@ -776,6 +776,17 @@ class TyArray(TyArrayBase):
         # delegate all work to ``DType.__ndx_cast_from__``
         return NotImplemented
 
+    @overload  # type: ignore
+    def __eq__(self, other: TyArray | PyScalar) -> TyArrayBool: ...
+
+    @overload
+    def __eq__(self, other: TyArrayBase | PyScalar) -> TyArrayBool: ...
+
+    def __eq__(self, other: TyArrayBase | PyScalar) -> TyArrayBool:
+        if not isinstance(other, TyArray | bool | int | float | str):
+            return NotImplemented
+        return safe_cast(TyArrayBool, super().__eq__(other))
+
     def _eqcomp(self, other) -> TyArrayBool:
         if isinstance(other, TyArray | bool | int | float | str):
             a, b = promote(self, other)
