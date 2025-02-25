@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from packaging.version import parse
 
-import ndonnx._refactor as ndx
+import ndonnx as ndx
 
 from .utils import assert_equal_dtype_shape
 

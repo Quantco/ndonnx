@@ -7,8 +7,8 @@ from typing import get_args
 import numpy as np
 import pytest
 
-import ndonnx._refactor as ndx
-from ndonnx._refactor._typed_array.date_time import Unit
+import ndonnx as ndx
+from ndonnx._typed_array.date_time import Unit
 
 from .utils import assert_equal_dtype_shape
 

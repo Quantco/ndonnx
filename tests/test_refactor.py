@@ -7,27 +7,10 @@ import numpy as np
 import pytest
 from packaging.version import parse
 
-import ndonnx._refactor as ndx
-from ndonnx._refactor import _dtypes as dtypes
+import ndonnx as ndx
+from ndonnx import _dtypes as dtypes
 
-from .utils import assert_equal_dtype_shape
-
-
-def build_and_run(fn, *np_args):
-    # Only works for core data types
-    import onnxruntime as ort
-
-    ins_np = {f"in{i}": arr for i, arr in enumerate(np_args)}
-    ins = {
-        k: ndx.Array(shape=a.shape, dtype=dtypes.from_numpy(a.dtype))
-        for k, a in ins_np.items()
-    }
-
-    out = {"out": fn(*ins.values())}
-    mp = ndx.build(ins, out)
-    session = ort.InferenceSession(mp.SerializeToString())
-    (out,) = session.run(None, {f"{k}": a for k, a in ins_np.items()})
-    return out
+from .utils import assert_equal_dtype_shape, build_and_run
 
 
 def constant_prop(fn, *np_args):

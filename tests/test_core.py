@@ -7,15 +7,14 @@ import numpy as np
 import pytest
 import spox.opset.ai.onnx.v19 as op
 
-import ndonnx._refactor as ndx
-from ndonnx._refactor import _dtypes as dtypes
-from ndonnx._utility import promote
+import ndonnx as ndx
+from ndonnx import _dtypes as dtypes
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def numpy_to_graph_input(arr, eager=False):
-    from ndonnx._refactor._typed_array.masked_onnx import as_nullable
+    from ndonnx._typed_array.masked_onnx import as_nullable
 
     dtypes.from_numpy
 
@@ -53,32 +52,32 @@ def _c():
 
 
 @pytest.mark.parametrize(
-    "dtype, input",
+    "dtype, inputs",
     [
-        (ndx.bool, np.array([True, False, True])),
-        (ndx.int8, np.array([1, 5, -12], np.int8)),
-        (ndx.nbool, np.ma.masked_array([True, True, False], mask=[1, 0, 0])),
-        (ndx.nint8, np.ma.masked_array([1, 5, -12], mask=[0, 1, 1], dtype=np.int8)),
+        (ndx.bool, {"a": np.array([True, False, True])}),
+        (ndx.int8, {"a": np.array([1, 5, -12], np.int8)}),
+        (ndx.nbool, {"a_values": [True, True, False], "a_null": [1, 0, 0]}),
+        (ndx.nint8, {"a_values": [1, 5, -12], "a_null": [0, 1, 1]}),
     ],
 )
 @pytest.mark.parametrize("shape", [(3,), ("N",)])
-def test_make_graph_input(dtype, input, shape):
+def test_make_graph_input(dtype, inputs, shape):
     a = ndx.array(shape=shape, dtype=dtype)
     model = ndx.build({"a": a}, {"b": a})
-    actual = run(model, {"a": input})
-    assert_array_equal(actual["b"], input)
+    actual = run(model, inputs)
+
+    for k, v in actual.items():
+        np.testing.assert_array_equal(v, inputs["a" + k[1:]])
 
 
 def test_null_promotion():
-    a = ndx.array(shape=("N",), dtype=ndx.nfloat64)
-    b = ndx.array(shape=("N",), dtype=ndx.float64)
-    model = ndx.build({"a": a, "b": b}, {"c": a + b})
-    inputs = {
-        "a": np.ma.masked_array([1.0, 2.0, 3.0, 4.0], mask=[0, 0, 1, 0]),
-        "b": np.array([4.0, 5.0, 6.0, 7.0]),
-    }
-    actual = run(model, inputs)
-    assert_array_equal(actual["c"], np.add(inputs["a"], inputs["b"]))
+    np_a = np.ma.masked_array([1.0, 2.0, 3.0, 4.0], mask=[0, 0, 1, 0])
+    a = ndx.asarray(np_a, dtype=ndx.nfloat64)
+    np_b = np.array([4.0, 5.0, 6.0, 7.0])
+    b = ndx.asarray(np_b, dtype=ndx.float64)
+    c = (a + b).unwrap_numpy()
+
+    assert_array_equal(c, np.add(np_a, np_b))
 
 
 @pytest.mark.parametrize(
@@ -191,16 +190,11 @@ def test_indexing(_a):
 )
 def test_where(condition, x, y):
     expected = np.where(condition, x, y)
-    condition_onnx = numpy_to_graph_input(condition)
-    x_onnx = numpy_to_graph_input(x)
-    y_onnx = numpy_to_graph_input(y)
+    condition_onnx = ndx.asarray(condition)
+    x_onnx = ndx.asarray(x)
+    y_onnx = ndx.asarray(y)
     out = ndx.where(condition_onnx, x_onnx, y_onnx)
-    model = ndx.build(
-        {"condition": condition_onnx, "x": x_onnx, "y": y_onnx}, {"out": out}
-    )
-    actual = run(model, {"condition": condition, "x": x, "y": y})["out"]
-    # NumPy simply drops the masked array in `np.where`. We do not want to do the same.
-    np.testing.assert_array_equal(actual, expected)
+    np.testing.assert_array_equal(out.unwrap_numpy(), expected)
 
 
 def test_indexing_on_scalar():
@@ -437,7 +431,7 @@ def test_array_spox_interoperability():
     input = np.ma.masked_array(
         np.arange(3 * 2, dtype=np.int64).reshape(3, 2), mask=np.ones((3, 2), dtype=bool)
     )
-    actual = run(model, {"a": input})["b"]
+    actual = run(model, {"a_values": input.data, "a_null": input.mask})["b"]
     assert_array_equal(actual, expected)
 
 
@@ -806,8 +800,8 @@ def test_scalar_promote(array, scalar, expected):
     ],
 )
 def test_promotion_failures(arrays, scalar):
-    with pytest.raises(TypeError, match="Cannot promote"):
-        promote(*arrays, scalar)
+    with pytest.raises(TypeError, match="no common type found"):
+        ndx.result_type(*arrays, scalar)
 
 
 @pytest.mark.skipif(

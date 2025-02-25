@@ -203,7 +203,7 @@ def _normalize_getitem_key_item(key: GetitemItem) -> GetitemItem:
 def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
     """Compute expanded indices for ``key`` for an array of shape ``shape``."""
     # TODO: Allow dynamic inputs to DType.__ndx_arange__?
-    import ndonnx._refactor as ndx
+    import ndonnx as ndx
 
     from . import ort_compat
     from .onnx import TyArrayInt64

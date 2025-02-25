@@ -4,8 +4,8 @@
 import numpy as np
 import pytest
 
-import ndonnx._refactor as ndx
-from ndonnx._refactor._typed_array.categorical import CategoricalDType
+import ndonnx as ndx
+from ndonnx._typed_array.categorical import CategoricalDType
 
 
 def test_dtype_repr():

@@ -4,9 +4,9 @@
 import numpy as np
 import pytest
 
-import ndonnx._refactor as ndx
-from ndonnx._refactor import _typed_array as tydx
-from ndonnx._refactor._typed_array.indexing import (
+import ndonnx as ndx
+from ndonnx import _typed_array as tydx
+from ndonnx._typed_array.indexing import (
     _get_indices,
     _key_to_indices,
     _move_ellipsis_back,

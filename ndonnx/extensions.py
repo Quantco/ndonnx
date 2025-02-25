@@ -9,7 +9,7 @@ from warnings import warn
 
 import numpy as np
 
-import ndonnx._refactor as ndx
+import ndonnx as ndx
 
 from . import _typed_array as tydx
 from ._typed_array.masked_onnx import TyMaArray

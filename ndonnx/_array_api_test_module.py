@@ -7,4 +7,4 @@ import spox
 
 spox._value_prop._VALUE_PROP_BACKEND = spox._value_prop.ValuePropBackend.ONNXRUNTIME
 
-from ndonnx._refactor import *  # noqa
+from ndonnx import *  # noqa

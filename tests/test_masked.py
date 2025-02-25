@@ -7,25 +7,17 @@ import warnings
 import numpy as np
 import pytest
 
-import ndonnx._refactor as ndx
-import ndonnx._refactor.extensions as nda
+import ndonnx as ndx
+import ndonnx.extensions as nda
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def testfill_null():
-    a = ndx.array(shape=(3,), dtype=ndx.nint64)
+    a = ndx.asarray(np.ma.masked_array([1, 2, -1], mask=[0, 0, 1], dtype=np.int64))
     b = nda.fill_null(a, ndx.asarray(0))
-
-    model = ndx.build({"a": a}, {"b": b})
-
     expected_b = np.array([1, 2, 0], dtype=np.int64)
-    assert_array_equal(
-        run(
-            model, {"a": np.ma.masked_array([1, 2, -1], mask=[0, 0, 1], dtype=np.int64)}
-        )["b"],
-        expected_b,
-    )
+    assert_array_equal(b.unwrap_numpy(), expected_b)
 
 
 @pytest.mark.parametrize(
@@ -36,19 +28,15 @@ def test_arithmetic_none_propagation(fn_name):
     fn = getattr(ndx, fn_name)
     np_fn = getattr(np.ma, fn_name)
 
-    a = ndx.array(shape=(3,), dtype=ndx.nfloat64)
-    b = ndx.array(shape=(3,), dtype=ndx.nfloat64)
+    a_np = np.ma.MaskedArray([-1, 2.0, 3.0], mask=[1, 0, 0])
+    b_np = np.ma.MaskedArray([2.0, 1.0, -1], mask=[0, 0, 1])
+    a = ndx.asarray(a_np, dtype=ndx.nfloat64)
+    b = ndx.asarray(b_np, dtype=ndx.nfloat64)
     c = fn(a, b)
 
-    a_val = np.ma.MaskedArray([-1, 2.0, 3.0], mask=[1, 0, 0])
-    b_val = np.ma.MaskedArray([2.0, 1.0, -1], mask=[0, 0, 1])
+    expected_c = np_fn(a_np, b_np)
 
-    model = ndx.build({"a": a, "b": b}, {"c": c})
-
-    ret_c = run(model, {"a": a_val, "b": b_val})["c"]
-    expected_c = np_fn(a_val, b_val)
-
-    assert_array_equal(ret_c, expected_c)
+    assert_array_equal(c.unwrap_numpy(), expected_c)
 
 
 @pytest.mark.xfail(reason="Masked reduction ops are ill-defined")
@@ -105,27 +93,25 @@ def test_reduce_ops_none_filling(fn_name, default_value):
     ],
 )
 def test_unary_none_propagation(fn_name, args, kwargs):
+    a_np = np.ma.masked_array([[0, -2.0, 3.0]], mask=[[1, 0, 0]], dtype=np.float32)
     fn = getattr(ndx, fn_name)
 
-    a = ndx.array(shape=(1, 3), dtype=ndx.nfloat32)
+    a = ndx.asarray(a_np, dtype=ndx.nfloat32)
     b = fn(a, *args)
 
-    model = ndx.build({"a": a}, {"b": b})
-
-    inp_a = np.ma.masked_array([[0, -2.0, 3.0]], mask=[[1, 0, 0]], dtype=np.float32)
-    ret_b = run(model, {"a": inp_a})["b"]
-    missing_a = inp_a.mask
+    # model = ndx.build({"a": a}, {"b": b})
+    # ret_b = run(model, {"a": inp_a})["b"]
+    missing_a = a_np.mask
     npx = get_numpy_array_api_namespace()
     np_fn = getattr(npx, fn_name)
-    inp_a = npx.asarray(np.ma.filled(inp_a, np.nan))
 
     # Numpy might complain about invalid values
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        expected_b = np_fn(inp_a, *args, **kwargs)
+        expected_b = np_fn(a_np, *args, **kwargs)
     np.testing.assert_almost_equal(
         np.ma.masked_array(expected_b, mask=missing_a),
-        ret_b,
+        b.unwrap_numpy(),
         decimal=5,
     )
 
@@ -138,32 +124,20 @@ def test_forbidden_masked():
 
 
 def test_masked_getitem():
-    a = ndx.array(shape=(3,), dtype=ndx.nint64)
+    a_np = np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64)
+    a = ndx.asarray(a_np, dtype=ndx.nint64)
 
-    model = ndx.build({"a": a}, {"b": a[0]})
-
-    np.testing.assert_equal(
-        [1],
-        run(
-            model, {"a": np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64)}
-        )["b"],
-    )
+    np.testing.assert_equal([1], a[0].unwrap_numpy())
 
 
 def test_masked_setitem():
-    a_start = ndx.array(shape=(3,), dtype=ndx.nint64)
+    a_np = np.ma.masked_array([1, 2, 3], mask=[0, 0, 0], dtype=np.int64)
+    a_start = ndx.asarray(a_np, dtype=ndx.nint64)
 
     a = a_start.copy()
-    a[0] = 1
+    a[0] = 10
 
-    model = ndx.build({"a": a_start}, {"b": a})
-
-    np.testing.assert_equal(
-        [1, 2, 3],
-        run(
-            model, dict(a=np.ma.masked_array([1, 2, 3], mask=[0, 0, 0], dtype=np.int64))
-        )["b"],
-    )
+    np.testing.assert_equal([10, 2, 3], a.unwrap_numpy())
 
 
 def test_asarray_masked():

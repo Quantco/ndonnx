@@ -4,8 +4,8 @@
 import numpy as np
 import pytest
 
-import ndonnx._refactor as ndx
-from ndonnx._refactor._typed_array.object_dtype import ObjectDtype
+import ndonnx as ndx
+from ndonnx._typed_array.object_dtype import ObjectDtype
 
 
 # TODO: Reuse function from actual implementation?

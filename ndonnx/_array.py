@@ -1,118 +1,203 @@
+# Copyright (c) QuantCo 2023-2025
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Copyright (c) QuantCo 2023-2024
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
-import typing
+import math
+import operator as std_ops
 from collections.abc import Callable
-from typing import Union
+from enum import Enum
+from types import EllipsisType, NotImplementedType
+from typing import TYPE_CHECKING, Any, Optional, overload
+from warnings import warn
 
 import numpy as np
-import spox.opset.ai.onnx.v19 as op
-from spox import Tensor, Var, argument
-from typing_extensions import Self
+from spox import Var
 
-import ndonnx as ndx
-import ndonnx._data_types as dtypes
-from ndonnx.additional import shape
-from ndonnx.additional._additional import _getitem as getitem
-from ndonnx.additional._additional import _static_shape as static_shape
+from ._dtypes import DType
+from ._namespace_info import Device
+from ._typed_array import TyArrayBase, astyarray, onnx
 
-from ._corearray import _CoreArray
-from ._index import ScalarIndexType
-from ._utility import get_shape
-
-if typing.TYPE_CHECKING:
-    from ndonnx._data_types.coretype import CoreType
-    from ndonnx._data_types.structtype import StructType
-
-IndexType = Union[ScalarIndexType, tuple[ScalarIndexType, ...], "Array"]
+if TYPE_CHECKING:
+    from ._typed_array.indexing import GetitemIndex as TyGetitemIndex
+    from ._types import GetitemIndex, NestedSequence, OnnxShape, PyScalar, SetitemIndex
 
 
-def array(
-    *,
-    shape: tuple[int | str | None, ...],
-    dtype: CoreType | StructType,
-) -> Array:
-    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
-
-    Parameters
-    ----------
-    shape : tuple[int | str | None, ...]
-        The shape of the array. str dimensions denote symbolic dimensions and must be globally consistent. None dimensions denote unknown dimensions.
-    dtype : CoreType | StructType
-        The data type of the array.
-
-    Returns
-    -------
-    out : Array
-        The new array. This represents an ONNX model input.
-    """
-    if (out := dtype._ops.make_array(shape, dtype)) is not NotImplemented:
-        return out
-    raise ndx.UnsupportedOperationError(
-        f"No implementation of `make_array` for {dtype}"
-    )
+_BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
 
 
-def from_spox_var(
-    var: Var,
-) -> Array:
-    """Construct an ``Array`` from a ``spox.Var``. This function is useful when
-    interoperating between ``ndonnx`` and ``spox``.
+def _make_binary(
+    tyarr_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+) -> tuple[_BinaryOp, _BinaryOp]:
+    def binary_op_forward(self, other):
+        return _apply_op(self, other, tyarr_op)
 
-    Parameters
-    ----------
-    var : spox.Var
-        The variable to construct the array from.
+    def binary_op_backward(self, other):
+        return _apply_op(other, self, tyarr_op)
 
-    Returns
-    -------
-    out : Array
-        The constructed array.
-    """
-    corearray = _CoreArray(var)
-    return _from_corearray(corearray)
-
-
-def _from_corearray(
-    corearray: _CoreArray,
-) -> Array:
-    return Array._from_fields(corearray.dtype, data=corearray)
+    return binary_op_forward, binary_op_backward
 
 
 class Array:
-    dtype: dtypes.StructType | dtypes.CoreType
-    _fields: dict[str, Array | _CoreArray]
+    """User-facing objects that makes no assumption about any data type related
+    logic."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        raise TypeError("Array cannot be instantiated directly.")
+    _tyarray: TyArrayBase
+
+    @overload
+    def __init__(self, *, shape: OnnxShape, dtype: DType): ...
+
+    @overload
+    def __init__(self, value: np.ndarray | float | int | bool): ...
+
+    def __init__(self, value=None, *, shape=None, dtype=None):
+        (is_shape, is_dtype, is_value) = (
+            item is not None for item in [shape, dtype, value]
+        )
+        if not (
+            (True, True, False) == (is_shape, is_dtype, is_value)
+            or (False, False, True) == (is_shape, is_dtype, is_value)
+            or (False, False, False) == (is_shape, is_dtype, is_value)
+        ):
+            raise ValueError("Invalid arguments.")
+
+        if isinstance(shape, tuple) and isinstance(dtype, DType):
+            self._tyarray = dtype.__ndx_argument__(shape)
+            return
+        if isinstance(value, np.ndarray):
+            raise NotImplementedError
+        if isinstance(value, int | float):
+            ty_arr = astyarray(value, dtype=dtype)
+            self._tyarray = ty_arr
+            return
+
+        raise NotImplementedError
 
     @classmethod
-    def _from_fields(
-        cls, dtype: StructType | CoreType, **fields: Array | _CoreArray
-    ) -> Array:
-        instance = cls.__new__(cls)
-        instance.dtype = dtype
-        field_dtypes = {name: field.dtype for name, field in fields.items()}
-        expected_dtypes = (
-            {"data": dtype} if isinstance(dtype, dtypes.CoreType) else dtype._fields()
-        )
-        if field_dtypes != expected_dtypes:
-            raise TypeError(
-                f"Expected fields `{expected_dtypes}` for `{dtype}`, received `{fields}`"
-            )
-        instance._fields = fields
-        for name, field in fields.items():
-            setattr(instance, name, field)
-        return instance
+    def _from_tyarray(cls, tyarray: TyArrayBase, /) -> Array:
+        if not isinstance(tyarray, TyArrayBase):
+            raise TypeError(f"expected '_TypedArrayBase', found `{type(tyarray)}`")
+        inst = cls.__new__(cls)
+        inst._tyarray = tyarray
+        return inst
 
-    def __getattr__(self, name: str) -> Array:
-        field = self._fields.get(name, None)
-        if isinstance(field, Array):
-            return field
-        else:
-            raise AttributeError(f"Field {name} not found")
+    @property
+    def device(self) -> None:
+        return None
+
+    @property
+    def dtype(self) -> DType:
+        return self._tyarray.dtype
+
+    @property
+    def dynamic_shape(self) -> Array:
+        """Runtime shape of this array as a 1D int64 tensor."""
+        shape = self._tyarray.dynamic_shape
+        return Array._from_tyarray(shape)
+
+    @property
+    def mT(self) -> Array:  # noqa: N802
+        return Array._from_tyarray(self._tyarray.mT)
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def shape(self) -> tuple[int | None, ...]:
+        shape = self._tyarray.shape
+        return tuple(None if isinstance(item, str) else item for item in shape)
+
+    @property
+    def size(self) -> int | None:
+        if any(el is None for el in self.shape):
+            return None
+
+        # We know that no elements are `None`. This is to keep mypy happy
+        static_dims = [el for el in self.shape if el is not None]
+        return math.prod(static_dims)
+
+    @property
+    def T(self) -> Array:  # noqa: N802
+        return Array._from_tyarray(self._tyarray.T)
+
+    @property
+    def null(self) -> None | Array:
+        from .extensions import get_mask
+
+        warn(
+            "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
+            DeprecationWarning,
+        )
+        return get_mask(self)
+
+    @property
+    def values(self) -> Array:
+        from ._typed_array.masked_onnx import TyMaArray
+
+        warn(
+            "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
+            DeprecationWarning,
+        )
+
+        if isinstance(self._tyarray, TyMaArray):
+            return Array._from_tyarray(self._tyarray.data)
+        raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
+
+    def astype(self, dtype: DType, *, copy=True) -> Array:
+        new_data = self._tyarray.astype(dtype, copy=copy)
+        return Array._from_tyarray(new_data)
+
+    def copy(self) -> Array:
+        return Array._from_tyarray(self._tyarray.copy())
+
+    def to_numpy(self) -> np.ndarray | None:
+        from warnings import warn
+
+        warn(
+            "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
+            DeprecationWarning,
+        )
+        try:
+            return self.unwrap_numpy()
+        except ValueError:
+            return None
+
+    def to_device(self, device: Any, /, *, stream: int | Any | None = None) -> Array:
+        raise ValueError("ONNX provides no control over the used device")
+
+    def unwrap_numpy(self) -> np.ndarray:
+        """Return the propagated value as a NumPy array if available.
+
+        Raises
+        ------
+        ValueError:
+            If no propagated value is available.
+        """
+        return self._tyarray.unwrap_numpy()
+
+    def disassemble(self) -> dict[str, Var] | Var:
+        """Disassemble into the constituent ``spox.Var`` objects.
+
+        The particular layout depends on the data type.
+        """
+        return self._tyarray.disassemble()
+
+    def __dlpack__(
+        self,
+        *,
+        stream: int | Any | None = None,
+        max_version: tuple[int, int] | None = None,
+        dl_device: tuple[Enum, int] | None = None,
+        copy: bool | None = None,
+    ) -> Any:
+        raise BufferError("ndonnx does not (yet) support the export of array data")
+
+    def __dlpack_device__(self) -> tuple[Enum, int]:
+        raise ValueError("ONNX provides no control over the used device")
 
     def __iter__(self):
         try:
@@ -125,461 +210,185 @@ class Array:
             "iteration requires dimension of static length, but dimension 0 is dynamic."
         )
 
-    def _set(self, other: Array) -> Array:
-        self.dtype = other.dtype
-        self._fields = other._fields
-        for name, field in other._fields.items():
-            setattr(self, name, self._fields[name]._set(field))  # type: ignore
-        return self
-
-    def copy(self) -> Array:
-        """Clones the array, copying all the array fields.
-
-        Returns
-        -------
-        out : Array
-            The cloned array.
-        """
-        return Array._from_fields(
-            self.dtype,
-            **{name: field.copy() for name, field in self._fields.items()},
-        )
-
-    def to_numpy(self) -> np.ndarray | None:
-        """Returns the value of the Array as a NumPy array if available, otherwise
-        ``None``."""
-        field_values = {}
-        for name, field in self._fields.items():
-            if (eager_value := field.to_numpy()) is None:
-                return None
-            field_values[name] = eager_value
-        return self.dtype._assemble_output(field_values)
-
-    def astype(self, to: CoreType | StructType) -> Array:
-        return ndx.astype(self, to)
-
-    def __getitem__(self, index: IndexType) -> Array:
-        return getitem(self, index)
+    def __getitem__(self, key: GetitemIndex, /) -> Array:
+        idx = _normalize_arrays_in_key(key)
+        data = self._tyarray[idx]
+        return type(self)._from_tyarray(data)
 
     def __setitem__(
-        self, index: IndexType | Self, updates: int | bool | float | Array
-    ) -> Array:
-        if (
-            isinstance(index, Array)
-            and not isinstance(index.dtype, dtypes.Integral)
-            and index.dtype != dtypes.bool
-        ):
-            raise TypeError(
-                f"Index must be an integral or boolean 'Array', not `{index.dtype}`"
-            )
+        self,
+        key: SetitemIndex,
+        value: str | int | float | bool | Array,
+        /,
+    ) -> None:
+        from ._typed_array.onnx import TyArrayBool, TyArrayInteger
 
-        updates = ndx.asarray(updates).astype(self.dtype)
+        # Specs say that the data type of self must not be changed.
+        updates = asarray(value, dtype=self.dtype)._tyarray
 
-        for name, field in self._fields.items():
-            if isinstance(field, _CoreArray):
-                field[index._core() if isinstance(index, Array) else index] = (
-                    updates._core()
+        if isinstance(key, Array):
+            if not isinstance(key._tyarray, TyArrayInteger | TyArrayBool):
+                raise TypeError(
+                    f"indexing array must have integer or boolean data type; found `{key.dtype}`"
                 )
-            else:
-                field[index] = getattr(updates, name)
+            self._tyarray[key._tyarray] = updates
+        else:
+            self._tyarray[key] = updates
 
-        return self
+    def __bool__(self, /) -> bool:
+        return bool(self.unwrap_numpy())
+
+    def __complex__(self, /) -> complex:
+        return self.unwrap_numpy().__complex__()
+
+    def __float__(self, /) -> float:
+        return float(self.unwrap_numpy())
+
+    def __index__(self, /) -> int:
+        return self.unwrap_numpy().__index__()
+
+    def __int__(self, /) -> int:
+        return int(self.unwrap_numpy())
+
+    def __array_namespace__(self, /, *, api_version: Optional[str] = None) -> Any:
+        import ndonnx as ndx
+
+        return ndx
+
+    # We spell out __eq__ and __ne__ so that mypy may pick up the
+    # change in return type (Array rather than bool)
+    def __eq__(self, other) -> Array:  # type: ignore[override]
+        return _apply_op(self, other, std_ops.eq)
+
+    def __ne__(self, other) -> Array:  # type: ignore[override]
+        return _apply_op(self, other, std_ops.ne)
+
+    ##################################################################
+    # __r*__ are needed for interacting with Python scalars          #
+    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to #
+    # dispatch between different `_TypedArray` subclasses.           #
+    ##################################################################
+
+    __add__, __radd__ = _make_binary(std_ops.add)
+    __and__, __rand__ = _make_binary(std_ops.and_)
+    __floordiv__, __rfloordiv__ = _make_binary(std_ops.floordiv)
+    __ge__, _ = _make_binary(std_ops.ge)
+    __gt__, __rgt__ = _make_binary(std_ops.gt)
+    __le__, _ = _make_binary(std_ops.le)
+    __lshift__, __rlshift__ = _make_binary(std_ops.lshift)
+    __lt__, _ = _make_binary(std_ops.lt)
+    __matmul__, __rmatmul__ = _make_binary(std_ops.matmul)
+    __mod__, __rmod__ = _make_binary(std_ops.mod)
+    __mul__, __rmul__ = _make_binary(std_ops.mul)
+    __or__, __ror__ = _make_binary(std_ops.or_)
+    __pow__, __rpow__ = _make_binary(std_ops.pow)
+    __rshift__, __rrshift__ = _make_binary(std_ops.rshift)
+    __sub__, __rsub__ = _make_binary(std_ops.sub)
+    __truediv__, __rtruediv__ = _make_binary(std_ops.truediv)
+    __xor__, __rxor__ = _make_binary(std_ops.xor)
+
+    def __abs__(self, /) -> Array:
+        data = self._tyarray.__abs__()
+        return Array._from_tyarray(data)
+
+    def __invert__(self, /) -> Array:
+        return Array._from_tyarray(~self._tyarray)
+
+    def __neg__(self, /) -> Array:
+        return Array._from_tyarray(-self._tyarray)
+
+    def __pos__(self, /) -> Array:
+        return Array._from_tyarray(+self._tyarray)
 
     def __repr__(self) -> str:
-        eager_value = self.to_numpy()
-        prefix = (
-            f"Array({eager_value}, dtype={self.dtype})"
-            if eager_value is not None
-            else f"Array(dtype={self.dtype})"
+        value_repr = ", ".join(
+            [f"{k}: {v}" for k, v in self._tyarray.__ndx_value_repr__().items()]
         )
-        return f"{prefix}"
+        shape = self._tyarray.shape
+        return f"array({value_repr}, shape={shape}, dtype={self.dtype})"
 
-    @staticmethod
-    def _construct(
-        shape: tuple[int | str | None, ...],
-        dtype: CoreType | StructType,
-        eager_values: dict | None = None,
-    ) -> Array:
-        if isinstance(dtype, dtypes.CoreType):
-            var = (
-                op.const(eager_values["data"], dtype=dtype.to_numpy_dtype())
-                if eager_values is not None
-                else argument(Tensor(dtype.to_numpy_dtype(), shape))
+
+def asarray(
+    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
+    /,
+    *,
+    dtype: DType | None = None,
+    device: None | Device = None,
+    copy: bool | None = None,
+) -> Array:
+    if isinstance(obj, Array):
+        return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
+    else:
+        return Array._from_tyarray(astyarray(obj, dtype=dtype))
+
+
+def _astyarray_or_pyscalar(
+    val: int | float | str | Array | Var | np.ndarray,
+) -> TyArrayBase | int | float | str:
+    if isinstance(val, Array):
+        return val._tyarray
+    if isinstance(val, int | float | str):
+        return val
+    return astyarray(val)
+
+
+def _apply_op(
+    lhs: PyScalar | Array,
+    rhs: PyScalar | Array,
+    op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+) -> Array | NotImplementedType:
+    lhs_ = _astyarray_or_pyscalar(lhs)
+    rhs_ = _astyarray_or_pyscalar(rhs)
+    data = op(lhs_, rhs_)
+    if data is not NotImplemented:
+        return Array._from_tyarray(data)
+
+    return NotImplemented
+
+
+def _normalize_arrays_in_key(key: GetitemIndex) -> TyGetitemIndex:
+    if isinstance(key, Array):
+        if isinstance(key._tyarray.dtype, onnx.Boolean):
+            # TODO: Why is mypy not able to figure out the type of _tyarray any more?
+            return key._tyarray.astype(onnx.bool_)
+
+    if isinstance(key, int | slice | EllipsisType | Array | None):
+        return _normalize_key_item(key)
+
+    if isinstance(key, tuple):
+        return tuple(_normalize_key_item(el) for el in key)
+
+    raise IndexError(f"unexpected key type: `{type(key)}`")
+
+
+def _normalize_key_item(
+    item: int | slice | EllipsisType | Array | None,
+) -> int | slice | EllipsisType | onnx.TyArrayInt64 | None:
+    if isinstance(item, int | EllipsisType | None):
+        return item
+
+    if isinstance(item, Array):
+        if isinstance(item.dtype, onnx.Integer):
+            return item._tyarray.astype(onnx.int64)
+        raise IndexError(
+            f"indexing arrays must be of integer or boolean data type; found `{item.dtype}`"
+        )
+
+    def _normalize_slice_arg(el: int | Array | None) -> int | onnx.TyArrayInt64 | None:
+        if isinstance(el, int | None):
+            return el
+        if not isinstance(el.dtype, onnx.Integer):
+            IndexError(
+                f"arrays in 'slice' objects must be of integer data types; found `{el.dtype}"
             )
-            return Array._from_fields(
-                dtype,
-                data=_CoreArray(
-                    eager_values["data"] if eager_values is not None else var
-                ),
-            )
-        else:
-            fields = {}
-            for name, field_dtype in dtype._fields().items():
-                fields[name] = Array._construct(
-                    shape,
-                    field_dtype,
-                    eager_values[name] if eager_values is not None else None,
-                )
-            return Array._from_fields(
-                dtype,
-                **fields,
-            )
-
-    @property
-    def ndim(self) -> int:
-        """The rank of the array.
-
-        This can be statically determined even for lazy arrays.
-        """
-        return len(self._static_shape)
-
-    @property
-    def shape(self) -> tuple[int | None, ...]:
-        """The shape of the array.
-
-        Returns:
-            tuple[int | None, ...]: The shape of the array.
-
-        Note that the shape of the array is a tuple of integers when the "eager value"
-        of the array can be determined.
-
-        When the array is lazy, getting the concrete shape may not be possible.
-        We fall back to the `static_shape` function, which may be implemented
-        using ONNX shape inference. This may have dimensions set as `None` where
-        they are unknown or symbolic with respect to input shapes.
-        """
-        shape_array = shape(self).to_numpy()
-        if shape_array is not None:
-            return tuple(map(int, shape_array))
-        else:
-            return static_shape(self)
-
-    @property
-    def values(self) -> Array:
-        """Accessor for data in a ``Array`` with nullable datatype."""
-        if isinstance(self.dtype, dtypes.Nullable):
-            return self.__getattr__("values")
-        else:
-            raise AttributeError("Field 'values' does not exist")
-
-    @values.setter
-    def values(self, value: Array) -> None:
-        if (
-            isinstance(self.dtype, dtypes.Nullable)
-            and value.dtype == self.dtype._fields()["values"]
-        ):
-            self._fields["values"] = value
-        else:
-            raise ValueError("Field 'values' does not exist")
-
-    @property
-    def null(self) -> Array:
-        """Accessor for missing null mask in a ``Array`` with nullable datatype."""
-        if isinstance(self.dtype, dtypes.Nullable):
-            return self.__getattr__("null")
-        else:
-            raise AttributeError("Field 'null' does not exist")
-
-    @null.setter
-    def null(self, value: Array) -> None:
-        if isinstance(self.dtype, dtypes.Nullable) and value.dtype == dtypes.bool:
-            self._fields["null"] = value
-        else:
-            raise ValueError("Field 'null' does not exist")
-
-    @property
-    def _static_shape(self) -> tuple[int | str | None, ...]:
-        """Inferred shape of the array based on static ONNX shape propagation."""
-        value = self.to_numpy()
-        if value is not None:
-            return value.shape
-        else:
-            current: _CoreArray | Array = self
-            while not isinstance(current, _CoreArray):
-                current = next(iter(current._fields.values()))
-            return get_shape(current)
-
-    def _transmute(self, op: Callable[[_CoreArray], _CoreArray]) -> Array:
-        """Apply a layout transformation to the array (transmute the array).
-
-        Data types must be preserved. This function will validate this and throw a ValueError if `op` breaks this contract.
-        """
-        fields: dict[str, _CoreArray | Array] = {}
-        for name, field in self._fields.items():
-            if isinstance(field, _CoreArray):
-                fields[name] = op(field)
-            else:
-                fields[name] = field._transmute(op)
-            if fields[name].dtype != field.dtype:
-                raise ValueError(
-                    f"Transmute operation changed the dtype of field {name} from {field.dtype} to {fields[name].dtype}. Only layout transformations are permitted."
-                )
-        return Array._from_fields(self.dtype, **fields)
-
-    def _core(self) -> _CoreArray:
-        if isinstance(self.dtype, dtypes.CoreType):
-            return typing.cast(_CoreArray, self._fields["data"])
-        raise ValueError("Only CoreType arrays have a core array")
-
-    def spox_var(self) -> Var:
-        """Return the underlying Spox ``Var``. This is useful when interoperating
-        between ``Spox`` and ``ndonnx``.
-
-        Raises
-        ------
-        TypeError
-            If the data type of the ``Array`` is not a ``CoreType``, there is not a singular ``Var`` associated with it.
-        """
-        return self._core().var
-
-    @staticmethod
-    def __array_namespace__(*, api_version: str | None = None):
-        if api_version is None:
-            api_version = "2023.12"
-
-        if api_version == "2023.12":
-            return ndx
-        else:
-            raise ValueError(f"Unsupported API version {api_version}")
-
-    def __float__(self) -> float:
-        eager_value = self.to_numpy()
-        if eager_value is not None and eager_value.size == 1:
-            return float(eager_value)
-        else:
-            raise ValueError(f"Cannot convert Array of shape {self.shape} to a float")
-
-    def __index__(self) -> int:
-        eager_value = self.to_numpy()
-        if (
-            self.ndim == 0
-            and eager_value is not None
-            and isinstance(eager_value.item(), int)
-        ):
-            return int(eager_value)
-        else:
-            raise ValueError(f"Cannot convert Array {self} to an index (int)")
-
-    def __int__(self) -> int:
-        eager_value = self.to_numpy()
-        if eager_value is None:
-            raise ValueError(
-                f"The lazy Array {self} cannot be converted to a scalar int"
-            )
-        if eager_value.size != 1:
-            raise ValueError(
-                f"Array {self} with more than one element cannot be converted to a scalar int"
-            )
-        return int(eager_value)
-
-    def __bool__(self) -> bool:
-        eager_value = self.to_numpy()
-        if eager_value is None:
-            raise ValueError(f"The truth value of lazy Array {self} is unknown")
-        if eager_value.size != 1:
-            raise ValueError(
-                f"The truth value of Array {self} with more than one element is ambiguous"
-            )
-        return bool(eager_value)
-
-    def __len__(self) -> int:
-        if isinstance(self.shape[0], int):
-            return self.shape[0]
-        else:
-            raise ValueError(f"Cannot determine length of Array {self}")
-
-    def __pos__(self):
-        return ndx.positive(self)
-
-    def __neg__(self):
-        return ndx.negative(self)
-
-    def __abs__(self):
-        return ndx.abs(self)
-
-    def __add__(self, other):
-        return ndx.add(self, other)
-
-    def __radd__(self, other):
-        return ndx.add(other, self)
-
-    def __iadd__(self, other):
-        return self._set(ndx.add(self, other))
-
-    def __sub__(self, other):
-        return ndx.subtract(self, other)
-
-    def __rsub__(self, other):
-        return ndx.subtract(other, self)
-
-    def __isub__(self, other):
-        return self._set(ndx.subtract(self, other))
-
-    def __mul__(self, other):
-        return ndx.multiply(self, other)
-
-    def __rmul__(self, other):
-        return ndx.multiply(other, self)
-
-    def __imul__(self, other):
-        return self._set(ndx.multiply(self, other))
-
-    def __truediv__(self, other):
-        return ndx.divide(self, other)
-
-    def __rtruediv__(self, other):
-        return ndx.divide(other, self)
-
-    def __floordiv__(self, other):
-        return ndx.floor_divide(self, other)
-
-    def __rfloordiv__(self, other):
-        return ndx.floor_divide(other, self)
-
-    def __mod__(self, other):
-        return ndx.remainder(self, other)
-
-    def __rmod__(self, other):
-        return ndx.remainder(other, self)
-
-    def __pow__(self, other):
-        return ndx.pow(self, other)
-
-    def __rpow__(self, other):
-        return ndx.pow(other, self)
-
-    def __matmul__(self, other):
-        return ndx.matmul(self, other)
-
-    def __lt__(self, other):
-        return ndx.less(self, other)
-
-    def __le__(self, other):
-        return ndx.less_equal(self, other)
-
-    def __gt__(self, other):
-        return ndx.greater(self, other)
-
-    def __ge__(self, other):
-        return ndx.greater_equal(self, other)
-
-    def __invert__(self):
-        return ndx.bitwise_invert(self)
-
-    def __and__(self, other):
-        return ndx.bitwise_and(self, other)
-
-    def __or__(self, other):
-        return ndx.bitwise_or(self, other)
-
-    def __xor__(self, other):
-        return ndx.bitwise_xor(self, other)
-
-    def __lshift__(self, other):
-        return ndx.bitwise_left_shift(self, other)
-
-    def __rshift__(self, other):
-        return ndx.bitwise_right_shift(self, other)
-
-    def __eq__(self, other):
-        if isinstance(other, type(Ellipsis)):
-            # FIXME: What is going on here? Deserves a comment, IMHO
-            return ndx.asarray(False)
-        return ndx.equal(self, other)
-
-    def __ne__(self, other):
-        return ndx.not_equal(self, other)
-
-    @property
-    def mT(self) -> ndx.Array:  # noqa: N802
-        """Transpose of a matrix (or a stack of matrices).
-
-        If an array instance has fewer than two dimensions, an error should be raised.
-
-        Returns
-        -------
-        out: Array
-            array whose last two dimensions (axes) are permuted in reverse order relative to original array (i.e., for an array instance having shape ``(..., M, N)``, the returned array must have shape ``(..., N, M)``). The returned array must have the same data type as the original array.
-        """
-        return ndx.matrix_transpose(self)
-
-    @property
-    def size(self) -> ndx.Array:
-        """Number of elements in the array.
-
-        Returns
-        -------
-        out: Array
-            Scalar ``Array`` instance whose value is the number of elements in the original array.
-        """
-        return ndx.prod(shape(self))
-
-    @property
-    def T(self) -> ndx.Array:  # noqa: N802
-        """Transpose of the array.
-
-        The array instance must be two-dimensional.
-
-        Raises
-        ------
-        TypeError
-            If the array instance is not two-dimensional.
-
-        Returns
-        -------
-        out: Array
-            Two-dimensional array whose first and last dimensions (axes) are permuted in reverse order relative to original array. The returned array must have the same data type as the original array.
-        """
-        if self.ndim != 2:
-            raise TypeError("Cannot transpose Array of rank != 2")
-
-        return ndx.matrix_transpose(self)
-
-    def len(self):
-        """Returns the length of the array as an array.
-
-        The array instance must be one-dimensional.
-
-        Raises
-        ------
-        TypeError
-            If the array instance is not one-dimensional.
-
-        Returns
-        -------
-        out: Array
-            Singleton array whose value is the length of the original array.
-        """
-        if self.ndim != 1:
-            raise TypeError("Cannot call len on Array of rank != 1")
-        return shape(self)[0]
-
-    def sum(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
-        """See :py:func:`ndonnx.sum` for documentation."""
-        return ndx.sum(self, axis=axis, keepdims=False)
-
-    def prod(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
-        """See :py:func:`ndonnx.prod` for documentation."""
-        return ndx.prod(self, axis=axis, keepdims=False)
-
-    def max(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
-        """See :py:func:`ndonnx.max` for documentation."""
-        return ndx.max(self, axis=axis, keepdims=False)
-
-    def min(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
-        """See :py:func:`ndonnx.min` for documentation."""
-        return ndx.min(self, axis=axis, keepdims=False)
-
-    def all(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
-        """See :py:func:`ndonnx.all` for documentation."""
-        return ndx.all(self, axis=axis, keepdims=False)
-
-    def any(self, axis: int | None = 0, keepdims: bool | None = False) -> ndx.Array:
-        """See :py:func:`ndonnx.any` for documentation."""
-        return ndx.any(self, axis=axis, keepdims=False)
-
-
-__all__ = [
-    "Array",
-    "array",
-]
+        if el.ndim != 0:
+            IndexError(f"arrays in 'slice' objects must be rank-0; found `{el.ndim}")
+        return el._tyarray.astype(onnx.int64)
+
+    if isinstance(item, slice):
+        start = _normalize_slice_arg(item.start)
+        stop = _normalize_slice_arg(item.stop)
+        step = _normalize_slice_arg(item.step)
+        return slice(start, stop, step)
+
+    raise IndexError(f"invalid index key type: `{type(item)}`")

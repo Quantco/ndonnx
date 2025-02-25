@@ -6,8 +6,8 @@ import sys
 import numpy as np
 import pytest
 
-import ndonnx._refactor as ndx
-import ndonnx._refactor.extensions as nda
+import ndonnx as ndx
+import ndonnx.extensions as nda
 
 from .utils import assert_array_equal, run
 
