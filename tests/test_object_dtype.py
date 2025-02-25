@@ -5,27 +5,7 @@ import numpy as np
 import pytest
 
 import ndonnx as ndx
-from ndonnx._typed_array.object_dtype import ObjectDtype
-
-
-# TODO: Reuse function from actual implementation?
-def _determine_variant(elem):
-    if isinstance(elem, float) and np.isnan(elem):
-        return 0
-    elif elem is None:
-        return 1
-    elif isinstance(elem, str):
-        return 2
-    else:
-        raise ValueError
-
-
-determine_variant = np.vectorize(
-    _determine_variant,
-    otypes=[
-        np.uint8,
-    ],
-)
+from ndonnx._typed_array.object_dtype import ObjectDtype, determine_variant
 
 
 def test_dtype_repr():

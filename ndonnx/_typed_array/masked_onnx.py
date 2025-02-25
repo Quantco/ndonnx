@@ -511,7 +511,7 @@ class TyMaArray(TyMaArrayBase):
             mask = safe_cast(onnx.TyArrayBool, masks[0].concat(masks[1:], axis))
         return safe_cast(type(self), asncoredata(data, mask))
 
-    def _eqcomp(self, other) -> TyArrayBase | NotImplementedType:
+    def __ndx_equal__(self, other) -> TyArrayBase | NotImplementedType:
         return _apply_op(self, other, operator.eq, True)
 
     def __ndx_where__(self, cond: onnx.TyArrayBool, y: TyArrayBase, /) -> TyArrayBase:

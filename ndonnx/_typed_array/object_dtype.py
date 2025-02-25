@@ -70,23 +70,7 @@ class ObjectDtype(DType["TyObjectArray"]):
             if val.dtype != object:
                 raise ValueError(f"'val' has dtype `{val.dtype}`, required 'object'")
             else:
-
-                def _determine_variant(x):
-                    if isinstance(x, float) and np.isnan(x):
-                        return TyObjectArray._nan_encoding
-                    elif isinstance(x, str):
-                        return TyObjectArray._string_encoding
-                    elif x is None:
-                        return TyObjectArray._none_encoding
-                    else:
-                        raise ValueError(f"Cannot determine variant for {x}")
-
-                variants = np.vectorize(
-                    _determine_variant,
-                    otypes=[
-                        np.uint8,
-                    ],
-                )(val)
+                variants = determine_variant(val)
                 string_data = val.astype(np.str_)
                 return TyObjectArray(
                     variant=onnx.uint8.__ndx_create__(
@@ -265,7 +249,7 @@ class TyObjectArray(TyArrayBase):
 
     def isnan(self) -> onnx.TyArrayBool:
         # TODO: Shouldn't this also include None?
-        return self.variant._eqcomp(self._nan_encoding)
+        return self.variant.__ndx_equal__(self._nan_encoding)
 
     def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
         return NotImplemented
@@ -294,16 +278,14 @@ class TyObjectArray(TyArrayBase):
         rhs_array = astyarray(rhs, dtype=object_dtype)
         return type(self)(
             variant=where(
-                cast(onnx.TyArrayBool, self.variant != rhs_array.variant),
+                ~self.variant.__ndx_equal__(rhs_array.variant),
                 astyarray(self._nan_encoding).astype(onnx.uint8),
                 self.variant,
             ).astype(onnx.uint8),
-            # TODO: The mypy complaint is legit: The rhs type should
-            # be narrowed appropriately here.
-            string_data=self.string_data + rhs.string_data,  # type: ignore
+            string_data=self.string_data + rhs_array.string_data,
         )
 
-    def _eqcomp(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
+    def __ndx_equal__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
         # TODO: Document semantics of NaN == None etc somewhere.
         if isinstance(other, str):
             other = astyarray(other, dtype=onnx.utf8)
@@ -313,10 +295,13 @@ class TyObjectArray(TyArrayBase):
                 (self.variant == self._string_encoding) & (self.string_data == other),
             )
         else:
-            # TODO: we should not try to cast all other
-            # inputs. Instead, we only allow an explicit set of types
-            # for `other` and fail in all other cases.
-            rhs_array = astyarray(other, dtype=object_dtype)
+            if isinstance(other, onnx.TyArrayUtf8):
+                rhs_array = astyarray(other, dtype=object_dtype)
+            elif isinstance(other, type(self)):
+                rhs_array = other
+            else:
+                raise TypeError(f"Cannot compare equal {type(self)} with {type(other)}")
+
             return safe_cast(
                 onnx.TyArrayBool,
                 where(
@@ -340,6 +325,19 @@ class TyObjectArray(TyArrayBase):
             ),
         ).astype(object)
 
+
+def _determine_variant(x):
+    if isinstance(x, float) and np.isnan(x):
+        return TyObjectArray._nan_encoding
+    elif isinstance(x, str):
+        return TyObjectArray._string_encoding
+    elif x is None:
+        return TyObjectArray._none_encoding
+    else:
+        raise ValueError(f"Cannot determine variant for {x}")
+
+
+determine_variant = np.vectorize(_determine_variant, otypes=[np.uint8])
 
 object_dtype: ObjectDtype = ObjectDtype()
 

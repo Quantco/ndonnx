@@ -200,7 +200,7 @@ class CategoricalArray(TyArrayBase):
 
         return cats.astype(dtype)
 
-    def _eqcomp(self, other: TyArrayBase | PyScalar) -> TyArrayBase:  # type: ignore
+    def __ndx_equal__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:  # type: ignore
         from .._infos import iinfo
         from .funcs import astyarray
 

@@ -433,7 +433,7 @@ class TyArrayTimeDelta(TimeBaseArray):
             return TyArrayTimeDelta(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
         return NotImplemented
 
-    def _eqcomp(self, other) -> onnx.TyArrayBool:
+    def __ndx_equal__(self, other) -> onnx.TyArrayBool:
         if not isinstance(other, TyArrayBase):
             return NotImplemented
         # TODO: Figure out what is missing to be able to narrow `other` via the data type
@@ -607,7 +607,7 @@ class TyArrayDateTime(TimeBaseArray):
         other = self._coerce_to_date_time(other)
         return self._apply_comp(operator.gt, other)
 
-    def _eqcomp(self, other) -> onnx.TyArrayBool:
+    def __ndx_equal__(self, other) -> onnx.TyArrayBool:
         if not isinstance(other, TyArrayBase):
             return NotImplemented
 

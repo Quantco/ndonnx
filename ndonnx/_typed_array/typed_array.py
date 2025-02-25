@@ -118,9 +118,8 @@ class TyArrayBase(ABC):
         """
         return NotImplemented
 
-    # TODO: Make this a __ndx_*__ method
     @abstractmethod
-    def _eqcomp(
+    def __ndx_equal__(
         self, other: TyArrayBase | PyScalar
     ) -> TyArrayBase | NotImplementedType:
         """Implementation of equal-comparison.
@@ -579,9 +578,9 @@ class TyArrayBase(ABC):
         if not isinstance(other, TyArrayBase | PyScalar):
             return False
 
-        res = self._eqcomp(other)
+        res = self.__ndx_equal__(other)
         if res is NotImplemented and isinstance(other, TyArrayBase):
-            res = other._eqcomp(self)
+            res = other.__ndx_equal__(self)
         if res is NotImplemented:
             raise ValueError(
                 f"comparison between `{type(self).__name__}` and `{type(other).__name__}` is not implemented."

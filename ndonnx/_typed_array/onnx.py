@@ -787,7 +787,7 @@ class TyArray(TyArrayBase):
             return NotImplemented
         return safe_cast(TyArrayBool, super().__eq__(other))
 
-    def _eqcomp(self, other) -> TyArrayBool:
+    def __ndx_equal__(self, other) -> TyArrayBool:
         if isinstance(other, TyArray | bool | int | float | str):
             a, b = promote(self, other)
             var = op.equal(a.var, b.var)
@@ -866,7 +866,7 @@ class TyArrayUtf8(TyArray):
     def dtype(self) -> Utf8:
         return utf8
 
-    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayUtf8:
         if isinstance(other, TyArrayUtf8 | str):
             a, b = promote(self, other)
             var = op.string_concat(a.var, b.var)
@@ -874,7 +874,7 @@ class TyArrayUtf8(TyArray):
 
         return NotImplemented
 
-    def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+    def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayUtf8:
         if isinstance(other, str):
             b, a = promote(self, other)
             var = op.string_concat(a.var, b.var)
