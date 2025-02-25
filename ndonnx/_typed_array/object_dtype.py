@@ -286,7 +286,8 @@ class TyObjectArray(TyArrayBase):
         )
 
     def __ndx_equal__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
-        # TODO: Document semantics of NaN == None etc somewhere.
+        # np.nan and None never compare equal (even to other np.nan or None)
+        # Strings elements compare equal if both sides are the same character strings.
         if isinstance(other, str):
             other = astyarray(other, dtype=onnx.utf8)
         if isinstance(other, onnx.TyArrayUtf8):
@@ -308,7 +309,7 @@ class TyObjectArray(TyArrayBase):
                     self.variant == self._string_encoding,
                     (rhs_array.variant == self._string_encoding)
                     and (self.string_data == rhs_array),
-                    self.variant == rhs_array.variant,
+                    astyarray(False, dtype=onnx.bool_),
                 ),
             )
 
