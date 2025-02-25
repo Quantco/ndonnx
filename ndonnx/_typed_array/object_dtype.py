@@ -47,7 +47,7 @@ class ObjectDtype(DType["TyObjectArray"]):
                 string_data=onnx.utf8.__ndx_create__(
                     "<NONE>",
                 ),
-            ).astype(self)
+            )
         elif isinstance(val, float) and np.isnan(val):
             return TyObjectArray(
                 variant=onnx.uint8.__ndx_create__(
@@ -56,7 +56,7 @@ class ObjectDtype(DType["TyObjectArray"]):
                 string_data=onnx.utf8.__ndx_create__(
                     "<NAN>",
                 ),
-            ).astype(self)
+            )
         elif isinstance(val, str):
             return TyObjectArray(
                 variant=onnx.uint8.__ndx_create__(
@@ -65,7 +65,7 @@ class ObjectDtype(DType["TyObjectArray"]):
                 string_data=onnx.utf8.__ndx_create__(
                     val,
                 ),
-            ).astype(self)
+            )
         elif isinstance(val, np.ndarray):
             if val.dtype != object:
                 raise ValueError(f"'val' has dtype `{val.dtype}`, required 'object'")
@@ -79,7 +79,7 @@ class ObjectDtype(DType["TyObjectArray"]):
                     string_data=onnx.utf8.__ndx_create__(
                         string_data,
                     ),
-                ).astype(self)
+                )
         elif isinstance(val, Sequence):
             return self.__ndx_create__(np.asarray(val, dtype=object))
         else:
@@ -104,7 +104,7 @@ class ObjectDtype(DType["TyObjectArray"]):
         return TyObjectArray(
             variant=onnx.uint8.__ndx_argument__(shape),
             string_data=onnx.utf8.__ndx_argument__(shape),
-        ).astype(self)
+        )
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
