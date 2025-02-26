@@ -1,7 +1,10 @@
 Data Types
 ==========
-ndonnx exposes the following set of data types. There is also :doc:`unstable support <../experimental/experimental>` for defining your own structured data types.
-"Core" types have a direct correspondence in ONNX.
+
+ndonnx exposes the following data types.
+There is also :doc:`unstable support <../experimental/experimental>` for defining your own structured data types.
+"Primitive" data types have a directly corresponding data type in the ONNX standard.
+
 
 .. list-table::
     :widths: 25 50 20 20
@@ -10,7 +13,7 @@ ndonnx exposes the following set of data types. There is also :doc:`unstable sup
     * - Name
       - Description
       - Array API
-      - Core
+      - ONNX primitive
     * - ``float32``
       - 32-bit floating point number
       - Yes

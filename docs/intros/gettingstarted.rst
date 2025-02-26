@@ -3,12 +3,16 @@ Getting Started
 
 This guide will go over the basic concepts of ndonnx and how to get started with the library.
 
+
 Array Programming
 -----------------
-ndonnx will feel familiar to users of libraries like NumPy since it implements a superset of the Array API standard. The complete Array API specification can be found `elsewhere <https://data-apis.org/array-api/latest/API_specification/index.html>`_. Additional parts of the API specific to ndonnx are listed :doc:`here <../api/ndonnx.additional>`.
+
+ndonnx will feel familiar to users of libraries like NumPy since it implements a superset of the Array API standard. The complete Array API specification can be found `elsewhere <https://data-apis.org/array-api/latest/API_specification/index.html>`_. Additional parts of the API specific to ndonnx are listed :doc:`here <../api/ndonnx.extensions>`.
+
 
 Creating Arrays
 ~~~~~~~~~~~~~~~
+
 ndonnx arrays can be instantiated from NumPy arrays, scalars or Python lists.
 Unlike most other libraries, ndonnx arrays can also be created only from a shape and data type.
 While these arrays don't contain any data, they are used to trace computation graphs to facilitate ONNX export.
@@ -22,19 +26,22 @@ This is discussed in more detail in the :ref:`onnx-export` section below.
         a = ndx.asarray([1, 2, 3])
 
         # Initializing an array with shape and data type
-        b = ndx.array(shape=(3,), dtype=ndx.float64)
+        b = ndx.Array(shape=(3,), dtype=ndx.float64)
 
         # Shapes can be symbolic using string dimensions
-        c = ndx.array(shape=("N", "M"), dtype=ndx.utf8)
+        c = ndx.Array(shape=("N", "M"), dtype=ndx.utf8)
 
 
-Functions
-~~~~~~~~~
+The ndonnx namespace
+~~~~~~~~~~~~~~~~~~~~
+
+The top-level ``ndonnx`` namespace contains various functions such as `ndonnx.sum` that are mandated by the Array-API standard.
+Additional functions that go beyond the standard may be found in the ``ndonnx.extensions`` module.
 
 ..  code-block:: python
 
         import ndonnx as ndx
-        import ndonnx.additional as nda
+        import ndonnx.extensions as nde
 
         a = ndx.asarray([1, 2, 3])
 
@@ -43,12 +50,14 @@ Functions
         print(b) # Array([0.44651931 0.37502795 0.3021017 ], dtype=Float64)
 
         # Functions unique to ndonnx
-        c = nda.isin(a, [1, 3])
+        c = nde.isin(a, [1, 3])
         print(c) # Array([True False True], dtype=Boolean)
 
 
-Slicing, Indexing and Broadcasting
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Slicing, Indexing, and Broadcasting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Slicing, indexing and broadcasting is also defined by the Array-API standard and will thus feel familiar to NumPy users.
 
 ..  code-block:: python
 
@@ -67,6 +76,7 @@ Slicing, Indexing and Broadcasting
 
 Data Types
 ~~~~~~~~~~
+
 ndonnx provides not only Array API compliant data types but also strings and nullable variants. You can find a full list :doc:`here <../datatypes/datatypes>`.
 
 ..  code-block:: python
@@ -85,8 +95,10 @@ ndonnx provides not only Array API compliant data types but also strings and nul
         c = b + ndx.asarray([1, 2, 3])
         print(c) # Array([2 -- 6], dtype=NInt64)
 
+
 Writing Array API compliant code
 ---------------------------------
+
 Writing code in a strictly Array API compliant fashion makes it instantly reusable across many different array backend libraries like NumPy, JAX, PyTorch and now ndonnx.
 
 .. code-block:: python
@@ -105,9 +117,11 @@ Writing code in a strictly Array API compliant fashion makes it instantly reusab
 
 .. _onnx-export:
 
+
 ONNX Export
 -----------
-ndonnx arrays do not *need* to hold data. They may instead be instantiated with only a *shape* and *data type* using the :class:`ndonnx.array` function.
+
+ndonnx arrays do not *need* to hold data. They may instead be instantiated with only a *shape* and *data type*.
 This gives you the ability to persist the traced computation graph as an ONNX model and provide compatible input values only at inference time.
 
 .. code-block:: python
@@ -116,7 +130,7 @@ This gives you the ability to persist the traced computation graph as an ONNX mo
         import onnx
 
         # Instantiate placeholder ndonnx array
-        x = ndx.array(shape=("N",), dtype=ndx.int64)
+        x = ndx.Array(shape=("N",), dtype=ndx.int64)
         y = mean_drop_outliers(x)
 
         # Build and save my ONNX model to disk
