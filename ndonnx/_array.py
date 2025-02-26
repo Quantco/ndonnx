@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 import operator as std_ops
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Any, Optional, overload
@@ -316,9 +316,24 @@ def asarray(
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
+    from . import concat, reshape, result_type
+
     if isinstance(obj, Array):
         return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
     else:
+        if isinstance(obj, Sequence) and not isinstance(obj, str | Array):
+            np_arr = np.asarray(obj, dtype=object)
+            if (
+                all(isinstance(el, Array) for el in np_arr.flatten())
+                and np_arr.size > 0
+            ):
+                warn(
+                    "providing a sequence of 'Array's to 'asarray' is not defined by the array-api-standard and may be removed from ndonnx in the future"
+                )
+                dtype = result_type(*np_arr.flatten()) if dtype is None else dtype
+                out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])
+                out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
+                return reshape(out, out_shape)
         return Array._from_tyarray(astyarray(obj, dtype=dtype))
 
 
