@@ -11,6 +11,7 @@ import numpy as np
 from spox import Var
 
 from .._dtypes import DType
+from .._types import NestedSequence, PyScalar
 from .typed_array import TyArrayBase
 from .utils import promote
 
@@ -20,12 +21,8 @@ if TYPE_CHECKING:
     from . import onnx
 
 
-_PyScalar = bool | int | float | str
-_NestedSequence = Sequence["bool | int | float | str | _NestedSequence"]
-
-
 def _infer_sequence(
-    val: _NestedSequence,
+    val: NestedSequence,
 ) -> DType:
     from . import onnx
 
@@ -35,15 +32,13 @@ def _infer_sequence(
             types.add(_infer_sequence(item))
         else:
             types.add(_infer_dtype(item))
-    if len(types) > 1:
-        raise ValueError(f"Cannot infer dtype for nested sequence: {val}")
     if len(types) == 0:
         return onnx.float64
-    return types.pop()
+    return _result_dtype(*types)
 
 
 def _infer_dtype(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | _NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
 ) -> DType:
     from . import masked_onnx, onnx
 
@@ -75,20 +70,20 @@ def _infer_dtype(
 
 @overload
 def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array | _NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | Array | NestedSequence,
     dtype: DType[TY_ARRAY_BASE],
 ) -> TY_ARRAY_BASE: ...
 
 
 @overload
 def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array | _NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | Array | NestedSequence,
     dtype: None | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
-    val: _PyScalar | np.ndarray | TyArrayBase | Var | Array | _NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | Array | NestedSequence,
     dtype: None | DType[TY_ARRAY_BASE] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
@@ -129,20 +124,20 @@ def result_type(first: DType, *others: DType) -> DType: ...
 
 @overload
 def result_type(
-    first: TyArrayBase | DType, *others: TyArrayBase | DType | _PyScalar
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | PyScalar
 ) -> DType: ...
 
 
 def result_type(
-    first: TyArrayBase | DType, *others: TyArrayBase | DType | _PyScalar
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | PyScalar
 ) -> DType:
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
-    def get_dtype_or_scalar(obj: TyArrayBase | DType | _PyScalar) -> DType | _PyScalar:
-        if isinstance(obj, _PyScalar):
+    def get_dtype_or_scalar(obj: TyArrayBase | DType | PyScalar) -> DType | PyScalar:
+        if isinstance(obj, PyScalar):
             return obj
         if isinstance(obj, TyArrayBase):
             return obj.dtype
@@ -154,14 +149,14 @@ def result_type(
     return _result_dtype(get_dtype(first), *(get_dtype_or_scalar(el) for el in others))
 
 
-def _result_dtype(first: DType, *others: DType | _PyScalar) -> DType:
-    def result_binary(a: DType, b: DType | _PyScalar) -> DType:
+def _result_dtype(first: DType, *others: DType | PyScalar) -> DType:
+    def result_binary(a: DType, b: DType | PyScalar) -> DType:
         if a == b:
             return a
         res1 = a.__ndx_result_type__(b)
         if res1 != NotImplemented:
             return res1
-        if not isinstance(b, _PyScalar):
+        if not isinstance(b, PyScalar):
             res2 = b.__ndx_result_type__(a)
             if res2 != NotImplemented:
                 return res2
