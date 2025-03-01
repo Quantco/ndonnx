@@ -1774,6 +1774,12 @@ def const(obj: bool | int | float | str | np.ndarray) -> TyArray:
         obj = np.asarray(obj, dtype=bool)
     if isinstance(obj, int):
         obj = np.asarray(obj, dtype=np.int64)
+    if isinstance(obj, np.ndarray) and obj.dtype == object:
+        if not all(isinstance(el, str) for el in obj.flatten()):
+            raise ValueError(
+                "found array with object dtype but it contains non-string elements"
+            )
+        obj = obj.astype(str)
     else:
         obj = np.asarray(obj)
     return ascoredata(op.const(obj))

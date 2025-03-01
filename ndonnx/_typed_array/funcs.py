@@ -43,6 +43,12 @@ def _infer_dtype(
     from . import masked_onnx, onnx
 
     if isinstance(val, np.ndarray):
+        if val.dtype == object:
+            if not all(isinstance(el, str) for el in val.flatten()):
+                raise ValueError(
+                    "found array with object data type but it contains non-string elements"
+                )
+            return onnx.utf8
         core_type = onnx.from_numpy(val.dtype)
         if isinstance(val, np.ma.MaskedArray):
             return masked_onnx.as_nullable(core_type)
