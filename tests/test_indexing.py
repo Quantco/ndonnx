@@ -12,6 +12,8 @@ from ndonnx._typed_array.indexing import (
     _move_ellipsis_back,
 )
 
+from .utils import run
+
 
 @pytest.mark.parametrize(
     "s, length",
@@ -123,6 +125,28 @@ def test_empty_update():
     arr[key] = update
 
     np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
+
+
+def test_setitem_boolean_mask_all_false_const():
+    def do(npx):
+        key = npx.asarray([False, False])
+        arr = npx.asarray([1, 2], dtype=npx.int64)
+        arr[key] = arr[key]
+        return arr
+
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy())
+
+
+def test_setitem_boolean_mask_all_false_dyn():
+    key = ndx.Array(shape=(None,), dtype=ndx.bool)
+    arr = ndx.asarray([1, 2], dtype=ndx.int64)
+    arr[key] = arr[key]
+
+    m = ndx.build({"key": key}, {"res": arr})
+
+    (res,) = run(m, {"key": np.asarray([False, False])}).values()
+
+    np.testing.assert_array_equal(res, [1, 2])
 
 
 def test_scalar_array_key():

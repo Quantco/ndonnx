@@ -368,12 +368,16 @@ class TyArray(TyArrayBase):
         return type(self)(var)
 
     def _getitem_boolmask(self, key: TyArrayBool) -> Self:
-        if not all(ks in (xs, 0) for xs, ks in zip(self.shape, key.shape)):
+        if not all(ks in (xs, 0, None) for xs, ks in zip(self.shape, key.shape)):
             raise IndexError("Shape of 'key' is incompatible with shape of 'self'")
         if key.ndim > self.ndim:
             raise IndexError(
                 f"rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
             )
+        if self.ndim == key.ndim:
+            # Optimization
+            return type(self)(op.compress(self.var, key.var, axis=0))
+
         if key.ndim == 0:
             key = key[None, ...]
             x = self[None, ...]
@@ -437,8 +441,38 @@ class TyArray(TyArrayBase):
             idx = [...] + diff * [None]
             key = key[tuple(idx)]
 
-        self.var = op.where(key.var, value.var, self.var)
-        return
+        # Consider the following:
+        # ```
+        # arr = ndx.asarray([1, 2])
+        # key = ndx.asarray([False, False])
+        # arr[key] = arr[key]
+        # ```
+        # The cmpressed target and assigned value are both zero
+        # size. The where operator fails in those case. because `X`
+        # and `Y` cannot be broadcasted.
+        #
+        # The tricky thing is that we rely on spox for the value
+        # propagation and spox will try to execute both lambda
+        # functions. We therefore make an exception here and check if
+        # we have constants in the keys. If we do, we have a dedicated
+        # constant code path and both are explicitly tests.
+        #
+        # There is still a situation where we may have a dynamic `key`
+        # but constants for the `where`. In that case, we would still
+        # fail, but this is probably the right thing, since runtimes
+        # may attempt constant folding inside the branches which would
+        # yield an error when loading the model at a later time.
+        try:
+            static_keys = key.unwrap_numpy()
+            if (~static_keys).all():
+                return
+        except ValueError:
+            pass
+        (self.var,) = op.if_(
+            (~key).all().var,
+            then_branch=lambda: [self.var],
+            else_branch=lambda: [op.where(key.var, value.var, self.var)],
+        )
 
     def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
         # The last dim of shape must be statically known (i.e. the

@@ -8,7 +8,7 @@ https://github.com/microsoft/onnxruntime/blob/v1.19.2/docs/OperatorKernels.md
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from warnings import warn
 
@@ -682,3 +682,50 @@ def matmul(
         },
         fun_name="matmul",
     )(A, B)
+
+
+def if_(
+    cond: Var,
+    *,
+    else_branch: Callable[[], Iterable[Var]],
+    then_branch: Callable[[], Iterable[Var]],
+) -> Sequence[Var]:
+    """If operator with explicit value propagation."""
+    # TODO: Upstream to Spox
+    from spox import Tensor, build
+    from spox._value_prop import PropValue
+
+    # execute here to have access to the results of each branch
+    then_results = then_branch()
+    else_results = else_branch()
+
+    results = op.if_(
+        cond,
+        then_branch=lambda: then_results,
+        else_branch=lambda: else_results,
+    )
+
+    if not (
+        cond._value is not None
+        and all(el._value is not None for el in then_results)
+        and all(el._value is not None for el in else_results)
+    ):
+        return results
+    try:
+        import onnxruntime as ort
+    except ImportError:
+        return results
+
+    folded_res = op.if_(
+        const(cond._get_value()),  # type: ignore
+        then_branch=lambda: [const(el._get_value()) for el in then_results],  # type: ignore
+        else_branch=lambda: [const(el._get_value()) for el in else_results],  # type: ignore
+    )
+
+    model = build({}, {f"res{i}": res for i, res in enumerate(folded_res)})
+    prop_values = ort.InferenceSession(model.SerializeToString()).run(None, {})
+
+    for res, prop_val in zip(results, prop_values):
+        res._value = PropValue(Tensor(dtype=prop_val.dtype), value=prop_val)
+
+    return results
