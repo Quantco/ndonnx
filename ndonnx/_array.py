@@ -145,6 +145,8 @@ class Array:
 
         if isinstance(self._tyarray, TyMaArray):
             return Array._from_tyarray(self._tyarray.data)
+        if isinstance(self._tyarray, onnx.TyArray):
+            return Array._from_tyarray(self._tyarray)
         raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
     def astype(self, dtype: DType, *, copy=True) -> Array:
