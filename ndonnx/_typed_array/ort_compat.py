@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Compatibility layer to work around missing kernels in onnxruntime.
 
-Currently targets 1.19.2:
-https://github.com/microsoft/onnxruntime/blob/v1.19.2/docs/OperatorKernels.md
+Currently targets 1.20.1:
+https://github.com/microsoft/onnxruntime/blob/v1.20.1/docs/OperatorKernels.md
 
-Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md`` between two tags (e.g. https://github.com/microsoft/onnxruntime/compare/v1.19.0..v1.20.2/).
+Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md`` between two tags (e.g. https://github.com/microsoft/onnxruntime/compare/v1.19.0..v1.20.1/).
 """
 
 from __future__ import annotations
@@ -270,7 +270,7 @@ def reduce_op(
 _mapping_reduce_prod: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
     (np.uint32,): np.int64,
-    (np.uint64, np.float64): Warn(np.float32),
+    (np.uint64,): Warn(np.float64),
 }
 reduce_prod = partial(reduce_op, spox_op=op.reduce_prod, mapping=_mapping_reduce_prod)
 
@@ -476,15 +476,13 @@ def arg_min(
             select_last_index=select_last_index,
         ),
         cast_output=False,
-        # tensor(double), tensor(float), tensor(int32)
         mapping={
             (
-                np.int8,
                 np.int16,
-                np.uint8,
                 np.uint16,
             ): np.int32,
-            (np.int64, np.uint32, np.uint64): Warn(np.float64),
+            (np.uint32,): np.int64,
+            (np.uint64,): Warn(np.float64),
         },
         fun_name="argmin",
     )
@@ -506,15 +504,13 @@ def arg_max(
             select_last_index=select_last_index,
         ),
         cast_output=False,
-        # tensor(double), tensor(float), tensor(int32)
         mapping={
             (
-                np.int8,
                 np.int16,
-                np.uint8,
                 np.uint16,
             ): np.int32,
-            (np.int64, np.uint32, np.uint64): Warn(np.float64),
+            (np.uint32,): np.int64,
+            (np.uint64,): Warn(np.float64),
         },
         fun_name="argmax",
     )
