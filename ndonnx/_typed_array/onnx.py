@@ -1650,6 +1650,43 @@ class TyArrayBool(TyArray):
             return TyArrayBool(var)
         return NotImplemented
 
+    def _apply_arithmetic(
+        self,
+        other: TyArrayBase | PyScalar,
+        op: Callable[[Var, Var], Var],
+        forward: bool,
+    ) -> TyArrayNumber | NotImplementedType:
+        if isinstance(other, TyArrayNumber | TyArrayBool | int | float):
+            if forward:
+                a, b = promote(self, other)
+            else:
+                b, a = promote(self, other)
+            var = op(a.var, b.var)
+            return safe_cast(TyArrayNumber, astyarray(var))
+        return NotImplemented
+
+    # We would get the following arithmetic functions for free if
+    # booleans were a subtype of `_Numbers`, but that may come with
+    # other undesirable properties. Thus, we do a bit more typing here
+    # in order to properly keep booleans separate.
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayNumber:
+        return self._apply_arithmetic(other, op.add, forward=True)
+
+    def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return self._apply_arithmetic(other, op.add, forward=False)
+
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayNumber:
+        return self._apply_arithmetic(other, op.sub, forward=True)
+
+    def __rsub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return self._apply_arithmetic(other, op.sub, forward=False)
+
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayNumber:
+        return self._apply_arithmetic(other, op.mul, forward=True)
+
+    def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return self._apply_arithmetic(other, op.mul, forward=False)
+
     def __or__(self, other) -> TyArrayBase:
         return self._apply(other, op.or_, forward=True)
 
@@ -1894,12 +1931,27 @@ _floating_floating: dict[tuple[_Number, _Number], NumericDTypes] = {
 }
 
 # Non-standard interactions
-_non_standard: dict[tuple[_Number, _Number], NumericDTypes] = {
+_singed_int_with_uint64: dict[tuple[_Number, _Number], NumericDTypes] = {
     (int8, uint64): float64,
     (int16, uint64): float64,
     (int32, uint64): float64,
     (int64, uint64): float64,
 }
+_singed_int_with_uint64 |= {(k[1], k[0]): v for k, v in _singed_int_with_uint64.items()}
+
+_bool_with_number: dict[tuple[_Number | Boolean, _Number | Boolean], NumericDTypes] = {
+    (bool_, float32): float32,
+    (bool_, float64): float64,
+    (bool_, int8): int8,
+    (bool_, int16): int16,
+    (bool_, int32): int32,
+    (bool_, int64): int64,
+    (bool_, uint8): uint8,
+    (bool_, uint16): uint16,
+    (bool_, uint32): uint32,
+    (bool_, uint64): uint64,
+}
+_bool_with_number |= {(k[1], k[0]): v for k, v in _bool_with_number.items()}
 
 # Mixed integers and floating point numbers are not
 # defined by the standard.
@@ -1925,9 +1977,16 @@ def _result_type(
             return a
         return NotImplemented
 
-    if isinstance(b, bool | int | float):
-        if isinstance(a, Boolean) and isinstance(b, bool):
+    if isinstance(b, bool):
+        if isinstance(a, Boolean):
             return a
+        b = bool_
+
+    if isinstance(b, int | float):
+        if isinstance(a, Boolean) and isinstance(b, int):
+            return int64
+        if isinstance(a, Boolean) and isinstance(b, float):
+            return float64
         if isinstance(a, _Number):
             if isinstance(b, int):
                 return a
@@ -1937,14 +1996,14 @@ def _result_type(
                 return a
         return NotImplemented
 
-    # Treat boolean arrays as uint8
-    a = uint8 if isinstance(a, Boolean) else a
-    b = uint8 if isinstance(b, Boolean) else b
-
     if isinstance(a, Integer) and isinstance(b, Floating):
         a = _int_to_floating[a]
     if isinstance(a, Floating) and isinstance(b, Integer):
         b = _int_to_floating[b]
+    if isinstance(a, Boolean | _Number) and isinstance(b, Boolean | _Number):
+        if ret := _bool_with_number.get((a, b)):
+            return ret
+
     if isinstance(a, _Number) and isinstance(b, _Number):
         # Attempt promotion between known types. The implementation is not
         # using `isinstance` to avoid subclassing issues.
@@ -1956,7 +2015,7 @@ def _result_type(
             return ret
         if ret := _floating_floating.get((a, b)):
             return ret
-        if ret := _non_standard.get((a, b)):
+        if ret := _singed_int_with_uint64.get((a, b)):
             return ret
     return NotImplemented
 

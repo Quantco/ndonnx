@@ -161,12 +161,7 @@ mul = _mitigate_segfault_from_zero_dims(_wrap_binary(op.mul, _common_mapping))
 sub = _mitigate_segfault_from_zero_dims(_wrap_binary(op.sub, _common_mapping))
 
 # div does not suffer of the segfault issues.
-div = _wrap_binary(
-    op.div,
-    {
-        (np.uint8, np.int8, np.int16, np.uint16): np.int32,
-    },
-)
+div = _wrap_binary(op.div, _common_mapping)
 
 _mapping_float_only: _MappingDictType = {(np.float64,): Warn(np.float32)}
 acos = _wrap_unary(op.acos, _mapping_float_only)
