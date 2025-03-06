@@ -4,6 +4,8 @@
 
 Currently targets 1.19.2:
 https://github.com/microsoft/onnxruntime/blob/v1.19.2/docs/OperatorKernels.md
+
+Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md`` between two tags (e.g. https://github.com/microsoft/onnxruntime/compare/v1.19.0..v1.20.2/).
 """
 
 from __future__ import annotations
@@ -64,6 +66,16 @@ _MappingDictType = Mapping[tuple[type[np.generic], ...], Warn | type[np.generic]
 def _detour_type(
     dtype: np.dtype, mapping: _MappingDictType
 ) -> type[np.generic] | Warn | None:
+    """Return the "detour" type appropriate for ``dtype`` or None.
+
+    Parameters
+    ----------
+    dtype
+        Data type which is to be used as an input to an operator.
+    mapping
+        Mapping from data types unsupported by the operator to the
+        designated detour type.
+    """
     for unsupported_types, via_dtype in mapping.items():
         if dtype in unsupported_types:
             return via_dtype
@@ -76,6 +88,24 @@ def _wrap_unary(
     cast_output=True,
     fun_name: str | None = None,
 ) -> Callable[[Var], Var]:
+    """Wrap ``fun`` with logic that conditionally applies "detour dtypes" as defined in
+    ``mapping``.
+
+    Parameters
+    ----------
+    fun
+        Function to wrap.
+    mapping
+        Mapping from data types unsupported by the operator to the
+        designated detour type.
+    cast_output
+        Cast output back into input data type. This is wanted if
+        ``fun`` is a function ``T -> T``. It should be ``False`` if
+        ``fun`` is ``T -> bool`` for instance.
+    fun_name
+        Stringy identifier of ``fun`` used in warnings.
+    """
+
     def wrapped(a: Var) -> Var:
         dtype_in = a.unwrap_tensor().dtype
 
@@ -100,6 +130,24 @@ def _wrap_binary(
     cast_output=True,
     fun_name: str | None = None,
 ) -> Callable[[Var, Var], Var]:
+    """Wrap ``fun`` with logic that conditionally applies "detour dtypes" as defined in
+    ``mapping``.
+
+    Parameters
+    ----------
+    fun
+        Function to wrap.
+    mapping
+        Mapping from data types unsupported by the operator to the
+        designated detour type.
+    cast_output
+        Cast output back into input data type. This is wanted if
+        ``fun`` is a function ``(T, T) -> T``. It should be ``False`` if
+        ``fun`` is ``(T, T) -> bool`` for instance.
+    fun_name
+        Stringy identifier of ``fun`` used in warnings.
+    """
+
     def wrapped(a: Var, b: Var) -> Var:
         dtype_in = a.unwrap_tensor().dtype
         if via_dtype := _detour_type(dtype_in, mapping):
