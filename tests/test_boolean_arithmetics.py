@@ -1,7 +1,8 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator as ops
+import sys
 
 import numpy as np
 import pytest
@@ -50,6 +51,8 @@ def test_bool_arithmetics_with_python_scalar(op, dtype, reflected):
             return op(b, a)
         return op(a, b)
 
+    strict = not (sys.platform.startswith("win") and np.__version__ < "2")
+
     np.testing.assert_array_equal(
-        do(ndx, reflected).unwrap_numpy(), do(np, reflected), strict=True
+        do(ndx, reflected).unwrap_numpy(), do(np, reflected), strict=strict
     )
