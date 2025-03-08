@@ -10,8 +10,9 @@ The impact on the public API is minor but existent.
 
 [motivation]: #motivation
 
-The implementation discussed in the prior art section provides very few statically verifiable guarantees.
-This is undesirable, given the foundational nature of this library and the longevity of the created artifacts.
+The implementation discussed in the prior art section provides very few statically verifiable guarantees and implements its own value propagation rather than relying on Spox for it.
+The former point is undesirable, given the foundational nature of this library and the longevity of the created artifacts.
+The latter point duplicates efforts and complicates the code base of ndonnx.
 The goal of the design presented attempts to be fully array-api compliant (with the exception of complex data types), thoroughly typed, and well maintainable by utilizing common design patterns found in Python (namely linear inheritance and use of reflective dunder-methods).
 
 # Design overview
@@ -91,7 +92,7 @@ As such `DType` defines methods that mirror creation functions of the array-api 
 As such, `DType` subclasses provide a place to specialize constructor functions for their respective data types.
 A hierarchical inheritance may be used to avoid code duplication across similar data types (e.g. numerical ONNX data types), while the generic type annotations still provide strong guarantees during static analysis.
 
-## Type promotion
+## Data types and type promotion
 
 Type promotion can be thought of as an instance of array creation, too.
 Compared to the previously mentioned `_zeros` method, it has the additional complication that it two data types may interact.
@@ -112,44 +113,21 @@ If the `result_type` function is presented with two `DType` instances it tries q
 If either `DType` instance returns `NotImplemented` a error is raised.
 This allows for downstream data types to define type promotion behavior with built-in data types even though the built-in ones have know knowledge of the downstream ones.
 
-## Interaction with Python scalars
+### Interaction with Python scalars
 
 Promotion rules with Python scalars have various intricacies which prevent an implementation where Python scalars are trivially cast to rank-0 arrays of type `int64`, `float64`, `bool` or `utf8`.
-Instead the presented design treats Python scalars by wrapping them into separate array objects with their own data types (cf. [here](`ndonnx/ndonnx/_refactor/_typed_array/py_scalars.py`)).
-Thus, type promotion with Python scalars is treated on exactly the same footing as any other promotion between data types.
+Each data type may implement their own interaction with Python scalars as is best suited or dictated by the standard.
 
-# Reference-level explanation
+### Stateful data types
 
-[reference-level-explanation]: #reference-level-explanation
-
-This section provides additional context not immediately relevant to the previous section.
+Some data types are stateful such as datetimes which carry a specific unit.
+Datetime and timedelta typed-arrays and data types have been implemented as an example an can be found [here](ndonnx/ndonnx/_refactor/_typed_array/date_time.py).
 
 ## `__ndx*__` functions
 
-The presented design defines `__ndx*__` methods at various places.
 Functions named in this pattern are not meant to be called directly (following the Python pattern for reflective dunder methods).
 Instead, these functions are used to implement higher-level functions such as `ndonnx.result_type` which should be called instead.
-
-## Stateful data types
-
-Some data types are stateful such as datetimes which carry a specific unit.
-The here-presented design directly allows for this circumstance.
-Datetime and timedelta typed-arrays and data types have been implemented as an example an can be found [here](ndonnx/ndonnx/_refactor/_typed_array/date_time.py).
-
-# Drawbacks
-
-[drawbacks]: #drawbacks
-
-Why should we _not_ do this?
-
-# Rationale and alternatives
-
-[rationale-and-alternatives]: #rationale-and-alternatives
-
-- Why is this design the best in the space of possible designs?
-- What other designs have been considered and what is the rationale for not choosing them?
-- What is the impact of not doing this?
-- If this is a language proposal, could this be done in a library or macro instead? Does the proposed change make Rust code easier or harder to read, understand, and maintain?
+`__ndx*__` may also return `NotImplemented` objects.
 
 # Prior art
 
@@ -258,27 +236,12 @@ If there is no prior art, that is fine - your ideas are interesting to us whethe
 Note that while precedent set by other languages is some motivation, it does not on its own motivate an RFC.
 Please also take into consideration that rust sometimes intentionally diverges from common language features.
 
-# Unresolved questions
+# Unresolved questions / other remarks
 
 [unresolved-questions]: #unresolved-questions
-
-The following items are tangentially related to the presented design.
-
-## Remove masked data types?
-
-ndonnx currently ships masked data types.
-However, the API of various functions, such as aggregations, are not suited for such data types.
-Depending on context, a user may either wish to ignore masked elements or may wish the mask to be "infectious" for an aggregation.
-Either behavior is valid, but the array-api does not expose the relevant APIs to pick them.
-Picking a behavior by default appears very opinionated and unfitting for a foundational library.
-Rather than expanding the API we should consider removing masked data types from ndonnx instead.
 
 ## Ship datetime and timedelta data types
 
 NumPy has been shipping date time data types for a long time.
 While the underlying data model leaves considerable room for debate (`float64` vs. `int64` with sentinel values vs. `int64` with a `NaT` boolean mask), the overall semantics appear much less controversial (i.e. `NaT` is always infectious).
 The presented refactoring includes a rudimentary datetime and time delta implementation already.
-
-# Future possibilities
-
-[future-possibilities]: #future-possibilities
