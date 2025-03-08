@@ -376,7 +376,14 @@ class TyArray(TyArrayBase):
             )
         if self.ndim == key.ndim:
             # Optimization
-            return type(self)(op.compress(self.var, key.var, axis=0))
+            arr = self
+            key_arr = key
+            if self.ndim == key.ndim == 0:
+                # Output will be 1D; compress cannot handle scalars
+                arr = self.reshape((1,))
+                key_arr = key.reshape((1,))
+
+            return type(self)(op.compress(arr.var, key_arr.var, axis=0))
 
         if key.ndim == 0:
             key = key[None, ...]

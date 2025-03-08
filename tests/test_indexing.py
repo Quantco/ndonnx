@@ -155,3 +155,20 @@ def test_scalar_array_key():
     key = ndx.asarray(np_key)
 
     np.testing.assert_array_equal(np_arr[np_key], arr[key].unwrap_numpy())
+
+
+def test_index_scalar_with_empty_tuple():
+    def do(npx):
+        arr = npx.asarray(1, dtype=npx.int64)
+        return arr[()]
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+
+
+def test_index_scalar_with_scalar_bool():
+    def do(npx):
+        arr = npx.asarray(1, dtype=npx.int64)
+        key = npx.asarray(False)
+        return arr[key]
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
