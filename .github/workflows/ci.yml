@@ -3,11 +3,11 @@ on:
   # We would like to trigger for CI for any pull request action -
   # both from QuantCo's branches as well as forks.
   pull_request:
-  # In addition to pull requests, we want to run CI for pushes
-  # to the main branch and tags.
+  # In addition to pull requests, we want to run CI for pushes to any
+  # branch in `QuantCo/ndonnx` and tags.
   push:
     branches:
-      - "main"
+      - "*"
     tags:
       - "*"
 
@@ -45,8 +45,8 @@ jobs:
           - py310
           - py311
           - py312
-          - py313
           - np1x
+          - default
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
