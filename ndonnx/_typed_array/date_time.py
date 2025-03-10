@@ -7,7 +7,7 @@ from __future__ import annotations
 import operator
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, get_args
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args
 
 import numpy as np
 
@@ -46,23 +46,16 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
         self.unit = unit
 
     @abstractmethod
-    def _build(
-        self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
-    ) -> TIMEARRAY_co: ...
+    def _build(self, data: onnx.TyArrayInt64) -> TIMEARRAY_co: ...
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TIMEARRAY_co:
         if isinstance(arr, onnx.TyArrayInteger):
             data = arr.astype(onnx.int64)
-            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
         elif isinstance(arr, onnx.TyArrayFloating):
-            data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
-            is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL | arr.isnan())
-        # elif isinstance(arr, py_scalars.TyArrayPyInt):
-        #     data = safe_cast(onnx.TyArrayInt64, arr.astype(onnx.int64))
-        #     is_nat = safe_cast(onnx.TyArrayBool, data == _NAT_SENTINEL)
+            data = where(arr.isnan(), _NAT_SENTINEL, arr).astype(onnx.int64)
         else:
             return NotImplemented
-        return self._build(is_nat=is_nat, data=data, unit=self.unit)
+        return self._build(data=data)
 
     def __ndx_result_type__(self, other: DType | PyScalar) -> DType:
         if isinstance(other, int):
@@ -74,8 +67,7 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
 
     def __ndx_argument__(self, shape: OnnxShape) -> TIMEARRAY_co:
         data = onnx.int64.__ndx_argument__(shape)
-        is_nat = onnx.bool_.__ndx_argument__(shape)
-        return self._build(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data)
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
@@ -90,8 +82,7 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
         step: int | float = 1,
     ) -> TIMEARRAY_co:
         data = onnx.int64.__ndx_arange__(start, stop, step)
-        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._build(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data)
 
     def __ndx_eye__(
         self,
@@ -102,29 +93,20 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
         k: int = 0,
     ) -> TIMEARRAY_co:
         data = onnx.int64.__ndx_eye__(n_rows, n_cols, k=k)
-        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._build(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data)
 
     def __ndx_ones__(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TIMEARRAY_co:
-        from .funcs import astyarray
-
         data = onnx.int64.__ndx_ones__(shape)
-        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._build(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data)
 
     def __ndx_zeros__(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> TIMEARRAY_co:
-        from .funcs import astyarray
-
         data = onnx.int64.__ndx_zeros__(shape)
-        is_nat = astyarray(False, dtype=onnx.bool_).broadcast_to(data.dynamic_shape)
-        return self._build(data=data, is_nat=is_nat, unit=self.unit)
+        return self._build(data=data)
 
 
 class DateTime(BaseTimeDType["TyArrayDateTime"]):
-    def _build(
-        self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
-    ) -> TyArrayDateTime:
-        return TyArrayDateTime(is_nat=is_nat, data=data, unit=unit)
+    def _build(self, data: onnx.TyArrayInt64) -> TyArrayDateTime:
+        return TyArrayDateTime(data=data, unit=self.unit)
 
     def __ndx_create__(
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
@@ -166,48 +148,43 @@ class TimeDelta(BaseTimeDType["TyArrayTimeDelta"]):
         else:
             raise ValueError(f"Unable to create an array with dtype {self} from {val}")
 
-    def _build(
-        self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit
-    ) -> TyArrayTimeDelta:
-        return TyArrayTimeDelta(is_nat=is_nat, data=data, unit=unit)
+    def _build(self, data: onnx.TyArrayInt64) -> TyArrayTimeDelta:
+        return TyArrayTimeDelta(data=data, unit=self.unit)
 
 
 class TimeBaseArray(TyArrayBase):
     # TimeDelta and DateTime share the same memory layout. We can
     # therefore share some functionality.
 
-    is_nat: onnx.TyArrayBool
-    data: onnx.TyArrayInt64
+    _data: onnx.TyArrayInt64
 
-    def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
+    def __init__(self, data: onnx.TyArrayInt64, unit: Unit):
         raise NotImplementedError
 
     @property
     @abstractmethod
     def dtype(self) -> BaseTimeDType: ...
 
+    @property
+    def is_nat(self) -> onnx.TyArrayBool:
+        return self._data == _NAT_SENTINEL
+
     def copy(self) -> Self:
         # We want to copy the component arrays, too.
-        return type(self)(
-            data=self.data.copy(), is_nat=self.is_nat.copy(), unit=self.dtype.unit
-        )
+        # TODO: This should be more efficient...
+        return type(self)(data=self._data.copy(), unit=self.dtype.unit)
 
-    def disassemble(self) -> dict[str, Var]:
-        return {
-            "data": self.data.disassemble(),
-            "is_nat": self.is_nat.disassemble(),
-        }
+    def disassemble(self) -> Var:
+        return self._data.var
 
     def __ndx_value_repr__(self):
-        if self.data.var._value is not None:
+        if self._data.var._value is not None:
             return {"data": str(self.unwrap_numpy().astype(str).tolist())}
         return {"data": "*lazy*"}
 
     def __getitem__(self, index: GetitemIndex) -> Self:
-        is_nat = self.is_nat[index]
-        data = self.data[index]
-
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        data = self._data[index]
+        return self.dtype._build(data)
 
     def __setitem__(
         self,
@@ -219,8 +196,7 @@ class TimeBaseArray(TyArrayBase):
             raise TypeError(
                 f"data type of 'value' must much array's, found `{value.dtype}`"
             )
-        self.data[key] = value.data
-        self.is_nat[key] = value.is_nat
+        self._data[key] = value._data
 
     def put(
         self,
@@ -230,55 +206,77 @@ class TimeBaseArray(TyArrayBase):
     ) -> None:
         if self.dtype != value.dtype:
             TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
-        self.data.put(key, value.data)
-        self.is_nat.put(key, value.is_nat)
+        self._data.put(key, value._data)
 
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
-        return self.data.dynamic_shape
+        return self._data.dynamic_shape
 
     @property
     def mT(self) -> Self:  # noqa: N802
-        data = self.data.mT
-        is_nat = self.is_nat.mT
+        data = self._data.mT
 
-        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+        return type(self)(data=data, unit=self.dtype.unit)
 
     @property
     def shape(self) -> OnnxShape:
-        return self.data.shape
+        return self._data.shape
 
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        data = self.data.broadcast_to(shape)
-        is_nat = self.is_nat.broadcast_to(shape)
-        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+        data = self._data.broadcast_to(shape)
+        return self.dtype._build(data)
 
     def concat(self, others: list[Self], axis: None | int) -> Self:
-        data = self.data.concat([arr.data for arr in others], axis=axis)
-        is_nat = self.is_nat.concat([arr.is_nat for arr in others], axis=axis)
-
-        return type(self)(data=data, is_nat=is_nat, unit=self.dtype.unit)
+        data = self._data.concat([arr._data for arr in others], axis=axis)
+        return self.dtype._build(data)
 
     def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
-        is_nat = self.is_nat.reshape(shape)
-        data = self.data.reshape(shape)
-
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        data = self._data.reshape(shape)
+        return self.dtype._build(data)
 
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
-        is_nat = self.is_nat.squeeze(axis)
-        data = self.data.squeeze(axis)
-
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        data = self._data.squeeze(axis)
+        return self.dtype._build(data)
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
-        is_nat = self.is_nat.permute_dims(axes)
-        data = self.data.permute_dims(axes)
-
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        data = self._data.permute_dims(axes)
+        return self.dtype._build(data)
 
     def isnan(self) -> onnx.TyArrayBool:
         return self.is_nat
+
+    def _apply_comp(
+        self,
+        op: Callable[[onnx.TyArrayInt64, onnx.TyArrayInt64], onnx.TyArrayBool],
+        other: TyArrayBase | PyScalar,
+    ) -> onnx.TyArrayBool | NotImplementedType:
+        if isinstance(other, TyArrayTimeDelta | TyArrayDateTime):
+            other_arr = other
+        elif isinstance(other, int):
+            other_arr = astyarray(other, self.dtype)
+        else:
+            return NotImplemented
+
+        if type(self) is not type(other):
+            return NotImplemented
+
+        self, other = _coerce_units(self, other_arr)
+
+        data = op(self._data, other._data)
+        is_nat = self.is_nat | other.is_nat
+        return data & ~is_nat
+
+    def __le__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
+        return self._apply_comp(operator.le, other)
+
+    def __lt__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
+        return self._apply_comp(operator.lt, other)
+
+    def __ge__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
+        return self._apply_comp(operator.ge, other)
+
+    def __gt__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
+        return self._apply_comp(operator.gt, other)
 
     def __ndx_maximum__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
         from .funcs import maximum
@@ -288,9 +286,10 @@ class TimeBaseArray(TyArrayBase):
         if self.dtype.unit != rhs.dtype.unit:
             raise ValueError("inter-operation between time units is not implemented")
 
-        data = safe_cast(onnx.TyArrayInt64, maximum(self.data, rhs.data))
-        is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        is_nat = self.is_nat | rhs.is_nat
+        return self.dtype._build(
+            where(is_nat, _NAT_SENTINEL, maximum(self._data, rhs._data))
+        )
 
     def __ndx_minimum__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
         from .funcs import minimum
@@ -300,22 +299,18 @@ class TimeBaseArray(TyArrayBase):
         if self.dtype.unit != rhs.dtype.unit:
             raise ValueError("inter-operation between time units is not implemented")
 
-        data = safe_cast(onnx.TyArrayInt64, minimum(self.data, rhs.data))
-        is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        is_nat = self.is_nat | rhs.is_nat
+        return self.dtype._build(
+            where(is_nat, _NAT_SENTINEL, minimum(self._data, rhs._data))
+        )
 
     def __ndx_where__(
         self, cond: onnx.TyArrayBool, other: TyArrayBase, /
     ) -> TyArrayBase:
-        from .funcs import where
-
         if self.dtype != other.dtype or not isinstance(other, type(self)):
             return NotImplemented
 
-        data = safe_cast(onnx.TyArrayInt64, where(cond, self.data, other.data))
-        is_nat = safe_cast(onnx.TyArrayBool, where(cond, self.is_nat, other.is_nat))
-
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        return self.dtype._build(where(cond, self._data, other._data))
 
     def clip(
         self, /, min: TyArrayBase | None = None, max: TyArrayBase | None = None
@@ -323,34 +318,32 @@ class TimeBaseArray(TyArrayBase):
         if min is not None:
             if not isinstance(min, type(self)) or self.dtype != min.dtype:
                 raise TypeError(
-                    f"'min' be of identical data type as self; found {min.dtype}"
+                    f"'min' must be of identical data type as self; found {min.dtype}"
                 )
         if max is not None:
             if not isinstance(max, type(self)) or self.dtype != max.dtype:
                 raise TypeError(
-                    f"'max' be of identical data type as self; found {max.dtype}"
+                    f"'max' must be of identical data type as self; found {max.dtype}"
                 )
 
-        data = self.data.clip(
-            min=None if min is None else min.data,
-            max=None if max is None else max.data,
-        )
         is_nat = self.is_nat
         if min is not None:
-            is_nat = safe_cast(onnx.TyArrayBool, is_nat | min.is_nat)
+            is_nat = is_nat | min.is_nat
 
         if max is not None:
-            is_nat = safe_cast(onnx.TyArrayBool, is_nat | max.is_nat)
-
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+            is_nat = is_nat | max.is_nat
+        data = self._data.clip(
+            min=None if min is None else min._data,
+            max=None if max is None else max._data,
+        )
+        return self.dtype._build(where(is_nat, _NAT_SENTINEL, data))
 
 
 class TyArrayTimeDelta(TimeBaseArray):
     _dtype: TimeDelta
 
-    def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
-        self.is_nat = safe_cast(onnx.TyArrayBool, is_nat)
-        self.data = safe_cast(onnx.TyArrayInt64, data)
+    def __init__(self, data: onnx.TyArrayInt64, unit: Unit):
+        self._data = safe_cast(onnx.TyArrayInt64, data)
         self._dtype = TimeDelta(unit)
 
     @property
@@ -361,8 +354,7 @@ class TyArrayTimeDelta(TimeBaseArray):
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
         if isinstance(dtype, onnx.IntegerDTypes):
-            data = where(self.is_nat, _NAT_SENTINEL.astype(onnx.int64), self.data)
-            return data.astype(dtype)
+            return self._data.astype(dtype)
         if isinstance(dtype, TimeDelta):
             # TODO: Figure out why pyright does not like the below
             return _convert_unit(self, dtype)  # type: ignore
@@ -371,51 +363,70 @@ class TyArrayTimeDelta(TimeBaseArray):
 
     def unwrap_numpy(self) -> np.ndarray:
         is_nat = self.is_nat.unwrap_numpy()
-        data = self.data.unwrap_numpy()
+        data = self._data.unwrap_numpy()
 
         out = data.astype(f"timedelta64[{self.dtype.unit}]")
         out[is_nat] = np.array("NaT", out.dtype)
         return out
 
     def __add__(self, rhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, rhs, operator.add, True)
+        if isinstance(rhs, TyArrayTimeDelta | int):
+            return _apply_op(self, rhs, operator.add, True)
+        return NotImplemented
 
     def __radd__(self, lhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, lhs, operator.add, False)
+        if isinstance(lhs, TyArrayTimeDelta | int):
+            return _apply_op(self, lhs, operator.add, False)
+        return NotImplemented
 
     def __mul__(self, rhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, rhs, operator.mul, True)
+        if isinstance(rhs, TyArrayTimeDelta | int):
+            return _apply_op(self, rhs, operator.mul, True)
+        return NotImplemented
 
     def __rmul__(self, lhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, lhs, operator.mul, False)
+        if isinstance(lhs, TyArrayTimeDelta | int):
+            return _apply_op(self, lhs, operator.mul, False)
+        return NotImplemented
 
     def __sub__(self, rhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, rhs, operator.sub, True)
+        if isinstance(rhs, TyArrayTimeDelta | int):
+            return _apply_op(self, rhs, operator.sub, True)
+        return NotImplemented
 
     def __rsub__(self, lhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        return _apply_op(self, lhs, operator.sub, False)
+        if isinstance(lhs, TyArrayTimeDelta | int):
+            return _apply_op(self, lhs, operator.sub, False)
+        return NotImplemented
 
     def __truediv__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
         if isinstance(rhs, onnx.TyArrayNumber | float | int):
-            data = (self.data / astyarray(rhs)).astype(onnx.int64)
-            return TyArrayTimeDelta(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
+            data = (self._data / astyarray(rhs)).astype(onnx.int64)
+            return self.dtype._build(where(self.is_nat, _NAT_SENTINEL, data))
+
         if isinstance(rhs, TyArrayTimeDelta) and self.dtype == rhs.dtype:
-            res = (self.data / rhs.data).astype(onnx.float64)
-            res[safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)] = astyarray(
-                np.nan, dtype=onnx.float64
-            )
-            return res
+            is_nat = self.is_nat | rhs.is_nat
+            res = self._data.astype(onnx.float64) / rhs._data.astype(onnx.float64)
+            return where(is_nat, astyarray(np.nan, dtype=onnx.float64), res)
+
         return NotImplemented
 
     def __rtruediv__(self, lhs: TyArrayBase | PyScalar) -> TyArrayBase:
         if isinstance(lhs, onnx.TyArrayNumber | float | int):
-            data = (astyarray(lhs) / self.data).astype(onnx.int64)
-            return TyArrayTimeDelta(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
+            lhs_arr = astyarray(lhs)
+            data = (astyarray(lhs) / self._data).astype(onnx.float64)
+            data_int64 = where(
+                safe_cast(
+                    onnx.TyArrayBool,
+                    self.is_nat | (lhs_arr == _NAT_SENTINEL) | data.isnan(),
+                ),
+                _NAT_SENTINEL,
+                data,
+            ).astype(onnx.int64)
+            return self.dtype._build(data_int64)
         return NotImplemented
 
     def __ndx_equal__(self, other) -> onnx.TyArrayBool:
-        if not isinstance(other, TyArrayBase):
-            return NotImplemented
         # TODO: Figure out what is missing to be able to narrow `other` via the data type
         if isinstance(other, TyArrayTimeDelta):
             if self.dtype.unit != other.dtype.unit:
@@ -423,18 +434,17 @@ class TyArrayTimeDelta(TimeBaseArray):
                     "comparison between different units is not implemented, yet"
                 )
 
-            res = self.data == other.data
+            res = self._data == other._data
             is_nat = self.is_nat | other.is_nat
-            return safe_cast(onnx.TyArrayBool, res & ~is_nat)
+            return res & ~is_nat
         return NotImplemented
 
 
 class TyArrayDateTime(TimeBaseArray):
     _dtype: DateTime
 
-    def __init__(self, is_nat: onnx.TyArrayBool, data: onnx.TyArrayInt64, unit: Unit):
-        self.is_nat = safe_cast(onnx.TyArrayBool, is_nat)
-        self.data = safe_cast(onnx.TyArrayInt64, data)
+    def __init__(self, data: onnx.TyArrayInt64, unit: Unit):
+        self._data = safe_cast(onnx.TyArrayInt64, data)
         self._dtype = DateTime(unit)
 
     @property
@@ -443,7 +453,7 @@ class TyArrayDateTime(TimeBaseArray):
 
     def unwrap_numpy(self) -> np.ndarray:
         is_nat = self.is_nat.unwrap_numpy()
-        data = self.data.unwrap_numpy()
+        data = self._data.unwrap_numpy()
 
         out = data.astype(f"datetime64[{self.dtype.unit}]")
         out[is_nat] = np.array("NaT", "datetime64")
@@ -454,7 +464,7 @@ class TyArrayDateTime(TimeBaseArray):
     ) -> TY_ARRAY_BASE | NotImplementedType:
         # TODO: Figure out why mypy/pyright don't like this method
         if isinstance(dtype, onnx.IntegerDTypes):
-            data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self.data)
+            data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self._data)
             return data.astype(dtype)  # type: ignore
         if isinstance(dtype, DateTime):
             return _convert_unit(self, dtype)
@@ -498,11 +508,12 @@ class TyArrayDateTime(TimeBaseArray):
         if rhs is NotImplemented:
             return NotImplemented
 
-        self, rhs = _coerce_units(self, rhs)
+        lhs, rhs = _coerce_units(self, rhs)
 
-        data = safe_cast(onnx.TyArrayInt64, self.data + rhs.data)
-        is_nat = safe_cast(onnx.TyArrayBool, self.is_nat | rhs.is_nat)
-        return type(self)(is_nat=is_nat, data=data, unit=self.dtype.unit)
+        data = lhs._data + rhs._data
+        is_nat = lhs.is_nat | rhs.is_nat
+
+        return type(lhs)(where(is_nat, _NAT_SENTINEL, data), unit=lhs.dtype.unit)
 
     def __radd__(
         self, lhs: TyArrayBase | PyScalar
@@ -510,25 +521,33 @@ class TyArrayDateTime(TimeBaseArray):
         return self.__add__(lhs)
 
     def _sub(self, other, forward: bool):
-        op = operator.sub
         if isinstance(other, int):
-            data_ = op(self.data, other) if forward else op(other, self.data)
-            data = safe_cast(onnx.TyArrayInt64, data_)
-            return type(self)(is_nat=self.is_nat, data=data, unit=self.dtype.unit)
+            other_ = TimeDelta(self.dtype.unit)._build(
+                astyarray(other, dtype=onnx.int64)
+            )
+            return self - other_ if forward else other_ - self
 
         if isinstance(other, TyArrayDateTime):
             a, b = _coerce_units(self, other)
-            data_ = op(a.data, b.data) if forward else op(b.data, a.data)
-            data = safe_cast(onnx.TyArrayInt64, data_)
-            is_nat = safe_cast(onnx.TyArrayBool, a.is_nat | b.is_nat)
-            return TyArrayTimeDelta(is_nat=is_nat, data=data, unit=a.dtype.unit)
+            is_nat = a.is_nat | b.is_nat
+            data = safe_cast(
+                onnx.TyArrayInt64, a._data - b._data if forward else b._data - a._data
+            )
+            return TyArrayTimeDelta(
+                data=where(is_nat, _NAT_SENTINEL, data), unit=a.dtype.unit
+            )
 
-        if isinstance(other, TyArrayTimeDelta) and forward:
+        elif isinstance(other, TyArrayTimeDelta) and forward:
+            # *_ due to types of various locals set in the previous if statement
             a_, b_ = _coerce_units(self, other)
-            data_ = op(a_.data, b_.data) if forward else op(b_.data, a_.data)
-            data = safe_cast(onnx.TyArrayInt64, data_)
-            is_nat = safe_cast(onnx.TyArrayBool, a_.is_nat | b_.is_nat)
-            return TyArrayDateTime(is_nat=is_nat, data=data, unit=a_.dtype.unit)
+            is_nat = a_.is_nat | b_.is_nat
+            data = safe_cast(
+                onnx.TyArrayInt64,
+                a_._data - b_._data if forward else b_._data - a_._data,
+            )
+            return type(self)(
+                data=where(is_nat, _NAT_SENTINEL, data), unit=a_.dtype.unit
+            )
 
         return NotImplemented
 
@@ -542,34 +561,6 @@ class TyArrayDateTime(TimeBaseArray):
     ) -> TyArrayDateTime | TyArrayTimeDelta:
         return self._sub(lhs, False)
 
-    def _apply_comp(
-        self,
-        op: Callable[[onnx.TyArrayInt64, onnx.TyArrayInt64], onnx.TyArrayBool],
-        other: TyArrayBase | PyScalar,
-    ) -> onnx.TyArrayBool | NotImplementedType:
-        other = self._coerce_to_date_time(other)
-
-        if other is NotImplemented:
-            return NotImplemented
-
-        self, other = _coerce_units(self, other)
-
-        data = op(self.data, other.data)
-        is_nat = self.is_nat | other.is_nat
-        return safe_cast(onnx.TyArrayBool, data & ~is_nat)
-
-    def __le__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
-        return self._apply_comp(operator.le, other)
-
-    def __lt__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
-        return self._apply_comp(operator.lt, other)
-
-    def __ge__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
-        return self._apply_comp(operator.ge, other)
-
-    def __gt__(self, other: TyArrayBase | PyScalar) -> onnx.TyArrayBool:
-        return self._apply_comp(operator.gt, other)
-
     def __ndx_equal__(self, other) -> onnx.TyArrayBool:
         if not isinstance(other, TyArrayBase):
             return NotImplemented
@@ -581,7 +572,7 @@ class TyArrayDateTime(TimeBaseArray):
                 "comparison between different units is not implemented, yet"
             )
 
-        res = self.data == other.data
+        res = self._data == other._data
         is_nat = self.is_nat | other.is_nat
 
         return safe_cast(onnx.TyArrayBool, res & ~is_nat)
@@ -589,41 +580,42 @@ class TyArrayDateTime(TimeBaseArray):
 
 def _apply_op(
     this: TyArrayTimeDelta,
-    other,
+    other: TyArrayTimeDelta | int,
     op: Callable[[Any, Any], Any],
     forward: bool,
 ) -> TyArrayTimeDelta:
-    other_data = _coerce_other(this, other)
+    other_data, other_is_nat = _coerce_other(this, other)
     if other_data is NotImplemented:
         return NotImplemented
 
     if forward:
-        data_ = op(this.data, other_data)
+        data_ = op(this._data, other_data)
     else:
-        data_ = op(other_data, this.data)
-    data = cast(onnx.TyArrayInt64, data_)
-    is_nat = this.is_nat
-    if isinstance(other, TyArrayTimeDelta):
-        is_nat = safe_cast(onnx.TyArrayBool, is_nat | other.is_nat)
-    return type(this)(is_nat=is_nat, data=data, unit=this.dtype.unit)
+        data_ = op(other_data, this._data)
+    data = safe_cast(onnx.TyArrayInt64, data_)
+    is_nat = this.is_nat | other_is_nat
 
-
-def _coerce_other(
-    this: TyArrayTimeDelta, other
-) -> onnx.TyArrayInt64 | NotImplementedType:
-    from .funcs import astyarray
-
-    if isinstance(other, int):
-        return astyarray(other, dtype=onnx.int64)
-    elif isinstance(other, TyArrayTimeDelta):
-        if this.dtype.unit != other.dtype.unit:
-            raise ValueError("inter-operation between time units is not implemented")
-        return other.data
-    return NotImplemented
+    return this.dtype._build(where(is_nat, _NAT_SENTINEL, data))
 
 
 T1 = TypeVar("T1", bound="TimeBaseArray")
 T2 = TypeVar("T2", bound="TimeBaseArray")
+
+
+def _coerce_other(
+    this: T1, other: T1 | int
+) -> tuple[onnx.TyArrayInt64, onnx.TyArrayBool] | NotImplementedType:
+    """Validate that dtypes are compatible and get ``data`` and ``is_nat`` mask from
+    other."""
+    from .funcs import astyarray
+
+    if isinstance(other, int):
+        return (astyarray(other, dtype=onnx.int64), _NAT_SENTINEL == other)
+    elif type(this) is type(other):
+        if this.dtype.unit != other.dtype.unit:
+            raise ValueError("inter-operation between time units is not implemented")
+        return (other._data, other.is_nat)
+    return NotImplemented
 
 
 def _coerce_units(a: T1, b: T2) -> tuple[T1, T2]:
@@ -655,7 +647,7 @@ def _convert_unit(arr: TimeBaseArray, new: BaseTimeDType[TIMEARRAY_co]) -> TIMEA
         "ns": 9,
     }
     power = powers[new_unit] - powers[old_unit]  # type: ignore
-    data = where(arr.is_nat, astyarray(np.iinfo(np.int64).min), arr.data)
+    data = where(arr.is_nat, astyarray(np.iinfo(np.int64).min), arr._data)
 
     if power > 0:
         data = data * np.pow(10, power)
@@ -664,4 +656,4 @@ def _convert_unit(arr: TimeBaseArray, new: BaseTimeDType[TIMEARRAY_co]) -> TIMEA
 
     data = safe_cast(onnx.TyArrayInt64, data)
 
-    return new._build(is_nat=arr.is_nat, data=data, unit=new_unit)
+    return new._build(data=data)

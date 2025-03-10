@@ -12,6 +12,8 @@ from ndonnx._typed_array.date_time import Unit
 
 from .utils import assert_equal_dtype_shape
 
+_NAT_SENTINEL = np.iinfo(np.int64).min
+
 
 @pytest.mark.parametrize("unit", get_args(Unit))
 @pytest.mark.parametrize("cls", [ndx.DateTime, ndx.TimeDelta])
@@ -51,25 +53,18 @@ def test_datetime_from_np_array(ty, unit):
 
 
 @pytest.mark.parametrize(
-    "op",
-    [
-        operator.add,
-        operator.sub,
-    ],
-)
-@pytest.mark.parametrize(
     "scalar, dtype, res_dtype",
     [
         # TODO: Implement other units
         (1, ndx.DateTime("s"), ndx.DateTime("s")),
     ],
 )
-def test_add_pyscalar_datetime(scalar, dtype, res_dtype, op):
+def test_add_pyscalar_datetime(scalar, dtype, res_dtype):
     shape = ("N",)
     arr = ndx.Array(shape=shape, dtype=dtype)
 
-    assert_equal_dtype_shape(op(scalar, arr), res_dtype, shape)
-    assert_equal_dtype_shape(op(arr, scalar), res_dtype, shape)
+    assert_equal_dtype_shape(scalar + arr, res_dtype, shape)
+    assert_equal_dtype_shape(arr + scalar, res_dtype, shape)
 
 
 @pytest.mark.parametrize(
@@ -122,7 +117,7 @@ def test_arithmetic_timedelta_datetime_lazy():
         _ = arr_td - arr_dt
 
 
-def test_arithmetic_datetime_time_delta():
+def test_arithmetic_datetime_timedelta():
     from datetime import datetime, timedelta
 
     np_arr = np.array(
@@ -141,9 +136,40 @@ def test_arithmetic_datetime_time_delta():
 @pytest.mark.parametrize(
     "op", [operator.gt, operator.lt, operator.ne, operator.eq, operator.le, operator.ge]
 )
-@pytest.mark.parametrize("x, y", [(["1900-01-11", "NaT"], ["NaT", "1900-01-12"])])
-@pytest.mark.parametrize("unit", ["s"])
-def test_comparisons(op, x, y, unit):
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        ([_NAT_SENTINEL], [1000]),
+        ([1000], [_NAT_SENTINEL]),
+        ([1000], [2000]),
+        ([_NAT_SENTINEL], [_NAT_SENTINEL]),
+    ],
+)
+@pytest.mark.parametrize("unit", ["s", "ns"])
+def test_comparisons_timedelta(op, x, y, unit):
+    np_x = np.array(x, f"timedelta64[{unit}]")
+    np_y = np.array(y, f"timedelta64[{unit}]")
+
+    desired = op(np_x, np_y)
+    actual = op(ndx.asarray(np_x), ndx.asarray(np_y))
+
+    np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
+
+
+@pytest.mark.parametrize(
+    "op", [operator.gt, operator.lt, operator.ne, operator.eq, operator.le, operator.ge]
+)
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (["NaT"], ["1900-01-12"]),
+        (["1900-01-12"], ["NaT"]),
+        (["1900-01-11"], ["1900-01-12"]),
+        (["NaT"], ["NaT"]),
+    ],
+)
+@pytest.mark.parametrize("unit", ["s", "ns"])
+def test_comparisons_datetime(op, x, y, unit):
     np_x = np.array(x, f"datetime64[{unit}]")
     np_y = np.array(y, f"datetime64[{unit}]")
 
@@ -151,6 +177,58 @@ def test_comparisons(op, x, y, unit):
     actual = op(ndx.asarray(np_x), ndx.asarray(np_y))
 
     np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (["NaT"], ["1900-01-12"]),
+        (["1900-01-12"], ["NaT"]),
+        (["1900-01-11"], ["1900-01-12"]),
+        (["NaT"], ["NaT"]),
+    ],
+)
+@pytest.mark.parametrize("unit", ["s", "ns"])
+@pytest.mark.parametrize("forward", [True, False])
+def test_subtraction_datetime_arrays(x, y, unit, forward):
+    np_x = np.array(x, f"datetime64[{unit}]")
+    np_y = np.array(y, f"datetime64[{unit}]")
+
+    desired = np_x - np_y if forward else np_y - np_x
+    actual = (
+        ndx.asarray(np_x) - ndx.asarray(np_y)
+        if forward
+        else ndx.asarray(np_y) - ndx.asarray(np_x)
+    )
+
+    np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
+
+
+@pytest.mark.parametrize("x", ["NaT", "1900-01-12"])
+@pytest.mark.parametrize("unit", ["s", "ns"])
+def test_subtraction_datetime_scalar(x, unit):
+    np_x = np.array(x, f"datetime64[{unit}]")
+    scalar = 42
+
+    desired = np_x - scalar
+    actual = ndx.asarray(np_x) - scalar
+
+    np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
+
+
+def test_scalar_minus_datetime_raises():
+    x = ndx.asarray(np.array(1000, "datetime64[s]"))
+
+    with pytest.raises(TypeError):
+        _ = 42 - x
+
+
+def test_timedelta_minus_datetime_raises():
+    dt = ndx.asarray(np.array(1000, "datetime64[s]"))
+    td = ndx.asarray(np.array(1000, "timedelta64[s]"))
+
+    with pytest.raises(TypeError):
+        _ = td - dt
 
 
 def test_isnan():

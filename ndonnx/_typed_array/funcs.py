@@ -189,6 +189,7 @@ def searchsorted(
 #########################################################################
 
 T = TypeVar("T")
+TYARRAY = TypeVar("TYARRAY", bound="onnx.TyArray")
 
 
 def _validate(
@@ -199,6 +200,14 @@ def _validate(
             f"Unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
         )
     return result
+
+
+@overload
+def where(cond: onnx.TyArrayBool, x: TYARRAY, y: TYARRAY) -> TYARRAY: ...
+
+
+@overload
+def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase: ...
 
 
 def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
@@ -234,11 +243,23 @@ def logical_xor(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     return _validate(x1, x2, res, "logical_xor")
 
 
+@overload
+def maximum(x1: TYARRAY, x2: TYARRAY, /) -> TYARRAY: ...
+@overload
+def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase: ...
+
+
 def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
     res = x1.__ndx_maximum__(x2)
     if res is NotImplemented:
         res = x2.__ndx_maximum__(x1)
     return _validate(x1, x2, res, "maximum")
+
+
+@overload
+def minimum(x1: TYARRAY, x2: TYARRAY, /) -> TYARRAY: ...
+@overload
+def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase: ...
 
 
 def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:

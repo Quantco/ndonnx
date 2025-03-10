@@ -1694,6 +1694,11 @@ class TyArrayBool(TyArray):
     def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply_arithmetic(other, op.mul, forward=False)
 
+    @overload
+    def __or__(self, other: TyArrayBool) -> TyArrayBool: ...
+
+    @overload
+    def __or__(self, other) -> TyArrayBase: ...
     def __or__(self, other) -> TyArrayBase:
         return self._apply(other, op.or_, forward=True)
 
@@ -1706,6 +1711,11 @@ class TyArrayBool(TyArray):
     def __rxor__(self, other) -> TyArrayBase:
         return self._apply(other, op.xor, forward=False)
 
+    @overload
+    def __and__(self, other: TyArrayBool) -> TyArrayBool: ...
+
+    @overload
+    def __and__(self, other) -> TyArrayBase: ...
     def __and__(self, other) -> TyArrayBase:
         return self._apply(other, op.and_, forward=True)
 

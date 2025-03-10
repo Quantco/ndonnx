@@ -201,9 +201,7 @@ def make_nullable(
         merged = tydx.masked_onnx._merge_masks(is_nat, null._tyarray)
         if merged is not None:
             is_nat = merged
-        return ndx.Array._from_tyarray(
-            x._tyarray.dtype._build(is_nat, x._tyarray.data, unit=x._tyarray.dtype.unit)
-        )
+        return ndx.Array._from_tyarray(x._tyarray.dtype._build(data=x._tyarray._data))
 
     raise ndx.UnsupportedOperationError(
         f"'make_nullable' not implemented for `{x.dtype}`"
@@ -227,7 +225,7 @@ def get_data(x: ndx.Array, /) -> ndx.Array:
     if isinstance(
         x._tyarray, tydx.masked_onnx.TyMaArray | tydx.date_time.TimeBaseArray
     ):
-        return ndx.Array._from_tyarray(x._tyarray.data)
+        return ndx.Array._from_tyarray(x._tyarray._data)
     return ndx.Array._from_tyarray(x._tyarray)
 
 
