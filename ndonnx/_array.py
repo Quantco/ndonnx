@@ -168,6 +168,24 @@ class Array:
         except ValueError:
             return None
 
+    def spox_var(self) -> Var:
+        """Unwrap the underlying ``spox.Var`` object if ``self`` is of primitive data
+        type.
+
+        Otherwise, raise an exception.
+        """
+        warn(
+            "'Array.spox_var' is deprecated in favor of 'Array.disassemble'",
+            DeprecationWarning,
+        )
+        if isinstance(self._tyarray, onnx.TyArray):
+            return self._tyarray.disassemble()
+
+        raise TypeError(
+            "Cannot safely unwrap underlying 'spox.Var' object(s) "
+            f"from array of data type `{self.dtype}`"
+        )
+
     def to_device(self, device: Any, /, *, stream: int | Any | None = None) -> Array:
         raise ValueError("ONNX provides no control over the used device")
 
