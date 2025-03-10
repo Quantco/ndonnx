@@ -214,7 +214,7 @@ def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArra
             stop = None if s == -1 else s + 1
             s = slice(s, stop, 1)
         indices_per_dim.append(
-            ndx.asarray(ort_compat.range(*[el.var for el in _get_indices(s, length)]))
+            ndx.asarray(ort_compat.range(*[el._var for el in _get_indices(s, length)]))
         )
 
     grid = ndx.meshgrid(*indices_per_dim, indexing="ij")

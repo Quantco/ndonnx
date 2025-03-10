@@ -110,10 +110,10 @@ class CategoricalDType(DType["CategoricalArray"]):
 class CategoricalArray(TyArrayBase):
     _dtype: CategoricalDType
     # TODO: Flexible data type?
-    codes: onnx.TyArrayUInt16
+    _codes: onnx.TyArrayUInt16
 
     def __init__(self, codes: onnx.TyArrayUInt16, dtype: CategoricalDType):
-        self.codes = codes
+        self._codes = codes
         self._dtype = dtype
 
     @property
@@ -122,13 +122,13 @@ class CategoricalArray(TyArrayBase):
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         mapping = dict(enumerate(self.dtype.categories))
-        cats = self.codes.apply_mapping(mapping, default="<NA>")
+        cats = self._codes.apply_mapping(mapping, default="<NA>")
         return {
             "categories": cats.__ndx_value_repr__()["data"],
         }
 
     def __getitem__(self, index: GetitemIndex) -> Self:
-        codes = self.codes[index]
+        codes = self._codes[index]
         return type(self)(codes=codes, dtype=self.dtype)
 
     def __setitem__(
@@ -139,7 +139,7 @@ class CategoricalArray(TyArrayBase):
     ) -> None:
         if self.dtype != value.dtype:
             TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
-        self.codes[key] = value.codes
+        self._codes[key] = value._codes
 
     def put(
         self,
@@ -149,46 +149,46 @@ class CategoricalArray(TyArrayBase):
     ) -> None:
         if self.dtype != value.dtype:
             TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
-        self.codes.put(key, value.codes)
+        self._codes.put(key, value._codes)
 
     @property
     def dynamic_shape(self) -> TyArrayInt64:
-        return self.codes.dynamic_shape
+        return self._codes.dynamic_shape
 
     @property
     def mT(self) -> Self:  # noqa: N802
-        codes = self.codes.mT
+        codes = self._codes.mT
         return type(self)(codes=codes, dtype=self.dtype)
 
     @property
     def shape(self) -> OnnxShape:
-        return self.codes.shape
+        return self._codes.shape
 
     def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
-        codes = self.codes.reshape(shape)
+        codes = self._codes.reshape(shape)
         return type(self)(codes=codes, dtype=self.dtype)
 
     def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
-        codes = self.codes.squeeze(axis=axis)
+        codes = self._codes.squeeze(axis=axis)
         return type(self)(codes=codes, dtype=self.dtype)
 
     def disassemble(self) -> dict[str, Var] | Var:
-        return {"codes": self.codes.var}
+        return {"codes": self._codes.disassemble()}
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
-        codes = self.codes.broadcast_to(shape=shape)
+        codes = self._codes.broadcast_to(shape=shape)
         return type(self)(codes=codes, dtype=self.dtype)
 
     def concat(self, others: list[Self], axis: None | int) -> Self:
-        codes = self.codes.concat([el.codes for el in others], axis)
+        codes = self._codes.concat([el._codes for el in others], axis)
         return type(self)(codes=codes, dtype=self.dtype)
 
     def copy(self) -> Self:
-        codes = self.codes.copy()
+        codes = self._codes.copy()
         return type(self)(codes=codes, dtype=self.dtype)
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
-        codes = self.codes.permute_dims(axes)
+        codes = self._codes.permute_dims(axes)
         return type(self)(codes=codes, dtype=self.dtype)
 
     def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
@@ -196,7 +196,7 @@ class CategoricalArray(TyArrayBase):
             return NotImplemented
 
         mapping = dict(enumerate(self.dtype.categories))
-        cats = self.codes.apply_mapping(mapping, default="<NA>")
+        cats = self._codes.apply_mapping(mapping, default="<NA>")
 
         return cats.astype(dtype)
 
@@ -219,9 +219,9 @@ class CategoricalArray(TyArrayBase):
                     "comparison between arrays of categorical type requires data type to be precisely equal."
                 )
             # Unclear why mypy would not figure out the type of `other` here?!
-            bools = self.codes == other.codes  # type: ignore
-            not_missing = self.codes != astyarray(
-                iinfo(self.codes.dtype).max, self.codes.dtype
+            bools = self._codes == other._codes  # type: ignore
+            not_missing = self._codes != astyarray(
+                iinfo(self._codes.dtype).max, self._codes.dtype
             )
             return bools & not_missing
 
@@ -229,7 +229,7 @@ class CategoricalArray(TyArrayBase):
 
     def _to_categories(self) -> onnx.TyArrayUtf8:
         mapping = dict(enumerate(self.dtype.categories))
-        cats = self.codes.apply_mapping(mapping, default="<NA>")
+        cats = self._codes.apply_mapping(mapping, default="<NA>")
 
         return cats.astype(onnx.utf8)
 
@@ -239,6 +239,6 @@ class CategoricalArray(TyArrayBase):
         The returned array has the ``object`` data type.
         """
         objs = self._to_categories().unwrap_numpy().astype(object)
-        objs[self.codes.unwrap_numpy() == _N_MAX_CATEGORIES] = np.nan
+        objs[self._codes.unwrap_numpy() == _N_MAX_CATEGORIES] = np.nan
 
         return objs

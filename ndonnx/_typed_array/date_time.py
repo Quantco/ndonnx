@@ -175,10 +175,10 @@ class TimeBaseArray(TyArrayBase):
         return type(self)(data=self._data.copy(), unit=self.dtype.unit)
 
     def disassemble(self) -> Var:
-        return self._data.var
+        return self._data.disassemble()
 
     def __ndx_value_repr__(self):
-        if self._data.var._value is not None:
+        if self._data._var._value is not None:
             return {"data": str(self.unwrap_numpy().astype(str).tolist())}
         return {"data": "*lazy*"}
 

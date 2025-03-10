@@ -78,7 +78,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
 
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_co:
         if isinstance(arr, TyArray):
-            var = op.cast(arr.var, to=self.unwrap_numpy())
+            var = op.cast(arr._var, to=self.unwrap_numpy())
             return self._build(var)
         return NotImplemented
 
@@ -277,7 +277,7 @@ DTypes = NumericDTypes | Utf8 | Boolean
 
 
 class TyArray(TyArrayBase):
-    var: Var
+    _var: Var
 
     def __init__(self, var: Var):
         var_dtype = var.unwrap_tensor().dtype
@@ -287,7 +287,7 @@ class TyArray(TyArrayBase):
             )
         if var.unwrap_tensor().shape is None:
             raise ValueError("'var' has no shape information")
-        self.var = var
+        self._var = var
 
     def __ndx_value_repr__(self) -> dict[str, str]:
         try:
@@ -343,9 +343,9 @@ class TyArray(TyArrayBase):
 
         new_axis_positions = [i for i, el in enumerate(no_more_ellipsis) if el is None]
 
-        var = self.var
+        var = self._var
         if new_axis_positions:
-            var = op.unsqueeze(self.var, op.const(new_axis_positions, np.int64))
+            var = op.unsqueeze(self._var, op.const(new_axis_positions, np.int64))
 
         # Remove `None` values
         indices_and_slices_only = [
@@ -383,12 +383,12 @@ class TyArray(TyArrayBase):
                 arr = self.reshape((1,))
                 key_arr = key.reshape((1,))
 
-            return type(self)(op.compress(arr.var, key_arr.var, axis=0))
+            return type(self)(op.compress(arr._var, key_arr._var, axis=0))
 
         if key.ndim == 0:
             key = key[None, ...]
             x = self[None, ...]
-            res = op.compress(x.var, key.var, axis=0)
+            res = op.compress(x._var, key._var, axis=0)
             return type(self)(res)
 
         # Can't use reshape since the use of -1 for zero dimensional
@@ -398,9 +398,9 @@ class TyArray(TyArrayBase):
             .prod(keepdims=True, dtype=int64)
             .concat([self.dynamic_shape[key.ndim :]], axis=0)
         )
-        var = self.reshape(in_shape).var
+        var = self.reshape(in_shape)._var
 
-        res = op.compress(var, key.reshape((-1,)).var, axis=0)
+        res = op.compress(var, key.reshape((-1,))._var, axis=0)
         return type(self)(res)
 
     def __setitem__(
@@ -410,7 +410,7 @@ class TyArray(TyArrayBase):
         /,
     ) -> None:
         if key == ():
-            self.var = value.broadcast_to(self.dynamic_shape).var
+            self._var = value.broadcast_to(self.dynamic_shape)._var
             return
 
         if isinstance(key, list):
@@ -437,7 +437,7 @@ class TyArray(TyArrayBase):
         tmp_dim_perm, reverse_perm, keys_no_ellips = _move_ellipsis_back(self.ndim, key)
         perm_self = self.permute_dims(tmp_dim_perm)
         perm_self[keys_no_ellips] = value
-        self.var = perm_self.permute_dims(reverse_perm).var
+        self._var = perm_self.permute_dims(reverse_perm)._var
 
     def _setitem_boolmask(self, key: TyArrayBool, value: Self) -> None:
         if self.ndim < key.ndim:
@@ -452,7 +452,7 @@ class TyArray(TyArrayBase):
             # We can be sure that we don't run into broadcasting
             # issues with a zero-sized value if the value is a
             # scalar. This allows us to use `where`.
-            self.var = op.where(key.var, value.var, self.var)
+            self._var = op.where(key._var, value._var, self._var)
             return
 
         int_keys = safe_cast(
@@ -462,7 +462,7 @@ class TyArray(TyArrayBase):
         arr = self.copy().reshape((-1,))
         arr.put(int_keys, value.reshape((-1,)))
         arr.reshape(self.dynamic_shape)
-        self.var = arr.var
+        self._var = arr._var
 
     def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
         # The last dim of shape must be statically known (i.e. the
@@ -482,7 +482,7 @@ class TyArray(TyArrayBase):
             value_correct_shape = value.reshape(value_shape)
         else:
             value_correct_shape = value.broadcast_to(value_shape)
-        self.var = op.scatter_nd(self.var, key.var, value_correct_shape.var)
+        self._var = op.scatter_nd(self._var, key._var, value_correct_shape._var)
 
     def put(
         self,
@@ -494,7 +494,7 @@ class TyArray(TyArrayBase):
         if key.ndim == 1:
             key = key.reshape((-1, 1))
         data._setitem_int_array(key, value)
-        self.var = data.reshape(self.dynamic_shape).var
+        self._var = data.reshape(self.dynamic_shape)._var
 
     @property
     def dtype(self) -> _OnnxDType:
@@ -513,12 +513,12 @@ class TyArray(TyArrayBase):
         if all(isinstance(el, int) for el in self.shape):
             return astyarray(np.array(self.shape), dtype=int64)
 
-        var = op.shape(self.var)
+        var = op.shape(self._var)
         return TyArrayInt64(var)
 
     @property
     def dynamic_size(self) -> TyArrayInt64:
-        var = op.size(self.var)
+        var = op.size(self._var)
         return TyArrayInt64(var)
 
     @property
@@ -529,12 +529,12 @@ class TyArray(TyArrayBase):
             )
         dims = list(range(self.ndim))
         dims = dims[:-2] + dims[-2:][::-1]
-        var = op.transpose(self.var, perm=dims)
+        var = op.transpose(self._var, perm=dims)
         return type(self)(var)
 
     @property
     def shape(self) -> OnnxShape:
-        shape = self.var.unwrap_tensor().shape
+        shape = self._var.unwrap_tensor().shape
         if shape is None:
             raise ValueError("Missing shape information")
         if any(isinstance(el, None | str) for el in shape):
@@ -556,8 +556,8 @@ class TyArray(TyArrayBase):
         return shape
 
     def unwrap_numpy(self) -> np.ndarray:
-        if self.var._value is not None:
-            np_arr = np.asarray(self.var._value.value)
+        if self._var._value is not None:
+            np_arr = np.asarray(self._var._value.value)
             if np_arr.dtype == self.dtype.unwrap_numpy():
                 return np_arr
             if self.dtype.unwrap_numpy().kind == "U" and np_arr.dtype.kind in [
@@ -596,7 +596,7 @@ class TyArray(TyArrayBase):
 
         # Note: reduce_min, which would support uint8s, appears to be buggy on the onnxruntime
         # side. Thus we use reduce_prod for now.
-        var = op.reduce_prod(bools.astype(int32).var, axes=axes, keepdims=keepdims)
+        var = op.reduce_prod(bools.astype(int32)._var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayInt32(var).astype(bool_))
 
     def any(
@@ -618,7 +618,7 @@ class TyArray(TyArrayBase):
         axes = op.const(list(axis), np.int64) if axis else None
 
         # Accumulate in float32 to avoid possible overflowing issues
-        var = op.reduce_sum(bools.astype(float32).var, axes=axes, keepdims=keepdims)
+        var = op.reduce_sum(bools.astype(float32)._var, axes=axes, keepdims=keepdims)
         return safe_cast(TyArrayBool, TyArrayFloat32(var).astype(bool_))
 
     def as_core_dtype(self, dtype: DTypes) -> TyArray:
@@ -638,7 +638,7 @@ class TyArray(TyArrayBase):
             )
         if target_rank < self.ndim:
             raise ValueError("target rank must equal or greater than rank of 'self'")
-        var = op.expand(self.var, shape.var)
+        var = op.expand(self._var, shape._var)
         return type(self)(var)
 
     def concat(self, others: Sequence[Self], axis: None | int) -> Self:
@@ -669,28 +669,28 @@ class TyArray(TyArrayBase):
         if self.dtype in (int32, int64) and self.ndim == 1:
             axis_ = axis if axis is None else axis
             dummy_axis = op.const([axis_ + 1], dtype=np.int64)
-            vars = [op.unsqueeze(a.var, dummy_axis) for a in arrays]
+            vars = [op.unsqueeze(a._var, dummy_axis) for a in arrays]
             var = op.concat(vars, axis=axis_)
             var = op.squeeze(var, dummy_axis)
         else:
-            var = op.concat([a.var for a in arrays], axis=0 if axis is None else axis)
+            var = op.concat([a._var for a in arrays], axis=0 if axis is None else axis)
         return type(self)(var)
 
     def copy(self) -> Self:
         return std_copy(self)
 
     def disassemble(self) -> Var:
-        return self.var
+        return self._var
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
-        var = op.transpose(self.var, perm=axes)
+        var = op.transpose(self._var, perm=axes)
         return type(self)(var)
 
     def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         if isinstance(shape, tuple | list):
-            var = op.reshape(self.var, op.const(shape, np.int64), allowzero=True)
+            var = op.reshape(self._var, op.const(shape, np.int64), allowzero=True)
         else:
-            var = op.reshape(self.var, shape.var, allowzero=True)
+            var = op.reshape(self._var, shape._var, allowzero=True)
         return type(self)(var)
 
     def repeat(
@@ -731,7 +731,7 @@ class TyArray(TyArrayBase):
         if axis == ():
             return self.copy()
         try:
-            res = op.squeeze(self.var, op.const(axis, np.int64))
+            res = op.squeeze(self._var, op.const(axis, np.int64))
         except Exception as e:
             # Error in shape inference caught via static shape parameters
             if "inference error" in str(e).lower():
@@ -743,7 +743,7 @@ class TyArray(TyArrayBase):
 
     def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
         axis = axis or 0
-        var = op.gather(self.var, indices.var, axis=axis)
+        var = op.gather(self._var, indices._var, axis=axis)
         return type(self)(var)
 
     def tile(self, repetitions: tuple[int, ...], /) -> Self:
@@ -755,7 +755,7 @@ class TyArray(TyArrayBase):
         elif n < m:
             x = self[tuple([None] * (m - n) + [...])]
 
-        var = op.tile(x.var, op.const(repetitions, np.int64))
+        var = op.tile(x._var, op.const(repetitions, np.int64))
         return type(self)(var)
 
     def _tile_array(self, repetitions: TyArrayInt64, /) -> Self:
@@ -773,16 +773,16 @@ class TyArray(TyArrayBase):
             )
 
     def tril(self, /, *, k: int = 0) -> Self:
-        var = op.trilu(self.var, k=op.const(k, dtype=np.int64), upper=False)
+        var = op.trilu(self._var, k=op.const(k, dtype=np.int64), upper=False)
         return type(self)(var)
 
     def triu(self, /, *, k: int = 0) -> Self:
-        var = op.trilu(self.var, k=op.const(k, dtype=np.int64), upper=True)
+        var = op.trilu(self._var, k=op.const(k, dtype=np.int64), upper=True)
         return type(self)(var)
 
     def unique_all(self) -> tuple[Self, TyArrayInt64, TyArrayInt64, TyArrayInt64]:
         flattened = self.reshape((-1,))
-        res = op.unique(flattened.var, sorted=True)
+        res = op.unique(flattened._var, sorted=True)
         values, indices, inverse_indices, counts = (
             type(self)(res[0]),
             TyArrayInt64(res[1]),
@@ -814,7 +814,7 @@ class TyArray(TyArrayBase):
     def __ndx_equal__(self, other) -> TyArrayBool:
         if isinstance(other, TyArray | bool | int | float | str):
             a, b = promote(self, other)
-            var = op.equal(a.var, b.var)
+            var = op.equal(a._var, b._var)
             return TyArrayBool(var)
         return NotImplemented
 
@@ -856,7 +856,7 @@ class TyArray(TyArrayBase):
             default_ = np.array([default], dtype=values.dtype)
 
         var = op.label_encoder(
-            self.var,
+            self._var,
             keys_tensor=np_keys.astype(result_np_dtype_key),
             values_tensor=values,
             default_tensor=default_,
@@ -879,7 +879,7 @@ class TyArray(TyArrayBase):
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(y, TyArray):
             x, y = promote(self, y)
-            var = op.where(cond.var, x.var, y.var)
+            var = op.where(cond._var, x._var, y._var)
             return type(x)(var)
 
         return NotImplemented
@@ -893,7 +893,7 @@ class TyArrayUtf8(TyArray):
     def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayUtf8:
         if isinstance(other, TyArrayUtf8 | str):
             a, b = promote(self, other)
-            var = op.string_concat(a.var, b.var)
+            var = op.string_concat(a._var, b._var)
             return safe_cast(TyArrayUtf8, ascoredata(var))
 
         return NotImplemented
@@ -901,7 +901,7 @@ class TyArrayUtf8(TyArray):
     def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayUtf8:
         if isinstance(other, str):
             b, a = promote(self, other)
-            var = op.string_concat(a.var, b.var)
+            var = op.string_concat(a._var, b._var)
             return safe_cast(TyArrayUtf8, ascoredata(var))
 
         return NotImplemented
@@ -916,7 +916,7 @@ class TyArrayNumber(TyArray):
         if axis_ is None:
             x = x.reshape((-1,))
             axis_ = 0
-        res = TyArrayInt64(spox_op(x.var, axis=axis_, keepdims=keepdims))
+        res = TyArrayInt64(spox_op(x._var, axis=axis_, keepdims=keepdims))
         if axis is None:
             if keepdims:
                 res = res.reshape(tuple(1 for _ in range(self.ndim)))
@@ -940,9 +940,9 @@ class TyArrayNumber(TyArray):
     ) -> TyArrayInt64:
         if axis < 0:
             axis += self.ndim
-        k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
+        k = self.dynamic_shape[axis : axis + 1]._var  # k must be 1D, thus the slice
         _values, indices = op.top_k(
-            self.var, k, axis=axis, largest=descending, sorted=stable
+            self._var, k, axis=axis, largest=descending, sorted=stable
         )
         return TyArrayInt64(indices)
 
@@ -953,10 +953,10 @@ class TyArrayNumber(TyArray):
             return self.copy()
 
         # The standard says that min/max must not change the output type.
-        min_ = None if min is None else min.astype(self.dtype).var
-        max_ = None if max is None else max.astype(self.dtype).var
+        min_ = None if min is None else min.astype(self.dtype)._var
+        max_ = None if max is None else max.astype(self.dtype)._var
 
-        var = op.clip(self.var, min_, max_)
+        var = op.clip(self._var, min_, max_)
 
         return type(self)(var)
 
@@ -987,7 +987,7 @@ class TyArrayNumber(TyArray):
             type(self),
             ascoredata(
                 op.cumsum(
-                    self.var,
+                    self._var,
                     op.const(axis_, np.int64),
                     exclusive=False,
                 )
@@ -1036,7 +1036,7 @@ class TyArrayNumber(TyArray):
 
         axis_ = _axis_var(axis, self.ndim)
         var = var_op(
-            self.var,
+            self._var,
             axis_,
             keepdims=keepdims,
             noop_with_empty_axes=False,
@@ -1055,7 +1055,7 @@ class TyArrayNumber(TyArray):
         axes = _axis_var(axis, self.ndim)
         return type(self)(
             op.reduce_max(
-                self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
 
@@ -1068,7 +1068,7 @@ class TyArrayNumber(TyArray):
         axes = _axis_var(axis, self.ndim)
         return type(self)(
             op.reduce_min(
-                self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
 
@@ -1109,9 +1109,9 @@ class TyArrayNumber(TyArray):
     ) -> Self:
         if axis < 0:
             axis += self.ndim
-        k = self.dynamic_shape[axis : axis + 1].var  # k must be 1D, thus the slice
+        k = self.dynamic_shape[axis : axis + 1]._var  # k must be 1D, thus the slice
         values, _indices = op.top_k(
-            self.var, k, axis=axis, largest=descending, sorted=stable
+            self._var, k, axis=axis, largest=descending, sorted=stable
         )
         return type(self)(values)
 
@@ -1148,10 +1148,10 @@ class TyArrayNumber(TyArray):
         )
 
     def __abs__(self) -> Self:
-        return type(self)(op.abs(self.var))
+        return type(self)(op.abs(self._var))
 
     def __neg__(self) -> TyArray:
-        return type(self)(op.neg(self.var))
+        return type(self)(op.neg(self._var))
 
     def __pos__(self) -> Self:
         return self.copy()
@@ -1168,7 +1168,7 @@ class TyArrayNumber(TyArray):
                 a, b = promote(self, other)
             else:
                 b, a = promote(self, other)
-            var = op(a.var, b.var)
+            var = op(a._var, b._var)
             return safe_cast(result_type, ascoredata(var))
         return NotImplemented
 
@@ -1252,17 +1252,17 @@ class TyArrayNumber(TyArray):
         if self.ndim == 0:
             raise ValueError("'nonzero' is not defined for scalar arrays")
 
-        res = TyArrayInt64(op.non_zero(self.var))
+        res = TyArrayInt64(op.non_zero(self._var))
         out = []
         for i in range(self.ndim):
             out.append(res[i, :])
         return tuple(out)
 
     def sign(self) -> Self:
-        return type(self)(op.sign(self.var))
+        return type(self)(op.sign(self._var))
 
     def sqrt(self) -> Self:
-        return type(self)(op.sqrt(self.var))
+        return type(self)(op.sqrt(self._var))
 
     def square(self) -> TyArray:
         return safe_cast(TyArray, self**2)
@@ -1308,7 +1308,7 @@ class TyArrayInteger(TyArrayNumber):
                 a, b = promote(self, other)
             else:
                 b, a = promote(self, other)
-            var = op(a.var, b.var)
+            var = op(a._var, b._var)
             return safe_cast(TyArrayInteger, ascoredata(var))
         return NotImplemented
 
@@ -1371,7 +1371,7 @@ class TyArrayInteger(TyArrayNumber):
         )
 
     def __invert__(self) -> Self:
-        res = op.bitwise_not(self.var)
+        res = op.bitwise_not(self._var)
         return type(self)(res)
 
     def ceil(self) -> Self:
@@ -1438,14 +1438,14 @@ class TyArrayUnsignedInteger(TyArrayInteger):
         # there is no sign.
         if isinstance(other, TyArrayInteger | int):
             a, b = promote(self, other)
-            var = op.bit_shift(a.var, b.var, direction="RIGHT")
+            var = op.bit_shift(a._var, b._var, direction="RIGHT")
             return safe_cast(TyArrayInteger, ascoredata(var))
         return super().__rshift__(other)
 
     def __rrshift__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayUnsignedInteger | int):
             b, a = promote(self, other)
-            var = op.bit_shift(a.var, b.var, direction="RIGHT")
+            var = op.bit_shift(a._var, b._var, direction="RIGHT")
             return safe_cast(TyArrayUnsignedInteger, ascoredata(var))
         return NotImplemented
 
@@ -1454,25 +1454,25 @@ class TyArrayFloating(TyArrayNumber):
     def __mod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
             a, b = promote(self, other)
-            var = op.mod(a.var, b.var, fmod=1)
+            var = op.mod(a._var, b._var, fmod=1)
             return safe_cast(TyArrayFloating, ascoredata(var))
         return super().__mod__(other)
 
     def __rmod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
             b, a = promote(self, other)
-            var = op.mod(a.var, b.var, fmod=1)
+            var = op.mod(a._var, b._var, fmod=1)
             return safe_cast(TyArrayFloating, ascoredata(var))
         return super().__mod__(other)
 
     def ceil(self) -> Self:
-        return type(self)(op.ceil(self.var))
+        return type(self)(op.ceil(self._var))
 
     def floor(self) -> Self:
-        return type(self)(op.floor(self.var))
+        return type(self)(op.floor(self._var))
 
     def round(self) -> Self:
-        return type(self)(op.round(self.var))
+        return type(self)(op.round(self._var))
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
@@ -1510,7 +1510,7 @@ class TyArrayFloating(TyArrayNumber):
             # TODO: File bug:
             # ONNX is unclear about the semantics for `reduce_mean` for empty arrays
             op.reduce_sum(
-                self.var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
             )
         )
         in_shape = self.dynamic_shape
@@ -1574,41 +1574,41 @@ class TyArrayFloating(TyArrayNumber):
         return safe_cast(TyArrayBool, ~(self.isinf() | self.isnan()))
 
     def isinf(self) -> TyArrayBool:
-        return TyArrayBool(op.isinf(self.var))
+        return TyArrayBool(op.isinf(self._var))
 
     def isnan(self) -> TyArrayBool:
-        return TyArrayBool(op.isnan(self.var))
+        return TyArrayBool(op.isnan(self._var))
 
     # Element-wise for floating point
     def acos(self) -> Self:
-        return type(self)(op.acos(self.var))
+        return type(self)(op.acos(self._var))
 
     def acosh(self) -> Self:
-        return type(self)(op.acosh(self.var))
+        return type(self)(op.acosh(self._var))
 
     def asin(self) -> Self:
-        return type(self)(op.asin(self.var))
+        return type(self)(op.asin(self._var))
 
     def asinh(self) -> Self:
-        return type(self)(op.asinh(self.var))
+        return type(self)(op.asinh(self._var))
 
     def atan(self) -> Self:
-        return type(self)(op.atan(self.var))
+        return type(self)(op.atan(self._var))
 
     def atanh(self) -> Self:
-        return type(self)(op.atanh(self.var))
+        return type(self)(op.atanh(self._var))
 
     def cos(self) -> Self:
-        return type(self)(op.cos(self.var))
+        return type(self)(op.cos(self._var))
 
     def cosh(self) -> Self:
-        return type(self)(op.cosh(self.var))
+        return type(self)(op.cosh(self._var))
 
     def exp(self) -> Self:
-        return type(self)(op.exp(self.var))
+        return type(self)(op.exp(self._var))
 
     def log(self) -> Self:
-        return type(self)(op.log(self.var))
+        return type(self)(op.log(self._var))
 
     def log2(self) -> Self:
         res = self.log() / float(np.log(2))
@@ -1619,16 +1619,16 @@ class TyArrayFloating(TyArrayNumber):
         return safe_cast(type(self), res)
 
     def sin(self) -> Self:
-        return type(self)(op.sin(self.var))
+        return type(self)(op.sin(self._var))
 
     def sinh(self) -> Self:
-        return type(self)(op.sinh(self.var))
+        return type(self)(op.sinh(self._var))
 
     def tan(self) -> Self:
-        return type(self)(op.tan(self.var))
+        return type(self)(op.tan(self._var))
 
     def tanh(self) -> Self:
-        return type(self)(op.tanh(self.var))
+        return type(self)(op.tanh(self._var))
 
     def trunc(self) -> Self:
         return safe_cast(
@@ -1653,7 +1653,7 @@ class TyArrayBool(TyArray):
                 a, b = promote(self, other)
             else:
                 b, a = promote(self, other)
-            var = op(a.var, b.var)
+            var = op(a._var, b._var)
             return TyArrayBool(var)
         return NotImplemented
 
@@ -1668,7 +1668,7 @@ class TyArrayBool(TyArray):
                 a, b = promote(self, other)
             else:
                 b, a = promote(self, other)
-            var = op(a.var, b.var)
+            var = op(a._var, b._var)
             return safe_cast(TyArrayNumber, astyarray(var))
         return NotImplemented
 
@@ -1723,25 +1723,25 @@ class TyArrayBool(TyArray):
         return self._apply(other, op.and_, forward=False)
 
     def __invert__(self) -> Self:
-        return type(self)(op.not_(self.var))
+        return type(self)(op.not_(self._var))
 
     def __ndx_logical_and__(self, other: TyArrayBase | PyScalar, /) -> Self:
-        return type(self)(self._apply(other, op.and_, forward=True).var)
+        return type(self)(self._apply(other, op.and_, forward=True)._var)
 
     def __ndx_rlogical_and__(self, other: TyArrayBase | PyScalar, /) -> Self:
-        return type(self)(self._apply(other, op.and_, forward=False).var)
+        return type(self)(self._apply(other, op.and_, forward=False)._var)
 
     def __ndx_logical_xor__(self, other: TyArrayBase | PyScalar, /) -> Self:
-        return type(self)(self._apply(other, op.xor, forward=True).var)
+        return type(self)(self._apply(other, op.xor, forward=True)._var)
 
     def __ndx_rlogical_xor__(self, other: TyArrayBase | PyScalar, /) -> Self:
-        return type(self)(self._apply(other, op.xor, forward=False).var)
+        return type(self)(self._apply(other, op.xor, forward=False)._var)
 
     def __ndx_logical_or__(self, other: TyArrayBase | PyScalar, /) -> Self:
-        return type(self)(self._apply(other, op.or_, forward=True).var)
+        return type(self)(self._apply(other, op.or_, forward=True)._var)
 
     def __ndx_rlogical_or__(self, other: TyArrayBase | PyScalar, /) -> Self:
-        return type(self)(self._apply(other, op.or_, forward=False).var)
+        return type(self)(self._apply(other, op.or_, forward=False)._var)
 
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         # Use numeric implementation
@@ -2054,7 +2054,7 @@ def _axis_var(axis: int | tuple[int, ...] | None, rank: int) -> Var | None:
     res = _axis_array(axis, rank)
     if res is None:
         return None
-    return res.var
+    return res._var
 
 
 def _to_slice_kwargs(slices: list[FancySlice]) -> dict[str, Var]:
@@ -2079,9 +2079,11 @@ def _to_slice_kwargs(slices: list[FancySlice]) -> dict[str, Var]:
         return arrays_1d[0].concat(arrays_1d[1:], axis=0)
 
     # We can't concat 0-D arrays, thus the reshape
-    kw = {k: concat(lst).var for k, lst in zip(["starts", "ends", "steps"], transposed)}
+    kw = {
+        k: concat(lst)._var for k, lst in zip(["starts", "ends", "steps"], transposed)
+    }
 
     kw["axes"] = TyArrayInt64(
         op.const([i for i, el in enumerate(slices) if not el.is_noop()], np.int64)
-    ).var
+    )._var
     return kw
