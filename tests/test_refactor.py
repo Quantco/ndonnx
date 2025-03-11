@@ -10,7 +10,7 @@ from packaging.version import parse
 import ndonnx as ndx
 from ndonnx import _dtypes as dtypes
 
-from .utils import assert_equal_dtype_shape, build_and_run
+from .utils import assert_equal_dtype_shape, build_and_run, run
 
 
 def constant_prop(fn, *np_args):
@@ -483,3 +483,15 @@ def test_array_repr_lazy():
     arr = ndx.Array(shape=("N",), dtype=ndx.DateTime("s"))
     res = repr(arr)
     assert res == "array(data: *lazy*, shape=('N',), dtype=DateTime[s])"
+
+
+@pytest.mark.parametrize("shape", [(3, 4), (1,), ()])
+def test_dynamic_size(shape):
+    onnx_shape = tuple(f"foo_{dim_len}" for dim_len in shape)
+    a = ndx.Array(shape=onnx_shape, dtype=ndx.int64)
+    model = ndx.build({"a": a}, {"size": a.dynamic_size})
+
+    np_arr = np.ones(shape, dtype=np.int64)
+    (res,) = run(model, {"a": np_arr}).values()
+
+    np.testing.assert_array_equal(res, np_arr.size)

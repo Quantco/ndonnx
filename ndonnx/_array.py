@@ -121,6 +121,20 @@ class Array:
         return math.prod(static_dims)
 
     @property
+    def dynamic_size(self) -> Array:
+        """Return the size of an array as scalar array.
+
+        Contrary to `Array.size` this function also works on dynamically sized arrays.
+        """
+        # Special cases that allow for shortcuts
+        if self.ndim == 0:
+            return asarray(1, dtype=onnx.int64)
+        if self.ndim == 1:
+            return self.dynamic_shape
+
+        return Array._from_tyarray(self.dynamic_shape._tyarray.prod())
+
+    @property
     def T(self) -> Array:  # noqa: N802
         return Array._from_tyarray(self._tyarray.T)
 
