@@ -654,9 +654,9 @@ def _convert_unit(arr: TimeBaseArray, new: BaseTimeDType[TIMEARRAY_co]) -> TIMEA
     if powers == 0:
         return arr.copy()  # type: ignore
     elif power > 0:
-        data = arr._data * np.pow(10, power)
+        data = arr._data * (10**power)
     else:
-        data = arr._data // np.pow(10, abs(power))
+        data = arr._data // (10 ** abs(power))
 
     data = where(arr.is_nat, astyarray(np.iinfo(np.int64).min), data)
     data = safe_cast(onnx.TyArrayInt64, data)
