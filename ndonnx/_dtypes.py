@@ -104,7 +104,7 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
 # TODO: move to onnx.py?
 def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
-    from ._typed_array import date_time, onnx
+    from ._typed_array import datetime, onnx
 
     # Ensure that this also works with np.generic such as np.int64
     np_dtype = np.dtype(np_dtype)
@@ -142,11 +142,11 @@ def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
         # Narrowing strings to Literal is virtually unsupported by
         # mypy. The constructor raises if the unit is malformed,
         # though.
-        return date_time.DateTime(unit=unit)  # type: ignore
+        return datetime.DateTime64DType(unit=unit)  # type: ignore
 
     if np_dtype.kind == "m":
         unit = np.datetime_data(np_dtype)[0]
-        return date_time.TimeDelta(unit=unit)  # type: ignore
+        return datetime.TimeDelta64DType(unit=unit)  # type: ignore
 
     # "T" i.e. "Text" is the kind used for `StringDType` in numpy >= 2
     # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype

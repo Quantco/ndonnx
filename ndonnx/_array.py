@@ -397,7 +397,7 @@ def _apply_op(
 
 def _normalize_arrays_in_key(key: GetitemIndex) -> TyGetitemIndex:
     if isinstance(key, Array):
-        if isinstance(key._tyarray.dtype, onnx.Boolean):
+        if isinstance(key._tyarray.dtype, onnx.Bool):
             # TODO: Why is mypy not able to figure out the type of _tyarray any more?
             return key._tyarray.astype(onnx.bool_)
 

@@ -60,8 +60,8 @@ def test_concat(np_arrays, axis):
     "np_dtype, ndx_dtype",
     [
         (np.dtype("int32"), ndx.int32),
-        (np.dtype("datetime64[s]"), ndx.DateTime("s")),
-        (np.dtype("timedelta64[s]"), ndx.TimeDelta("s")),
+        (np.dtype("datetime64[s]"), ndx.DateTime64DType("s")),
+        (np.dtype("timedelta64[s]"), ndx.TimeDelta64DType("s")),
     ],
 )
 @pytest.mark.parametrize(

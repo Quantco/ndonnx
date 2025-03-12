@@ -1,17 +1,17 @@
 {
-    "version": 1,
     "input_schema": {
         "a": {
-            "type_name": "NBoolean",
             "author": "ndonnx",
+            "type_name": "NBoolean",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
-            "type_name": "NBoolean",
             "author": "ndonnx",
+            "type_name": "NBoolean",
             "meta": null
         }
-    }
+    },
+    "version": 1
 }

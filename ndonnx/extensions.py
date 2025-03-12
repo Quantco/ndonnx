@@ -195,7 +195,7 @@ def make_nullable(
         mask = tydx.masked_onnx._merge_masks(x._tyarray.mask, null._tyarray)
         tyarr = tydx.masked_onnx.asncoredata(x._tyarray.data, mask)
         return ndx.Array._from_tyarray(tyarr)
-    if isinstance(x._tyarray, tydx.date_time.TimeBaseArray):
+    if isinstance(x._tyarray, tydx.datetime.TimeBaseArray):
         # TODO: The semantics of this branch are very odd!
         is_nat = x._tyarray.is_nat
         merged = tydx.masked_onnx._merge_masks(is_nat, null._tyarray)
@@ -222,9 +222,7 @@ def get_data(x: ndx.Array, /) -> ndx.Array:
 
     If the ``x`` is not masked, return ``x``.
     """
-    if isinstance(
-        x._tyarray, tydx.masked_onnx.TyMaArray | tydx.date_time.TimeBaseArray
-    ):
+    if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray | tydx.datetime.TimeBaseArray):
         return ndx.Array._from_tyarray(x._tyarray._data)
     return ndx.Array._from_tyarray(x._tyarray)
 
@@ -264,7 +262,7 @@ def _number_of_days_and_leap_days_since_16000101(
     the 4, 100, and 400 year cycles of leap years)."""
     base = np.asarray("1600-01-01", "datetime64[s]").astype(np.int64)
 
-    delta_s = dt.astype(ndx.DateTime("s")).astype(ndx.int64) - ndx.asarray(base)
+    delta_s = dt.astype(ndx.DateTime64DType("s")).astype(ndx.int64) - ndx.asarray(base)
     # delta in hours (not days due to the latter use of astro-years)
     delta = delta_s // (60 * 60)
 
@@ -288,7 +286,7 @@ def datetime_to_year_month_day(
 ) -> tuple[ndx.Array, ndx.Array, ndx.Array]:
     """Split date time elements of the provided array into year, month, and day
     components."""
-    if not isinstance(arr.dtype, ndx.DateTime):
+    if not isinstance(arr.dtype, ndx.DateTime64DType):
         raise TypeError(
             f"expected array with date time data type but got `{arr.dtype}` instead"
         )

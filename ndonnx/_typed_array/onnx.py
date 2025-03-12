@@ -76,6 +76,9 @@ class _OnnxDType(DType[TY_ARRAY_co]):
     @abstractmethod
     def _build(self, var: Var) -> TY_ARRAY_co: ...
 
+    def __str__(self) -> str:
+        return type(self).__name__.lower()
+
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_co:
         if isinstance(arr, TyArray):
             var = op.cast(arr._var, to=self.unwrap_numpy())
@@ -108,9 +111,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
-        return DTypeInfoV1(
-            author="ndonnx", type_name=self.__class__.__name__, meta=None
-        )
+        return DTypeInfoV1(author="ndonnx", type_name=str(self), meta=None)
 
     def __ndx_arange__(
         self,
@@ -180,7 +181,7 @@ class Utf8(_OnnxDType["TyArrayUtf8"]):
         return scalar.broadcast_to(shape)
 
 
-class Boolean(_OnnxDType["TyArrayBool"]):
+class Bool(_OnnxDType["TyArrayBool"]):
     def _build(self, var: Var) -> TyArrayBool:
         return TyArrayBool(var)
 
@@ -247,7 +248,7 @@ class Float64(Floating["TyArrayFloat64"]):
 
 
 # Non-nullable Singleton instances
-bool_: Boolean = Boolean()
+bool_: Bool = Bool()
 
 float16: Float16 = Float16()
 float32: Float32 = Float32()
@@ -273,7 +274,7 @@ SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
 UnsignedIntegerDTypes = UInt8 | UInt16 | UInt32 | UInt64
 IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
 NumericDTypes = FloatingDTypes | IntegerDTypes
-DTypes = NumericDTypes | Utf8 | Boolean
+DTypes = NumericDTypes | Utf8 | Bool
 
 
 class TyArray(TyArrayBase):
@@ -1642,7 +1643,7 @@ class TyArrayFloating(TyArrayNumber):
 
 class TyArrayBool(TyArray):
     @property
-    def dtype(self) -> Boolean:
+    def dtype(self) -> Bool:
         return bool_
 
     def _apply(
@@ -1959,7 +1960,7 @@ _singed_int_with_uint64: dict[tuple[_Number, _Number], NumericDTypes] = {
 }
 _singed_int_with_uint64 |= {(k[1], k[0]): v for k, v in _singed_int_with_uint64.items()}
 
-_bool_with_number: dict[tuple[_Number | Boolean, _Number | Boolean], NumericDTypes] = {
+_bool_with_number: dict[tuple[_Number | Bool, _Number | Bool], NumericDTypes] = {
     (bool_, float32): float32,
     (bool_, float64): float64,
     (bool_, int8): int8,
@@ -1975,7 +1976,7 @@ _bool_with_number |= {(k[1], k[0]): v for k, v in _bool_with_number.items()}
 
 # Mixed integers and floating point numbers are not
 # defined by the standard.
-_int_to_floating: dict[_Number | Boolean, NumericDTypes] = {
+_int_to_floating: dict[_Number | Bool, NumericDTypes] = {
     bool_: float32,
     int8: float32,
     uint8: float32,
@@ -1998,14 +1999,14 @@ def _result_type(
         return NotImplemented
 
     if isinstance(b, bool):
-        if isinstance(a, Boolean):
+        if isinstance(a, Bool):
             return a
         b = bool_
 
     if isinstance(b, int | float):
-        if isinstance(a, Boolean) and isinstance(b, int):
+        if isinstance(a, Bool) and isinstance(b, int):
             return int64
-        if isinstance(a, Boolean) and isinstance(b, float):
+        if isinstance(a, Bool) and isinstance(b, float):
             return float64
         if isinstance(a, _Number):
             if isinstance(b, int):
@@ -2020,7 +2021,7 @@ def _result_type(
         a = _int_to_floating[a]
     if isinstance(a, Floating) and isinstance(b, Integer):
         b = _int_to_floating[b]
-    if isinstance(a, Boolean | _Number) and isinstance(b, Boolean | _Number):
+    if isinstance(a, Bool | _Number) and isinstance(b, Bool | _Number):
         if ret := _bool_with_number.get((a, b)):
             return ret
 

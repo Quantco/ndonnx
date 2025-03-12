@@ -1,5 +1,7 @@
 # Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
+import json
+from pathlib import Path
 
 import pytest
 
@@ -71,15 +73,13 @@ def test_no_namemangling_for_standard_types(dtype):
     ],
 )
 def test_schema_against_snapshots(dtype):
+    # We must not break backwards compatibility. We test every type we
+    # support that it keeps producing the same schema.
+
     a = ndx.array(shape=("N",), dtype=dtype)
     b = a[0]  # make the build non-trivial
 
     mp = ndx.build({"a": a}, {"b": b})
-
-    # We must not break backwards compatibility. We test every type we
-    # support that it keeps producing the same schema.
-    import json
-    from pathlib import Path
 
     # These files should not be update automatically
     fname = Path(__file__).parent / f"schemas/{dtype}.json"
@@ -88,11 +88,11 @@ def test_schema_against_snapshots(dtype):
     # deliberate update to the schema.
     update = False
     if update:
+        # Ensure a stable order
+        metadata = sorted(mp.metadata_props, key=lambda el: el.key)
         with open(fname, "w+") as f:
             json.dump(
-                json.loads(
-                    {el.key: el.value for el in mp.metadata_props}["ndonnx_schema"]
-                ),
+                json.loads({el.key: el.value for el in metadata}["ndonnx_schema"]),
                 f,
                 indent=4,
             )

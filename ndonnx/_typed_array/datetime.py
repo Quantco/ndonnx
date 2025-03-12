@@ -62,18 +62,9 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
             return self
         return NotImplemented
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self.unit}]"
-
     def __ndx_argument__(self, shape: OnnxShape) -> TIMEARRAY_co:
         data = onnx.int64.__ndx_argument__(shape)
         return self._build(data=data)
-
-    @property
-    def __ndx_infov1__(self) -> DTypeInfoV1:
-        return DTypeInfoV1(
-            author="ndonnx", type_name=self.__class__.__name__, meta={"unit": self.unit}
-        )
 
     def __ndx_arange__(
         self,
@@ -104,9 +95,18 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
         return self._build(data=data)
 
 
-class DateTime(BaseTimeDType["TyArrayDateTime"]):
+class DateTime64DType(BaseTimeDType["TyArrayDateTime"]):
     def _build(self, data: onnx.TyArrayInt64) -> TyArrayDateTime:
         return TyArrayDateTime(data=data, unit=self.unit)
+
+    @property
+    def __ndx_infov1__(self) -> DTypeInfoV1:
+        return DTypeInfoV1(
+            author="ndonnx", type_name="datetime64", meta={"unit": self.unit}
+        )
+
+    def __repr__(self) -> str:
+        return f"datetime64[{self.unit}]"
 
     def __ndx_create__(
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
@@ -118,7 +118,7 @@ class DateTime(BaseTimeDType["TyArrayDateTime"]):
                 raise ValueError(
                     "cannot create datetime with unit count other than '1'"
                 )
-            return astyarray(val.astype(np.int64)).astype(DateTime(unit=unit))
+            return astyarray(val.astype(np.int64)).astype(DateTime64DType(unit=unit))
         elif isinstance(val, TyArrayDateTime):
             return val.copy()
         elif isinstance(val, int) or (
@@ -129,7 +129,19 @@ class DateTime(BaseTimeDType["TyArrayDateTime"]):
             raise ValueError(f"Unable to create an array with dtype {self} from {val}")
 
 
-class TimeDelta(BaseTimeDType["TyArrayTimeDelta"]):
+class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
+    def _build(self, data: onnx.TyArrayInt64) -> TyArrayTimeDelta:
+        return TyArrayTimeDelta(data=data, unit=self.unit)
+
+    @property
+    def __ndx_infov1__(self) -> DTypeInfoV1:
+        return DTypeInfoV1(
+            author="ndonnx", type_name="timedelta64", meta={"unit": self.unit}
+        )
+
+    def __repr__(self) -> str:
+        return f"timedelta64[{self.unit}]"
+
     def __ndx_create__(
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TyArrayTimeDelta:
@@ -140,16 +152,13 @@ class TimeDelta(BaseTimeDType["TyArrayTimeDelta"]):
                 raise ValueError(
                     "cannot create datetime with unit count other than '1'"
                 )
-            return astyarray(val.astype(np.int64)).astype(TimeDelta(unit=unit))
+            return astyarray(val.astype(np.int64)).astype(TimeDelta64DType(unit=unit))
         elif isinstance(val, int) or (
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
             return onnx.int64.__ndx_create__(val).astype(self)
         else:
             raise ValueError(f"Unable to create an array with dtype {self} from {val}")
-
-    def _build(self, data: onnx.TyArrayInt64) -> TyArrayTimeDelta:
-        return TyArrayTimeDelta(data=data, unit=self.unit)
 
 
 class TimeBaseArray(TyArrayBase):
@@ -340,14 +349,14 @@ class TimeBaseArray(TyArrayBase):
 
 
 class TyArrayTimeDelta(TimeBaseArray):
-    _dtype: TimeDelta
+    _dtype: TimeDelta64DType
 
     def __init__(self, data: onnx.TyArrayInt64, unit: Unit):
         self._data = safe_cast(onnx.TyArrayInt64, data)
-        self._dtype = TimeDelta(unit)
+        self._dtype = TimeDelta64DType(unit)
 
     @property
-    def dtype(self) -> TimeDelta:
+    def dtype(self) -> TimeDelta64DType:
         return self._dtype
 
     def __ndx_cast_to__(
@@ -357,7 +366,7 @@ class TyArrayTimeDelta(TimeBaseArray):
             # Disallow casting to smaller integer types since that
             # would cause an overflow for NaT values
             return self._data.astype(dtype)
-        if isinstance(dtype, TimeDelta):
+        if isinstance(dtype, TimeDelta64DType):
             # TODO: Figure out why pyright does not like the below
             return _convert_unit(self, dtype)  # type: ignore
 
@@ -443,14 +452,14 @@ class TyArrayTimeDelta(TimeBaseArray):
 
 
 class TyArrayDateTime(TimeBaseArray):
-    _dtype: DateTime
+    _dtype: DateTime64DType
 
     def __init__(self, data: onnx.TyArrayInt64, unit: Unit):
         self._data = safe_cast(onnx.TyArrayInt64, data)
-        self._dtype = DateTime(unit)
+        self._dtype = DateTime64DType(unit)
 
     @property
-    def dtype(self) -> DateTime:
+    def dtype(self) -> DateTime64DType:
         return self._dtype
 
     def unwrap_numpy(self) -> np.ndarray:
@@ -470,7 +479,7 @@ class TyArrayDateTime(TimeBaseArray):
             # would cause an overflow for NaT values
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self._data)
             return data.astype(dtype)  # type: ignore
-        if isinstance(dtype, DateTime):
+        if isinstance(dtype, DateTime64DType):
             return _convert_unit(self, dtype)
         return NotImplemented
 
@@ -488,7 +497,7 @@ class TyArrayDateTime(TimeBaseArray):
         if isinstance(other, int):
             other = astyarray(other, dtype=onnx.int64)
         if isinstance(other, onnx.TyArrayInt64):
-            other = other.astype(TimeDelta(unit=self.dtype.unit))
+            other = other.astype(TimeDelta64DType(unit=self.dtype.unit))
         if isinstance(other, TyArrayTimeDelta):
             return other
         return NotImplemented
@@ -501,7 +510,7 @@ class TyArrayDateTime(TimeBaseArray):
         if isinstance(other, int):
             other = astyarray(other, dtype=onnx.int64)
         if isinstance(other, onnx.TyArrayInt64):
-            other = other.astype(DateTime(unit=self.dtype.unit))
+            other = other.astype(DateTime64DType(unit=self.dtype.unit))
         if isinstance(other, TyArrayDateTime):
             return other
         return NotImplemented
@@ -526,7 +535,7 @@ class TyArrayDateTime(TimeBaseArray):
 
     def _sub(self, other, forward: bool):
         if isinstance(other, int):
-            other_ = TimeDelta(self.dtype.unit)._build(
+            other_ = TimeDelta64DType(self.dtype.unit)._build(
                 astyarray(other, dtype=onnx.int64)
             )
             return self - other_ if forward else other_ - self

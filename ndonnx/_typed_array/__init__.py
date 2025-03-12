@@ -5,13 +5,13 @@ from __future__ import annotations
 from .typed_array import TyArrayBase
 from .funcs import astyarray, maximum, minimum, result_type, where
 from .utils import safe_cast, promote
-from . import masked_onnx, onnx, date_time, categorical
+from . import masked_onnx, onnx, datetime, categorical
 
 __all__ = [
     "TyArrayBase",
     "astyarray",
     "categorical",
-    "date_time",
+    "datetime",
     "masked_onnx",
     "maximum",
     "minimum",

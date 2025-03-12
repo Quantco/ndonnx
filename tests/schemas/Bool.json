@@ -2,14 +2,14 @@
     "input_schema": {
         "a": {
             "author": "ndonnx",
-            "type_name": "Bool",
+            "type_name": "bool",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
             "author": "ndonnx",
-            "type_name": "Bool",
+            "type_name": "bool",
             "meta": null
         }
     },

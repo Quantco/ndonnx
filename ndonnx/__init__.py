@@ -47,7 +47,7 @@ from ._typed_array.masked_onnx import (
     nbool,
     as_nullable,
 )
-from ._typed_array.date_time import DateTime, TimeDelta
+from ._typed_array.datetime import DateTime64DType, TimeDelta64DType
 from ._typed_array.object_dtype import object_dtype
 from ._funcs import (
     expm1,
@@ -352,8 +352,8 @@ __all__ = [
     "zeros_like",
     # Non-standard items
     "build",
-    "DateTime",
-    "TimeDelta",
+    "DateTime64DType",
+    "TimeDelta64DType",
     "object_dtype",
     "Array",
     "array",

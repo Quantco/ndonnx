@@ -1,17 +1,17 @@
 {
-    "version": 1,
     "input_schema": {
         "a": {
-            "type_name": "UInt8",
             "author": "ndonnx",
+            "type_name": "uint8",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
-            "type_name": "UInt8",
             "author": "ndonnx",
+            "type_name": "uint8",
             "meta": null
         }
-    }
+    },
+    "version": 1
 }

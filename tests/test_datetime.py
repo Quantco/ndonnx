@@ -9,7 +9,7 @@ import pytest
 
 import ndonnx as ndx
 from ndonnx._dtypes import from_numpy
-from ndonnx._typed_array.date_time import Unit
+from ndonnx._typed_array.datetime import Unit
 
 from .utils import assert_equal_dtype_shape
 
@@ -17,19 +17,19 @@ _NAT_SENTINEL = np.iinfo(np.int64).min
 
 
 @pytest.mark.parametrize("unit", get_args(Unit))
-@pytest.mark.parametrize("cls", [ndx.DateTime, ndx.TimeDelta])
+@pytest.mark.parametrize("cls", [ndx.DateTime64DType, ndx.TimeDelta64DType])
 def test_dtype_constructor_valid_units(unit, cls):
     cls(unit=unit)
 
 
-@pytest.mark.parametrize("cls", [ndx.DateTime, ndx.TimeDelta])
+@pytest.mark.parametrize("cls", [ndx.DateTime64DType, ndx.TimeDelta64DType])
 def test_dtype_constructor_invalid_unit(cls):
     with pytest.raises(TypeError):
         cls(unit="foo")
 
 
 def test_value_prop_datetime():
-    arr = ndx.asarray(np.asarray([1, 2])).astype(ndx.DateTime("s"))
+    arr = ndx.asarray(np.asarray([1, 2])).astype(ndx.DateTime64DType("s"))
     np.testing.assert_equal(
         arr.unwrap_numpy(), np.asarray([1, 2], dtype="datetime64[s]")
     )
@@ -41,7 +41,7 @@ def test_arithmetic():
     one_s_td = (arr + 1) - arr
     one_s_td_np = (arr_np + 1) - arr_np
 
-    assert one_s_td.dtype == ndx.TimeDelta("s")
+    assert one_s_td.dtype == ndx.TimeDelta64DType("s")
     np.testing.assert_array_equal(one_s_td.unwrap_numpy(), one_s_td_np, strict=True)
 
 
@@ -57,7 +57,7 @@ def test_datetime_from_np_array(ty, unit):
     "scalar, dtype, res_dtype",
     [
         # TODO: Implement other units
-        (1, ndx.DateTime("s"), ndx.DateTime("s")),
+        (1, ndx.DateTime64DType("s"), ndx.DateTime64DType("s")),
     ],
 )
 def test_add_pyscalar_datetime(scalar, dtype, res_dtype):
@@ -80,9 +80,9 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype):
 def test_arithmetic_pyscalar_timedelta(op):
     shape = ("N",)
     scalar = 1
-    arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
+    arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta64DType("s"))
 
-    expected_dtype = ndx.TimeDelta("s")
+    expected_dtype = ndx.TimeDelta64DType("s")
     assert_equal_dtype_shape(op(scalar, arr), expected_dtype, shape)
     assert_equal_dtype_shape(op(arr, scalar), expected_dtype, shape)
 
@@ -96,19 +96,19 @@ def test_arithmetic_pyscalar_timedelta(op):
 )
 def test_arithmetic_timedelta_timedelta(op):
     shape = ("N",)
-    arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
+    arr = ndx.Array(shape=shape, dtype=ndx.TimeDelta64DType("s"))
 
-    expected_dtype = ndx.TimeDelta("s")
+    expected_dtype = ndx.TimeDelta64DType("s")
     assert_equal_dtype_shape(op(arr, arr), expected_dtype, shape)
     assert_equal_dtype_shape(op(arr, arr), expected_dtype, shape)
 
 
 def test_arithmetic_timedelta_datetime_lazy():
     shape = ("N",)
-    arr_dt = ndx.Array(shape=shape, dtype=ndx.DateTime("s"))
-    arr_td = ndx.Array(shape=shape, dtype=ndx.TimeDelta("s"))
+    arr_dt = ndx.Array(shape=shape, dtype=ndx.DateTime64DType("s"))
+    arr_td = ndx.Array(shape=shape, dtype=ndx.TimeDelta64DType("s"))
 
-    expected_dtype = ndx.DateTime("s")
+    expected_dtype = ndx.DateTime64DType("s")
     assert_equal_dtype_shape(arr_dt + arr_td, expected_dtype, shape)
     assert_equal_dtype_shape(arr_td + arr_dt, expected_dtype, shape)
 

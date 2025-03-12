@@ -274,7 +274,7 @@ def test_string_arrays(value, string_dtype):
 
 
 def test_repr_eager():
-    assert "array(data: [1], shape=(1,), dtype=Int64)" == str(
+    assert "array(data: [1], shape=(1,), dtype=int64)" == str(
         ndx.asarray(np.array([1], np.int64))
     )
     assert "array(data: [1], mask: None, shape=(1,), dtype=NInt64)" == str(
@@ -286,7 +286,7 @@ def test_repr_eager():
 
 
 def test_repr_lazy():
-    assert "array(data: *lazy*, shape=('N',), dtype=Int64)" == str(
+    assert "array(data: *lazy*, shape=('N',), dtype=int64)" == str(
         ndx.Array(shape=("N",), dtype=ndx.int64)
     )
     assert "array(data: *lazy*, mask: *lazy*, shape=('N',), dtype=NInt64)" == str(
@@ -304,7 +304,7 @@ def test_schema_v1():
     # Schema as used prior to the rewrite
     expected = {
         "input_schema": {
-            "a": {"author": "ndonnx", "meta": None, "type_name": "Int64"},
+            "a": {"author": "ndonnx", "meta": None, "type_name": "int64"},
             "b": {"author": "ndonnx", "meta": None, "type_name": "NInt64"},
         },
         "output_schema": {
@@ -480,9 +480,9 @@ def test_broadcast_shapes(arrays):
 
 
 def test_array_repr_lazy():
-    arr = ndx.Array(shape=("N",), dtype=ndx.DateTime("s"))
+    arr = ndx.Array(shape=("N",), dtype=ndx.DateTime64DType("s"))
     res = repr(arr)
-    assert res == "array(data: *lazy*, shape=('N',), dtype=DateTime[s])"
+    assert res == "array(data: *lazy*, shape=('N',), dtype=datetime64[s])"
 
 
 @pytest.mark.parametrize("shape", [(3, 4), (1,), ()])
