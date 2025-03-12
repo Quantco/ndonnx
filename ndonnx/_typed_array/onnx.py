@@ -111,7 +111,10 @@ class _OnnxDType(DType[TY_ARRAY_co]):
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
-        return DTypeInfoV1(author="ndonnx", type_name=str(self), meta=None)
+        # TODO: Follow numpy naming scheme for v2!
+        return DTypeInfoV1(
+            author="ndonnx", type_name=self.__class__.__name__, meta=None
+        )
 
     def __ndx_arange__(
         self,
@@ -184,6 +187,11 @@ class Utf8(_OnnxDType["TyArrayUtf8"]):
 class Bool(_OnnxDType["TyArrayBool"]):
     def _build(self, var: Var) -> TyArrayBool:
         return TyArrayBool(var)
+
+    @property
+    def __ndx_infov1__(self) -> DTypeInfoV1:
+        # Override to be compatible with the existing schema
+        return DTypeInfoV1(author="ndonnx", type_name="Boolean", meta=None)
 
 
 class Integer(_Number[TY_ARRAY_co]): ...

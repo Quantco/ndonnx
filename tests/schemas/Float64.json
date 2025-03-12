@@ -2,14 +2,14 @@
     "input_schema": {
         "a": {
             "author": "ndonnx",
-            "type_name": "float64",
+            "type_name": "Float64",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
             "author": "ndonnx",
-            "type_name": "float64",
+            "type_name": "Float64",
             "meta": null
         }
     },

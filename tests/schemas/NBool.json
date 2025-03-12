@@ -2,14 +2,14 @@
     "input_schema": {
         "a": {
             "author": "ndonnx",
-            "type_name": "NBool",
+            "type_name": "NBoolean",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
             "author": "ndonnx",
-            "type_name": "NBool",
+            "type_name": "NBoolean",
             "meta": null
         }
     },

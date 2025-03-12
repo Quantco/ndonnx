@@ -62,6 +62,9 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
                 self
             )
 
+    def __str__(self) -> str:
+        return type(self).__name__.lower()
+
     @abstractmethod
     def _build(
         self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
@@ -150,7 +153,7 @@ class NUtf8(_MaOnnxDType):
         return TyMaArrayString(data, mask)
 
 
-class NBoolean(_MaOnnxDType):
+class NBool(_MaOnnxDType):
     _unmasked_dtype = onnx.bool_
 
     def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
@@ -160,6 +163,11 @@ class NBoolean(_MaOnnxDType):
         self, data: onnx.TyArray, mask: onnx.TyArrayBool | None
     ) -> TyMaArrayBool:
         return TyMaArrayBool(data, mask)
+
+    @property
+    def __ndx_infov1__(self) -> DTypeInfoV1:
+        # Override to be compatible with the existing schema
+        return DTypeInfoV1(author="ndonnx", type_name="NBoolean", meta=None)
 
 
 class NInt8(_NNumber):
@@ -262,7 +270,7 @@ class NFloat64(_NNumber):
 
 
 # Nullable Singleton instances
-nbool = NBoolean()
+nbool = NBool()
 
 nfloat16 = NFloat16()
 nfloat32 = NFloat32()
@@ -291,7 +299,7 @@ NCoreFloatingDTypes = NFloat16 | NFloat32 | NFloat64
 
 NCoreNumericDTypes = NCoreFloatingDTypes | NCoreIntegerDTypes
 
-NCoreDTypes = NBoolean | NCoreNumericDTypes | NUtf8
+NCoreDTypes = NBool | NCoreNumericDTypes | NUtf8
 
 
 def _make_binary_pair(
@@ -719,7 +727,7 @@ class TyMaArrayFloating(TyMaArrayNumber):
 
 class TyMaArrayBool(TyMaArray):
     @property
-    def dtype(self) -> NBoolean:
+    def dtype(self) -> NBool:
         return nbool
 
     __invert__ = _make_unary_member_same_type("__invert__")  # type: ignore

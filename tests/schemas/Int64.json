@@ -2,14 +2,14 @@
     "input_schema": {
         "a": {
             "author": "ndonnx",
-            "type_name": "int64",
+            "type_name": "Int64",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
             "author": "ndonnx",
-            "type_name": "int64",
+            "type_name": "Int64",
             "meta": null
         }
     },

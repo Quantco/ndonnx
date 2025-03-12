@@ -2,14 +2,14 @@
     "input_schema": {
         "a": {
             "author": "ndonnx",
-            "type_name": "utf8",
+            "type_name": "Utf8",
             "meta": null
         }
     },
     "output_schema": {
         "b": {
             "author": "ndonnx",
-            "type_name": "utf8",
+            "type_name": "Utf8",
             "meta": null
         }
     },

@@ -277,10 +277,10 @@ def test_repr_eager():
     assert "array(data: [1], shape=(1,), dtype=int64)" == str(
         ndx.asarray(np.array([1], np.int64))
     )
-    assert "array(data: [1], mask: None, shape=(1,), dtype=NInt64)" == str(
+    assert "array(data: [1], mask: None, shape=(1,), dtype=nint64)" == str(
         ndx.asarray(np.ma.array([1], np.int64))
     )
-    assert "array(data: [1], mask: [True], shape=(1,), dtype=NInt64)" == str(
+    assert "array(data: [1], mask: [True], shape=(1,), dtype=nint64)" == str(
         ndx.asarray(np.ma.array([1], mask=[True], dtype=np.int64))
     )
 
@@ -289,7 +289,7 @@ def test_repr_lazy():
     assert "array(data: *lazy*, shape=('N',), dtype=int64)" == str(
         ndx.Array(shape=("N",), dtype=ndx.int64)
     )
-    assert "array(data: *lazy*, mask: *lazy*, shape=('N',), dtype=NInt64)" == str(
+    assert "array(data: *lazy*, mask: *lazy*, shape=('N',), dtype=nint64)" == str(
         ndx.Array(shape=("N",), dtype=ndx.nint64)
     )
 
@@ -304,7 +304,7 @@ def test_schema_v1():
     # Schema as used prior to the rewrite
     expected = {
         "input_schema": {
-            "a": {"author": "ndonnx", "meta": None, "type_name": "int64"},
+            "a": {"author": "ndonnx", "meta": None, "type_name": "Int64"},
             "b": {"author": "ndonnx", "meta": None, "type_name": "NInt64"},
         },
         "output_schema": {
