@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from .onnx import TyArrayInt64
 
 
-_N_MAX_CATEGORIES = np.iinfo(np.uint16).max
+_N_MAX_CATEGORIES = np.iinfo(np.int16).max
 
 
 class CategoricalDType(DType["CategoricalArray"]):
@@ -56,7 +56,7 @@ class CategoricalDType(DType["CategoricalArray"]):
             raise ValueError("provided categories must be unique")
         if not all(isinstance(el, str) for el in categories):
             raise TypeError("provided categories must all be of type 'str'")
-        # TODO: Use uint8 if we have fewer categories. For now, uint8
+        # TODO: Use int8 if we have fewer categories. For now, int8
         # support may be too limited in onnxruntime to provide a
         # benefit.
         if len(categories) >= _N_MAX_CATEGORIES:
@@ -79,10 +79,7 @@ class CategoricalDType(DType["CategoricalArray"]):
             raise NotImplementedError
 
         encoding = {k: i for i, k in enumerate(self.categories)}
-        # TODO: Add possibility to specify value dtype of
-        # `static_map`. At the moment, this would give us no practical
-        # benefit due to lacking support in onnxruntime, though.
-        codes = arr.apply_mapping(encoding, default=-1).astype(onnx.uint16)
+        codes = arr.apply_mapping(encoding, default=-1).astype(onnx.int16)
 
         return CategoricalArray(codes=codes, dtype=self)
 
@@ -95,7 +92,7 @@ class CategoricalDType(DType["CategoricalArray"]):
         return f"{self.__class__.__name__}(categories={self.categories}, ordered={self._ordered})"
 
     def __ndx_argument__(self, shape: OnnxShape) -> CategoricalArray:
-        codes = onnx.uint16.__ndx_argument__(shape)
+        codes = onnx.int16.__ndx_argument__(shape)
         return CategoricalArray(codes, dtype=self)
 
     @property
@@ -110,9 +107,9 @@ class CategoricalDType(DType["CategoricalArray"]):
 class CategoricalArray(TyArrayBase):
     _dtype: CategoricalDType
     # TODO: Flexible data type?
-    _codes: onnx.TyArrayUInt16
+    _codes: onnx.TyArrayInt16
 
-    def __init__(self, codes: onnx.TyArrayUInt16, dtype: CategoricalDType):
+    def __init__(self, codes: onnx.TyArrayInt16, dtype: CategoricalDType):
         self._codes = codes
         self._dtype = dtype
 
@@ -239,6 +236,6 @@ class CategoricalArray(TyArrayBase):
         The returned array has the ``object`` data type.
         """
         objs = self._to_categories().unwrap_numpy().astype(object)
-        objs[self._codes.unwrap_numpy() == _N_MAX_CATEGORIES] = np.nan
+        objs[self._codes.unwrap_numpy() == -1] = np.nan
 
         return objs
