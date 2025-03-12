@@ -353,7 +353,9 @@ class TyArrayTimeDelta(TimeBaseArray):
     def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
-        if isinstance(dtype, onnx.IntegerDTypes):
+        if isinstance(dtype, onnx.Int64):
+            # Disallow casting to smaller integer types since that
+            # would cause an overflow for NaT values
             return self._data.astype(dtype)
         if isinstance(dtype, TimeDelta):
             # TODO: Figure out why pyright does not like the below
@@ -463,7 +465,9 @@ class TyArrayDateTime(TimeBaseArray):
         self, dtype: DType[TY_ARRAY_BASE]
     ) -> TY_ARRAY_BASE | NotImplementedType:
         # TODO: Figure out why mypy/pyright don't like this method
-        if isinstance(dtype, onnx.IntegerDTypes):
+        if isinstance(dtype, onnx.Int64):
+            # Disallow casting to smaller integer types since that
+            # would cause an overflow for NaT values
             data = where(self.is_nat, astyarray(np.iinfo(np.int64).min), self._data)
             return data.astype(dtype)  # type: ignore
         if isinstance(dtype, DateTime):
@@ -647,13 +651,14 @@ def _convert_unit(arr: TimeBaseArray, new: BaseTimeDType[TIMEARRAY_co]) -> TIMEA
         "ns": 9,
     }
     power = powers[new_unit] - powers[old_unit]  # type: ignore
-    data = where(arr.is_nat, astyarray(np.iinfo(np.int64).min), arr._data)
+    if powers == 0:
+        return arr.copy()  # type: ignore
+    elif power > 0:
+        data = arr._data * np.pow(10, power)
+    else:
+        data = arr._data // np.pow(10, abs(power))
 
-    if power > 0:
-        data = data * np.pow(10, power)
-    if power < 0:
-        data = data // np.pow(10, abs(power))
-
+    data = where(arr.is_nat, astyarray(np.iinfo(np.int64).min), data)
     data = safe_cast(onnx.TyArrayInt64, data)
 
     return new._build(data=data)

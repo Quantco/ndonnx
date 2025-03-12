@@ -487,10 +487,9 @@ class TyMaArray(TyMaArrayBase):
             self.mask.put(key, value.mask)
 
     def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
-        # Implemented under the assumption that we know about `onnx`, but not py_scalars
         if isinstance(dtype, onnx._OnnxDType):
             # Not clear what the behavior should be if we have a mask
-            raise NotImplementedError
+            return NotImplemented
         elif isinstance(dtype, _MaOnnxDType):
             new_data = self.data.astype(dtype._unmasked_dtype)
             dtype._build(data=new_data, mask=self.mask)

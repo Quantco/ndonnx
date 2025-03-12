@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 import ndonnx as ndx
+from ndonnx._dtypes import from_numpy
 from ndonnx._typed_array.date_time import Unit
 
 from .utils import assert_equal_dtype_shape
@@ -303,3 +304,37 @@ def test_day_month_year(date):
     np.testing.assert_array_equal(y.unwrap_numpy(), np_y)
     np.testing.assert_array_equal(m.unwrap_numpy(), np_m)
     np.testing.assert_array_equal(d.unwrap_numpy(), np_d)
+
+
+@pytest.mark.parametrize("from_unit", ["s", "ns"])
+@pytest.mark.parametrize("to_unit", ["s", "ns"])
+@pytest.mark.parametrize("time_dtype", ["datetime64", "timedelta64"])
+def test_unit_conversion_preserves_nat(from_unit, to_unit, time_dtype):
+    arr = ndx.asarray(np.asarray(["NaT"], f"{time_dtype}[{from_unit}]"))
+    ndx_to_dtype = from_numpy(np.dtype(f"{time_dtype}[{to_unit}]"))
+    assert ndx.isnan(arr.astype(ndx_to_dtype)).unwrap_numpy()
+
+
+@pytest.mark.parametrize("from_unit", ["s", "ns"])
+@pytest.mark.parametrize("to_unit", ["s", "ns"])
+@pytest.mark.parametrize("time_dtype", ["datetime64", "timedelta64"])
+def test_unit_conversion(from_unit, to_unit, time_dtype):
+    # make sure we are above 1e9 so that a conversion from ns to s is lossless
+    np_arr0 = np.asarray([int(1e12), -int(1e12)], f"{time_dtype}[{from_unit}]")
+    np_to_dtype = np.dtype(f"{time_dtype}[{to_unit}]")
+    np_arr1 = np_arr0.astype(np_to_dtype)
+    arr0 = ndx.asarray(np_arr0)
+    arr1 = arr0.astype(from_numpy(np_to_dtype))
+
+    np.testing.assert_array_equal(arr1.unwrap_numpy(), np_arr1, strict=True)
+
+
+@pytest.mark.parametrize("unit", ["s", "ns"])
+@pytest.mark.parametrize("time_dtype", ["datetime64", "timedelta64"])
+def test_round_trip_int64(unit, time_dtype):
+    arr = ndx.asarray(np.asarray([1_000_000, -1_000_000], f"{time_dtype}[{unit}]"))
+
+    ndx_dtype = from_numpy(np.dtype(f"{time_dtype}[{unit}]"))
+    np.testing.assert_array_equal(
+        (arr.astype(ndx.int64).astype(ndx_dtype) == arr).unwrap_numpy(), [True, True]
+    )

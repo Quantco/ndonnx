@@ -906,6 +906,9 @@ class TyArrayUtf8(TyArray):
 
         return NotImplemented
 
+    def isnan(self) -> TyArrayBool:
+        return astyarray(False, dtype=bool_).broadcast_to(self.dynamic_shape)
+
 
 class TyArrayNumber(TyArray):
     def _arg_minmax(
