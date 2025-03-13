@@ -92,7 +92,14 @@ def constant_indexing_model(mode: Literal["lazy", "constant"]):
         ),
         (
             arithmetic_model,
-            {"Identity", "Add", "Constant"},
+            {
+                "Identity",
+                "Add",
+                "Constant",
+                # Required to mitigate a segfault in onnxruntime for zero-size input:
+                "Unsqueeze",
+                "Squeeze",
+            },
         ),
         (
             # We should be blocked from any real constant propagation
@@ -104,6 +111,9 @@ def constant_indexing_model(mode: Literal["lazy", "constant"]):
                 "Mul",
                 "Add",
                 "Compress",
+                # Required to mitigate a segfault in onnxruntime for zero-size input:
+                "Unsqueeze",
+                "Squeeze",
             },
         ),
         (

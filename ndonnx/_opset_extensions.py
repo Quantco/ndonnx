@@ -9,13 +9,16 @@ from collections.abc import Mapping, Sequence
 from typing import TypeVar
 
 import numpy as np
-import spox.opset.ai.onnx.ml.v4 as ml
-import spox.opset.ai.onnx.v20 as op
 from spox import Var
 from spox._internal_op import unsafe_reshape
+from spox.opset.ai.onnx.v21 import einsum as spox_einsum
+from spox.opset.ai.onnx.v21 import eye_like as spox_eye_like
+from spox.opset.ai.onnx.v21 import gather_elements as spox_gather_elements
+from spox.opset.ai.onnx.v21 import split as spox_split
 
 import ndonnx._data_types as dtypes
 
+from . import _ort_compat as op
 from ._corearray import _CoreArray
 from ._index import ScalarIndexType
 from ._propagation import eager_propagate
@@ -122,7 +125,7 @@ def eye_like(
     input: _CoreArray, *, dtype: CoreType | None = None, k: int = 0
 ) -> _CoreArray:
     return _CoreArray(
-        op.eye_like(
+        spox_eye_like(
             input.var, dtype=dtype if dtype is None else dtype.to_numpy_dtype(), k=k
         )
     )
@@ -132,7 +135,7 @@ def eye_like(
 def gather_elements(
     data: _CoreArray, indices: _CoreArray, *, axis: int = 0
 ) -> _CoreArray:
-    return _CoreArray(op.gather_elements(data.var, indices.var, axis=axis))
+    return _CoreArray(spox_gather_elements(data.var, indices.var, axis=axis))
 
 
 @eager_propagate
@@ -420,7 +423,7 @@ def split(
     return tuple(
         map(
             _CoreArray,
-            op.split(
+            spox_split(
                 input.var,
                 split.var if split is not None else None,
                 num_outputs=num_outputs,
@@ -498,7 +501,7 @@ def tensordot(
 
     equation = f"{''.join(a_letters)},{''.join(b_letters)}->{''.join(joint_letters)}"
 
-    return _CoreArray(op.einsum([a.var, b.var], equation=equation))
+    return _CoreArray(spox_einsum([a.var, b.var], equation=equation))
 
 
 @eager_propagate
@@ -798,7 +801,7 @@ def static_map(
     elif keys.dtype.kind == "i" and isinstance(input.dtype, dtypes.Floating):
         keys = keys.astype(input.dtype.to_numpy_dtype())
     return _CoreArray(
-        ml.label_encoder(
+        op.label_encoder(
             input.var,
             keys_tensor=keys,
             values_tensor=values,
