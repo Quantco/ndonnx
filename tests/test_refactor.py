@@ -495,3 +495,25 @@ def test_dynamic_size(shape):
     (res,) = run(model, {"a": np_arr}).values()
 
     np.testing.assert_array_equal(res, np_arr.size)
+
+
+@pytest.mark.parametrize(
+    "shape1, shape2",
+    [
+        ((1,), (1,)),
+        ((1,), (1, 1)),
+        ((1, 1), (1,)),
+        ((1,), (1,)),
+        ((1,), (1, 1, 1)),
+        ((1, 1, 1), (1,)),
+    ],
+)
+@pytest.mark.parametrize("dtype", [np.int32])
+def test_matmul(shape1, shape2, dtype):
+    def do(npx):
+        a1 = npx.asarray(np.arange(0, np.prod(shape1), 1, dtype=dtype).reshape(shape1))
+        a2 = npx.asarray(np.arange(0, np.prod(shape2), 1, dtype=dtype).reshape(shape2))
+
+        return a1 @ a2
+
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)

@@ -21,7 +21,6 @@ from . import ort_compat as op
 from .indexing import (
     FancySlice,
     _key_to_indices,
-    _move_ellipsis_back,
     normalize_getitem_key,
 )
 
@@ -2099,3 +2098,25 @@ def _to_slice_kwargs(slices: list[FancySlice]) -> dict[str, Var]:
         op.const([i for i, el in enumerate(slices) if not el.is_noop()], np.int64)
     )._var
     return kw
+
+
+def _move_ellipsis_back(
+    ndim: int,
+    key: tuple[SetitemItem, ...],
+) -> tuple[tuple[int, ...], tuple[int, ...], tuple[SetitemItem, ...]]:
+    """Permute axes such that the ellipsis-axes are at the end."""
+
+    if ... not in key:
+        raise ValueError("No ellipsis found in 'key'")
+    ellipsis_pos = key.index(...)
+    current_dims = list(range(ndim))
+    ellipsis_len = ndim - (len(key) - 1)
+    new_perm = tuple(
+        current_dims[:ellipsis_pos]
+        + current_dims[ellipsis_pos + ellipsis_len :]
+        + current_dims[ellipsis_pos:][:ellipsis_len]
+    )
+    inverse_map = tuple(int(el) for el in np.argsort(new_perm))
+
+    keys_no_ellipsis = tuple(el for el in key if el != ...)
+    return new_perm, inverse_map, keys_no_ellipsis

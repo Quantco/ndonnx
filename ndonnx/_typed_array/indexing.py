@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 
-from . import astyarray, safe_cast, where
+from . import astyarray, ort_compat, safe_cast, where
 
 if TYPE_CHECKING:
     from .onnx import TyArrayBool, TyArrayInt64, TyArrayInteger
@@ -79,10 +79,10 @@ class FancySlice:
 
 
 def _asidx(obj: int | TyArrayInt64) -> TyArrayInt64:
-    from .onnx import TyArrayInt64
+    from . import onnx
 
     obj_ = np.array(obj, np.int64) if isinstance(obj, int) else obj
-    arr = safe_cast(TyArrayInt64, astyarray(obj_))
+    arr = astyarray(obj_, dtype=onnx.int64)
 
     if arr.ndim != 0:
         raise IndexError(f"expected scalar array but found array of rank `{arr.ndim}`")
@@ -123,20 +123,15 @@ def _compute_start_slice(
 def _compute_stop_slice(
     stop: int | TyArrayInt64 | None, step: int | TyArrayInt64 | None
 ) -> TyArrayInt64:
-    from .onnx import TyArrayBool, TyArrayInt64
+    from . import astyarray, onnx
 
     if stop is not None:
         return _asidx(stop)
     if step is None:
         step = 1
 
-    step = _asidx(step)
-
-    # The following abomination essentially reads as:
-    # `where(step < 1, _MIN, _MAX)`
-
-    is_reverse = safe_cast(TyArrayBool, step < _asidx(1))
-    return safe_cast(TyArrayInt64, where(is_reverse, _asidx(_MIN), _asidx(_MAX)))
+    is_reverse = astyarray(step < 1, dtype=onnx.bool_)
+    return where(is_reverse, _asidx(_MIN), _asidx(_MAX))
 
 
 def normalize_getitem_key(
@@ -205,7 +200,6 @@ def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArra
     # TODO: Allow dynamic inputs to DType.__ndx_arange__?
     import ndonnx as ndx
 
-    from . import ort_compat
     from .onnx import TyArrayInt64
 
     indices_per_dim = []
@@ -279,25 +273,3 @@ def _get_indices(
         safe_cast(TyArrayInt64, astyarray(el)) for el in [start, stop, step]
     )
     return (start_, stop_, step_)
-
-
-def _move_ellipsis_back(
-    ndim: int,
-    key: tuple[SetitemItem, ...],
-) -> tuple[tuple[int, ...], tuple[int, ...], tuple[SetitemItem, ...]]:
-    """Permute axes such that the ellipsis-axes are at the end."""
-
-    if ... not in key:
-        raise ValueError("No ellipsis found in 'key'")
-    ellipsis_pos = key.index(...)
-    current_dims = list(range(ndim))
-    ellipsis_len = ndim - (len(key) - 1)
-    new_perm = tuple(
-        current_dims[:ellipsis_pos]
-        + current_dims[ellipsis_pos + ellipsis_len :]
-        + current_dims[ellipsis_pos:][:ellipsis_len]
-    )
-    inverse_map = tuple(int(el) for el in np.argsort(new_perm))
-
-    keys_no_ellipsis = tuple(el for el in key if el != ...)
-    return new_perm, inverse_map, keys_no_ellipsis

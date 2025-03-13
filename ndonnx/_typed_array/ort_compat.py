@@ -701,7 +701,7 @@ def matmul(
     A: Var,
     B: Var,
 ) -> Var:
-    # This is "compat" function actually extends the ONNX standard to also allow for smaller integer data types.
+    # This "compat" function actually extends the ONNX standard to also allow for smaller integer data types.
 
     # ORT support: tensor(double), tensor(float), tensor(int32), tensor(int64), tensor(uint32), tensor(uint64)
 

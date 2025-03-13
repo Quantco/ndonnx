@@ -13,4 +13,5 @@ def warn_when_prop_fails():
 
 @pytest.fixture(autouse=True)
 def use_spox_ort_value_prop():
+    # TODO: parametrize over the reference runtime and onnxruntime once the former becomes more mature.
     _value_prop._VALUE_PROP_BACKEND = _value_prop.ValuePropBackend.ONNXRUNTIME

@@ -6,11 +6,8 @@ import pytest
 
 import ndonnx as ndx
 from ndonnx import _typed_array as tydx
-from ndonnx._typed_array.indexing import (
-    _get_indices,
-    _key_to_indices,
-    _move_ellipsis_back,
-)
+from ndonnx._typed_array.indexing import _get_indices, _key_to_indices
+from ndonnx._typed_array.onnx import _move_ellipsis_back
 
 
 @pytest.mark.parametrize(
