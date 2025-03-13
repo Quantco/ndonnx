@@ -8,7 +8,7 @@ on:
   # to the main branch and tags.
   push:
     branches:
-      - "main"
+      - "*"
     tags:
       - "*"
   schedule:
@@ -44,8 +44,8 @@ jobs:
       - name: Upload Array API tests report
         uses: actions/upload-artifact@v4
         with:
-          name: api-coverage-tests
-          path: api-coverage-tests.json
+          name: array-api-tests
+          path: array-api-tests.json
       - name: Issue on failure
         uses: actions/github-script@v7
         if: ${{ failure() && github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
