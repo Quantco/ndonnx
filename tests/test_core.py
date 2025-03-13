@@ -618,8 +618,6 @@ def test_prod_unsigned(dtype):
 @pytest.mark.parametrize(
     "dtype",
     [
-        ndx.float64,
-        ndx.nfloat64,
         ndx.uint64,
         ndx.nuint64,
     ],

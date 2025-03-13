@@ -8,7 +8,7 @@ import functools
 import operator
 import warnings
 from collections import namedtuple
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -29,12 +29,10 @@ from ._utils import (
     unary_op,
     validate_core,
     variadic_op,
-    via_upcast,
 )
 
 if TYPE_CHECKING:
     from ndonnx import Array
-    from ndonnx._corearray import _CoreArray
 
 
 class _NumericOperationsImpl(OperationsBlock):
@@ -46,27 +44,27 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def acos(self, x):
-        return unary_op(x, opx.acos, dtypes.float32)
+        return unary_op(x, opx.acos)
 
     @validate_core
     def acosh(self, x):
-        return unary_op(x, opx.acosh, dtypes.float32)
+        return unary_op(x, opx.acosh)
 
     @validate_core
     def add(self, x, y) -> ndx.Array:
-        return _via_i64_f64(opx.add, [x, y])
+        return variadic_op([x, y], opx.add)
 
     @validate_core
     def asin(self, x):
-        return unary_op(x, opx.asin, dtypes.float32)
+        return unary_op(x, opx.asin)
 
     @validate_core
     def asinh(self, x):
-        return unary_op(x, opx.asinh, dtypes.float32)
+        return unary_op(x, opx.asinh)
 
     @validate_core
     def atan(self, x):
-        return unary_op(x, opx.atan, dtypes.float32)
+        return unary_op(x, opx.atan)
 
     @validate_core
     def atan2(self, y, x):
@@ -74,7 +72,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def atanh(self, x):
-        return unary_op(x, opx.atanh, dtypes.float32)
+        return unary_op(x, opx.atanh)
 
     @validate_core
     def bitwise_and(self, x, y):
@@ -83,9 +81,7 @@ class _NumericOperationsImpl(OperationsBlock):
     # TODO: ONNX standard -> not cyclic
     @validate_core
     def bitwise_left_shift(self, x, y):
-        return binary_op(
-            x, y, lambda a, b: opx.bit_shift(a, b, direction="LEFT"), dtypes.uint64
-        )
+        return binary_op(x, y, lambda a, b: opx.bit_shift(a, b, direction="LEFT"))
 
     @validate_core
     def bitwise_invert(self, x):
@@ -99,9 +95,7 @@ class _NumericOperationsImpl(OperationsBlock):
     def bitwise_right_shift(self, x, y):
         # Since we need to perform arithmetic right-shift we have to be a bit more careful
         if isinstance(x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)):
-            return binary_op(
-                x, y, lambda a, b: opx.bit_shift(a, b, direction="RIGHT"), dtypes.uint64
-            )
+            return binary_op(x, y, lambda a, b: opx.bit_shift(a, b, direction="RIGHT"))
         elif isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral)):
             MAX_POW = 63
             pow2 = ndx.pow(ndx.asarray(2, ndx.int64), ndx.where(y > MAX_POW, 0, y))
@@ -120,16 +114,16 @@ class _NumericOperationsImpl(OperationsBlock):
     @validate_core
     def ceil(self, x):
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return unary_op(x, opx.ceil, dtypes.float64)
+            return unary_op(x, opx.ceil)
         return ndx.asarray(x, copy=False)
 
     @validate_core
     def cos(self, x):
-        return unary_op(x, opx.cos, dtypes.float32)
+        return unary_op(x, opx.cos)
 
     @validate_core
     def cosh(self, x):
-        return unary_op(x, opx.cosh, dtypes.float32)
+        return unary_op(x, opx.cosh)
 
     @validate_core
     def divide(self, x, y):
@@ -146,13 +140,16 @@ class _NumericOperationsImpl(OperationsBlock):
             if bits > 32 or x.dtype in (dtypes.nuint32, dtypes.uint32)
             else dtypes.float32
         )
-        return variadic_op([x, y], opx.div, via_dtype=via_dtype, cast_return=False)
+        if isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral)):
+            # Want to return floating points from this operation
+            x, y = x.astype(via_dtype), y.astype(via_dtype)
+        return variadic_op([x, y], opx.div)
 
     @validate_core
     def equal(self, x, y) -> Array:
         x, y = promote(x, y)
         if isinstance(x.dtype, (dtypes.Integral, dtypes.NullableIntegral)):
-            return variadic_op([x, y], opx.equal, dtypes.int64, cast_return=False)
+            return variadic_op([x, y], opx.equal)
         else:
             return binary_op(x, y, opx.equal)
 
@@ -162,7 +159,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def exp(self, x):
-        return unary_op(x, opx.exp, dtypes.float32)
+        return unary_op(x, opx.exp)
 
     @validate_core
     def expm1(self, x):
@@ -172,7 +169,7 @@ class _NumericOperationsImpl(OperationsBlock):
     def floor(self, x):
         x = ndx.asarray(x)
         if isinstance(x.dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            return unary_op(x, opx.floor, dtypes.float64)
+            return unary_op(x, opx.floor)
         return x
 
     @validate_core
@@ -194,11 +191,11 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def greater(self, x, y):
-        return _via_i64_f64(opx.greater, [x, y], cast_return=False)
+        return variadic_op([x, y], opx.greater)
 
     @validate_core
     def greater_equal(self, x, y):
-        return _via_i64_f64(opx.greater_or_equal, [x, y], cast_return=False)
+        return variadic_op([x, y], opx.greater_or_equal)
 
     @validate_core
     def isfinite(self, x):
@@ -219,15 +216,15 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def less(self, x, y):
-        return _via_i64_f64(opx.less, [x, y], cast_return=False)
+        return variadic_op([x, y], opx.less)
 
     @validate_core
     def less_equal(self, x, y):
-        return _via_i64_f64(opx.less_or_equal, [x, y], cast_return=False)
+        return variadic_op([x, y], opx.less_or_equal)
 
     @validate_core
     def log(self, x):
-        return unary_op(x, opx.log, dtypes.float64)
+        return unary_op(x, opx.log)
 
     @validate_core
     def log1p(self, x):
@@ -249,24 +246,24 @@ class _NumericOperationsImpl(OperationsBlock):
     def multiply(self, x, y):
         x, y = promote(x, y)
         dtype = x.dtype
-        via_dtype: dtypes.CoreType
+        _via_dtype: dtypes.CoreType
         if isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)) or dtype in (
             dtypes.nbool,
             dtypes.bool,
         ):
-            via_dtype = dtypes.int64
+            _via_dtype = dtypes.int64
         elif isinstance(dtype, (dtypes.Floating, dtypes.NullableFloating)):
-            via_dtype = dtypes.float64
+            _via_dtype = dtypes.float64
         else:
             raise TypeError(f"Unsupported dtype for multiply: {dtype}")
-        return binary_op(x, y, opx.mul, via_dtype)
+        return binary_op(x, y, opx.mul)
 
     @validate_core
     def negative(self, x):
         if isinstance(
             x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)
         ) or x.dtype in (ndx.int16, ndx.nint16):
-            return unary_op(x, opx.neg, dtypes.int64)
+            return unary_op(x, opx.neg)
         return unary_op(x, opx.neg)
 
     @validate_core
@@ -280,7 +277,7 @@ class _NumericOperationsImpl(OperationsBlock):
         x, y = ndx.asarray(x), ndx.asarray(y)
         dtype = ndx.result_type(x, y)
         if isinstance(dtype, (dtypes.Integral, dtypes.NullableIntegral)):
-            return binary_op(x, y, opx.pow, dtypes.int64)
+            return binary_op(x, y, opx.pow)
         else:
             return binary_op(x, y, opx.pow)
 
@@ -309,11 +306,11 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def sin(self, x):
-        return unary_op(x, opx.sin, dtypes.float64)
+        return unary_op(x, opx.sin)
 
     @validate_core
     def sinh(self, x):
-        return via_upcast(opx.sinh, [x], float_dtype=dtypes.float32)
+        return variadic_op([x], opx.sinh)
 
     @validate_core
     def square(self, x):
@@ -321,26 +318,20 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def sqrt(self, x):
-        return unary_op(x, opx.sqrt, dtypes.float32)
+        return unary_op(x, opx.sqrt)
 
     @validate_core
     def subtract(self, x, y):
         x, y = promote(x, y)
-        if isinstance(
-            x.dtype, (dtypes.Unsigned, dtypes.NullableUnsigned)
-        ) or x.dtype in (dtypes.int16, dtypes.int8, dtypes.nint16, dtypes.nint8):
-            via_dtype = dtypes.int64
-        else:
-            via_dtype = None
-        return binary_op(x, y, opx.sub, via_dtype=via_dtype)
+        return binary_op(x, y, opx.sub)
 
     @validate_core
     def tan(self, x):
-        return unary_op(x, opx.tan, dtypes.float32)
+        return unary_op(x, opx.tan)
 
     @validate_core
     def tanh(self, x):
-        return unary_op(x, opx.tanh, dtypes.float32)
+        return unary_op(x, opx.tanh)
 
     @validate_core
     def trunc(self, x):
@@ -353,7 +344,7 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def matmul(self, x, y):
-        return _via_i64_f64(opx.matmul, [x, y])
+        return variadic_op([x, y], opx.matmul)
 
     @validate_core
     def matrix_transpose(self, x) -> ndx.Array:
@@ -361,22 +352,19 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def tensordot(self, x, y, axes):
-        return _via_i64_f64(lambda x, y: opx.tensordot(x, y, axes), [x, y])
+        return variadic_op([x, y], lambda x, y: opx.tensordot(x, y, axes))
 
     # searching.py
 
     @validate_core
     def argmax(self, x, axis=None, keepdims=False):
-        out = via_upcast(
+        out = variadic_op(
+            [ndx.reshape(x, [-1]) if axis is None else x],
             lambda x: opx.arg_max(
                 x,
                 axis=axis or 0,
                 keepdims=int(keepdims),
             ),
-            [ndx.reshape(x, [-1]) if axis is None else x],
-            cast_return=False,
-            int_dtype=ndx.int64,
-            float_dtype=ndx.float64,
         )
 
         while keepdims and out.ndim < x.ndim:
@@ -385,16 +373,13 @@ class _NumericOperationsImpl(OperationsBlock):
 
     @validate_core
     def argmin(self, x, axis=None, keepdims=False):
-        out = via_upcast(
+        out = variadic_op(
+            [ndx.reshape(x, [-1]) if axis is None else x],
             lambda x: opx.arg_min(
                 x,
                 axis=axis or 0,
                 keepdims=int(keepdims),
             ),
-            [ndx.reshape(x, [-1]) if axis is None else x],
-            cast_return=False,
-            int_dtype=ndx.int64,
-            float_dtype=ndx.float64,
         )
 
         while keepdims and out.ndim < x.ndim:
@@ -545,8 +530,8 @@ class _NumericOperationsImpl(OperationsBlock):
             axis += x.ndim
 
         _len = ndx.asarray(nda.shape(x)[axis : axis + 1], dtype=dtypes.int64)._core()
-        return _via_i64_f64(
-            lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[1], [x]
+        return variadic_op(
+            [x], lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[1]
         )
 
     @validate_core
@@ -554,8 +539,8 @@ class _NumericOperationsImpl(OperationsBlock):
         if axis < 0:
             axis += x.ndim
         _len = ndx.asarray(nda.shape(x)[axis : axis + 1], dtype=dtypes.int64)._core()
-        return _via_i64_f64(
-            lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[0], [x]
+        return variadic_op(
+            [x], lambda x: opx.top_k(x, _len, largest=descending, axis=axis)[0]
         )
 
     # statistical.py
@@ -640,15 +625,14 @@ class _NumericOperationsImpl(OperationsBlock):
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("min is not supported for non-numeric types")
 
-        return _via_i64_f64(
+        return variadic_op(
+            [x],
             lambda x: opx.reduce_max(
                 x,
                 opx.const(axes, dtype=dtypes.int64),
                 keepdims=keepdims,
                 noop_with_empty_axes=axis is not None,
             ),
-            [x],
-            cast_return=True,
         )
 
     @validate_core
@@ -679,15 +663,14 @@ class _NumericOperationsImpl(OperationsBlock):
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("min is not supported for non-numeric types")
 
-        return _via_i64_f64(
+        return variadic_op(
+            [x],
             lambda x: opx.reduce_min(
                 x,
                 opx.const(axes, dtype=dtypes.int64),
                 keepdims=keepdims,
                 noop_with_empty_axes=axis is not None,
             ),
-            [x],
-            cast_return=True,
         )
 
     @validate_core
@@ -714,17 +697,14 @@ class _NumericOperationsImpl(OperationsBlock):
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("prod is not supported for non-numeric types")
 
-        out = via_upcast(
+        out = variadic_op(
+            [x],
             lambda x: opx.reduce_prod(
                 x,
                 opx.const(axes, dtype=dtypes.int64),
                 keepdims=keepdims,
                 noop_with_empty_axes=axis is not None,
             ),
-            [x],
-            int_dtype=dtypes.int64,
-            float_dtype=dtypes.float32,
-            cast_return=True,
         )
 
         return out
@@ -812,15 +792,14 @@ class _NumericOperationsImpl(OperationsBlock):
         if not isinstance(x.dtype, dtypes.Numerical):
             raise TypeError("sum is not supported for non-core types")
 
-        out = _via_i64_f64(
+        out = variadic_op(
+            [x],
             lambda corearray: opx.reduce_sum(
                 corearray,
                 opx.const(axes, dtype=dtypes.int64),
                 keepdims=keepdims,
                 noop_with_empty_axes=axis is not None,
             ),
-            [x],
-            cast_return=True,
         )
 
         return out
@@ -986,24 +965,6 @@ class NumericOperationsImpl(CoreOperationsImpl, _NumericOperationsImpl): ...
 
 
 class NullableNumericOperationsImpl(NullableOperationsImpl, _NumericOperationsImpl): ...
-
-
-def _via_i64_f64(
-    fn: Callable[..., _CoreArray], arrays: list[Array], *, cast_return=True
-) -> ndx.Array:
-    """Like ``_via_dtype`` but uses ``i64`` for integer or boolean types and ``float64``
-    for floating point types.
-
-    Raises TypeError if the provided arrays are neither.
-    """
-    return via_upcast(
-        fn,
-        arrays,
-        int_dtype=dtypes.int64,
-        float_dtype=dtypes.float64,
-        use_unsafe_uint_cast=True,  # TODO this can cause overflow, we should set it to false and fix all uses
-        cast_return=cast_return,
-    )
 
 
 def _determine_reduce_op_dtype(
