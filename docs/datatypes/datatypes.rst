@@ -110,3 +110,11 @@ There is also :doc:`unstable support <../experimental/experimental>` for definin
       - Nullable UTF-8 string
       - No
       - No
+    * - ``datetime64``
+      - Datetime data type that follows NumPy's ``datetime64`` semantics
+      - No
+      - No
+    * - ``timedelta64``
+      - Timedelta data type that follows NumPy's ``timedelta64`` semantics
+      - No
+      - No

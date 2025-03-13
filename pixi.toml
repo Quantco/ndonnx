@@ -44,8 +44,6 @@ hypothesis = "*"
 onnxruntime = "*"
 mypy = "*"
 ndindex = "*"
-pandas = ">=2.2.3,<3"
-
 
 [feature.test.tasks]
 test = "pytest"
