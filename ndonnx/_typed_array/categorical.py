@@ -198,7 +198,6 @@ class CategoricalArray(TyArrayBase):
         return cats.astype(dtype)
 
     def __ndx_equal__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:  # type: ignore
-        from .._infos import iinfo
         from .funcs import astyarray
 
         if isinstance(other, PyScalar):
@@ -217,9 +216,7 @@ class CategoricalArray(TyArrayBase):
                 )
             # Unclear why mypy would not figure out the type of `other` here?!
             bools = self._codes == other._codes  # type: ignore
-            not_missing = self._codes != astyarray(
-                iinfo(self._codes.dtype).max, self._codes.dtype
-            )
+            not_missing = self._codes != -1
             return bools & not_missing
 
         return NotImplemented
