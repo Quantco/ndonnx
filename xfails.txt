@@ -1,2 +1,0 @@
-# We don't support complex numbers at the moment
-array_api_tests/test_inspection_functions.py::test_array_namespace_info
