@@ -48,6 +48,7 @@ from ._typed_array.masked_onnx import (
     as_nullable,
 )
 from ._typed_array.datetime import DateTime64DType, TimeDelta64DType
+from ._typed_array.object_dtype import object_dtype
 from ._funcs import (
     expm1,
     log1p,
@@ -353,6 +354,7 @@ __all__ = [
     "build",
     "DateTime64DType",
     "TimeDelta64DType",
+    "object_dtype",
     "Array",
     "array",
     "from_spox_var",
