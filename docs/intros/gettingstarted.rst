@@ -121,7 +121,7 @@ Writing code in a strictly Array API compliant fashion makes it instantly reusab
 ONNX Export
 -----------
 
-ndonnx arrays do not *need* to hold data. They may instead be instantiated with only a *shape* and *data type*.
+ndonnx arrays do not *need* to hold data. They can instead be instantiated with only a *shape* and *data type*.
 This gives you the ability to persist the traced computation graph as an ONNX model and provide compatible input values only at inference time.
 
 .. code-block:: python

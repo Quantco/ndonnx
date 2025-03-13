@@ -1,7 +1,7 @@
 Experimental
 ============
 
-This section documents features found in the `ndonnx._experimental` module.
+This section documents features found in the :func:`ndonnx._experimental` module.
 Breaking changes may occur in this module with no prior notice.
 
 
