@@ -41,32 +41,16 @@ class TyArrayBase(ABC):
         return float(self.unwrap_numpy())
 
     @abstractmethod
+    def copy(self) -> Self:
+        """Copy ``self`` including all component arrays."""
+
+    @abstractmethod
     def __ndx_value_repr__(self) -> dict[str, str]:
         """A string representation of the fields to be used in ``Array.__repr__```."""
         # Note: It is unfortunate that this part of the API relies on
         # the rather useless `dict[str, str]` type hint. `TypedDict`
         # is not a viable solution (?) since it does not play nicely
         # with the subtyping.
-
-    @abstractmethod
-    def __getitem__(self, index: GetitemIndex) -> Self: ...
-
-    @abstractmethod
-    def __setitem__(
-        self,
-        key: SetitemIndex,
-        value: Self,
-        /,
-    ) -> None: ...
-
-    @abstractmethod
-    def put(
-        self,
-        key: TyArrayInt64,
-        value: Self,
-        /,
-    ) -> None:
-        """Set elements with semantics identical to `numpy.put` with `mode="raise"."""
 
     @property
     @abstractmethod
@@ -78,37 +62,51 @@ class TyArrayBase(ABC):
 
     @property
     @abstractmethod
-    def mT(self) -> Self: ...  # noqa: N802
-
-    @property
-    @abstractmethod
     def shape(self) -> OnnxShape: ...
 
     @abstractmethod
-    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+    def __getitem__(self, index: GetitemIndex) -> Self: ...
 
-    @abstractmethod
-    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self: ...
+    def __setitem__(
+        self,
+        key: SetitemIndex,
+        value: Self,
+        /,
+    ) -> None:
+        raise _make_type_error("__setitem__", self.dtype)
 
-    @abstractmethod
+    def put(
+        self,
+        key: TyArrayInt64,
+        value: Self,
+        /,
+    ) -> None:
+        """Set elements with semantics identical to `numpy.put` with `mode="raise"."""
+        raise _make_type_error("put", self.dtype)
+
+    @property
+    def mT(self) -> Self:  # noqa: N802
+        raise _make_type_error("mT", self.dtype)
+
+    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+        raise _make_type_error("reshape", self.dtype)
+
+    def squeeze(self, /, axis: int | tuple[int, ...]) -> Self:
+        raise _make_type_error("squeeze", self.dtype)
+
     def disassemble(self) -> dict[str, Var] | Var:
         """Disassemble ``self`` into a flat mapping of its constituents."""
-        raise NotImplementedError
+        raise _make_type_error("disassemble", self.dtype)
 
-    @abstractmethod
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self: ...
+    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+        raise _make_type_error("broadcast_to", self.dtype)
 
-    @abstractmethod
-    def concat(self, others: list[Self], axis: None | int) -> Self: ...
+    def concat(self, others: list[Self], axis: None | int) -> Self:
+        raise _make_type_error("concat", self.dtype)
 
-    @abstractmethod
-    def copy(self) -> Self:
-        """Copy ``self`` including all component arrays."""
+    def permute_dims(self, axes: tuple[int, ...]) -> Self:
+        raise _make_type_error("permute_dims", self.dtype)
 
-    @abstractmethod
-    def permute_dims(self, axes: tuple[int, ...]) -> Self: ...
-
-    @abstractmethod
     def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
         """Reflective sibling method for `DType.__ndx_cast_from__` which must thus not
         call the latter.
@@ -118,7 +116,6 @@ class TyArrayBase(ABC):
         """
         return NotImplemented
 
-    @abstractmethod
     def __ndx_equal__(
         self, other: TyArrayBase | PyScalar
     ) -> TyArrayBase | NotImplementedType:
@@ -127,7 +124,7 @@ class TyArrayBase(ABC):
         '__eq__' has special semantics compared to other dunder methods.
         https://docs.python.org/3/reference/datamodel.html#object.__eq__
         """
-        ...
+        return NotImplemented
 
     @property
     def T(self) -> Self:  # noqa: N802
