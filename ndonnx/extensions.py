@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Literal, TypeAlias, TypeVar
+from typing import Literal, TypeAlias, TypeVar, get_args
 from warnings import warn
 
 import numpy as np
+from typing_extensions import TypeIs
 
 import ndonnx as ndx
 
@@ -182,23 +183,23 @@ def make_nullable(
             return x
         if isinstance(x._tyarray, tydx.onnx.TyArray):
             return ndx.Array._from_tyarray(
-                tydx.masked_onnx.asncoredata(x._tyarray, None)
+                tydx.masked_onnx.make_nullable(x._tyarray, None)
             )
         raise TypeError(f"failed to make array of data type `{x.dtype}` nullable")
     if not isinstance(null._tyarray, tydx.onnx.TyArrayBool):
         raise TypeError(f"'null' must be of boolean data type, found `{null.dtype}`")
     if isinstance(x._tyarray, tydx.onnx.TyArray):
         return ndx.Array._from_tyarray(
-            tydx.masked_onnx.asncoredata(x._tyarray, null._tyarray)
+            tydx.masked_onnx.make_nullable(x._tyarray, null._tyarray)
         )
     if merge_strategy == "merge" and isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
-        mask = tydx.masked_onnx._merge_masks(x._tyarray.mask, null._tyarray)
-        tyarr = tydx.masked_onnx.asncoredata(x._tyarray.data, mask)
+        mask = tydx.masked_onnx.merge_masks(x._tyarray.mask, null._tyarray)
+        tyarr = tydx.masked_onnx.make_nullable(x._tyarray.data, mask)
         return ndx.Array._from_tyarray(tyarr)
     if isinstance(x._tyarray, tydx.datetime.TimeBaseArray):
         # TODO: The semantics of this branch are very odd!
         is_nat = x._tyarray.is_nat
-        merged = tydx.masked_onnx._merge_masks(is_nat, null._tyarray)
+        merged = tydx.masked_onnx.merge_masks(is_nat, null._tyarray)
         if merged is not None:
             is_nat = merged
         return ndx.Array._from_tyarray(x._tyarray.dtype._build(data=x._tyarray._data))
@@ -322,3 +323,93 @@ def datetime_to_year_month_day(
     )
 
     return year, month, day
+
+
+def is_onnx_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.DTypes]:
+    """Return ``True`` if ``dtype`` is of a data type found in the ONNX standard."""
+    if isinstance(dtype, tydx.onnx.DTypes):
+        return True
+    return False
+
+
+def is_numeric_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.NumericDTypes]:
+    """Return ``True`` if ``dtype`` is of a floating point data type."""
+    if isinstance(dtype, tydx.onnx.NumericDTypes):
+        return True
+    return False
+
+
+def is_float_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.FloatingDTypes]:
+    """Return ``True`` if ``dtype`` is of a floating point data type."""
+    if isinstance(dtype, tydx.onnx.FloatingDTypes):
+        return True
+    return False
+
+
+def is_integer_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.IntegerDTypes]:
+    """Return ``True`` if ``dtype`` is of an integer data type.
+
+    Returns ``False`` for boolean data types.
+    """
+    if isinstance(dtype, tydx.onnx.IntegerDTypes):
+        return True
+    return False
+
+
+def is_signed_integer_dtype(
+    dtype: ndx.DType, /
+) -> TypeIs[tydx.onnx.SignedIntegerDTypes]:
+    """Return ``True`` if ``dtype`` is of a signed integer data type.
+
+    Returns ``False`` for boolean data types.
+    """
+    if isinstance(dtype, tydx.onnx.SignedIntegerDTypes):
+        return True
+    return False
+
+
+def is_unsigned_integer_dtype(
+    dtype: ndx.DType, /
+) -> TypeIs[tydx.onnx.UnsignedIntegerDTypes]:
+    """Return ``True`` if ``dtype`` is of an unsigned integer data type.
+
+    Returns ``False`` for boolean data types.
+    """
+    if isinstance(dtype, tydx.onnx.UnsignedIntegerDTypes):
+        return True
+    return False
+
+
+def is_nullable_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.masked_onnx.DTypes]:
+    """Return ``True`` if ``dtype`` is a nullable (i.e. "masked") data type.
+
+    Floating point and datetime data types are not considered as "nullable" by this
+    function.
+    """
+    if isinstance(dtype, tydx.masked_onnx.DTypes):
+        return True
+    return False
+
+
+def is_nullable_integer_dtype(
+    dtype: ndx.DType, /
+) -> TypeIs[tydx.masked_onnx.IntegerDTypes]:
+    """Return ``True`` if ``dtype`` is a nullable integer (i.e. "masked") data type."""
+    if isinstance(dtype, tydx.masked_onnx.IntegerDTypes):
+        return True
+    return False
+
+
+def is_nullable_float_dtype(
+    dtype: ndx.DType, /
+) -> TypeIs[tydx.masked_onnx.FloatDTypes]:
+    """Return ``True`` if ``dtype`` is a nullable integer (i.e. "masked") data type."""
+    if isinstance(dtype, tydx.masked_onnx.FloatDTypes):
+        return True
+    return False
+
+
+def is_time_unit(s: str, /) -> TypeIs[tydx.datetime.Unit]:
+    if s in get_args(tydx.datetime.Unit):
+        return True
+    return False

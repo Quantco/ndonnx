@@ -14,13 +14,13 @@ from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def numpy_to_graph_input(arr, eager=False):
-    from ndonnx._typed_array.masked_onnx import as_nullable
+    from ndonnx._typed_array.masked_onnx import to_nullable_dtype
 
     dtypes.from_numpy
 
     dtype: dtypes.DType
     if isinstance(arr, np.ma.MaskedArray):
-        dtype = as_nullable(dtypes.from_numpy(arr.dtype))
+        dtype = to_nullable_dtype(dtypes.from_numpy(arr.dtype))
     else:
         dtype = dtypes.from_numpy(arr.dtype)
     return (

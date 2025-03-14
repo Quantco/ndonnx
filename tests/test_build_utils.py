@@ -31,7 +31,7 @@ def test_no_namemangling_for_standard_types(dtype):
     model_proto = ndx.build({"input": a}, {"output": a})
     assert [node.name for node in model_proto.graph.input] == ["input"]
     assert [node.name for node in model_proto.graph.output] == ["output"]
-    a = ndx.array(shape=("N",), dtype=tydx.masked_onnx.as_nullable(dtype))
+    a = ndx.array(shape=("N",), dtype=tydx.masked_onnx.to_nullable_dtype(dtype))
     model_proto = ndx.build({"input": a}, {"output": a})
     assert {node.name for node in model_proto.graph.input} == {
         "input_values",

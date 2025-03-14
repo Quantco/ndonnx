@@ -7,15 +7,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeAlias
 from warnings import warn
 
+from . import _typed_array as tydx
 from ._array import Array
 from ._dtypes import DType
 from ._funcs import asarray
-from ._typed_array.masked_onnx import (
-    NCoreDTypes,
-    NCoreFloatingDTypes,
-    NCoreIntegerDTypes,
-)
-from ._typed_array.onnx import DTypes, FloatingDTypes, IntegerDTypes
 
 if TYPE_CHECKING:
     from spox import Var
@@ -36,14 +31,11 @@ def from_spox_var(var: Var) -> Array:
     return asarray(var)
 
 
-class UnsupportedOperationError(TypeError): ...
+Floating = tydx.onnx.FloatingDTypes
+Integral = tydx.onnx.IntegerDTypes
+Numerical = tydx.onnx.NumericDTypes
+CoreType: TypeAlias = tydx.onnx.DTypes
 
-
-Nullable = NCoreDTypes
-Floating = FloatingDTypes
-Integral = IntegerDTypes
-Numerical = Floating | Integral
-CoreType: TypeAlias = DTypes
-
-NullableFloating = NCoreFloatingDTypes
-NullableIntegral = NCoreIntegerDTypes
+Nullable = tydx.masked_onnx.DTypes
+NullableFloating = tydx.masked_onnx.FloatDTypes
+NullableIntegral = tydx.masked_onnx.IntegerDTypes

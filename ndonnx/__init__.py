@@ -1,6 +1,7 @@
 # Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
+from warnings import warn
 from ._deprecated import (
     array,
     from_spox_var,
@@ -9,12 +10,11 @@ from ._deprecated import (
     Integral,
     Numerical,
     CoreType,
-    UnsupportedOperationError,
     NullableFloating,
     NullableIntegral,
 )
 from ._array import Array, asarray
-from ._dtypes import DType
+from ._dtypes import DType, from_numpy as from_numpy_dtype
 from ._typed_array.onnx import (
     int8,
     int16,
@@ -29,7 +29,6 @@ from ._typed_array.onnx import (
     float64,
     utf8,
     bool_ as bool,
-    TyArray as _TyArray,
 )
 from ._typed_array.masked_onnx import (
     nint8,
@@ -45,7 +44,7 @@ from ._typed_array.masked_onnx import (
     nfloat64,
     nutf8,
     nbool,
-    as_nullable,
+    to_nullable_dtype,
 )
 from ._typed_array.datetime import DateTime64DType, TimeDelta64DType
 from ._funcs import (
@@ -354,17 +353,41 @@ __all__ = [
     "DateTime64DType",
     "TimeDelta64DType",
     "Array",
-    "array",
-    "from_spox_var",
-    "Nullable",
-    "NullableFloating",
-    "NullableIntegral",
-    "Floating",
-    "Integral",
-    "Numerical",
-    "as_nullable",
-    "CoreType",
-    "UnsupportedOperationError",
-    "_TyArray",
+    "to_nullable_dtype",
     "extensions",
+    "from_numpy_dtype",
 ]
+
+
+def __getattr__(name: str):
+    def _warn_use_instead(old: str, new: str):
+        warn("'{old}' is deprecated in favor of '{new}'", DeprecationWarning)
+
+    superseded = {
+        "array": ("ndonnx.Array", array),
+        "from_spox_var": ("ndonnx.asarray", from_spox_var),
+        "Nullable": ("ndonnx.extensions.is_nullable_dtype", Nullable),
+        "NullableFloating": (
+            "ndonnx.extensions.is_nullable_float_dtype",
+            NullableFloating,
+        ),
+        "NullableIntegral": (
+            "ndonnx.extensions.is_nullable_integer_dtype",
+            NullableIntegral,
+        ),
+        "Floating": ("ndonnx.extensions.is_float_dtype", Floating),
+        "Integral": ("ndonnx.extensions.is_integer_dtype", Integral),
+        "Numerical": ("ndonnx.extensions.is_numeric_dtype", Numerical),
+        "CoreType": ("ndonnx.extensions.is_onnx_dtype", CoreType),
+        "NullableCore": ("ndonnx.extensions.is_nullable_dtype", Nullable),
+        # We don't raise the following errors any more so we should not export such types
+        "UnsupportedOperationError": ("TypeError", TypeError),
+        "CastError": ("TypeError", TypeError),
+    }
+
+    if tpl := superseded.get(name):
+        new_name, old_thing = tpl
+        _warn_use_instead(name, new_name)
+        return old_thing
+
+    raise AttributeError("module 'ndonnx' has no attribute `{name}`")

@@ -51,7 +51,7 @@ def _infer_dtype(
             return onnx.utf8
         core_type = onnx.from_numpy(val.dtype)
         if isinstance(val, np.ma.MaskedArray):
-            return masked_onnx.as_nullable(core_type)
+            return masked_onnx.to_nullable_dtype(core_type)
         else:
             return core_type
     elif isinstance(val, TyArrayBase):

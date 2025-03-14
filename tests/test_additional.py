@@ -219,3 +219,7 @@ def test_make_nullable(dtype, mask):
     result = nda.make_nullable(a, m)
     expected = np.ma.masked_array([1, 2, 3], mask, dtype.to_numpy_dtype())
     assert_array_equal(result.to_numpy(), expected)
+
+
+def test_is_integer_dtype_excludes_boolean():
+    assert not nda.is_integer_dtype(ndx.bool)

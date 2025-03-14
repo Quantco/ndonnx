@@ -5,9 +5,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
+import ndonnx.extensions as nde
+
 from ._array import Array
 from ._dtypes import DType
-from ._typed_array import masked_onnx, onnx
 
 
 @dataclass
@@ -25,13 +26,13 @@ class Iinfo:
 def iinfo(ty: DType | Array, /) -> Iinfo:
     if isinstance(ty, Array):
         ty = ty.dtype
-    if isinstance(ty, masked_onnx.NCoreIntegerDTypes):
-        npdtype = ty._unmasked_dtype.unwrap_numpy()
-    elif isinstance(ty, onnx.IntegerDTypes):
-        npdtype = ty.unwrap_numpy()
+    if nde.is_integer_dtype(ty):
+        np_dtype = ty.unwrap_numpy()
+    elif nde.is_nullable_integer_dtype(ty):
+        np_dtype = ty._unmasked_dtype.unwrap_numpy()
     else:
         raise ValueError(f"'Iinfo' not available for type `{ty}`")
-    info = np.iinfo(npdtype)
+    info = np.iinfo(np_dtype)
     return Iinfo(bits=info.bits, max=info.max, min=info.min, dtype=ty)
 
 
@@ -54,9 +55,9 @@ class Finfo:
 def finfo(ty: DType | Array, /):
     if isinstance(ty, Array):
         ty = ty.dtype
-    if isinstance(ty, masked_onnx.NCoreFloatingDTypes):
+    if nde.is_nullable_float_dtype(ty):
         npdtype = ty._unmasked_dtype.unwrap_numpy()
-    elif isinstance(ty, onnx.FloatingDTypes):
+    elif nde.is_float_dtype(ty):
         npdtype = ty.unwrap_numpy()
     else:
         raise ValueError(f"'FIinfo' not available for type `{ty}`")
