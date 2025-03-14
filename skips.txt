@@ -1,5 +1,3 @@
-# The following tests cause segfaults
-
 # Missing implementations which should be perfectly doable
 array_api_tests/test_linalg.py::test_tensordot
 array_api_tests/test_manipulation_functions.py::test_repeat
@@ -7,6 +5,17 @@ array_api_tests/test_manipulation_functions.py::test_repeat
 # Tests that fail due to lossy ORT workarounds, which are tested elsewhere
 array_api_tests/test_statistical_functions.py::test_sum
 array_api_tests/test_statistical_functions.py::test_prod
+
+# Failures due to problems in the upstream test suite
+# left/right shift tests overflow which is undefined behavior; explicit tests exist in ndonnx
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift[__ilshift__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift[__lshift__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift[bitwise_left_shift(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__irshift__(x, s)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__irshift__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__rshift__(x, s)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[__rshift__(x1, x2)]
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift[bitwise_right_shift(x1, x2)]
 
 # Trigonometric functions are largely only implemented for float32 and thus fail. They are tested elsewhere.
 array_api_tests/test_operators_and_elementwise_functions.py::test_cos

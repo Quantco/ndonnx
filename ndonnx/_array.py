@@ -352,6 +352,18 @@ def asarray(
 ) -> Array:
     from . import concat, reshape, result_type
 
+    if not copy and copy is not None:
+        # Must copy or raise
+        if not isinstance(obj, Array):
+            raise ValueError(
+                f"cannot create 'Array' from object of type `{type(obj)}` without copying"
+            )
+        if obj.dtype == dtype or dtype is None:
+            return Array._from_tyarray(obj._tyarray)
+        raise ValueError(
+            f"cannot create Array with data type `{dtype}` from array "
+            f"of data type `{obj.dtype}` without copying data"
+        )
     if isinstance(obj, Array):
         return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
     else:

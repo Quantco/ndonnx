@@ -390,6 +390,9 @@ class TyArray(TyArrayBase):
                 # Output will be 1D; compress cannot handle scalars
                 arr = self.reshape((1,))
                 key_arr = key.reshape((1,))
+            else:
+                arr = self.reshape((-1,))
+                key_arr = key.reshape((-1,))
 
             return type(self)(op.compress(arr._var, key_arr._var, axis=0))
 
