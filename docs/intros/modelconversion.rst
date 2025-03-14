@@ -19,6 +19,7 @@ We'll begin with a few imports and by loading the dataset.
         dataset = load_iris()
         X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target, test_size=0.2)
 
+
 Extend predict in an Array API compatible manner
 ------------------------------------------------
 
@@ -61,6 +62,7 @@ Notice how versatile our implementation is now. We can make predictions using a 
     print(model.predict(ndx.asarray(X_test)).to_numpy())
     # array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
 
+
 Exporting to ONNX
 -----------------
 
@@ -70,7 +72,7 @@ Now that we have fit ``model`` and it’s inference path ``predict`` is Array AP
 
     ..  code-block:: python
 
-        X = ndx.array(shape=("N", 4), dtype=ndx.float64)
+        X = ndx.Array(shape=("N", 4), dtype=ndx.float64)
 
 2. Call ``predict`` just as normal, providing X as input. The output array also does not have any data associated with it since its value depends on ``X``.
 
