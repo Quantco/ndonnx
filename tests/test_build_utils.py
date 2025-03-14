@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 import json
@@ -107,7 +107,7 @@ def test_no_namemangling_for_standard_types(dtype):
         ndx.utf8,
     ],
 )
-def test_schema_against_snapshots(dtype):
+def test_schema_against_snapshots(dtype, update_schema_snapshots):
     # We must not break backwards compatibility. We test every type we
     # support that it keeps producing the same schema.
 
@@ -128,12 +128,7 @@ def test_schema_against_snapshots(dtype):
         dtype = str(dtype).lower()
     fname = Path(__file__).parent / f"schemas/{dtype}.json"
 
-    # Only set to `True` temporarily if the schemas need to be
-    # re-generated. A schema, once stabilized, must never
-    # change. However, this flag may come in handy if we add new data
-    # types for instance.
-    update = False
-    if update:
+    if update_schema_snapshots:
         # Ensure a stable order
         metadata = sorted(mp.metadata_props, key=lambda el: el.key)
         with open(fname, "w+") as f:
