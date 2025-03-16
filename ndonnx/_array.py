@@ -338,8 +338,11 @@ class Array:
         value_repr = ", ".join(
             [f"{k}: {v}" for k, v in self._tyarray.__ndx_value_repr__().items()]
         )
-        shape = self._tyarray.shape
-        return f"array({value_repr}, shape={shape}, dtype={self.dtype})"
+        # We only add shape information if we don't have a constant value to show
+        shape_info = (
+            "" if self._tyarray.is_constant else f" shape={self._tyarray.shape},"
+        )
+        return f"array({value_repr},{shape_info} dtype={self.dtype})"
 
 
 def asarray(

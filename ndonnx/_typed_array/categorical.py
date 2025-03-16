@@ -161,6 +161,10 @@ class CategoricalArray(TyArrayBase):
     def shape(self) -> OnnxShape:
         return self._codes.shape
 
+    @property
+    def is_constant(self) -> bool:
+        return self._codes.is_constant
+
     def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         codes = self._codes.reshape(shape)
         return type(self)(codes=codes, dtype=self.dtype)

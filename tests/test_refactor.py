@@ -274,13 +274,11 @@ def test_string_arrays(value, string_dtype):
 
 
 def test_repr_eager():
-    assert "array(data: [1], shape=(1,), dtype=int64)" == str(
-        ndx.asarray(np.array([1], np.int64))
-    )
-    assert "array(data: [1], mask: None, shape=(1,), dtype=nint64)" == str(
+    assert "array(data: [1], dtype=int64)" == str(ndx.asarray(np.array([1], np.int64)))
+    assert "array(data: [1], mask: None, dtype=nint64)" == str(
         ndx.asarray(np.ma.array([1], np.int64))
     )
-    assert "array(data: [1], mask: [True], shape=(1,), dtype=nint64)" == str(
+    assert "array(data: [1], mask: [True], dtype=nint64)" == str(
         ndx.asarray(np.ma.array([1], mask=[True], dtype=np.int64))
     )
 

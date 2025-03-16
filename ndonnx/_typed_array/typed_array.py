@@ -64,6 +64,10 @@ class TyArrayBase(ABC):
     @abstractmethod
     def shape(self) -> OnnxShape: ...
 
+    @property
+    @abstractmethod
+    def is_constant(self) -> bool: ...
+
     @abstractmethod
     def __getitem__(self, index: GetitemIndex) -> Self: ...
 

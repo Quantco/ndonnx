@@ -566,6 +566,10 @@ class TyArray(TyArrayBase):
 
         return shape
 
+    @property
+    def is_constant(self) -> bool:
+        return self._var._value is not None
+
     def unwrap_numpy(self) -> np.ndarray:
         if self._var._value is not None:
             np_arr = np.asarray(self._var._value.value)

@@ -231,6 +231,10 @@ class TimeBaseArray(TyArrayBase):
     def shape(self) -> OnnxShape:
         return self._data.shape
 
+    @property
+    def is_constant(self) -> bool:
+        return self._data.is_constant
+
     def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         data = self._data.broadcast_to(shape)
         return self.dtype._build(data)
