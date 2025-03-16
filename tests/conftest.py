@@ -15,3 +15,16 @@ def warn_when_prop_fails():
 def use_spox_ort_value_prop():
     # TODO: parametrize over the reference runtime and onnxruntime once the former becomes more mature.
     _value_prop._VALUE_PROP_BACKEND = _value_prop.ValuePropBackend.ONNXRUNTIME
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--update-schema-snapshots",
+        action="store_true",
+        help="Update schema snapshots for stability tests. This should only be used in extraordinary and well understood circumstances.",
+    )
+
+
+@pytest.fixture
+def update_schema_snapshots(request):
+    return request.config.getoption("--update-schema-snapshots")

@@ -72,7 +72,7 @@ def test_no_namemangling_for_standard_types(dtype):
         ndx.utf8,
     ],
 )
-def test_schema_against_snapshots(dtype):
+def test_schema_against_snapshots(dtype, update_schema_snapshots):
     # We must not break backwards compatibility. We test every type we
     # support that it keeps producing the same schema.
 
@@ -81,13 +81,10 @@ def test_schema_against_snapshots(dtype):
 
     mp = ndx.build({"a": a}, {"b": b})
 
-    # These files should not be update automatically
+    dtype = str(dtype).lower()
     fname = Path(__file__).parent / f"schemas/{dtype}.json"
 
-    # Only set to `True` temporarily and only if there was a
-    # deliberate update to the schema.
-    update = False
-    if update:
+    if update_schema_snapshots:
         # Ensure a stable order
         metadata = sorted(mp.metadata_props, key=lambda el: el.key)
         with open(fname, "w+") as f:
