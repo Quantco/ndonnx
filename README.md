@@ -5,7 +5,7 @@
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/ndonnx?style=flat-square&logoColor=white&logo=conda-forge)](https://anaconda.org/conda-forge/ndonnx)
 [![pypi](https://img.shields.io/pypi/v/ndonnx.svg?logo=pypi&logoColor=white)](https://pypi.org/project/ndonnx)
 
-An ONNX-backed implementation of the [Array API](https://data-apis.org/array-api/) standard.
+An ONNX-backed array library that is compliant with the [Array API](https://data-apis.org/array-api/) standard.
 
 ## Installation
 
@@ -30,70 +30,79 @@ cd ndonnx
 
 # For Array API tests
 git submodule update --init --recursive
+
+pixi shell
+pre-commit run -a
+pip install --no-build-isolation --no-deps -e .
+pytest tests -n auto
 ```
 
 ## Quick start
 
-The Array API standard standardizes a subset of the NumPy API.
-This allows for writing backend-agnostic code such as the following functions:
+`ndonnx` is an ONNX based python array library.
 
-```python
-def mean_drop_outliers(a, low=-5, high=5):
-   xp = a.__array_namespace__()
-   return xp.mean(a[(low < a) & (a < high)])
-```
+It has a couple of key features:
 
-The `mean_drop_outliers` function may be called with any array object that implements the Array API such as the array objects from `numpy`, `jax.numpy` and `ndonnx`:
+- It implements the [`Array API`](https://data-apis.org/array-api/) standard. Standard compliant code can be executed without changes across numerous backends such as like NumPy, JAX and now ndonnx.
 
-```python
-import numpy as np
-import ndonnx as ndx
-import jax.numpy as jnp
+  ```python
+  import numpy as np
+  import ndonnx as ndx
+  import jax.numpy as jnp
 
-np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 5]))
-jax_result = mean_drop_outliers(jnp.asarray([-10, 0.5, 1, 5]))
-onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
+  def mean_drop_outliers(a, low=-5, high=5):
+      xp = a.__array_namespace__()
+      return xp.mean(a[(low < a) & (a < high)])
 
-assert np_result == onnx_result.unwrap_numpy() == jax_result == 0.75
-```
+  np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 5]))
+  jax_result = mean_drop_outliers(jnp.asarray([-10, 0.5, 1, 5]))
+  onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
 
-Arrays in ndonnx may have constant values (as in the above example) or be placeholders for inputs of a computational graph.
-By using such placeholder arrays it is possible to export any array-api compliant code to ONNX.
-Exporting `mean_drop_outliers` for instance may be achieved as follows:
+  assert np_result == onnx_result.to_numpy() == jax_result == 0.75
+  ```
 
-```python
-import ndonnx as ndx
-import onnx
+- It supports ONNX export. This allows you persist your logic into an ONNX computation graph.
 
-# Instantiate placeholder ndonnx array
-x = ndx.Array(shape=("N",), dtype=ndx.float32)
-y = mean_drop_outliers(x)
+  ```python
+  import ndonnx as ndx
+  import onnx
 
-# Build and save ONNX model to disk
-model = ndx.build({"x": x}, {"y": y})
-onnx.save(model, "mean_drop_outliers.onnx")
-```
+  # Instantiate placeholder ndonnx array
+  x = ndx.array(shape=("N",), dtype=ndx.float32)
+  y = mean_drop_outliers(x)
 
-The created artifact is a regular ONNX model which may be loaded and used by runtimes such as `onnxruntime`:
+  # Build and save ONNX model to disk
+  model = ndx.build({"x": x}, {"y": y})
+  onnx.save(model, "mean_drop_outliers.onnx")
+  ```
 
-```python
-import onnxruntime as ort
-import numpy as np
+  You can then make predictions using a runtime of your choice.
 
-inference_session = ort.InferenceSession("mean_drop_outliers.onnx")
-prediction, = inference_session.run(None, {
-    "x": np.array([-10, 0.5, 1, 5], dtype=np.float32),
-})
-assert prediction == 0.75
-```
+  ```python
+  import onnxruntime as ort
+  import numpy as np
 
-## Array API compliance
+  inference_session = ort.InferenceSession("mean_drop_outliers.onnx")
+  prediction, = inference_session.run(None, {
+      "x": np.array([-10, 0.5, 1, 5], dtype=np.float32),
+  })
+  assert prediction == 0.75
+  ```
 
-Ndonnx strives to be fully array-api compliant.
-Any violation of the standard is considered a bug.
+In the future we will be enabling a stable API for an extensible data type system. This will allow users to define their own data types and operations on arrays with these data types.
 
-The upstream test suite may be executed as follows:
+## Array API coverage
+
+Array API compatibility is tracked in `array-api-tests`. Missing coverage is tracked in the `skips.txt` file. Contributions are welcome!
+
+Summary(1119 total):
+
+- 961 passed
+- 107 failed
+- 51 deselected
+
+Run the tests with:
 
 ```bash
-pixi run arrayapitests
+pixi run arrayapitests --max-examples 16 --hypothesis-seed=0
 ```
