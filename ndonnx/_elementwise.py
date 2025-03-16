@@ -7,7 +7,7 @@ Each function directly dispatches to the inner typed array.
 
 import builtins
 
-from ._array import Array
+from ._array import Array, asarray
 from ._dtypes import DType
 from ._typed_array import funcs as tyfuncs
 
@@ -91,8 +91,8 @@ def clip(
             min_max.append(max)
     dtype = tyfuncs.result_type(x.dtype, *min_max)
 
-    min_ = None if min is None else tyfuncs.astyarray(min, dtype=dtype)
-    max_ = None if max is None else tyfuncs.astyarray(max, dtype=dtype)
+    min_ = None if min is None else asarray(min, dtype=dtype)._tyarray
+    max_ = None if max is None else asarray(max, dtype=dtype)._tyarray
     return Array._from_tyarray(x._tyarray.clip(min=min_, max=max_))
 
 

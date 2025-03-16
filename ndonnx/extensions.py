@@ -123,7 +123,7 @@ def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
     out: Array
         A new Array with the null values filled with the given value.
     """
-    value_ = tydx.astyarray(value)
+    value_ = ndx.asarray(value)._tyarray
     if isinstance(value_.dtype, ndx.Nullable):
         raise ValueError("'fill_null' expects a none-nullable fill value data type.")
     xty = x._tyarray

@@ -16,7 +16,6 @@ from .typed_array import TyArrayBase
 from .utils import promote
 
 if TYPE_CHECKING:
-    from .. import Array
     from .._dtypes import TY_ARRAY_BASE
     from . import onnx
 
@@ -76,29 +75,26 @@ def _infer_dtype(
 
 @overload
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | Array | NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: DType[TY_ARRAY_BASE],
 ) -> TY_ARRAY_BASE: ...
 
 
 @overload
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | Array | NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: None | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | Array | NestedSequence,
+    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: None | DType[TY_ARRAY_BASE] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
     This function always copies
     """
-    from .. import Array
-
-    val = val if not isinstance(val, Array) else val._tyarray
     inferred_dtype = _infer_dtype(val) if dtype is None else dtype
     return inferred_dtype.__ndx_create__(val)
 
