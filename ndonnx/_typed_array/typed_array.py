@@ -11,9 +11,8 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import numpy as np
 from typing_extensions import Self
 
-from .._dtypes import TY_ARRAY_BASE, DType
-from .._types import OnnxShape, PyScalar
-from .utils import normalize_axes_tuple
+from ndonnx import DType
+from ndonnx.types import OnnxShape, PyScalar
 
 if TYPE_CHECKING:
     from spox import Var
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from .onnx import KEY, VALUE, TyArrayBool, TyArrayInt64, TyArrayInteger
 
 _Self_co = TypeVar("_Self_co", bound="TyArrayBase", covariant=True)
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
 
 class TyArrayBase(ABC):
@@ -111,7 +111,7 @@ class TyArrayBase(ABC):
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
         raise _make_type_error("permute_dims", self.dtype)
 
-    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE_co]) -> TY_ARRAY_BASE_co:
         """Reflective sibling method for `DType.__ndx_cast_from__` which must thus not
         call the latter.
 
@@ -151,7 +151,9 @@ class TyArrayBase(ABC):
         """
         raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
 
-    def astype(self, dtype: DType[TY_ARRAY_BASE], /, *, copy=True) -> TY_ARRAY_BASE:
+    def astype(
+        self, dtype: DType[TY_ARRAY_BASE_co], /, *, copy=True
+    ) -> TY_ARRAY_BASE_co:
         """Convert `self` to the `_TypedArray` associated with `dtype`."""
         if self.dtype == dtype:
             if copy:
@@ -180,8 +182,8 @@ class TyArrayBase(ABC):
     def moveaxis(
         self, source: int | tuple[int, ...], destination: int | tuple[int, ...], /
     ) -> Self:
-        source = normalize_axes_tuple(source, self.ndim)
-        destination = normalize_axes_tuple(destination, self.ndim)
+        source = _normalize_axes_tuple(source, self.ndim)
+        destination = _normalize_axes_tuple(destination, self.ndim)
 
         if source == destination:
             return self.copy()
@@ -206,7 +208,7 @@ class TyArrayBase(ABC):
         if axis_ is None:
             x = x.reshape((-1,))
             axis_ = 0
-        axis_ = normalize_axes_tuple(axis_, x.ndim)
+        axis_ = _normalize_axes_tuple(axis_, x.ndim)
 
         if len(shift) != len(axis_):
             raise ValueError("'shift' and 'axis' must be tuples of equal length")
@@ -286,10 +288,10 @@ class TyArrayBase(ABC):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY_BASE],
+        dtype: DType[TY_ARRAY_BASE_co],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE_co: ...
 
     @overload
     def prod(
@@ -331,10 +333,10 @@ class TyArrayBase(ABC):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY_BASE],
+        dtype: DType[TY_ARRAY_BASE_co],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE_co: ...
 
     @overload
     def sum(
@@ -676,3 +678,10 @@ class TyArrayBase(ABC):
 
 def _make_type_error(fn_name, dtype: DType) -> TypeError:
     return TypeError(f"'{fn_name}' is not implemented for data type `{dtype}`")
+
+
+def _normalize_axes_tuple(axes: int | tuple[int, ...], rank: int) -> tuple[int, ...]:
+    if isinstance(axes, int):
+        axes = (axes,)
+
+    return tuple(el if el >= 0 else rank + el for el in axes)

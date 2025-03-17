@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 
-from . import onnx, ort_compat
-from .utils import safe_cast
+from . import onnx, ort_compat, safe_cast
 
 if TYPE_CHECKING:
     from .onnx import TyArrayBool, TyArrayInt64, TyArrayInteger

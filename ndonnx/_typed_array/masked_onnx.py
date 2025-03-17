@@ -12,11 +12,11 @@ from typing import TYPE_CHECKING, TypeVar, overload
 import numpy as np
 from typing_extensions import Self
 
-from .._dtypes import TY_ARRAY_BASE, DType
+from ndonnx import DType
+from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+
 from .._schema import DTypeInfoV1
-from .._types import NestedSequence, OnnxShape, PyScalar
-from . import TyArrayBase, onnx
-from .utils import safe_cast
+from . import TyArrayBase, onnx, safe_cast
 
 if TYPE_CHECKING:
     from spox import Var
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 DTYPE = TypeVar("DTYPE", bound=DType)
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
@@ -481,7 +482,7 @@ class TyMaArray(TyMaArrayBase):
                 )
             self.mask.put(key, value.mask)
 
-    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE_co]) -> TY_ARRAY_BASE_co:
         if isinstance(dtype, onnx._OnnxDType):
             # Not clear what the behavior should be if we have a mask
             return NotImplemented
@@ -591,10 +592,10 @@ class TyMaArrayNumber(TyMaArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY_BASE],
+        dtype: DType[TY_ARRAY_BASE_co],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE_co: ...
 
     @overload
     def prod(

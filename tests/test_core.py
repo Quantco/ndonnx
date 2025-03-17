@@ -8,21 +8,19 @@ import pytest
 import spox.opset.ai.onnx.v19 as op
 
 import ndonnx as ndx
-from ndonnx import _dtypes as dtypes
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def numpy_to_graph_input(arr, eager=False):
+    from ndonnx._typed_array import onnx
     from ndonnx._typed_array.masked_onnx import to_nullable_dtype
 
-    dtypes.from_numpy
-
-    dtype: dtypes.DType
+    dtype: ndx.DType
     if isinstance(arr, np.ma.MaskedArray):
-        dtype = to_nullable_dtype(dtypes.from_numpy(arr.dtype))
+        dtype = to_nullable_dtype(onnx.from_numpy_dtype(arr.dtype))
     else:
-        dtype = dtypes.from_numpy(arr.dtype)
+        dtype = ndx.from_numpy_dtype(arr.dtype)
     return (
         ndx.array(
             shape=arr.shape,

@@ -13,22 +13,23 @@ import numpy as np
 from spox import Tensor, Var, argument
 from typing_extensions import Self
 
-from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
+from ndonnx import DType
+from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+
 from .._schema import DTypeInfoV1
-from .._types import NestedSequence, OnnxShape, PyScalar
-from . import TyArrayBase
+from . import TyArrayBase, safe_cast
 from . import ort_compat as op
 from .indexing import (
     FancySlice,
     key_to_indices,
     normalize_getitem_key,
 )
-from .utils import safe_cast
 
 if TYPE_CHECKING:
     from .indexing import BoolMask, GetitemItem, SetitemItem
 
 TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
@@ -290,7 +291,7 @@ class TyArray(TyArrayBase):
 
     def __init__(self, var: Var):
         var_dtype = var.unwrap_tensor().dtype
-        if from_numpy(var_dtype) != self.dtype:
+        if from_numpy_dtype(var_dtype) != self.dtype:
             raise ValueError(
                 f"data type of 'var' (`{var_dtype}`) is incompatible with `{type(self)}`"
             )
@@ -811,7 +812,7 @@ class TyArray(TyArrayBase):
 
         return (values, indices, inverse_indices, counts)
 
-    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE_co]) -> TY_ARRAY_BASE_co:
         # We pretend that we don't know about any other data type. We
         # delegate all work to ``DType.__ndx_cast_from__``
         return NotImplemented
@@ -855,7 +856,7 @@ class TyArray(TyArrayBase):
         np_keys = np.array(list(mapping.keys()))
 
         result_np_dtype_key = np.result_type(np_arr_dtype, np_keys)
-        result_dtype_key: _OnnxDType = from_numpy(result_np_dtype_key)
+        result_dtype_key: _OnnxDType = from_numpy_dtype(result_np_dtype_key)
 
         if result_dtype_key != self.dtype:
             return self.astype(result_dtype_key).apply_mapping(mapping, default)
@@ -1092,10 +1093,10 @@ class TyArrayNumber(TyArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY_BASE],
+        dtype: DType[TY_ARRAY_BASE_co],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE_co: ...
 
     @overload
     def prod(
@@ -1135,10 +1136,10 @@ class TyArrayNumber(TyArray):
         self,
         /,
         *,
-        dtype: DType[TY_ARRAY_BASE],
+        dtype: DType[TY_ARRAY_BASE_co],
         axis: int | tuple[int, ...] | None = None,
         keepdims: bool = False,
-    ) -> TY_ARRAY_BASE: ...
+    ) -> TY_ARRAY_BASE_co: ...
 
     @overload
     def sum(
@@ -1862,7 +1863,7 @@ class TyArrayFloat64(TyArrayFloating):
 
 
 def ascoredata(var: Var) -> TyArray:
-    dtype = from_numpy(var.unwrap_tensor().dtype)
+    dtype = from_numpy_dtype(var.unwrap_tensor().dtype)
 
     return dtype._build(var)
 
@@ -2202,3 +2203,43 @@ def where(cond: TyArrayBool, x: TY_ARRAY, y: TY_ARRAY) -> TY_ARRAY:
     # Reflected methods are not implemented on TyArray objects (they only know about primitive ONNX dtypes)
     res = safe_cast(type(x), x.__ndx_where__(cond, y))
     return _validate(x, y, res, "where")
+
+
+def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
+    # Ensure that this also works with np.generic such as np.int64
+    np_dtype = np.dtype(np_dtype)
+
+    if np_dtype == np.int8:
+        return int8
+    if np_dtype == np.int16:
+        return int16
+    if np_dtype == np.int32:
+        return int32
+    if np_dtype == np.int64:
+        return int64
+
+    if np_dtype == np.uint8:
+        return uint8
+    if np_dtype == np.uint16:
+        return uint16
+    if np_dtype == np.uint32:
+        return uint32
+    if np_dtype == np.uint64:
+        return uint64
+
+    if np_dtype == np.float16:
+        return float16
+    if np_dtype == np.float32:
+        return float32
+    if np_dtype == np.float64:
+        return float64
+
+    if np_dtype == np.bool_:
+        return bool_
+
+    # "T" i.e. "Text" is the kind used for `StringDType` in numpy >= 2
+    # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype
+    if np_dtype.kind in ["U", "T"]:
+        return utf8
+
+    raise ValueError(f"`{np_dtype}` does not have a corresponding ndonnx data type")

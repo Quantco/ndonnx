@@ -8,7 +8,6 @@ import pytest
 from packaging.version import parse
 
 import ndonnx as ndx
-from ndonnx import _dtypes as dtypes
 
 from .utils import assert_equal_dtype_shape, build_and_run, run
 
@@ -458,7 +457,7 @@ def test_put(np_dtype):
     idx = ndx.asarray(np_idx)
 
     np.put(np_arr, np_idx, np.asarray(5, dtype=np_dtype))
-    ndx.extensions.put(arr, idx, ndx.asarray(5, dtype=dtypes.from_numpy(np_dtype)))
+    ndx.extensions.put(arr, idx, ndx.asarray(5, dtype=ndx.from_numpy_dtype(np_dtype)))
 
 
 @pytest.mark.parametrize(

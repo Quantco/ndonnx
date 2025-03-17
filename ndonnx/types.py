@@ -10,18 +10,27 @@ if TYPE_CHECKING:
 
 
 StrictShape = tuple[int, ...]
-StandardShape = int | tuple[int | None, ...]
 OnnxShape = tuple[int | str | None, ...]
 
-GetitemIndex: TypeAlias = Union[
+GetItemKey: TypeAlias = Union[
     int | slice | EllipsisType | None,
     tuple[int | slice | EllipsisType | None, ...],
     "Array",
 ]
 
-SetitemIndex: TypeAlias = Union[
+SetitemKey: TypeAlias = Union[
     int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...], "Array"
 ]
 
 PyScalar = bool | int | float | str
 NestedSequence = Sequence["PyScalar | NestedSequence"]
+
+
+__all__ = [
+    "StrictShape",
+    "OnnxShape",
+    "GetItemKey",
+    "SetitemKey",
+    "PyScalar",
+    "NestedSequence",
+]

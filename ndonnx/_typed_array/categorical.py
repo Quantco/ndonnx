@@ -4,13 +4,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 import numpy as np
 
-from .._dtypes import TY_ARRAY_BASE, DType
+from ndonnx import DType
+from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+
 from .._schema import DTypeInfoV1
-from .._types import NestedSequence, OnnxShape, PyScalar
 from . import onnx
 from .typed_array import TyArrayBase
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 
 
 _N_MAX_CATEGORIES = np.iinfo(np.int16).max
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
 
 class CategoricalDType(DType["CategoricalArray"]):
@@ -192,7 +194,7 @@ class CategoricalArray(TyArrayBase):
         codes = self._codes.permute_dims(axes)
         return type(self)(codes=codes, dtype=self.dtype)
 
-    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE]) -> TY_ARRAY_BASE:
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE_co]) -> TY_ARRAY_BASE_co:
         if dtype != onnx.utf8:
             return NotImplemented
 

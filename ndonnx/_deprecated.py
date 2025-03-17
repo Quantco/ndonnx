@@ -15,7 +15,7 @@ from ._funcs import asarray
 if TYPE_CHECKING:
     from spox import Var
 
-    from ._types import OnnxShape
+    from ndonnx.types import OnnxShape
 
 
 def array(

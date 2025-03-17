@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from warnings import warn
+
+from ._dtypes import DType
+from ._from_numpy_dtype import from_numpy_dtype
+from ._array import Array, asarray
+
+
 from ._deprecated import (
     array,
     from_spox_var,
@@ -13,8 +19,6 @@ from ._deprecated import (
     NullableFloating,
     NullableIntegral,
 )
-from ._array import Array, asarray
-from ._dtypes import DType, from_numpy as from_numpy_dtype
 from ._typed_array.onnx import (
     int8,
     int16,

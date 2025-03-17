@@ -23,7 +23,7 @@ from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
     from ._typed_array.indexing import GetitemIndex as TyGetitemIndex
-    from ._types import GetitemIndex, NestedSequence, OnnxShape, PyScalar, SetitemIndex
+    from .types import GetItemKey, NestedSequence, OnnxShape, PyScalar, SetitemKey
 
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
@@ -244,14 +244,14 @@ class Array:
             "iteration requires dimension of static length, but dimension 0 is dynamic."
         )
 
-    def __getitem__(self, key: GetitemIndex, /) -> Array:
+    def __getitem__(self, key: GetItemKey, /) -> Array:
         idx = _normalize_arrays_in_key(key)
         data = self._tyarray[idx]
         return type(self)._from_tyarray(data)
 
     def __setitem__(
         self,
-        key: SetitemIndex,
+        key: SetitemKey,
         value: str | int | float | bool | Array,
         /,
     ) -> None:
@@ -410,7 +410,7 @@ def _apply_op(
     return NotImplemented
 
 
-def _normalize_arrays_in_key(key: GetitemIndex) -> TyGetitemIndex:
+def _normalize_arrays_in_key(key: GetItemKey) -> TyGetitemIndex:
     if isinstance(key, Array):
         if isinstance(key._tyarray.dtype, onnx.Bool):
             # TODO: Why is mypy not able to figure out the type of _tyarray any more?

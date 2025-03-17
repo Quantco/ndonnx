@@ -11,11 +11,11 @@ from warnings import warn
 import numpy as np
 from spox import Var
 
-from ._schema import DTypeInfoV1
-
 if TYPE_CHECKING:
+    from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+
+    from ._schema import DTypeInfoV1
     from ._typed_array import TyArrayBase, onnx
-    from ._types import NestedSequence, OnnxShape, PyScalar
 
 
 TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase", covariant=True)
@@ -97,60 +97,3 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
     def unwrap_numpy(self) -> np.dtype:
         raise ValueError(f"`{self}` provides no corresponding NumPy data type")
-
-
-# Helper functions
-
-
-# TODO: move to onnx.py?
-def from_numpy(np_dtype: np.dtype) -> onnx.DTypes:
-    from ._typed_array import datetime, onnx
-
-    # Ensure that this also works with np.generic such as np.int64
-    np_dtype = np.dtype(np_dtype)
-
-    if np_dtype == np.int8:
-        return onnx.int8
-    if np_dtype == np.int16:
-        return onnx.int16
-    if np_dtype == np.int32:
-        return onnx.int32
-    if np_dtype == np.int64:
-        return onnx.int64
-
-    if np_dtype == np.uint8:
-        return onnx.uint8
-    if np_dtype == np.uint16:
-        return onnx.uint16
-    if np_dtype == np.uint32:
-        return onnx.uint32
-    if np_dtype == np.uint64:
-        return onnx.uint64
-
-    if np_dtype == np.float16:
-        return onnx.float16
-    if np_dtype == np.float32:
-        return onnx.float32
-    if np_dtype == np.float64:
-        return onnx.float64
-
-    if np_dtype == np.bool_:
-        return onnx.bool_
-
-    if np_dtype.kind == "M":
-        unit = np.datetime_data(np_dtype)[0]
-        # Narrowing strings to Literal is virtually unsupported by
-        # mypy. The constructor raises if the unit is malformed,
-        # though.
-        return datetime.DateTime64DType(unit=unit)  # type: ignore
-
-    if np_dtype.kind == "m":
-        unit = np.datetime_data(np_dtype)[0]
-        return datetime.TimeDelta64DType(unit=unit)  # type: ignore
-
-    # "T" i.e. "Text" is the kind used for `StringDType` in numpy >= 2
-    # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype
-    if np_dtype.kind in ["U", "T"]:
-        return onnx.utf8
-
-    raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")

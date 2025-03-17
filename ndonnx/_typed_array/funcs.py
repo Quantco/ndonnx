@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import numpy as np
 from spox import Var
 
-from .._dtypes import DType
-from .._types import NestedSequence, PyScalar
-from . import masked_onnx, onnx
-from .typed_array import TyArrayBase
-from .utils import promote
+from ndonnx import DType
+from ndonnx._from_numpy_dtype import from_numpy_dtype
+from ndonnx.types import NestedSequence, PyScalar
+
+from . import TyArrayBase, datetime, masked_onnx, onnx, promote
 
 if TYPE_CHECKING:
     from .._dtypes import TY_ARRAY_BASE
@@ -44,15 +44,16 @@ def _infer_dtype(
                     "found array with object data type but it contains non-string elements"
                 )
             return onnx.utf8
-        core_type = onnx.from_numpy(val.dtype)
+        dtype = from_numpy_dtype(val.dtype)
         if isinstance(val, np.ma.MaskedArray):
-            return masked_onnx.to_nullable_dtype(core_type)
-        else:
-            return core_type
+            if isinstance(dtype, datetime.BaseTimeDType):
+                return dtype
+            return masked_onnx.to_nullable_dtype(dtype)
+        return dtype
     elif isinstance(val, TyArrayBase):
         return val.dtype
     elif isinstance(val, Var):
-        return onnx.from_numpy(val.unwrap_tensor().dtype)
+        return onnx.from_numpy_dtype(val.unwrap_tensor().dtype)
     elif isinstance(val, bool):
         return onnx.bool_
     elif isinstance(val, int):
@@ -64,7 +65,7 @@ def _infer_dtype(
     elif isinstance(val, Sequence):
         return _infer_sequence(val)
     elif isinstance(val, np.generic):
-        return onnx.from_numpy(val.dtype)
+        return onnx.from_numpy_dtype(val.dtype)
     else:
         raise ValueError(f"Unable to infer dtype from {val}")
 
