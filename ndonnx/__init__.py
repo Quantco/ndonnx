@@ -15,7 +15,7 @@ if importlib.util.find_spec("onnxruntime"):
 
 from ._dtypes import DType
 from ._from_numpy_dtype import from_numpy_dtype
-from ._array import Array, asarray, argument
+from ._array import Array
 
 
 from ._typed_array.onnx import (
@@ -51,6 +51,8 @@ from ._typed_array.masked_onnx import (
 )
 from ._typed_array.datetime import DateTime64DType, TimeDelta64DType
 from ._funcs import (
+    asarray,
+    argument,
     expm1,
     log1p,
     atan2,
@@ -377,7 +379,7 @@ def __getattr__(name: str):
     )
 
     def _warn_use_instead(old: str, new: str):
-        warn("'{old}' is deprecated in favor of '{new}'", DeprecationWarning)
+        warn(f"'{old}' is deprecated in favor of '{new}'", DeprecationWarning)
 
     superseded = {
         "array": ("ndonnx.Array", array),

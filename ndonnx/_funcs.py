@@ -7,16 +7,81 @@ import builtins
 import math
 from collections.abc import Sequence
 from typing import Literal, NamedTuple
+from warnings import warn
 
 import numpy as np
+from spox import Var
 
 import ndonnx as ndx
+from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
-from ._array import Array, asarray
-from ._dtypes import DType
+from ._array import Array, DType
 from ._namespace_info import Device
+from ._typed_array import astyarray, onnx
 from ._typed_array import funcs as tyfuncs
-from ._typed_array import onnx
+
+
+def argument(
+    *,
+    shape: OnnxShape,
+    dtype: ndx.DType,
+) -> Array:
+    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
+
+    Parameters
+    ----------
+    shape
+        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
+        `None`-dimensions denote unknown dimensions.
+    dtype
+        The data type of the array.
+
+    Returns
+    -------
+    Array
+        The new array representing input(s) of the computational graphs.
+    """
+    return Array._argument(shape=shape, dtype=dtype)
+
+
+def asarray(
+    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
+    /,
+    *,
+    dtype: ndx.DType | None = None,
+    device: None | Device = None,
+    copy: bool | None = None,
+) -> Array:
+    if not copy and copy is not None:
+        # Must copy or raise
+        if not isinstance(obj, Array):
+            raise ValueError(
+                f"cannot create 'Array' from object of type `{type(obj)}` without copying"
+            )
+        if obj.dtype == dtype or dtype is None:
+            return Array._from_tyarray(obj._tyarray)
+        raise ValueError(
+            f"cannot create Array with data type `{dtype}` from array "
+            f"of data type `{obj.dtype}` without copying data"
+        )
+    if isinstance(obj, Array):
+        return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
+    else:
+        if isinstance(obj, Sequence) and not isinstance(obj, str | Array):
+            np_arr = np.asarray(obj, dtype=object)
+            if (
+                builtins.all(isinstance(el, Array) for el in np_arr.flatten())
+                and np_arr.size > 0
+            ):
+                # This is a list of ndonnx arrays
+                warn(
+                    "providing a sequence of 'Array's to 'asarray' is not defined by the array-api-standard and may be removed from ndonnx in the future"
+                )
+                dtype = result_type(*np_arr.flatten()) if dtype is None else dtype
+                out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])
+                out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
+                return reshape(out, out_shape)
+        return Array._from_tyarray(astyarray(obj, dtype=dtype))
 
 
 def from_dlpack(
@@ -59,10 +124,6 @@ def arange(
         stop = start
         start = 0
 
-    # Validation; It is a user error if they provide wrong
-    # types. However, there is an existing tests for this behavior, so
-    # we support it for now.
-    # TODO: Remove after the typed arrays refactoring has landed
     for el in [start, stop, step]:
         if not isinstance(el, int | float):
             raise TypeError(
@@ -121,10 +182,8 @@ def broadcast_arrays(*arrays: Array) -> list[Array]:
 
 
 def broadcast_to(x: Array, /, shape: tuple[int, ...] | Array) -> Array:
-    from ._typed_array.onnx import TyArrayInt64
-
     if isinstance(shape, Array):
-        if not isinstance(shape._tyarray, TyArrayInt64):
+        if not isinstance(shape._tyarray, onnx.TyArrayInt64):
             raise ValueError(
                 f"dynamic shape must be of data type int64, found `{shape.dtype}`"
             )
@@ -482,13 +541,11 @@ def reshape(
 
 
 def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Array:
-    from ._typed_array.onnx import TyArrayInt64, TyArrayInteger, int64
-
-    repeats_: int | TyArrayInt64
+    repeats_: int | onnx.TyArrayInt64
     if isinstance(repeats, int):
         repeats_ = repeats
-    elif isinstance(repeats._tyarray, TyArrayInteger):
-        repeats_ = repeats._tyarray.astype(int64)
+    elif isinstance(repeats._tyarray, onnx.TyArrayInteger):
+        repeats_ = repeats._tyarray.astype(onnx.int64)
     else:
         raise TypeError(
             f"'repeats' argument must be of type 'int' or an array with an integer data type, found `{repeats}`"
@@ -550,9 +607,7 @@ def squeeze(x: Array, /, axis: int | tuple[int, ...]) -> Array:
 
 
 def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
-    from ._typed_array.onnx import TyArrayInt64
-
-    if not isinstance(indices._tyarray, TyArrayInt64):
+    if not isinstance(indices._tyarray, onnx.TyArrayInt64):
         raise TypeError(
             "'indices' must be of data type 'int64' found `{indices.dtype}`"
         )

@@ -2232,9 +2232,9 @@ def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
     if np_dtype == np.bool_:
         return bool_
 
-    # "T" i.e. "Text" is the kind used for `StringDType` in numpy >= 2
+    # We don't support "T" ("Text" is the kind used for `StringDType` in numpy >= 2), yet.
     # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype
-    if np_dtype.kind in ["U", "T"]:
+    if np_dtype.kind == "U":
         return utf8
 
     raise ValueError(f"`{np_dtype}` does not have a corresponding ndonnx data type")

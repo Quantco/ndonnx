@@ -651,8 +651,8 @@ def _coerce_units(a: T1, b: T2) -> tuple[T1, T2]:
     return (a.astype(dtype_a), b.astype(dtype_b))
 
 
-def validate_unit(unit: str) -> Literal["ns", "s"]:
-    if unit in ["ns", "s"]:
+def validate_unit(unit: str) -> Unit:
+    if unit in get_args(Unit):
         return unit  # type: ignore
     raise ValueError(f"unsupported datetime unit `{unit}`")
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import math
 import operator as std_ops
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from enum import Enum
 from types import EllipsisType, NotImplementedType
 from typing import TYPE_CHECKING, Any
@@ -20,7 +20,7 @@ from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
     from ._typed_array.indexing import GetitemIndex as TyGetitemIndex
-    from .types import GetItemKey, NestedSequence, OnnxShape, PyScalar, SetitemKey
+    from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
 
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
@@ -98,11 +98,12 @@ class Array:
 
     @property
     def size(self) -> int | None:
-        if any(el is None for el in self.shape):
-            return None
+        static_dims = []
+        for el in self.shape:
+            if el is None:
+                return None
+            static_dims.append(el)
 
-        # We know that no elements are `None`. This is to keep mypy happy
-        static_dims = [el for el in self.shape if el is not None]
         return math.prod(static_dims)
 
     @property
@@ -113,7 +114,7 @@ class Array:
         """
         # Special cases that allow for shortcuts
         if self.ndim == 0:
-            return asarray(1, dtype=onnx.int64)
+            Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
         if self.ndim == 1:
             return self.dynamic_shape
 
@@ -240,13 +241,15 @@ class Array:
         value: str | int | float | bool | Array,
         /,
     ) -> None:
-        from ._typed_array.onnx import TyArrayBool, TyArrayInteger
-
         # Specs say that the data type of self must not be changed.
-        updates = asarray(value, dtype=self.dtype)._tyarray
+        updates = (
+            value._tyarray
+            if isinstance(value, Array)
+            else astyarray(value, dtype=self.dtype)
+        )
 
         if isinstance(key, Array):
-            if not isinstance(key._tyarray, TyArrayInteger | TyArrayBool):
+            if not isinstance(key._tyarray, onnx.TyArrayInteger | onnx.TyArrayBool):
                 raise TypeError(
                     f"indexing array must have integer or boolean data type; found `{key.dtype}`"
                 )
@@ -328,71 +331,6 @@ class Array:
             "" if self._tyarray.is_constant else f" shape={self._tyarray.shape},"
         )
         return f"array({value_repr},{shape_info} dtype={self.dtype})"
-
-
-def argument(
-    *,
-    shape: OnnxShape,
-    dtype: DType,
-) -> Array:
-    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
-
-    Parameters
-    ----------
-    shape
-        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
-        `None`-dimensions denote unknown dimensions.
-    dtype
-        The data type of the array.
-
-    Returns
-    -------
-    Array
-        The new array representing input(s) of the computational graphs.
-    """
-    return Array._argument(shape=shape, dtype=dtype)
-
-
-def asarray(
-    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
-    /,
-    *,
-    dtype: DType | None = None,
-    device: None | Device = None,
-    copy: bool | None = None,
-) -> Array:
-    from . import concat, reshape, result_type
-
-    if not copy and copy is not None:
-        # Must copy or raise
-        if not isinstance(obj, Array):
-            raise ValueError(
-                f"cannot create 'Array' from object of type `{type(obj)}` without copying"
-            )
-        if obj.dtype == dtype or dtype is None:
-            return Array._from_tyarray(obj._tyarray)
-        raise ValueError(
-            f"cannot create Array with data type `{dtype}` from array "
-            f"of data type `{obj.dtype}` without copying data"
-        )
-    if isinstance(obj, Array):
-        return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
-    else:
-        if isinstance(obj, Sequence) and not isinstance(obj, str | Array):
-            np_arr = np.asarray(obj, dtype=object)
-            if (
-                all(isinstance(el, Array) for el in np_arr.flatten())
-                and np_arr.size > 0
-            ):
-                # This is a list of ndonnx arrays
-                warn(
-                    "providing a sequence of 'Array's to 'asarray' is not defined by the array-api-standard and may be removed from ndonnx in the future"
-                )
-                dtype = result_type(*np_arr.flatten()) if dtype is None else dtype
-                out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])
-                out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
-                return reshape(out, out_shape)
-        return Array._from_tyarray(astyarray(obj, dtype=dtype))
 
 
 def _astyarray_or_pyscalar(

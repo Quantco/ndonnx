@@ -13,6 +13,20 @@ from ._schema import SchemaV1
 def build(
     inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=False
 ) -> onnx.ModelProto:
+    """Build and ONNX model from the provided argument-Arrays and outputs.
+
+    Parameters
+    ----------
+    inputs
+        Inputs of the model
+    outputs
+        Outputs of the model
+
+    Returns
+    -------
+    onnx.ModelProto
+        ONNX model
+    """
     ins = _arrays_to_vars(inputs)
     outs = _arrays_to_vars(outputs)
 
