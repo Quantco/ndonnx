@@ -300,10 +300,10 @@ class TyArray(TyArrayBase):
         self._var = var
 
     def __ndx_value_repr__(self) -> dict[str, str]:
-        try:
+        if self.is_constant:
             # TODO: should this really be "data"?
             return {"data": str(self.unwrap_numpy().tolist())}
-        except ValueError:
+        else:
             return {"data": "*lazy*"}
 
     def __getitem__(
@@ -684,10 +684,9 @@ class TyArray(TyArrayBase):
         # TODO: File upstream bug; this may also be what caused the
         # segfaults in onnxruntime in the past!
         if self.dtype in (int32, int64) and self.ndim == 1:
-            axis_ = axis if axis is None else axis
-            dummy_axis = op.const([axis_ + 1], dtype=np.int64)
+            dummy_axis = op.const([axis + 1], dtype=np.int64)
             vars = [op.unsqueeze(a._var, dummy_axis) for a in arrays]
-            var = op.concat(vars, axis=axis_)
+            var = op.concat(vars, axis=axis)
             var = op.squeeze(var, dummy_axis)
         else:
             var = op.concat([a._var for a in arrays], axis=0 if axis is None else axis)
@@ -935,12 +934,8 @@ class TyArrayNumber(TyArray):
             x = x.reshape((-1,))
             axis_ = 0
         res = TyArrayInt64(spox_op(x._var, axis=axis_, keepdims=keepdims))
-        if axis is None:
-            if keepdims:
-                res = res.reshape(tuple(1 for _ in range(self.ndim)))
-            # else:
-            #     res = res.squeeze(0)
-
+        if axis is None and keepdims:
+            res = res.reshape(tuple(1 for _ in range(self.ndim)))
         return res
 
     def argmax(

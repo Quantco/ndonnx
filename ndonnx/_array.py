@@ -18,7 +18,7 @@ import numpy as np
 from spox import Var
 
 from ._dtypes import DType
-from ._namespace_info import Device
+from ._namespace_info import Device, device
 from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
@@ -67,14 +67,14 @@ class Array:
     @classmethod
     def _from_tyarray(cls, tyarray: TyArrayBase, /) -> Array:
         if not isinstance(tyarray, TyArrayBase):
-            raise TypeError(f"expected '_TypedArrayBase', found `{type(tyarray)}`")
+            raise TypeError(f"expected 'TypedArrayBase', found `{type(tyarray)}`")
         inst = cls.__new__(cls)
         inst._tyarray = tyarray
         return inst
 
     @property
-    def device(self) -> None:
-        return None
+    def device(self) -> Device:
+        return device
 
     @property
     def dtype(self) -> DType:
