@@ -6,12 +6,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeVar, overload
 
 if TYPE_CHECKING:
+    from .._types import PyScalar
     from . import TyArrayBase
     from .masked_onnx import TyMaArray
     from .onnx import TyArray
 
 T = TypeVar("T")
-_PyScalar = bool | int | float | str
 
 
 @overload
@@ -19,24 +19,24 @@ def promote(lhs: TyArray, *others: TyArray) -> tuple[TyArray, ...]: ...
 
 
 @overload
-def promote(lhs: TyArray, *others: TyArray | _PyScalar) -> tuple[TyArray, ...]: ...
+def promote(lhs: TyArray, *others: TyArray | PyScalar) -> tuple[TyArray, ...]: ...
 
 
 @overload
 def promote(
     lhs: TyArray | TyMaArray,
-    *others: TyArray | TyMaArray | _PyScalar,
+    *others: TyArray | TyMaArray | PyScalar,
 ) -> tuple[TyArray | TyMaArray, ...]: ...
 
 
 @overload
 def promote(
-    lhs: TyArrayBase, *others: TyArrayBase | _PyScalar
+    lhs: TyArrayBase, *others: TyArrayBase | PyScalar
 ) -> tuple[TyArrayBase, ...]: ...
 
 
 def promote(
-    lhs: TyArrayBase, *others: TyArrayBase | _PyScalar
+    lhs: TyArrayBase, *others: TyArrayBase | PyScalar
 ) -> tuple[TyArrayBase, ...]:
     from .funcs import astyarray, result_type
 

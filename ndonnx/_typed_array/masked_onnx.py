@@ -15,16 +15,8 @@ from typing_extensions import Self
 from .._dtypes import TY_ARRAY_BASE, DType
 from .._schema import DTypeInfoV1
 from .._types import NestedSequence, OnnxShape, PyScalar
-from . import (
-    TyArrayBase,
-    astyarray,
-    maximum,
-    minimum,
-    onnx,
-    result_type,
-    safe_cast,
-    where,
-)
+from . import TyArrayBase, onnx
+from .utils import safe_cast
 
 if TYPE_CHECKING:
     from spox import Var
@@ -34,12 +26,6 @@ if TYPE_CHECKING:
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
-CORE_DTYPES = TypeVar("CORE_DTYPES", bound=onnx.DTypes)
-NCORE_DTYPES = TypeVar("NCORE_DTYPES", bound="DTypes")
-
-NCORE_NUMERIC_DTYPES = TypeVar("NCORE_NUMERIC_DTYPES", bound="NumericDTypes")
-NCORE_FLOATING_DTYPES = TypeVar("NCORE_FLOATING_DTYPES", bound="FloatDTypes")
-NCORE_INTEGER_DTYPES = TypeVar("NCORE_INTEGER_DTYPES", bound="IntegerDTypes")
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
 
@@ -51,7 +37,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_MA_ARRAY_ONNX:
         if isinstance(val, np.ma.MaskedArray):
-            data = safe_cast(onnx.TyArray, astyarray(val.data))
+            data = onnx.const(val.data)
             if val.mask is np.ma.nomask:
                 mask = None
             else:
@@ -128,9 +114,9 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 class _NNumber(_MaOnnxDType):
     def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, onnx.NumericDTypes | int | float):
-            core_result = onnx._result_type(self._unmasked_dtype, rhs)
+            core_result = onnx.result_type(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NumericDTypes):
-            core_result = onnx._result_type(self._unmasked_dtype, rhs._unmasked_dtype)
+            core_result = onnx.result_type(self._unmasked_dtype, rhs._unmasked_dtype)
 
         else:
             # No implicit promotion for bools and strings
@@ -424,11 +410,11 @@ class TyMaArray(TyMaArrayBase):
         return type(self)(data=data, mask=mask)
 
     def fill_null(self, value: int | float | bool | str) -> onnx.TyArray:
-        dtype = result_type(self.data.dtype, value)
+        dtype = onnx.result_type(self.data.dtype, value)
         if self.mask is None:
             return self.data.astype(dtype)
-        value_arr = astyarray(value, dtype)
-        return safe_cast(onnx.TyArray, where(self.mask, value_arr, self.data))
+        value_arr = onnx.const(value, dtype)
+        return onnx.where(self.mask, value_arr, self.data)
 
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
         return self._pass_through_same_type("permute_dims", axes=axes)
@@ -474,11 +460,9 @@ class TyMaArray(TyMaArrayBase):
             return
         if self.mask is None:
             # Create a new mask for self
-            self.mask = astyarray(False, dtype=onnx.bool_).broadcast_to(
-                self.dynamic_shape
-            )
+            self.mask = onnx.const(False, onnx.bool_).broadcast_to(self.dynamic_shape)
         if value.mask is None:
-            self.mask[index] = astyarray(False, dtype=onnx.bool_)
+            self.mask[index] = onnx.const(False, onnx.bool_)
         else:
             self.mask[index] = value.mask
 
@@ -492,7 +476,7 @@ class TyMaArray(TyMaArrayBase):
         self.data.put(key, value.data)
         if value.mask is not None:
             if self.mask is None:
-                self.mask = astyarray(False, dtype=onnx.bool_).broadcast_to(
+                self.mask = onnx.const(False, onnx.bool_).broadcast_to(
                     self.dynamic_shape
                 )
             self.mask.put(key, value.mask)
@@ -514,7 +498,7 @@ class TyMaArray(TyMaArrayBase):
             masks = []
             for el in [self] + others:
                 masks.append(
-                    astyarray(False).broadcast_to(self.data.dynamic_shape)
+                    onnx.const(False, onnx.bool_).broadcast_to(self.data.dynamic_shape)
                     if el.mask is None
                     else el.mask
                 )
@@ -633,26 +617,32 @@ class TyMaArrayNumber(TyMaArray):
         return self.fill_null(1).prod(axis=axis, dtype=dtype, keepdims=keepdims)
 
     def __ndx_maximum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase:
-        dtype = result_type(self, rhs)
-        if isinstance(rhs, onnx.TyArray | PyScalar):
-            rhs = astyarray(rhs, dtype=dtype)
+        if isinstance(rhs, PyScalar):
+            rhs = onnx.const(rhs)
+        if isinstance(rhs, onnx.TyArray):
+            return self.__ndx_maximum__(make_nullable(rhs, None))
         if isinstance(rhs, TyMaArray):
-            lhs_ = self._data
-            rhs_ = rhs._data
-            new_data = safe_cast(onnx.TyArray, maximum(lhs_, rhs_))
+            lhs_data = self._data
+            rhs_data = rhs._data
+            new_data = safe_cast(onnx.TyArray, lhs_data.__ndx_maximum__(rhs_data))
+            if new_data is NotImplemented:
+                return new_data
             new_mask = merge_masks(self.mask, rhs.mask)
             return make_nullable(new_data, new_mask)
 
         return NotImplemented
 
     def __ndx_minimum__(self, rhs: TyArrayBase | PyScalar, /) -> TyArrayBase:
-        dtype = result_type(self, rhs)
-        if isinstance(rhs, onnx.TyArray | PyScalar):
-            rhs = astyarray(rhs, dtype=dtype)
+        if isinstance(rhs, PyScalar):
+            rhs = onnx.const(rhs)
+        if isinstance(rhs, onnx.TyArray):
+            return self.__ndx_minimum__(make_nullable(rhs, None))
         if isinstance(rhs, TyMaArray):
-            lhs_ = self._data
-            rhs_ = rhs._data
-            new_data = safe_cast(onnx.TyArray, minimum(lhs_, rhs_))
+            lhs_data = self._data
+            rhs_data = rhs._data
+            new_data = safe_cast(onnx.TyArray, lhs_data.__ndx_minimum__(rhs_data))
+            if new_data is NotImplemented:
+                return new_data
             new_mask = merge_masks(self.mask, rhs.mask)
             return make_nullable(new_data, new_mask)
 
@@ -835,12 +825,10 @@ def _apply_op(
 ) -> TyMaArray:
     """Apply an operation by passing it through to the data member."""
     if isinstance(other, PyScalar):
-        dtype = result_type(this, other)
-        other = astyarray(other, dtype)
+        dtype = onnx.result_type(this.dtype._unmasked_dtype, other)
+        other = onnx.const(other, dtype)
     if isinstance(other, onnx.TyArray):
-        from .funcs import promote
-
-        this_, other = promote(this.data, other)
+        this_, other = onnx.promote(this.data, other)
         data = op(this_, other) if forward else op(other, this_)
         mask = this.mask
     elif isinstance(other, TyMaArray):

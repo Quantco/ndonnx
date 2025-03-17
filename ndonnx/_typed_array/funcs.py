@@ -12,19 +12,17 @@ from spox import Var
 
 from .._dtypes import DType
 from .._types import NestedSequence, PyScalar
+from . import masked_onnx, onnx
 from .typed_array import TyArrayBase
 from .utils import promote
 
 if TYPE_CHECKING:
     from .._dtypes import TY_ARRAY_BASE
-    from . import onnx
 
 
 def _infer_sequence(
     val: NestedSequence,
 ) -> DType:
-    from . import onnx
-
     types = set()
     for item in val:
         if isinstance(item, Sequence) and not isinstance(item, str):
@@ -39,8 +37,6 @@ def _infer_sequence(
 def _infer_dtype(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
 ) -> DType:
-    from . import masked_onnx, onnx
-
     if isinstance(val, np.ndarray):
         if val.dtype == object:
             if not all(isinstance(el, str) for el in val.flatten()):
@@ -207,8 +203,6 @@ def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase
 
 
 def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
-    from . import onnx
-
     if not isinstance(cond, onnx.TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 

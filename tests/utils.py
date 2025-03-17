@@ -59,6 +59,9 @@ def assert_array_equal(
     actual: np.ndarray,
     expected: np.ndarray,
 ):
+    if np.asarray(actual).dtype.kind == np.asarray(expected).dtype.kind == "U":
+        actual = np.asarray(actual, object)
+        expected = np.asarray(expected, object)
     np.testing.assert_array_equal(
         actual, expected, strict=np.__version__.startswith("2")
     )

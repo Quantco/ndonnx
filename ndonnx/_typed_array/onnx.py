@@ -16,13 +16,14 @@ from typing_extensions import Self
 from .._dtypes import TY_ARRAY_BASE, DType, from_numpy
 from .._schema import DTypeInfoV1
 from .._types import NestedSequence, OnnxShape, PyScalar
-from . import TyArrayBase, astyarray, promote, safe_cast, where
+from . import TyArrayBase
 from . import ort_compat as op
 from .indexing import (
     FancySlice,
-    _key_to_indices,
+    key_to_indices,
     normalize_getitem_key,
 )
+from .utils import safe_cast
 
 if TYPE_CHECKING:
     from .indexing import BoolMask, GetitemItem, SetitemItem
@@ -86,7 +87,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
 
     def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, _OnnxDType | PyScalar):
-            return _result_type(self, rhs)
+            return result_type(self, rhs)
 
         return NotImplemented
 
@@ -96,7 +97,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         if isinstance(val, Var):
             return ascoredata(val).astype(self)
         elif isinstance(val, PyScalar | np.ndarray | np.generic):
-            return const(val).astype(self)
+            return const(val, dtype=self)
         elif isinstance(val, Sequence):
             return self.__ndx_create__(np.asarray(val))
         elif isinstance(val, TyArrayBase):
@@ -440,7 +441,7 @@ class TyArray(TyArrayBase):
             key = key[:-1]
 
         if contains_no_ellipsis(key):
-            arr_key = _key_to_indices(key, self.dynamic_shape)
+            arr_key = key_to_indices(key, self.dynamic_shape)
             self._setitem_int_array(arr_key, value)
             return
 
@@ -468,8 +469,8 @@ class TyArray(TyArrayBase):
 
         int_keys = safe_cast(
             TyArrayInt64,
-            (astyarray(1).broadcast_to(key.dynamic_shape).cumulative_sum() - 1)[key],
-        )
+            const(1, int64).broadcast_to(key.dynamic_shape).cumulative_sum() - 1,
+        )[key]
         arr = self.copy().reshape((-1,))
         arr.put(int_keys, value.reshape((-1,)))
         arr.reshape(self.dynamic_shape)
@@ -522,7 +523,7 @@ class TyArray(TyArrayBase):
         # if the shape is statically known. We therefore do that
         # manually here.
         if all(isinstance(el, int) for el in self.shape):
-            return astyarray(np.array(self.shape), dtype=int64)
+            return const(np.array(self.shape), dtype=int64)
 
         var = op.shape(self._var)
         return TyArrayInt64(var)
@@ -641,7 +642,7 @@ class TyArray(TyArrayBase):
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         if isinstance(shape, tuple):
-            shape = astyarray(np.array(shape), dtype=int64)
+            shape = const(np.array(shape), dtype=int64)
         if shape.ndim != 1:
             raise ValueError(f"'shape' must be a rank-1 tensor, found `{shape.ndim}`")
         if not isinstance(shape.shape[0], int):
@@ -839,9 +840,9 @@ class TyArray(TyArrayBase):
 
         # Optimizations:
         if len(items) == 0:
-            return astyarray(False, dtype=bool_).broadcast_to(self.dynamic_shape)
+            return const(False, dtype=bool_).broadcast_to(self.dynamic_shape)
         if len(items) == 1:
-            return safe_cast(TyArrayBool, self == astyarray(items[0]))
+            return safe_cast(TyArrayBool, self == const(items[0]))
 
         # label_encoder based implementation
         mapping = dict(zip(items, (True,) * len(items)))
@@ -849,9 +850,7 @@ class TyArray(TyArrayBase):
 
     def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
         if not mapping:
-            return safe_cast(
-                TyArray, astyarray(default).broadcast_to(self.dynamic_shape)
-            )
+            return safe_cast(TyArray, const(default).broadcast_to(self.dynamic_shape))
         np_arr_dtype = self.dtype.unwrap_numpy()
         np_keys = np.array(list(mapping.keys()))
 
@@ -922,7 +921,7 @@ class TyArrayUtf8(TyArray):
         return NotImplemented
 
     def isnan(self) -> TyArrayBool:
-        return astyarray(False, dtype=bool_).broadcast_to(self.dynamic_shape)
+        return const(False, dtype=bool_).broadcast_to(self.dynamic_shape)
 
 
 class TyArrayNumber(TyArray):
@@ -1013,10 +1012,8 @@ class TyArrayNumber(TyArray):
         )
         if include_initial:
             out_shape = out.dynamic_shape
-            out_shape[axis_] = safe_cast(TyArrayInt64, astyarray(1))
-            zeros = safe_cast(
-                type(self), astyarray(0, out.dtype).broadcast_to(out_shape)
-            )
+            out_shape[axis_] = const(1, dtype=int64)
+            zeros = safe_cast(type(self), const(0, out.dtype).broadcast_to(out_shape))
             out = zeros.concat([out], axis=axis_)
         return out
 
@@ -1216,13 +1213,31 @@ class TyArrayNumber(TyArray):
             other, op.greater_or_equal, forward=True, result_type=TyArrayBool
         )
 
+    @overload
+    def __gt__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
+
+    @overload
+    def __gt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+
     def __gt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.greater, forward=True, result_type=TyArrayBool)
+
+    @overload
+    def __le__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
+
+    @overload
+    def __le__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
 
     def __le__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(
             other, op.less_or_equal, forward=True, result_type=TyArrayBool
         )
+
+    @overload
+    def __lt__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
+
+    @overload
+    def __lt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
 
     def __lt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.less, forward=True, result_type=TyArrayBool)
@@ -1501,7 +1516,7 @@ class TyArrayFloating(TyArrayNumber):
 
         is_nan = self.isnan().any(axis=axis, keepdims=keepdims)
         return safe_cast(
-            type(self), where(is_nan, astyarray(float("nan"), dtype=res.dtype), res)
+            type(self), where(is_nan, const(float("nan"), dtype=res.dtype), res)
         )
 
     def min(
@@ -1514,7 +1529,7 @@ class TyArrayFloating(TyArrayNumber):
 
         is_nan = self.isnan().any(axis=axis, keepdims=keepdims)
         return safe_cast(
-            type(self), where(is_nan, astyarray(float("nan"), dtype=res.dtype), res)
+            type(self), where(is_nan, const(float("nan"), dtype=res.dtype), res)
         )
 
     def mean(
@@ -1574,17 +1589,17 @@ class TyArrayFloating(TyArrayNumber):
         nom = (self - means).square().sum(axis=axis, keepdims=keepdims)
 
         if correction != 0:
-            size = safe_cast(TyArrayInt64, size - astyarray(correction, dtype=int64))
+            size = safe_cast(TyArrayInt64, size - const(correction, dtype=int64))
         res = (nom / size).astype(self.dtype)
 
         # There is an uncanny corner case here: If self is 0-sized,
         # means is NaN, however, the sum over a zero-sized array is
         # `0`! I.e. we lose the NaN information. We recover it with
         # the `where` call later.
-        nan = astyarray(np.nan, dtype=self.dtype)
+        nan = const(np.nan, dtype=self.dtype)
         is_zero_sized = safe_cast(
             TyArrayBool,
-            self.dynamic_shape.prod(dtype=int64) == astyarray(0, dtype=int64),
+            self.dynamic_shape.prod(dtype=int64) == const(0, dtype=int64),
         )
         return safe_cast(type(self), where(is_zero_sized, nan, res))
 
@@ -1687,7 +1702,7 @@ class TyArrayBool(TyArray):
             else:
                 b, a = promote(self, other)
             var = op(a._var, b._var)
-            return safe_cast(TyArrayNumber, astyarray(var))
+            return safe_cast(TyArrayNumber, ascoredata(var))
         return NotImplemented
 
     # We would get the following arithmetic functions for free if
@@ -1777,9 +1792,7 @@ class TyArrayBool(TyArray):
         true_val = mapping_.get(True, default)
         false_val = mapping_.get(False, default)
 
-        return safe_cast(
-            TyArray, where(self, astyarray(true_val), astyarray(false_val))
-        )
+        return safe_cast(TyArray, where(self, const(true_val), const(false_val)))
 
 
 class TyArrayInt8(TyArraySignedInteger):
@@ -1854,9 +1867,29 @@ def ascoredata(var: Var) -> TyArray:
     return dtype._build(var)
 
 
-def const(obj: bool | int | float | str | np.ndarray) -> TyArray:
-    """Create a constant from the given value if it can be expressed as an ONNX data
-    type."""
+@overload
+def const(
+    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]
+) -> TY_ARRAY_co: ...
+
+
+@overload
+def const(obj: int, dtype: None = None) -> TyArrayInt64: ...
+
+
+@overload
+def const(
+    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
+) -> TyArray: ...
+
+
+def const(
+    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
+) -> TyArray:
+    """Create a constant from the given value.
+
+    The `dtype` argument may be used in favor of a subsequent `astype` call to create a cleaner ONNX graph.
+    """
     # don't blindly fall back to NumPy to maintain better np1x
     # compatibility on Windows which defaults to int32
     if isinstance(obj, bool):
@@ -1871,6 +1904,8 @@ def const(obj: bool | int | float | str | np.ndarray) -> TyArray:
         obj = obj.astype(str)
     else:
         obj = np.asarray(obj)
+    if dtype is not None:
+        obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
     return ascoredata(op.const(obj))
 
 
@@ -2003,10 +2038,12 @@ _int_to_floating: dict[_Number | Bool, NumericDTypes] = {
 }
 
 
-def _result_type(
+def result_type(
     a: _OnnxDType, b: _OnnxDType | int | float | str
 ) -> _OnnxDType | NotImplementedType:
     """Entry point for promotion logic between ONNX data types."""
+    if a == b:
+        return a
     if isinstance(b, str):
         if isinstance(a, Utf8):
             return a
@@ -2053,6 +2090,25 @@ def _result_type(
         if ret := _singed_int_with_uint64.get((a, b)):
             return ret
     return NotImplemented
+
+
+def promote(
+    lhs: TyArray, *others: TyArray | bool | int | float | str
+) -> tuple[TyArray, ...]:
+    others_ = [el.dtype if isinstance(el, TyArray) else el for el in others]
+    dtype = lhs.dtype
+    for el in others_:
+        dtype_ = result_type(dtype, el)
+        if dtype_ is NotImplemented:
+            raise TypeError(
+                f"failed to promote `{dtype}` and `{el}` into common data type"
+            )
+        dtype = dtype_
+
+    return tuple(
+        el.astype(dtype) if isinstance(el, TyArray) else const(el, dtype)
+        for el in [lhs] + list(others)
+    )
 
 
 def _axis_array(axis: int | tuple[int, ...] | None, rank: int) -> TyArrayInt64 | None:
@@ -2127,3 +2183,22 @@ def _move_ellipsis_back(
 
     keys_no_ellipsis = tuple(el for el in key if el != ...)
     return new_perm, inverse_map, keys_no_ellipsis
+
+
+T = TypeVar("T")
+
+
+def _validate(
+    x1: TY_ARRAY, x2: TY_ARRAY, result: T | NotImplementedType, func_name: str
+) -> T:
+    if isinstance(result, NotImplementedType):
+        raise TypeError(
+            f"unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
+        )
+    return result
+
+
+def where(cond: TyArrayBool, x: TY_ARRAY, y: TY_ARRAY) -> TY_ARRAY:
+    # Reflected methods are not implemented on TyArray objects (they only know about primitive ONNX dtypes)
+    res = safe_cast(type(x), x.__ndx_where__(cond, y))
+    return _validate(x, y, res, "where")
