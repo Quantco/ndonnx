@@ -1,7 +1,17 @@
 # Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
+import importlib.util
 from warnings import warn
+
+import spox
+
+# Set onnxruntime as the default for value propagation if it is
+# installed. We do so before the other imports so that any constant
+# that may be computed elsewhere is already using onnxruntime.
+if importlib.util.find_spec("onnxruntime"):
+    spox._value_prop._VALUE_PROP_BACKEND = spox._value_prop.ValuePropBackend.ONNXRUNTIME
+
 
 from ._dtypes import DType
 from ._from_numpy_dtype import from_numpy_dtype

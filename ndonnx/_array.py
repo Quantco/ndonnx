@@ -1,9 +1,6 @@
 # Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
-# Copyright (c) QuantCo 2023-2025
-# SPDX-License-Identifier: BSD-3-Clause
-
 from __future__ import annotations
 
 import math
@@ -11,7 +8,7 @@ import operator as std_ops
 from collections.abc import Callable, Sequence
 from enum import Enum
 from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import numpy as np
@@ -216,7 +213,7 @@ class Array:
         dl_device: tuple[Enum, int] | None = None,
         copy: bool | None = None,
     ) -> Any:
-        raise BufferError("ndonnx does not (yet) support the export of array data")
+        raise BufferError("ndonnx does not support the export of array data")
 
     def __dlpack_device__(self) -> tuple[Enum, int]:
         raise ValueError("ONNX provides no control over the used device")
@@ -272,7 +269,7 @@ class Array:
     def __int__(self, /) -> int:
         return int(self.unwrap_numpy())
 
-    def __array_namespace__(self, /, *, api_version: Optional[str] = None) -> Any:
+    def __array_namespace__(self, /, *, api_version: str | None = None) -> Any:
         import ndonnx as ndx
 
         return ndx
@@ -425,7 +422,6 @@ def _apply_op(
 def _normalize_arrays_in_key(key: GetItemKey) -> TyGetitemIndex:
     if isinstance(key, Array):
         if isinstance(key._tyarray.dtype, onnx.Bool):
-            # TODO: Why is mypy not able to figure out the type of _tyarray any more?
             return key._tyarray.astype(onnx.bool_)
 
     if isinstance(key, int | slice | EllipsisType | Array | None):
