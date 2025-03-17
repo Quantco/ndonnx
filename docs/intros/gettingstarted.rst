@@ -26,10 +26,10 @@ This is discussed in more detail in the :ref:`onnx-export` section below.
         a = ndx.asarray([1, 2, 3])
 
         # Initializing an array with shape and data type
-        b = ndx.Array(shape=(3,), dtype=ndx.float64)
+        b = ndx.array(shape=(3,), dtype=ndx.float64)
 
         # Shapes can be symbolic using string dimensions
-        c = ndx.Array(shape=("N", "M"), dtype=ndx.utf8)
+        c = ndx.array(shape=("N", "M"), dtype=ndx.utf8)
 
 
 The ndonnx namespace
@@ -130,7 +130,7 @@ This gives you the ability to persist the traced computation graph as an ONNX mo
         import onnx
 
         # Instantiate placeholder ndonnx array
-        x = ndx.Array(shape=("N",), dtype=ndx.int64)
+        x = ndx.array(shape=("N",), dtype=ndx.int64)
         y = mean_drop_outliers(x)
 
         # Build and save my ONNX model to disk

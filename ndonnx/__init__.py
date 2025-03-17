@@ -5,11 +5,10 @@ from warnings import warn
 
 from ._dtypes import DType
 from ._from_numpy_dtype import from_numpy_dtype
-from ._array import Array, asarray
+from ._array import Array, asarray, array
 
 
 from ._deprecated import (
-    array,
     from_spox_var,
     Nullable,
     Floating,

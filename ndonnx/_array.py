@@ -11,7 +11,7 @@ import operator as std_ops
 from collections.abc import Callable, Sequence
 from enum import Enum
 from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, Any, Optional, overload
+from typing import TYPE_CHECKING, Any, Optional
 from warnings import warn
 
 import numpy as np
@@ -47,34 +47,22 @@ class Array:
 
     _tyarray: TyArrayBase
 
-    @overload
-    def __init__(self, *, shape: OnnxShape, dtype: DType): ...
-
-    @overload
-    def __init__(self, value: np.ndarray | float | int | bool): ...
-
-    def __init__(self, value=None, *, shape=None, dtype=None):
-        (is_shape, is_dtype, is_value) = (
-            item is not None for item in [shape, dtype, value]
+    def __init__(self, *args, **kwargs) -> None:
+        raise TypeError(
+            "'Array' cannot be instantiated directly. Use the 'ndonnx.array' or 'ndonnx.asarray' functions instead"
         )
-        if not (
-            (True, True, False) == (is_shape, is_dtype, is_value)
-            or (False, False, True) == (is_shape, is_dtype, is_value)
-            or (False, False, False) == (is_shape, is_dtype, is_value)
-        ):
-            raise ValueError("Invalid arguments.")
 
-        if isinstance(shape, tuple) and isinstance(dtype, DType):
-            self._tyarray = dtype.__ndx_argument__(shape)
-            return
-        if isinstance(value, np.ndarray):
-            raise NotImplementedError
-        if isinstance(value, int | float):
-            ty_arr = astyarray(value, dtype=dtype)
-            self._tyarray = ty_arr
-            return
+    @classmethod
+    def _argument(cls, /, *, shape: OnnxShape, dtype: DType) -> Array:
+        inst = cls.__new__(cls)
+        inst._tyarray = dtype.__ndx_argument__(shape)
+        return inst
 
-        raise NotImplementedError
+    @classmethod
+    def _constant(
+        cls, /, *, value: PyScalar | np.ndarray, dtype: DType | None
+    ) -> Array:
+        return cls._from_tyarray(astyarray(value, dtype=dtype))
 
     @classmethod
     def _from_tyarray(cls, tyarray: TyArrayBase, /) -> Array:
@@ -345,6 +333,31 @@ class Array:
         return f"array({value_repr},{shape_info} dtype={self.dtype})"
 
 
+def array(
+    *,
+    shape: OnnxShape,
+    dtype: DType,
+) -> Array:
+    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
+
+    Parameters
+    ----------
+    shape
+        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
+        `None`-dimensions denote unknown dimensions.
+    dtype
+        The data type of the array.
+
+    Returns
+    -------
+    Array
+        The new array representing input(s) of the computational graphs.
+    """
+    # TODO: This name is very confusing. We must find something
+    # better. Maybe `argument` or `asargument`?
+    return Array._argument(shape=shape, dtype=dtype)
+
+
 def asarray(
     obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
     /,
@@ -376,6 +389,7 @@ def asarray(
                 all(isinstance(el, Array) for el in np_arr.flatten())
                 and np_arr.size > 0
             ):
+                # This is a list of ndonnx arrays
                 warn(
                     "providing a sequence of 'Array's to 'asarray' is not defined by the array-api-standard and may be removed from ndonnx in the future"
                 )

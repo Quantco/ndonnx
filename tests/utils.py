@@ -14,7 +14,7 @@ def build_and_run(fn, *np_args):
     # Only works for ONNX data types
     ins_np = {f"in{i}": arr for i, arr in enumerate(np_args)}
     ins = {
-        k: ndx.Array(shape=a.shape, dtype=ndx.from_numpy_dtype(a.dtype))
+        k: ndx.array(shape=a.shape, dtype=ndx.from_numpy_dtype(a.dtype))
         for k, a in ins_np.items()
     }
 

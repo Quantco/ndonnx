@@ -68,7 +68,7 @@ It has a couple of key features:
   import onnx
 
   # Instantiate placeholder ndonnx array
-  x = ndx.Array(shape=("N",), dtype=ndx.float32)
+  x = ndx.array(shape=("N",), dtype=ndx.float32)
   y = mean_drop_outliers(x)
 
   # Build and save ONNX model to disk

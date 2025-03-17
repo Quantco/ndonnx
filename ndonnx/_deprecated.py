@@ -7,28 +7,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeAlias
 from warnings import warn
 
-from . import _typed_array as tydx
-from ._array import Array
-from ._dtypes import DType
-from ._funcs import asarray
+import ndonnx as ndx
+from ndonnx import _typed_array as tydx
 
 if TYPE_CHECKING:
     from spox import Var
 
-    from ndonnx.types import OnnxShape
 
-
-def array(
-    *,
-    shape: OnnxShape,
-    dtype: DType,
-) -> Array:
-    return Array(shape=shape, dtype=dtype)
-
-
-def from_spox_var(var: Var) -> Array:
+def from_spox_var(var: Var) -> ndx.Array:
     warn("'from_spox_var' is deprecated in favor of 'asarray'")
-    return asarray(var)
+    return ndx.asarray(var)
 
 
 Floating = tydx.onnx.FloatingDTypes
