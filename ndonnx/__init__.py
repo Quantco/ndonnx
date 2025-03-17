@@ -5,19 +5,9 @@ from warnings import warn
 
 from ._dtypes import DType
 from ._from_numpy_dtype import from_numpy_dtype
-from ._array import Array, asarray, array
+from ._array import Array, asarray, argument
 
 
-from ._deprecated import (
-    from_spox_var,
-    Nullable,
-    Floating,
-    Integral,
-    Numerical,
-    CoreType,
-    NullableFloating,
-    NullableIntegral,
-)
 from ._typed_array.onnx import (
     int8,
     int16,
@@ -352,6 +342,7 @@ __all__ = [
     "zeros",
     "zeros_like",
     # Non-standard items
+    "argument",
     "build",
     "DateTime64DType",
     "TimeDelta64DType",
@@ -363,6 +354,18 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    from ._deprecated import (
+        array,
+        from_spox_var,
+        Nullable,
+        Floating,
+        Integral,
+        Numerical,
+        CoreType,
+        NullableFloating,
+        NullableIntegral,
+    )
+
     def _warn_use_instead(old: str, new: str):
         warn("'{old}' is deprecated in favor of '{new}'", DeprecationWarning)
 

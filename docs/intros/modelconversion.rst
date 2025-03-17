@@ -72,7 +72,7 @@ Now that we have fit ``model`` and it’s inference path ``predict`` is Array AP
 
     ..  code-block:: python
 
-        X = ndx.Array(shape=("N", 4), dtype=ndx.float64)
+        X = ndx.argument(shape=("N", 4), dtype=ndx.float64)
 
 2. Call ``predict`` just as normal, providing X as input. The output array also does not have any data associated with it since its value depends on ``X``.
 

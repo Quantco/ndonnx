@@ -333,7 +333,7 @@ class Array:
         return f"array({value_repr},{shape_info} dtype={self.dtype})"
 
 
-def array(
+def argument(
     *,
     shape: OnnxShape,
     dtype: DType,
@@ -353,8 +353,6 @@ def array(
     Array
         The new array representing input(s) of the computational graphs.
     """
-    # TODO: This name is very confusing. We must find something
-    # better. Maybe `argument` or `asargument`?
     return Array._argument(shape=shape, dtype=dtype)
 
 

@@ -9,9 +9,19 @@ from warnings import warn
 
 import ndonnx as ndx
 from ndonnx import _typed_array as tydx
+from ndonnx.types import OnnxShape
 
 if TYPE_CHECKING:
     from spox import Var
+
+
+def array(
+    *,
+    shape: OnnxShape,
+    dtype: ndx.DType,
+) -> ndx.Array:
+    warn("'ndonnx.array' is deprecated in favor of 'ndonnx.argument'")
+    return ndx.argument(shape=shape, dtype=dtype)
 
 
 def from_spox_var(var: Var) -> ndx.Array:

@@ -25,7 +25,7 @@ Extract a :class:`spox.Var` from an :class:`ndonnx.Array` using the :func:`ndonn
     import ndonnx as ndx
     import spox.opset.ai.onnx.v20 as op
 
-    x = ndx.array(shape=(2, 1), dtype=ndx.utf8)
+    x = ndx.argument(shape=(2, 1), dtype=ndx.utf8)
 
     var = x.spox_var()
 
@@ -39,7 +39,7 @@ These can be accessed using the :func:`ndonnx.Array.values` property for the dat
 
     import ndonnx as ndx
 
-    x = ndx.array(shape=(2, 1), dtype=ndx.nutf8)
+    x = ndx.argument(shape=(2, 1), dtype=ndx.nutf8)
 
     # Disassemble the nullable array into its data and null components
     data, null = x.values, x.null
@@ -84,7 +84,7 @@ We can use this as normal to export and run an ONNX model.
     import onnxruntime as ort
     import ndonnx as ndx
 
-    x = ndx.array(shape=("N",), dtype=ndx.utf8)
+    x = ndx.argument(shape=("N",), dtype=ndx.utf8)
     y = one_hot_encode(x, ["a", "b", "c"])
 
     model = ndx.build({"x": x}, {"y": y})
