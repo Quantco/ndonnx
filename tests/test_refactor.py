@@ -521,7 +521,7 @@ def test_matmul(shape1, shape2, dtype):
 @pytest.mark.parametrize("keepdims", [True, False])
 def test_non_standard_array_reduction_methods(method_name, axis, keepdims):
     def do(npx):
-        arr = npx.reshape(npx.arange(1, 10), (3, 3))
+        arr = npx.reshape(npx.arange(1, 10, dtype=npx.int64), (3, 3))
         return getattr(arr, method_name)(axis=axis, keepdims=keepdims)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
