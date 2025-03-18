@@ -395,6 +395,7 @@ def __getattr__(name: str):
         warn(f"'{old}' is deprecated in favor of '{new}'", DeprecationWarning)
 
     superseded = {
+        "additional": ("ndonnx.extensions", extensions),
         "array": ("ndonnx.Array", array),
         "from_spox_var": ("ndonnx.asarray", from_spox_var),
         "Nullable": ("ndonnx.extensions.is_nullable_dtype", Nullable),
