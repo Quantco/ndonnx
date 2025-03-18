@@ -482,7 +482,7 @@ def linspace(
 ) -> Array:
     dtype = dtype or ndx._default_float
     if not isinstance(dtype, onnx.DTypes):
-        raise ValueError(f"Only core data types are supported, found `{dtype}`")
+        raise ValueError(f"only primitive data types are supported, found `{dtype}`")
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
 
 

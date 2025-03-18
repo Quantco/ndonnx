@@ -218,7 +218,7 @@ class CategoricalArray(TyArrayBase):
             if self.dtype != other.dtype:
                 # We directly raise here to be able to provide a better error message
                 raise TypeError(
-                    "comparison between arrays of categorical type requires data type to be precisely equal."
+                    "comparison between arrays of categorical type requires data type to be precisely equal"
                 )
             # Unclear why mypy would not figure out the type of `other` here?!
             bools = self._codes == other._codes  # type: ignore

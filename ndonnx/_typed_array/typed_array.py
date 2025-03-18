@@ -149,7 +149,7 @@ class TyArrayBase(ABC):
 
         Otherwise, a 'ValueError' is raised
         """
-        raise ValueError(f"Cannot convert '{self.__class__}' to NumPy array.")
+        raise ValueError(f"cannot convert '{self.__class__}' to NumPy array")
 
     def astype(
         self, dtype: DType[TY_ARRAY_BASE_co], /, *, copy=True
@@ -176,7 +176,7 @@ class TyArrayBase(ABC):
         if isinstance(n, int):
             return (self[i, ...] for i in range(n))
         raise ValueError(
-            "iteration requires dimension of static length, but dimension 0 is dynamic."
+            "iteration requires dimension of static length, but dimension 0 is dynamic"
         )
 
     def moveaxis(
@@ -586,7 +586,7 @@ class TyArrayBase(ABC):
             res = other.__ndx_equal__(self)
         if res is NotImplemented:
             raise ValueError(
-                f"comparison between `{type(self).__name__}` and `{type(other).__name__}` is not implemented."
+                f"comparison between `{type(self).__name__}` and `{type(other).__name__}` is not implemented"
             )
         return res
 

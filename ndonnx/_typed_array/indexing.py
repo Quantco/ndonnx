@@ -56,7 +56,7 @@ class FancySlice:
                 return None
             if isinstance(obj, int | onnx.TyArrayInt64):
                 return _asidx(obj)
-            raise TypeError(f"Unsupported type as slice parameter `{type(obj)}`")
+            raise TypeError(f"unsupported type as slice parameter `{type(obj)}`")
 
         step = validate(obj.step)
         start = _compute_start_slice(validate(obj.start), step)

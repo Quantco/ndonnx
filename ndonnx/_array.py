@@ -182,7 +182,7 @@ class Array:
             return self._tyarray.disassemble()
 
         raise TypeError(
-            "Cannot safely unwrap underlying 'spox.Var' object(s) "
+            "cannot safely unwrap underlying 'spox.Var' object(s) "
             f"from array of data type `{self.dtype}`"
         )
 
@@ -227,7 +227,7 @@ class Array:
         if isinstance(n, int):
             return (self[i, ...] for i in range(n))
         raise ValueError(
-            "iteration requires dimension of static length, but dimension 0 is dynamic."
+            "iteration requires dimension of static length, but dimension 0 is dynamic"
         )
 
     def __getitem__(self, key: GetItemKey, /) -> Array:

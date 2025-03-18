@@ -67,7 +67,7 @@ def _infer_dtype(
     elif isinstance(val, np.generic):
         return onnx.from_numpy_dtype(val.dtype)
     else:
-        raise ValueError(f"Unable to infer dtype from {val}")
+        raise ValueError(f"unable to infer dtype from `{val}`")
 
 
 @overload
@@ -190,7 +190,7 @@ def _validate(
 ) -> T:
     if isinstance(result, NotImplementedType):
         raise TypeError(
-            f"Unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
+            f"unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
         )
     return result
 

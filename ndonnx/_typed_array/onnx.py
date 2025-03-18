@@ -104,7 +104,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         elif isinstance(val, TyArrayBase):
             return val.copy().astype(self)
         else:
-            raise ValueError(f"Cannot create array with dtype {self} from {val}")
+            raise ValueError(f"cannot create array with dtype `{self}` from `{val}`")
 
     def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY_co:
         var = argument(Tensor(self.unwrap_numpy(), shape))
@@ -317,7 +317,7 @@ class TyArray(TyArrayBase):
             return self._getitem_static(key)
         if isinstance(key, TyArrayBool):
             return self._getitem_boolmask(key)
-        raise IndexError(f"Cannot index with key `{key}`")
+        raise IndexError(f"cannot index with key `{key}`")
 
     def _getitem_static(self, key: tuple[GetitemItem, ...]) -> Self:
         if isinstance(key, list):
@@ -379,7 +379,7 @@ class TyArray(TyArrayBase):
 
     def _getitem_boolmask(self, key: TyArrayBool) -> Self:
         if not all(ks in (xs, 0, None) for xs, ks in zip(self.shape, key.shape)):
-            raise IndexError("Shape of 'key' is incompatible with shape of 'self'")
+            raise IndexError("shape of 'key' is incompatible with shape of 'self'")
         if key.ndim > self.ndim:
             raise IndexError(
                 f"rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
@@ -435,7 +435,7 @@ class TyArray(TyArrayBase):
         if isinstance(key, TyArrayBool):
             return self._setitem_boolmask(key, value)
         elif isinstance(key, TyArrayInteger):
-            raise IndexError("'__setitem__' with integer arrays is not supported.")
+            raise IndexError("'__setitem__' with integer arrays is not supported")
 
         # Shortcut: Remove ellipsis from the front if there is any
         if ... in key and key.index(...) == len(key):
@@ -482,7 +482,7 @@ class TyArray(TyArrayBase):
         # length of the indexing tuple
         idx_tuple_len = key.shape[-1]
         if not isinstance(idx_tuple_len, int):
-            raise IndexError("Length of indexing tuple must be statically known")
+            raise IndexError("length of indexing tuple must be statically known")
         value_shape = key.dynamic_shape[:-1].concat(
             [self.dynamic_shape[idx_tuple_len:]], axis=0
         )
@@ -639,7 +639,7 @@ class TyArray(TyArrayBase):
         return safe_cast(TyArrayBool, TyArrayFloat32(var).astype(bool_))
 
     def as_core_dtype(self, dtype: DTypes) -> TyArray:
-        raise ValueError(f"Casting between `{self.dtype}` and `{dtype}` is undefined")
+        raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
 
     def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
         if isinstance(shape, tuple):
@@ -647,7 +647,7 @@ class TyArray(TyArrayBase):
         if shape.ndim != 1:
             raise ValueError(f"'shape' must be a rank-1 tensor, found `{shape.ndim}`")
         if not isinstance(shape.shape[0], int):
-            raise ValueError("'shape' must be a rank-1 tensor with static length.")
+            raise ValueError("'shape' must be a rank-1 tensor with static length")
         (target_rank,) = shape.shape
         if not isinstance(target_rank, int):
             raise ValueError(
@@ -990,7 +990,7 @@ class TyArrayNumber(TyArray):
         if axis is None:
             if self.ndim > 1:
                 raise ValueError(
-                    "'axis' parameter must be provided for arrays with more than one dimension."
+                    "'axis' parameter must be provided for arrays with more than one dimension"
                 )
             axis_ = 0
         else:

@@ -52,4 +52,4 @@ def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:
     # returns bool.
     if isinstance(a, ty):
         return a
-    raise TypeError(f"Expected `{ty}` found `{type(a)}`")
+    raise TypeError(f"expected `{ty}` found `{type(a)}`")

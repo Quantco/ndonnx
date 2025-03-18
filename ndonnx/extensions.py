@@ -125,7 +125,7 @@ def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
     """
     value_ = ndx.asarray(value)._tyarray
     if isinstance(value_.dtype, ndx.Nullable):
-        raise ValueError("'fill_null' expects a none-nullable fill value data type.")
+        raise ValueError("'fill_null' expects a none-nullable fill value data type")
     xty = x._tyarray
     if isinstance(xty, tydx.masked_onnx.TyMaArray):
         result_type = ndx.result_type(xty.data.dtype, value_.dtype)
@@ -137,7 +137,7 @@ def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
         result_type = ndx.result_type(xty.dtype, value_.dtype)
         res = xty.astype(result_type)
     else:
-        raise TypeError("'fill_null' is only implemented for built-in types.")
+        raise TypeError("'fill_null' is only implemented for built-in types")
 
     return ndx.Array._from_tyarray(res).astype(result_type)
 
@@ -243,7 +243,7 @@ def put(a: ndx.Array, indices: ndx.Array, updates: ndx.Array, /) -> None:
         )
     if a.dtype != updates.dtype:
         raise TypeError(
-            f"data types of 'a' (`{a.dtype}`) and 'updates' (`{updates.dtype}`) must match."
+            f"data types of 'a' (`{a.dtype}`) and 'updates' (`{updates.dtype}`) must match"
         )
     a._tyarray.put(indices._tyarray, updates._tyarray)
 
