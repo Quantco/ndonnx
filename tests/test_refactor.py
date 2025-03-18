@@ -514,3 +514,14 @@ def test_matmul(shape1, shape2, dtype):
         return a1 @ a2
 
     np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
+
+
+@pytest.mark.parametrize("method_name", ["sum"])
+@pytest.mark.parametrize("axis", [None, 0, 1, (0,), (1,), (0, 1)])
+@pytest.mark.parametrize("keepdims", [True, False])
+def test_non_standard_array_reduction_methods(method_name, axis, keepdims):
+    def do(npx):
+        arr = npx.reshape(npx.arange(1, 10), (3, 3))
+        return getattr(arr, method_name)(axis=axis, keepdims=keepdims)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)

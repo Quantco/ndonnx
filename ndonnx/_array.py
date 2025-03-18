@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
+_Axisparam = int | tuple[int, ...] | None
 
 
 def _make_binary(
@@ -295,7 +296,7 @@ class Array:
     __and__, __rand__ = _make_binary(std_ops.and_)
     __floordiv__, __rfloordiv__ = _make_binary(std_ops.floordiv)
     __ge__, _ = _make_binary(std_ops.ge)
-    __gt__, __rgt__ = _make_binary(std_ops.gt)
+    __gt__, _ = _make_binary(std_ops.gt)
     __le__, _ = _make_binary(std_ops.le)
     __lshift__, __rlshift__ = _make_binary(std_ops.lshift)
     __lt__, _ = _make_binary(std_ops.lt)
@@ -331,6 +332,31 @@ class Array:
             "" if self._tyarray.is_constant else f" shape={self._tyarray.shape},"
         )
         return f"array({value_repr},{shape_info} dtype={self.dtype})"
+
+    # Non-standard functions exposed by NumPy and ndonnx <=0.9
+    def sum(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
+        """See :py:func:`ndonnx.sum` for documentation."""
+        return Array._from_tyarray(self._tyarray.sum(axis=axis, keepdims=keepdims))
+
+    def prod(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
+        """See :py:func:`ndonnx.prod` for documentation."""
+        return Array._from_tyarray(self._tyarray.prod(axis=axis, keepdims=keepdims))
+
+    def max(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
+        """See :py:func:`ndonnx.max` for documentation."""
+        return Array._from_tyarray(self._tyarray.max(axis=axis, keepdims=keepdims))
+
+    def min(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
+        """See :py:func:`ndonnx.min` for documentation."""
+        return Array._from_tyarray(self._tyarray.min(axis=axis, keepdims=keepdims))
+
+    def all(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
+        """See :py:func:`ndonnx.all` for documentation."""
+        return Array._from_tyarray(self._tyarray.all(axis=axis, keepdims=keepdims))
+
+    def any(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
+        """See :py:func:`ndonnx.any` for documentation."""
+        return Array._from_tyarray(self._tyarray.any(axis=axis, keepdims=keepdims))
 
 
 def _astyarray_or_pyscalar(
