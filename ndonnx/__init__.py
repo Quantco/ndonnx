@@ -11,6 +11,11 @@ import spox
 # that may be computed elsewhere is already using onnxruntime.
 if importlib.util.find_spec("onnxruntime"):
     spox._value_prop._VALUE_PROP_BACKEND = spox._value_prop.ValuePropBackend.ONNXRUNTIME
+else:
+    warn(
+        "onnxruntime is not install. "
+        "Ndonnx will use the (incomplete) reference implementation for value propagation."
+    )
 
 
 from ._dtypes import DType
