@@ -371,15 +371,17 @@ class TyMaArray(TyMaArrayBase):
         self._data = data
 
     def disassemble(self) -> dict[str, Var]:
-        return (
-            {
-                # Maintain compatibility with existing schema
-                "values": self.data.disassemble(),
-            }
-            | {"null": self.mask.disassemble()}
-            if self.mask is not None
-            else {}
-        )
+        # Ensure that we always return a mask for backwards compatibility.
+        # TODO: remove this
+        if self.mask is None:
+            mask = onnx.const(False, dtype=onnx.bool_).broadcast_to(self.dynamic_shape)
+        else:
+            mask = self.mask
+        return {
+            # Maintain compatibility with existing schema
+            "values": self.data.disassemble(),
+            "null": mask.disassemble(),
+        }
 
     @property
     def mT(self) -> Self:  # noqa: N802
