@@ -51,8 +51,11 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TIMEARRAY_co:
         if isinstance(arr, onnx.TyArrayInteger):
             data = arr.astype(onnx.int64)
-        elif isinstance(arr, onnx.TyArrayFloating):
-            data = onnx.where(arr.isnan(), _NAT_SENTINEL, arr).astype(onnx.int64)
+        elif isinstance(arr, onnx.TyArrayFloat32 | onnx.TyArrayFloat64):
+            # float32 and float64 can roundtrip the _NAT_SENTINEL, but float16 cannot.
+            data = onnx.where(arr.isnan(), _NAT_SENTINEL.astype(arr.dtype), arr).astype(
+                onnx.int64
+            )
         else:
             return NotImplemented
         return self._build(data=data)

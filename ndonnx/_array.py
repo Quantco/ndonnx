@@ -243,7 +243,7 @@ class Array:
     ) -> None:
         # Specs say that the data type of self must not be changed.
         updates = (
-            value._tyarray
+            value._tyarray.astype(self.dtype)
             if isinstance(value, Array)
             else astyarray(value, dtype=self.dtype)
         )

@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: LicenseRef-QuantCo
 
 from collections.abc import Callable
+from contextlib import contextmanager
 from functools import partial, wraps
 from pathlib import Path
 from typing import Any, TypeVar, cast
@@ -35,6 +36,23 @@ def _run_onnxruntime(
     return dict(zip(output_names, session.run(None, input_feed)))
 
 
+@contextmanager
+def _spox_set_custom_op(shared_library: Path):
+    """Make spox use the specified custom operator library when creating a session.
+
+    This context manager properly unsets that library even if an exception is raised.
+    """
+    old_run_fun = spox._value_prop._run_onnxruntime
+
+    spox._value_prop._run_onnxruntime = partial(
+        _run_onnxruntime, shared_library=shared_library
+    )
+    try:
+        yield
+    finally:
+        spox._value_prop._run_onnxruntime = old_run_fun
+
+
 def propagate_with_custom_operators(shared_library: str | Path, /) -> Callable[[F], F]:
     """Enable value propagation with custom operators defined in ``shared_library``.
 
@@ -45,20 +63,11 @@ def propagate_with_custom_operators(shared_library: str | Path, /) -> Callable[[
     def prop(fn: F) -> F:
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            old_run_fun = spox._value_prop._run_onnxruntime
-
-            # TODO: Use context manager to clean up state properly in case of errors
-            spox._value_prop._run_onnxruntime = partial(
-                _run_onnxruntime, shared_library=shared_library
-            )
-            with spox._future.value_prop_backend(
-                spox._value_prop.ValuePropBackend.ONNXRUNTIME
-            ):
-                res = fn(*args, **kwargs)
-
-            spox._value_prop._run_onnxruntime = old_run_fun
-
-            return res
+            with _spox_set_custom_op(Path(shared_library)):
+                with spox._future.value_prop_backend(
+                    spox._value_prop.ValuePropBackend.ONNXRUNTIME
+                ):
+                    return fn(*args, **kwargs)
 
         return cast(F, wrapper)
 

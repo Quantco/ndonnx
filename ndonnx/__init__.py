@@ -408,4 +408,4 @@ def __getattr__(name: str):
         _warn_use_instead(name, new_name)
         return old_thing
 
-    raise AttributeError("module 'ndonnx' has no attribute `{name}`")
+    raise AttributeError(f"module 'ndonnx' has no attribute `{name}`")
