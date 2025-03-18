@@ -520,8 +520,8 @@ def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
 def reshape(
     x: Array, /, shape: tuple[int, ...] | Array, *, copy: bool | None = None
 ) -> Array:
-    if copy is not None:
-        raise ValueError("'copy' semantics are not implemented, yet")
+    if copy is not None and not copy:
+        raise ValueError("avoiding a copy in reshape operations is unsupported")
     if isinstance(shape, Array):
         shape_data = shape._tyarray
         if not isinstance(shape_data, onnx.TyArrayInt64):
