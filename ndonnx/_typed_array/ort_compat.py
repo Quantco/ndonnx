@@ -768,3 +768,23 @@ def if_(
         res._value = PropValue(Tensor(dtype=prop_val.dtype), value=prop_val)
 
     return results
+
+
+def einsum(
+    Inputs: Sequence[Var],
+    *,
+    equation: str,
+) -> Var:
+    mapping: _MappingDictType = {
+        (np.uint8, np.int8, np.int16, np.uint16): np.int32,
+        (np.uint32,): np.int64,
+        (np.uint64,): Warn(np.int64),
+    }
+
+    # Only support binary input since that is all we use
+    x1, x2 = Inputs
+    return _wrap_binary(
+        lambda a, b: op.einsum([a, b], equation=equation),
+        mapping=mapping,
+        fun_name="einsum",
+    )(x1, x2)

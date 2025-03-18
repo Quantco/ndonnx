@@ -19,21 +19,15 @@ Changelog
 - :func:`ndonnx.Array.size` now returns `int | None` in accordance to with the Array-API rather than a :class:`~ndonnx.Array` instance.
 
 
-**Deprecations**
+**Bug fixes**
 
-- :func:`ndonnx.array` is deprecated in favor of :func:`ndonnx.argument`.
-- :mod:`ndonnx.additional` is deprecated in favor of :func:`ndonnx.extensions`.
-- :func:`ndonnx.from_spox_var` is deprecated in favor of :func:`ndonnx.asarray`.
-- :type:`ndonnx.Nullable` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_dtype`
-- :type:`ndonnx.NullableFloating` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_float_dtype`
-- :type:`ndonnx.NullableIntegral` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_integer_dtype`
-- :type:`ndonnx.Floating` is deprecated in favor of :func:`ndonnx.extensions.is_float_dtype`
-- :type:`ndonnx.Integral` is deprecated in favor of :func:`ndonnx.extensions.is_integer_dtype`
-- :type:`ndonnx.Numerical` is deprecated in favor of :func:`ndonnx.extensions.is_numeric_dtype`
-- :type:`ndonnx.CoreType` is deprecated in favor of :func:`ndonnx.extensions.is_onnx_dtype`
-- :type:`ndonnx.NullableCore` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_dtype`
-- :class:`ndonnx.UnsupportedOperationError` is deprecated in favor of :class:`TypeError`
-- :class:`ndonnx.CastError` is deprecated in favor of :class:`TypeError`
+- The following functions now correctly take the ``keepdims`` argument into account:
+  - :meth:`ndonnx.Array.sum`
+  - :meth:`ndonnx.Array.prod`
+  - :meth:`ndonnx.Array.max`
+  - :meth:`ndonnx.Array.min`
+  - :meth:`ndonnx.Array.all`
+  - :meth:`ndonnx.Array.any`
 
 
 **New features**
@@ -41,13 +35,13 @@ Changelog
 - ndonnx gained partial support for `float16` data types.
 - The following functions are now exposed in the ndonnx namespace in accordance to the Array-API standard:
   - :func:`ndonnx.__array_namespace_info__`
-  - `maximum`
-  - `minimum`
-  - `meshgrid`
-  - `moveaxis`
-  - `tile`
-  - `unstack`
-  - `vecdot`
+  - :func:`ndonnx.maximum`
+  - :func:`ndonnx.minimum`
+  - :func:`ndonnx.meshgrid`
+  - :func:`ndonnx.moveaxis`
+  - :func:`ndonnx.tile`
+  - :func:`ndonnx.unstack`
+  - :func:`ndonnx.vecdot`
 - The newly added :mod:`ndonnx.extensions` module exposes the following functions:
   - :func:`~ndonnx.extensions.datetime_to_year_month_day`
   - :func:`~ndonnx.extensions.fill_null`
@@ -73,6 +67,24 @@ Changelog
   - :func:`~ndonnx.Array.dynamic_shape`
   - :func:`~ndonnx.Array.dynamic_size`
   - :func:`~ndonnx.Array.unwrap_numpy`
+
+
+**Deprecations**
+
+- :func:`ndonnx.array` is deprecated in favor of :func:`ndonnx.argument`.
+- :mod:`ndonnx.additional` is deprecated in favor of :func:`ndonnx.extensions`.
+- :func:`ndonnx.from_spox_var` is deprecated in favor of :func:`ndonnx.asarray`.
+- :type:`ndonnx.Nullable` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_dtype`
+- :type:`ndonnx.NullableFloating` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_float_dtype`
+- :type:`ndonnx.NullableIntegral` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_integer_dtype`
+- :type:`ndonnx.Floating` is deprecated in favor of :func:`ndonnx.extensions.is_float_dtype`
+- :type:`ndonnx.Integral` is deprecated in favor of :func:`ndonnx.extensions.is_integer_dtype`
+- :type:`ndonnx.Numerical` is deprecated in favor of :func:`ndonnx.extensions.is_numeric_dtype`
+- :type:`ndonnx.CoreType` is deprecated in favor of :func:`ndonnx.extensions.is_onnx_dtype`
+- :type:`ndonnx.NullableCore` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_dtype`
+- :class:`ndonnx.UnsupportedOperationError` is deprecated in favor of :class:`TypeError`
+- :class:`ndonnx.CastError` is deprecated in favor of :class:`TypeError`
+
 
 
 0.9.3 (2024-10-25)

@@ -1324,6 +1324,63 @@ class TyArrayNumber(TyArray):
             result_type=TyArrayNumber,
         )
 
+    def __ndx_tensordot__(
+        self,
+        other: TyArrayBase,
+        /,
+        *,
+        axes: int | tuple[Sequence[int], Sequence[int]] = 2,
+    ) -> TyArrayNumber:
+        if not isinstance(other, TyArray):
+            return NotImplemented
+
+        if self.dtype != other.dtype:
+            x1, x2 = promote(self, other)
+            res = x1.__ndx_tensordot__(x2, axes=axes)
+            return safe_cast(TyArrayNumber, res)
+
+        def letter():
+            for i in range(ord("a"), ord("z") + 1):
+                yield chr(i)
+            raise ValueError(
+                "exceeded available letters for einsum equation in the implementation of 'tensordot': this means that the number of dimensions of 'x1' and 'x2' are too large"
+            )
+
+        letter_gen = letter()
+
+        if self.ndim == 0 or other.ndim == 0:
+            return safe_cast(TyArrayNumber, self * other)
+
+        if isinstance(axes, int):
+            axes = (
+                [-axes + i for i in range(axes)],
+                [i for i in range(axes)],
+            )
+
+        axes_a, axes_b = axes
+
+        axes_a = [(ax + self.ndim) if ax < 0 else ax for ax in axes_a]
+        axes_b = [(bx + other.ndim) if bx < 0 else bx for bx in axes_b]
+
+        a_letters = [next(letter_gen) for _ in range(self.ndim)]
+
+        b_letters = [
+            a_letters[axes_a[axes_b.index(bx)]] if bx in axes_b else next(letter_gen)
+            for bx in range(other.ndim)
+        ]
+
+        joint_letters = [
+            let for idx, let in enumerate(a_letters) if idx not in axes_a
+        ] + [let for idx, let in enumerate(b_letters) if idx not in axes_b]
+
+        equation = (
+            f"{''.join(a_letters)},{''.join(b_letters)}->{''.join(joint_letters)}"
+        )
+
+        var = op.einsum([self._var, other._var], equation=equation)
+
+        return self.dtype._build(var)
+
 
 class TyArrayInteger(TyArrayNumber):
     def _apply_int_only(

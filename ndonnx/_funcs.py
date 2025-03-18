@@ -629,7 +629,12 @@ def triu(x: Array, /, *, k: int = 0) -> Array:
 def tensordot(
     x1: Array, x2: Array, /, *, axes: int | tuple[Sequence[int], Sequence[int]] = 2
 ) -> Array:
-    raise NotImplementedError
+    res = x1._tyarray.__ndx_tensordot__(x2._tyarray, axes=axes)
+    if res == NotImplemented:
+        raise TypeError(
+            f"unsupported operand data types for 'tensordot': `{x1.dtype}` and `{x2.dtype}`"
+        )
+    return Array._from_tyarray(res)
 
 
 class UniqueAll(NamedTuple):

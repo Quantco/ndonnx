@@ -612,16 +612,6 @@ class TyArrayBase(ABC):
     def __ndx_rlogical_xor__(self, lhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
 
-    def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType:
-        return NotImplemented
-
-    def __ndx_rwhere__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
-    ) -> TyArrayBase | NotImplementedType:
-        return NotImplemented
-
     def __ndx_maximum__(
         self, other: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
@@ -629,6 +619,25 @@ class TyArrayBase(ABC):
 
     def __ndx_minimum__(
         self, other: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_tensordot__(
+        self,
+        other: TyArrayBase,
+        /,
+        *,
+        axes: int | tuple[Sequence[int], Sequence[int]] = 2,
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
+    ) -> TyArrayBase | NotImplementedType:
+        return NotImplemented
+
+    def __ndx_rwhere__(
+        self, cond: TyArrayBool, y: TyArrayBase, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
