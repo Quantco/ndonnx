@@ -380,7 +380,6 @@ __all__ = [
 
 def __getattr__(name: str):
     from ._deprecated import (
-        array,
         from_spox_var,
         Nullable,
         Floating,
@@ -396,7 +395,7 @@ def __getattr__(name: str):
 
     superseded = {
         "additional": ("ndonnx.extensions", extensions),
-        "array": ("ndonnx.Array", array),
+        "array": ("ndonnx.argument", argument),
         "from_spox_var": ("ndonnx.asarray", from_spox_var),
         "Nullable": ("ndonnx.extensions.is_nullable_dtype", Nullable),
         "NullableFloating": (
