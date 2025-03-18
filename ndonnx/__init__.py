@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import importlib.util
+import importlib.metadata
 from warnings import warn
 
 import spox
@@ -190,6 +191,13 @@ from ._namespace_info import __array_namespace_info__
 from ._constants import e, inf, nan, pi, newaxis
 from ._build import build
 from . import extensions as extensions
+
+try:
+    __version__ = importlib.metadata.version(__name__)
+except importlib.metadata.PackageNotFoundError as err:  # pragma: no cover
+    warn(f"Could not determine version of {__name__}\n{err!s}", stacklevel=2)
+    __version__ = "unknown"
+
 
 _default_int = int64
 _default_float = float64
