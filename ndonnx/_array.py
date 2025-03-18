@@ -176,9 +176,17 @@ class Array:
         Otherwise, raise an exception.
         """
         warn(
-            "'Array.spox_var' is deprecated in favor of 'Array.disassemble'",
+            "'Array.spox_var' is deprecated in favor of 'Array.disassemble' or 'Array.unwrap_spox'",
             DeprecationWarning,
         )
+        return self.unwrap_spox()
+
+    def unwrap_spox(self) -> Var:
+        """Unwrap the underlying ``spox.Var`` object if ``self`` is of primitive data
+        type.
+
+        Otherwise, raise an exception.
+        """
         if isinstance(self._tyarray, onnx.TyArray):
             return self._tyarray.disassemble()
 

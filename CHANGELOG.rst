@@ -67,6 +67,7 @@ Changelog
   - :func:`~ndonnx.Array.dynamic_shape`
   - :func:`~ndonnx.Array.dynamic_size`
   - :func:`~ndonnx.Array.unwrap_numpy`
+  - :func:`~ndonnx.Array.unwrap_spox`
 
 
 **Deprecations**
