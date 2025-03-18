@@ -15,6 +15,8 @@ Changelog
 
 - Removed the deprecated :func:`ndonnx.promote_nullable` function. Use :func:`ndonnx.extensions.make_nullable` instead.
 - The existing (private) tooling to define custom data types has been removed.
+- The :func:`ndonnx.Array.len` member function has been removed since it is neither defined by ``numpy.ndarray`` nor the Array-API.
+- :func:`ndonnx.Array.size` now returns `int | None` in accordance to with the Array-API rather than a :class:`~ndonnx.Array` instance.
 
 
 **Deprecations**
@@ -46,26 +48,31 @@ Changelog
   - `tile`
   - `unstack`
   - `vecdot`
-- Besides of the existing functions previously provided by :mod:`ndonnx.additional`, :mod:`ndonnx.extensions` gained the following functions:
-  - :func:`datetime_to_year_month_day`
-  - :func:`fill_null`
-  - :func:`get_mask`
-  - :func:`is_float_dtype`
-  - :func:`is_integer_dtype`
-  - :func:`is_nullable_dtype`
-  - :func:`is_nullable_float_dtype`
-  - :func:`is_nullable_integer_dtype`
-  - :func:`is_numeric_dtype`
-  - :func:`is_onnx_dtype`
-  - :func:`is_signed_integer_dtype`
-  - :func:`s_time_unit`
-  - :func:`is_unsigned_integer_dtype`
-  - :func:`isin`
-  - :func:`make_nullable`
-  - :func:`put`
-  - :func:`shape` (deprecated in favor of :func:`ndonnx.Array.dynamic_shape`)
-  - :func:`static_map`
+- The newly added :mod:`ndonnx.extensions` module exposes the following functions:
+  - :func:`~ndonnx.extensions.datetime_to_year_month_day`
+  - :func:`~ndonnx.extensions.fill_null`
+  - :func:`~ndonnx.extensions.get_mask`
+  - :func:`~ndonnx.extensions.is_float_dtype`
+  - :func:`~ndonnx.extensions.is_integer_dtype`
+  - :func:`~ndonnx.extensions.is_nullable_dtype`
+  - :func:`~ndonnx.extensions.is_nullable_float_dtype`
+  - :func:`~ndonnx.extensions.is_nullable_integer_dtype`
+  - :func:`~ndonnx.extensions.is_numeric_dtype`
+  - :func:`~ndonnx.extensions.is_onnx_dtype`
+  - :func:`~ndonnx.extensions.is_signed_integer_dtype`
+  - :func:`~ndonnx.extensions.s_time_unit`
+  - :func:`~ndonnx.extensions.is_unsigned_integer_dtype`
+  - :func:`~ndonnx.extensions.isin`
+  - :func:`~ndonnx.extensions.make_nullable`
+  - :func:`~ndonnx.extensions.put`
+  - :func:`~ndonnx.extensions.shape` (deprecated in favor of :func:`ndonnx.Array.dynamic_shape`)
+  - :func:`~ndonnx.extensions.static_map`
 - Arrays now expose the :meth:`ndonnx.Array.device` property to improve Array API compatibility. Note that serializing an ONNX model inherently postpones device placement decisions to the runtime so currently one abstract device is supported.
+- The :class:`~ndonnx.Array` object gained the following member functions:
+  - :func:`~ndonnx.Array.disassemble`
+  - :func:`~ndonnx.Array.dynamic_shape`
+  - :func:`~ndonnx.Array.dynamic_size`
+  - :func:`~ndonnx.Array.unwrap_numpy`
 
 
 0.9.3 (2024-10-25)
