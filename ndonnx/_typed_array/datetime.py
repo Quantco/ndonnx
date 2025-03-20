@@ -440,10 +440,12 @@ class TyArrayTimeDelta(TimeBaseArray):
 
     def __rtruediv__(self, lhs: TyArrayBase | PyScalar) -> TyArrayBase:
         if isinstance(lhs, float | int):
-            lhs = onnx.const(lhs)
+            # Disallow pyscalar / timedelta (like NumPy)
+            return NotImplemented
         if isinstance(lhs, onnx.TyArrayNumber):
             data = (lhs / self._data).astype(onnx.int64)
             data_int64 = onnx.where(
+                # float32 and float64 can roundtrip the _NAT_SENTINEL, but float16 cannot.
                 self.is_nat | (lhs == _NAT_SENTINEL) | data.isnan(),
                 _NAT_SENTINEL,
                 data,

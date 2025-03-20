@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
+from datetime import datetime, timedelta
 from typing import get_args
 
 import numpy as np
@@ -74,17 +75,35 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype):
         operator.add,
         operator.sub,
         operator.mul,
-        # operator.truediv
     ],
 )
 def test_arithmetic_pyscalar_timedelta(op):
-    shape = ("N",)
     scalar = 1
-    arr = ndx.array(shape=shape, dtype=ndx.TimeDelta64DType("s"))
 
-    expected_dtype = ndx.TimeDelta64DType("s")
-    assert_equal_dtype_shape(op(scalar, arr), expected_dtype, shape)
-    assert_equal_dtype_shape(op(arr, scalar), expected_dtype, shape)
+    def do(npx, forward):
+        dtype = ndx.TimeDelta64DType("s") if npx == ndx else np.dtype("timedelta64[s]")
+        arr = npx.asarray([-10000, 0, int(1e9)]).astype(dtype=dtype)
+        return op(scalar, arr) if forward else op(arr, scalar)
+
+    np.testing.assert_array_equal(
+        do(np, True), do(ndx, True).unwrap_numpy(), strict=True
+    )
+
+    np.testing.assert_array_equal(
+        do(np, False), do(ndx, False).unwrap_numpy(), strict=True
+    )
+
+
+def test_divide_timedelta():
+    # Fail when dividing int by timedelta
+    with pytest.raises(TypeError):
+        _ = 1 / ndx.asarray(np.asarray([1]), dtype=ndx.TimeDelta64DType("s"))
+
+    def do(npx):
+        dtype = ndx.TimeDelta64DType("s") if npx == ndx else np.dtype("timedelta64[s]")
+        return npx.asarray([100, np.iinfo(np.int64).min]).astype(dtype) / 10
+
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy())
 
 
 @pytest.mark.parametrize(
@@ -119,8 +138,6 @@ def test_arithmetic_timedelta_datetime_lazy():
 
 
 def test_arithmetic_datetime_timedelta():
-    from datetime import datetime, timedelta
-
     np_arr = np.array(
         [datetime(year=1982, month=5, day=24, hour=12, second=1)], "datetime64[s]"
     )
