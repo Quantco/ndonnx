@@ -346,23 +346,17 @@ def datetime_to_year_month_day(
 
 def is_onnx_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.DTypes]:
     """Return ``True`` if ``dtype`` is of a data type found in the ONNX standard."""
-    if isinstance(dtype, tydx.onnx.DTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.onnx.DTypes)
 
 
 def is_numeric_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.NumericDTypes]:
     """Return ``True`` if ``dtype`` is of a floating point data type."""
-    if isinstance(dtype, tydx.onnx.NumericDTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.onnx.NumericDTypes)
 
 
 def is_float_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.FloatingDTypes]:
     """Return ``True`` if ``dtype`` is of a floating point data type."""
-    if isinstance(dtype, tydx.onnx.FloatingDTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.onnx.FloatingDTypes)
 
 
 def is_integer_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.IntegerDTypes]:
@@ -370,9 +364,7 @@ def is_integer_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.IntegerDTypes]:
 
     Returns ``False`` for boolean data types.
     """
-    if isinstance(dtype, tydx.onnx.IntegerDTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.onnx.IntegerDTypes)
 
 
 def is_signed_integer_dtype(
@@ -382,9 +374,7 @@ def is_signed_integer_dtype(
 
     Returns ``False`` for boolean data types.
     """
-    if isinstance(dtype, tydx.onnx.SignedIntegerDTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.onnx.SignedIntegerDTypes)
 
 
 def is_unsigned_integer_dtype(
@@ -394,9 +384,7 @@ def is_unsigned_integer_dtype(
 
     Returns ``False`` for boolean data types.
     """
-    if isinstance(dtype, tydx.onnx.UnsignedIntegerDTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.onnx.UnsignedIntegerDTypes)
 
 
 def is_nullable_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.masked_onnx.DTypes]:
@@ -405,18 +393,14 @@ def is_nullable_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.masked_onnx.DTypes]:
     Floating point and datetime data types are not considered as "nullable" by this
     function.
     """
-    if isinstance(dtype, tydx.masked_onnx.DTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.masked_onnx.DTypes)
 
 
 def is_nullable_integer_dtype(
     dtype: ndx.DType, /
 ) -> TypeIs[tydx.masked_onnx.IntegerDTypes]:
     """Return ``True`` if ``dtype`` is a nullable integer (i.e. "masked") data type."""
-    if isinstance(dtype, tydx.masked_onnx.IntegerDTypes):
-        return True
-    return False
+    return isinstance(dtype, tydx.masked_onnx.IntegerDTypes)
 
 
 def is_nullable_float_dtype(
@@ -429,9 +413,7 @@ def is_nullable_float_dtype(
 
 
 def is_time_unit(s: str, /) -> TypeIs[tydx.datetime.Unit]:
-    if s in get_args(tydx.datetime.Unit):
-        return True
-    return False
+    return s in get_args(tydx.datetime.Unit)
 
 
 __all__ = [
