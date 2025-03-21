@@ -7,7 +7,7 @@ from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from copy import copy as std_copy
 from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, Literal, TypeGuard, TypeVar, cast, overload
+from typing import Literal, TypeAlias, TypeGuard, TypeVar, cast, overload
 
 import numpy as np
 from spox import Tensor, Var, argument
@@ -25,8 +25,23 @@ from .indexing import (
     normalize_getitem_key,
 )
 
-if TYPE_CHECKING:
-    from .indexing import BoolMask, GetitemItem, SetitemItem
+_ScalarInt: TypeAlias = "TyArrayInteger"
+"""Alias signaling that this must be a rank-0 integer tensor."""
+_BoolMask: TypeAlias = "TyArrayBool"
+"""Alias signaling that this must be a rank-1 boolean tensor."""
+SetitemItem: TypeAlias = "int | slice | EllipsisType | _ScalarInt"
+"""A single item; i.e. not a tuple nor a boolean mask.
+
+This does not include `None`.
+"""
+GetitemItem: TypeAlias = "int | slice | EllipsisType | _ScalarInt | None"
+"""A single item (; i.e. not a tuple nor a boolean mask) for __getitem__.
+
+This includes `None`.
+"""
+SetitemIndex: TypeAlias = "SetitemItem | tuple[SetitemItem, ...] | _BoolMask"
+GetitemIndex: TypeAlias = "GetitemItem | tuple[GetitemItem, ...] | _BoolMask"
+
 
 TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
@@ -97,7 +112,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_ARRAY_co:
         if isinstance(val, Var):
-            return ascoredata(val).astype(self)
+            return _var_to_tyarray(val).astype(self)
         elif isinstance(val, PyScalar | np.ndarray | np.generic):
             return const(val, dtype=self)
         elif isinstance(val, Sequence):
@@ -307,9 +322,7 @@ class TyArray(TyArrayBase):
         else:
             return {"data": "*lazy*"}
 
-    def __getitem__(
-        self, key: GetitemItem | tuple[GetitemItem, ...] | BoolMask
-    ) -> Self:
+    def __getitem__(self, key: GetitemIndex) -> Self:
         key = normalize_getitem_key(key)
 
         if isinstance(key, bool):
@@ -419,7 +432,7 @@ class TyArray(TyArrayBase):
 
     def __setitem__(
         self,
-        key: SetitemItem | tuple[SetitemItem, ...] | BoolMask,
+        key: SetitemIndex,
         value: Self,
         /,
     ) -> None:
@@ -442,8 +455,8 @@ class TyArray(TyArrayBase):
         if ... in key and key.index(...) == len(key):
             key = key[:-1]
 
-        if contains_no_ellipsis(key):
-            arr_key = key_to_indices(key, self.dynamic_shape)
+        if _contains_no_ellipsis(key):
+            arr_key = _key_to_indices(key, self.dynamic_shape)
             self._setitem_int_array(arr_key, value)
             return
 
@@ -877,7 +890,7 @@ class TyArray(TyArrayBase):
             default_tensor=default_,
         )
 
-        return ascoredata(var)
+        return _var_to_tyarray(var)
 
     @overload
     def __ndx_where__(
@@ -909,7 +922,7 @@ class TyArrayUtf8(TyArray):
         if isinstance(other, TyArrayUtf8 | str):
             a, b = promote(self, other)
             var = op.string_concat(a._var, b._var)
-            return safe_cast(TyArrayUtf8, ascoredata(var))
+            return safe_cast(TyArrayUtf8, _var_to_tyarray(var))
 
         return NotImplemented
 
@@ -917,7 +930,7 @@ class TyArrayUtf8(TyArray):
         if isinstance(other, str):
             b, a = promote(self, other)
             var = op.string_concat(a._var, b._var)
-            return safe_cast(TyArrayUtf8, ascoredata(var))
+            return safe_cast(TyArrayUtf8, _var_to_tyarray(var))
 
         return NotImplemented
 
@@ -999,7 +1012,7 @@ class TyArrayNumber(TyArray):
 
         out = safe_cast(
             type(self),
-            ascoredata(
+            _var_to_tyarray(
                 op.cumsum(
                     self._var,
                     op.const(axis_, np.int64),
@@ -1053,7 +1066,7 @@ class TyArrayNumber(TyArray):
             keepdims=keepdims,
             noop_with_empty_axes=False,
         )
-        return ascoredata(var)
+        return _var_to_tyarray(var)
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
@@ -1181,7 +1194,7 @@ class TyArrayNumber(TyArray):
             else:
                 b, a = promote(self, other)
             var = op(a._var, b._var)
-            return safe_cast(result_type, ascoredata(var))
+            return safe_cast(result_type, _var_to_tyarray(var))
         return NotImplemented
 
     @overload
@@ -1402,7 +1415,7 @@ class TyArrayInteger(TyArrayNumber):
             else:
                 b, a = promote(self, other)
             var = op(a._var, b._var)
-            return safe_cast(TyArrayInteger, ascoredata(var))
+            return safe_cast(TyArrayInteger, _var_to_tyarray(var))
         return NotImplemented
 
     def __truediv__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -1532,14 +1545,14 @@ class TyArrayUnsignedInteger(TyArrayInteger):
         if isinstance(other, TyArrayInteger | int):
             a, b = promote(self, other)
             var = op.bit_shift(a._var, b._var, direction="RIGHT")
-            return safe_cast(TyArrayInteger, ascoredata(var))
+            return safe_cast(TyArrayInteger, _var_to_tyarray(var))
         return super().__rshift__(other)
 
     def __rrshift__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayUnsignedInteger | int):
             b, a = promote(self, other)
             var = op.bit_shift(a._var, b._var, direction="RIGHT")
-            return safe_cast(TyArrayUnsignedInteger, ascoredata(var))
+            return safe_cast(TyArrayUnsignedInteger, _var_to_tyarray(var))
         return NotImplemented
 
 
@@ -1548,14 +1561,14 @@ class TyArrayFloating(TyArrayNumber):
         if isinstance(other, TyArrayFloating | float):
             a, b = promote(self, other)
             var = op.mod(a._var, b._var, fmod=1)
-            return safe_cast(TyArrayFloating, ascoredata(var))
+            return safe_cast(TyArrayFloating, _var_to_tyarray(var))
         return super().__mod__(other)
 
     def __rmod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
             b, a = promote(self, other)
             var = op.mod(a._var, b._var, fmod=1)
-            return safe_cast(TyArrayFloating, ascoredata(var))
+            return safe_cast(TyArrayFloating, _var_to_tyarray(var))
         return super().__mod__(other)
 
     def ceil(self) -> Self:
@@ -1762,7 +1775,7 @@ class TyArrayBool(TyArray):
             else:
                 b, a = promote(self, other)
             var = op(a._var, b._var)
-            return safe_cast(TyArrayNumber, ascoredata(var))
+            return safe_cast(TyArrayNumber, _var_to_tyarray(var))
         return NotImplemented
 
     # We would get the following arithmetic functions for free if
@@ -1922,7 +1935,7 @@ class TyArrayFloat64(TyArrayFloating):
 
 
 # TODO: Make private
-def ascoredata(var: Var) -> TyArray:
+def _var_to_tyarray(var: Var) -> TyArray:
     dtype = from_numpy_dtype(var.unwrap_tensor().dtype)
 
     return dtype._build(var)
@@ -1967,22 +1980,10 @@ def const(
         obj = np.asarray(obj)
     if dtype is not None:
         obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
-    return ascoredata(op.const(obj))
+    return _var_to_tyarray(op.const(obj))
 
 
-def is_sequence_of_core_data(
-    seq: Sequence,
-) -> TypeGuard[Sequence[TyArray]]:
-    return all(isinstance(d, TyArray) for d in seq)
-
-
-def all_items_are_int(
-    seq: Sequence,
-) -> TypeGuard[Sequence[int]]:
-    return all(isinstance(d, int) for d in seq)
-
-
-def contains_no_ellipsis(
+def _contains_no_ellipsis(
     seq: tuple[SetitemItem, ...],
 ) -> TypeGuard[tuple[int | slice, ...]]:
     return all(not isinstance(el, EllipsisType) for el in seq)
@@ -2289,7 +2290,7 @@ def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
     raise ValueError(f"`{np_dtype}` does not have a corresponding ndonnx data type")
 
 
-def key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
+def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
     """Compute expanded indices for ``key`` for an array of shape ``shape``."""
     if len(key) == 0:
         raise NotImplementedError("indexing with an empty key is not yet supported")
@@ -2300,7 +2301,7 @@ def key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArray
             stop = None if s == -1 else s + 1
             s = slice(s, stop, 1)
         indices_per_dim.append(
-            ascoredata(op.range(*[el._var for el in _get_indices(s, length)]))
+            _var_to_tyarray(op.range(*[el._var for el in _get_indices(s, length)]))
         )
 
     grid = meshgrid(*indices_per_dim, indexing="ij")

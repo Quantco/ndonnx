@@ -17,8 +17,15 @@ from ndonnx.types import OnnxShape, PyScalar
 if TYPE_CHECKING:
     from spox import Var
 
-    from .indexing import GetitemIndex, SetitemIndex
-    from .onnx import KEY, VALUE, TyArrayBool, TyArrayInt64, TyArrayInteger
+    from .onnx import (
+        KEY,
+        VALUE,
+        GetitemIndex,
+        SetitemIndex,
+        TyArrayBool,
+        TyArrayInt64,
+        TyArrayInteger,
+    )
 
 _Self_co = TypeVar("_Self_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)

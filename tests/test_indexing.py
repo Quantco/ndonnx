@@ -6,7 +6,7 @@ import pytest
 
 import ndonnx as ndx
 from ndonnx import _typed_array as tydx
-from ndonnx._typed_array.onnx import _get_indices, _move_ellipsis_back, key_to_indices
+from ndonnx._typed_array.onnx import _get_indices, _key_to_indices, _move_ellipsis_back
 
 
 @pytest.mark.parametrize(
@@ -54,7 +54,7 @@ def test_key_to_indices(key):
     arr = ndx.asarray(np_arr)
 
     shape = arr._tyarray.dynamic_shape
-    arr_key = key_to_indices(key, shape)
+    arr_key = _key_to_indices(key, shape)
     two = tydx.astyarray(2)
     arr._tyarray._setitem_int_array(arr_key, two)
 

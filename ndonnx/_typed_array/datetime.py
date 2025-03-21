@@ -12,9 +12,14 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args
 import numpy as np
 
 from ndonnx import DType
-
-from .._schema import DTypeInfoV1
-from . import TyArrayBase, onnx, safe_cast
+from ndonnx._experimental import (
+    DTypeInfoV1,
+    GetitemIndex,
+    SetitemIndex,
+    TyArrayBase,
+    onnx,
+    safe_cast,
+)
 
 if TYPE_CHECKING:
     from types import NotImplementedType
@@ -23,11 +28,6 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
-
-    from .indexing import (
-        GetitemIndex,
-        SetitemIndex,
-    )
 
 
 Unit = Literal["ns", "s"]

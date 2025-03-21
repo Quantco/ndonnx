@@ -9,11 +9,8 @@ from typing import TYPE_CHECKING, TypeVar
 import numpy as np
 
 from ndonnx import DType
+from ndonnx._experimental import DTypeInfoV1, TyArrayBase, onnx
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar
-
-from .._schema import DTypeInfoV1
-from . import onnx
-from .typed_array import TyArrayBase
 
 if TYPE_CHECKING:
     from types import NotImplementedType
@@ -21,11 +18,7 @@ if TYPE_CHECKING:
     from spox import Var
     from typing_extensions import Self
 
-    from .indexing import (
-        GetitemIndex,
-        SetitemIndex,
-    )
-    from .onnx import TyArrayInt64
+    from ndonnx._experimental import GetitemIndex, SetitemIndex
 
 
 _N_MAX_CATEGORIES = np.iinfo(np.int16).max
@@ -142,7 +135,7 @@ class CategoricalArray(TyArrayBase):
 
     def put(
         self,
-        key: TyArrayInt64,
+        key: onnx.TyArrayInt64,
         value: Self,
         /,
     ) -> None:
@@ -151,7 +144,7 @@ class CategoricalArray(TyArrayBase):
         self._codes.put(key, value._codes)
 
     @property
-    def dynamic_shape(self) -> TyArrayInt64:
+    def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self._codes.dynamic_shape
 
     @property
@@ -167,7 +160,7 @@ class CategoricalArray(TyArrayBase):
     def is_constant(self) -> bool:
         return self._codes.is_constant
 
-    def reshape(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+    def reshape(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         codes = self._codes.reshape(shape)
         return type(self)(codes=codes, dtype=self.dtype)
 
@@ -178,7 +171,7 @@ class CategoricalArray(TyArrayBase):
     def disassemble(self) -> dict[str, Var] | Var:
         return {"codes": self._codes.disassemble()}
 
-    def broadcast_to(self, shape: tuple[int, ...] | TyArrayInt64) -> Self:
+    def broadcast_to(self, shape: tuple[int, ...] | onnx.TyArrayInt64) -> Self:
         codes = self._codes.broadcast_to(shape=shape)
         return type(self)(codes=codes, dtype=self.dtype)
 

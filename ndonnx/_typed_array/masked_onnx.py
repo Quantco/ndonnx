@@ -13,16 +13,18 @@ import numpy as np
 from typing_extensions import Self
 
 from ndonnx import DType
+from ndonnx._experimental import (
+    DTypeInfoV1,
+    GetitemIndex,
+    SetitemIndex,
+    TyArrayBase,
+    onnx,
+    safe_cast,
+)
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar
-
-from .._schema import DTypeInfoV1
-from . import TyArrayBase, onnx, safe_cast
 
 if TYPE_CHECKING:
     from spox import Var
-
-    from .indexing import GetitemIndex, SetitemIndex
-    from .onnx import VALUE
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -544,7 +546,7 @@ class TyMaArray(TyMaArrayBase):
             return make_nullable(x, None).__ndx_where__(cond, self)
         return NotImplemented
 
-    def isin(self, items: Sequence[VALUE]) -> onnx.TyArrayBool:
+    def isin(self, items: Sequence[onnx.VALUE]) -> onnx.TyArrayBool:
         data = self.data.isin(items)
         # Masked values always return False
         if self.mask is None:

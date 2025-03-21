@@ -4,20 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import reduce
-from typing import TYPE_CHECKING, Literal, TypeVar, overload
+from typing import Literal, TypeVar, overload
 
 import numpy as np
 from spox import Var
 
-from ndonnx import DType
-from ndonnx._from_numpy_dtype import from_numpy_dtype
+from ndonnx import DType, from_numpy_dtype
 from ndonnx.types import NestedSequence, PyScalar
 
 from . import TyArrayBase, datetime, masked_onnx, onnx, promote
 from ._utils import validate_op_result
 
-if TYPE_CHECKING:
-    from .._dtypes import TY_ARRAY_BASE
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
 
 def _infer_sequence(
@@ -73,8 +71,8 @@ def _infer_dtype(
 @overload
 def astyarray(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: DType[TY_ARRAY_BASE],
-) -> TY_ARRAY_BASE: ...
+    dtype: DType[TY_ARRAY_BASE_co],
+) -> TY_ARRAY_BASE_co: ...
 
 
 @overload
@@ -86,7 +84,7 @@ def astyarray(
 
 def astyarray(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | DType[TY_ARRAY_BASE] = None,
+    dtype: None | DType[TY_ARRAY_BASE_co] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
@@ -251,11 +249,11 @@ def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
 
 
 def arange(
-    dtype: DType[TY_ARRAY_BASE],
+    dtype: DType[TY_ARRAY_BASE_co],
     start: int | float,
     stop: int | float,
     step: int | float = 1,
-) -> TY_ARRAY_BASE:
+) -> TY_ARRAY_BASE_co:
     res = dtype.__ndx_arange__(start, stop, step)
     if res is NotImplemented:
         raise TypeError(f"'arange' is not implemented for `{dtype}`")
@@ -263,13 +261,13 @@ def arange(
 
 
 def eye(
-    dtype: DType[TY_ARRAY_BASE],
+    dtype: DType[TY_ARRAY_BASE_co],
     n_rows: int,
     n_cols: int | None = None,
     /,
     *,
     k: int = 0,
-) -> TY_ARRAY_BASE:
+) -> TY_ARRAY_BASE_co:
     res = dtype.__ndx_eye__(n_rows, n_cols, k=k)
     if res is NotImplemented:
         raise TypeError(f"'eye' is not implemented for `{dtype}`")
@@ -277,8 +275,8 @@ def eye(
 
 
 def ones(
-    dtype: DType[TY_ARRAY_BASE], shape: tuple[int, ...] | onnx.TyArrayInt64
-) -> TY_ARRAY_BASE:
+    dtype: DType[TY_ARRAY_BASE_co], shape: tuple[int, ...] | onnx.TyArrayInt64
+) -> TY_ARRAY_BASE_co:
     res = dtype.__ndx_ones__(shape)
     if res is NotImplemented:
         raise TypeError(f"'ones' is not implemented for `{dtype}`")
@@ -286,8 +284,8 @@ def ones(
 
 
 def zeros(
-    dtype: DType[TY_ARRAY_BASE], shape: tuple[int, ...] | onnx.TyArrayInt64
-) -> TY_ARRAY_BASE:
+    dtype: DType[TY_ARRAY_BASE_co], shape: tuple[int, ...] | onnx.TyArrayInt64
+) -> TY_ARRAY_BASE_co:
     res = dtype.__ndx_zeros__(shape)
     if res is NotImplemented:
         raise TypeError(f"'zeros' is not implemented for `{dtype}`")

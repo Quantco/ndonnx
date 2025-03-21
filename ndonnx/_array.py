@@ -19,7 +19,6 @@ from ._namespace_info import Device, device
 from ._typed_array import TyArrayBase, astyarray, onnx
 
 if TYPE_CHECKING:
-    from ._typed_array.indexing import GetitemIndex as TyGetitemIndex
     from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
 
 
@@ -391,7 +390,7 @@ def _apply_op(
     return NotImplemented
 
 
-def _normalize_arrays_in_key(key: GetItemKey) -> TyGetitemIndex:
+def _normalize_arrays_in_key(key: GetItemKey) -> onnx.GetitemIndex:
     if isinstance(key, Array):
         if isinstance(key._tyarray.dtype, onnx.Bool):
             return key._tyarray.astype(onnx.bool_)

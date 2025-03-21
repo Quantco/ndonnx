@@ -3,31 +3,11 @@
 from __future__ import annotations
 
 from types import EllipsisType
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import Any
 
 import numpy as np
 
 from . import onnx
-
-if TYPE_CHECKING:
-    from .onnx import TyArrayBool, TyArrayInt64, TyArrayInteger
-
-    ScalarInt = TyArrayInteger
-    """Alias signaling that this must be a rank-0 integer tensor."""
-    BoolMask = TyArrayBool
-    """Alias signaling that this must be a rank-1 boolean tensor."""
-    SetitemItem: TypeAlias = int | slice | EllipsisType | ScalarInt
-    """A single item; i.e. not a tuple nor a boolean mask.
-
-    This does not include `None`.
-    """
-    GetitemItem: TypeAlias = int | slice | EllipsisType | ScalarInt | None
-    """A single item (; i.e. not a tuple nor a boolean mask) for __getitem__.
-
-    This includes `None`.
-    """
-    SetitemIndex: TypeAlias = SetitemItem | tuple[SetitemItem, ...] | BoolMask
-    GetitemIndex: TypeAlias = GetitemItem | tuple[GetitemItem, ...] | BoolMask
 
 
 class FancySlice:
@@ -37,12 +17,12 @@ class FancySlice:
     """
 
     # 1D arrays with a single element so that concatenating them later is cheaper
-    start: TyArrayInt64
-    stop: TyArrayInt64
-    step: TyArrayInt64
+    start: onnx.TyArrayInt64
+    stop: onnx.TyArrayInt64
+    step: onnx.TyArrayInt64
     squeeze: bool
 
-    def __init__(self, obj: slice | int | TyArrayInt64):
+    def __init__(self, obj: slice | int | onnx.TyArrayInt64):
         if isinstance(obj, onnx.TyArrayInt64 | int):
             self.start = _asidx(obj)
             self.stop = _asidx(_compute_end_single_idx(obj))
@@ -51,7 +31,7 @@ class FancySlice:
             return
 
         # `slice` case
-        def validate(obj: Any) -> TyArrayInt64 | None:
+        def validate(obj: Any) -> onnx.TyArrayInt64 | None:
             if obj is None:
                 return None
             if isinstance(obj, int | onnx.TyArrayInt64):
@@ -76,7 +56,7 @@ class FancySlice:
         return (start, stop, step) in [(0, _MAX, 1), (0, _MIN, -1)]
 
 
-def _asidx(obj: int | TyArrayInt64) -> TyArrayInt64:
+def _asidx(obj: int | onnx.TyArrayInt64) -> onnx.TyArrayInt64:
     arr = onnx.const(obj, onnx.int64) if isinstance(obj, int) else obj
 
     if arr.ndim != 0:
@@ -89,7 +69,7 @@ _MAX = np.iinfo(np.int64).max
 _MIN = np.iinfo(np.int64).min
 
 
-def _compute_end_single_idx(start: TyArrayInt64 | int) -> TyArrayInt64 | int:
+def _compute_end_single_idx(start: onnx.TyArrayInt64 | int) -> onnx.TyArrayInt64 | int:
     if isinstance(start, int):
         start = start
         end = start + 1
@@ -101,8 +81,8 @@ def _compute_end_single_idx(start: TyArrayInt64 | int) -> TyArrayInt64 | int:
 
 
 def _compute_start_slice(
-    start: int | TyArrayInt64 | None, step: int | TyArrayInt64 | None
-) -> TyArrayInt64 | int:
+    start: int | onnx.TyArrayInt64 | None, step: int | onnx.TyArrayInt64 | None
+) -> onnx.TyArrayInt64 | int:
     if start is not None:
         return start
 
@@ -119,8 +99,8 @@ def _compute_start_slice(
 
 
 def _compute_stop_slice(
-    stop: int | TyArrayInt64 | None, step: int | TyArrayInt64 | None
-) -> TyArrayInt64 | int:
+    stop: int | onnx.TyArrayInt64 | None, step: int | onnx.TyArrayInt64 | None
+) -> onnx.TyArrayInt64 | int:
     if stop is not None:
         return stop
     if step is None:
@@ -133,8 +113,8 @@ def _compute_stop_slice(
 
 
 def normalize_getitem_key(
-    key: GetitemIndex,
-) -> tuple[GetitemItem, ...] | BoolMask:
+    key: onnx.GetitemIndex,
+) -> tuple[onnx.GetitemItem, ...] | onnx._BoolMask:
     from . import onnx
 
     if isinstance(key, bool):
@@ -164,7 +144,7 @@ def normalize_getitem_key(
     raise IndexError(f"unexpected key `{key}`")
 
 
-def _normalize_getitem_key_item(key: GetitemItem) -> GetitemItem:
+def _normalize_getitem_key_item(key: onnx.GetitemItem) -> onnx.GetitemItem:
     if isinstance(key, slice):
         slice_kwargs = {"start": key.start, "stop": key.stop, "step": key.step}
         out: dict[str, int | None | onnx.TyArrayInt64] = {}
