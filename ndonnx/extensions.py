@@ -204,9 +204,7 @@ def make_nullable(
             is_nat = merged
         return ndx.Array._from_tyarray(x._tyarray.dtype._build(data=x._tyarray._data))
 
-    raise ndx.UnsupportedOperationError(
-        f"'make_nullable' not implemented for `{x.dtype}`"
-    )
+    raise TypeError(f"'make_nullable' not implemented for `{x.dtype}`")
 
 
 def get_mask(x: ndx.Array, /) -> ndx.Array | None:
