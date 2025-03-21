@@ -87,6 +87,10 @@ Changelog
 - :class:`ndonnx.CastError` is deprecated in favor of :class:`TypeError`
 
 
+**Other changes**
+
+- :func:`~ndonnx.additional.make_nullable` can no longer be used for custom data types.
+
 
 0.9.3 (2024-10-25)
 ------------------

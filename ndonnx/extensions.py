@@ -15,10 +15,10 @@ import ndonnx as ndx
 from . import _typed_array as tydx
 from ._typed_array.masked_onnx import TyMaArray
 
-Scalar = TypeVar("Scalar", int, float, str)
+SCALAR = TypeVar("SCALAR", int, float, str)
 
-Key: TypeAlias = Scalar
-Value = TypeVar("Value", int, float, str)
+KEY: TypeAlias = SCALAR
+VALUE = TypeVar("VALUE", int, float, str)
 
 
 def shape(x: ndx.Array, /) -> ndx.Array:
@@ -41,7 +41,7 @@ def shape(x: ndx.Array, /) -> ndx.Array:
     return x.dynamic_shape
 
 
-def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
+def isin(x: ndx.Array, /, items: Sequence[SCALAR]) -> ndx.Array:
     """Return true where the input ``Array`` contains an element in ``items``.
 
     ``NaN`` values do **not** compare equal.
@@ -61,12 +61,14 @@ def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
     return ndx.Array._from_tyarray(x._tyarray.isin(items))
 
 
-# TODO: Bad naming: It is obvious from the type hints that this mapping is "static"
+# TODO: Bad naming: It is obvious from the type hints that this
+# mapping is "static". Furthermore, we don't make a similar
+# distinction in other functions.
 def static_map(
     x: ndx.Array,
     /,
-    mapping: Mapping[Key, Value],
-    default: Value | None = None,
+    mapping: Mapping[KEY, VALUE],
+    default: VALUE | None = None,
 ) -> ndx.Array:
     """Map values in ``x`` based on the static ``mapping``.
 
@@ -77,13 +79,32 @@ def static_map(
     mapping: Mapping[Key, Value]
         A mapping from keys to values. The keys must be of the same type as the values in ``x``.
     default: Value, optional
-        The default value to use when a key is not found in the mapping.
+        The default value to use when a key is not found in the
+        mapping. If `None` the value depends on the type of `Value` in
+        the `mapping`:
+            - `float`: ``0.0``
+            - `int`: ``0``
+            - `bool`: ``False``
+            - `str`: `"MISSING"`
 
     Returns
     -------
     out: Array
         A new Array with the values mapped according to the mapping.
+
+    Raises
+    ------
+
+    ValueError
+        If `mapping` is empty and `default` is ``None``.
     """
+    if not mapping and default is None:
+        raise ValueError(
+            "a 'default' value must be supplied to 'static_map' if 'mapping' is empty"
+        )
+    if not mapping and default is not None:
+        return ndx.broadcast_to(ndx.asarray(default), x.dynamic_shape)
+
     values = np.array(list(mapping.values()))
 
     if values.dtype.kind in ("O", "U"):
@@ -93,13 +114,13 @@ def static_map(
         # Default values do not follow the ONNX standard (which is ok!)
         if np.issubdtype(values.dtype, np.floating):
             default = 0.0  # type: ignore
+        elif values.dtype == bool:
+            # to be in line with the numerical 0
+            default = False  # type: ignore
         elif np.issubdtype(values.dtype, np.integer):
             default = 0  # type: ignore
         elif values.dtype.kind == "U":
             default = "MISSING"  # type: ignore
-        elif values.dtype == bool:
-            # to be in line with the numerical 0
-            default = False  # type: ignore
     if default is None:
         raise TypeError(
             f"failed to infer default value for mapping values of data type `{values.dtype}`"
@@ -108,7 +129,7 @@ def static_map(
     return ndx.Array._from_tyarray(x._tyarray.apply_mapping(mapping, default))
 
 
-def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
+def fill_null(x: ndx.Array, /, value: ndx.Array | SCALAR) -> ndx.Array:
     """Returns a new ``Array`` with the null values filled with the given value.
 
     Parameters
