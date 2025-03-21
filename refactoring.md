@@ -38,7 +38,7 @@ The entire design presented below is constraint to the private `TyArrayBase` cla
 
 ## Typed arrays
 
-The abstract `TyArrayBase` class presents a base class for arrays that carry the data type information in its type.
+The abstract `TyArrayBase` class presents a base class for an array that carries its data type information in its type.
 Throughout `ndonnx` we require that the data type of an object is always statically known; a constraint that is stricter than the ONNX standard itself.
 Furthermore, the array-api standard prohibits mutating operations that would change the type of the underlying object (cf. `__setitem__`).
 These invariances allow us to encode the data type in the class type itself.
