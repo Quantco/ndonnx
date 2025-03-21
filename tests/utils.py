@@ -1,35 +1,41 @@
-# Copyright (c) QuantCo 2023-2024
+# Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
-
-import json
 
 import numpy as np
 import onnx
 import onnxruntime as ort
 
-import ndonnx._data_types as dtypes
-from ndonnx._build import (
-    _assemble_outputs,
-    _deconstruct_inputs,
-    _extract_output_names,
-    _get_dtype,
-)
+import ndonnx as ndx
 
-Dtype = dtypes.StructType | dtypes.CoreType
+
+def build_and_run(fn, *np_args):
+    # Only works for ONNX data types
+    ins_np = {f"in{i}": arr for i, arr in enumerate(np_args)}
+    ins = {
+        k: ndx.array(shape=a.shape, dtype=ndx.from_numpy_dtype(a.dtype))
+        for k, a in ins_np.items()
+    }
+
+    out = {"out": fn(*ins.values())}
+    mp = ndx.build(ins, out)
+    session = ort.InferenceSession(mp.SerializeToString())
+    (out,) = session.run(None, {f"{k}": a for k, a in ins_np.items()})
+    return out
 
 
 def run(
     model_proto: onnx.ModelProto, inputs: dict[str, np.ndarray]
 ) -> dict[str, np.ndarray]:
     # Extract input and output schemas
-    input_dtypes, output_dtypes = _get_dtypes(model_proto)
+    output_names = [el.name for el in model_proto.graph.output]
+    # input_dtypes, output_dtypes = _get_dtypes(model_proto)
     session = _make_session(model_proto)
-    flattened_inputs = _deconstruct_inputs(inputs, input_dtypes)
-    output_names = tuple(_extract_output_names(output_dtypes))
-    outputs = dict(zip(output_names, session.run(output_names, flattened_inputs)))
-    return _assemble_outputs(outputs, output_dtypes)
+    # flattened_inputs = _deconstruct_inputs(inputs, input_dtypes)
+    # output_names = tuple(_extract_output_names(output_dtypes))
+
+    return dict(zip(output_names, session.run(output_names, inputs)))
 
 
 def _make_session(model_proto: onnx.ModelProto) -> ort.InferenceSession:
@@ -37,30 +43,6 @@ def _make_session(model_proto: onnx.ModelProto) -> ort.InferenceSession:
     return ort.InferenceSession(
         model_proto.SerializeToString(), sess_options=session_options
     )
-
-
-def _get_dtypes(
-    model_proto: onnx.ModelProto,
-) -> tuple[dict[str, Dtype], dict[str, Dtype]]:
-    encoding = json.loads(
-        [prop for prop in model_proto.metadata_props if prop.key == "ndonnx_schema"][
-            0
-        ].value
-    )
-    version = encoding["version"]
-    input_schema = {}
-    for name, schema in encoding["input_schema"].items():
-        if schema["author"] != "ndonnx":
-            raise ValueError(f"Unknown author {schema}")
-        input_schema[name] = _get_dtype(schema["type_name"], version)
-
-    output_schema = {}
-    for name, schema in encoding["output_schema"].items():
-        if schema["author"] != "ndonnx":
-            raise ValueError(f"Unknown author {schema}")
-        output_schema[name] = _get_dtype(schema["type_name"], version)
-
-    return input_schema, output_schema
 
 
 def get_numpy_array_api_namespace():
@@ -76,6 +58,9 @@ def assert_array_equal(
     actual: np.ndarray,
     expected: np.ndarray,
 ):
+    if np.asarray(actual).dtype.kind == np.asarray(expected).dtype.kind == "U":
+        actual = np.asarray(actual, object)
+        expected = np.asarray(expected, object)
     np.testing.assert_array_equal(
         actual, expected, strict=np.__version__.startswith("2")
     )
@@ -84,3 +69,9 @@ def assert_array_equal(
     )
     if isinstance(expected, np.ma.masked_array):
         np.testing.assert_array_equal(actual.mask, expected.mask)
+
+
+def assert_equal_dtype_shape(arr, dtype, shape):
+    assert arr.dtype == dtype
+    assert arr._tyarray.shape == shape
+    assert arr.shape == tuple(None if isinstance(el, str) else el for el in shape)

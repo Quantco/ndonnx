@@ -50,6 +50,7 @@ ignore = [
     "N806",  # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
     "E501",  # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
     "UP038", # https://github.com/astral-sh/ruff/issues/7871
+    "N807",  # Free functions may start/end with dunders __array_namespace_info__
     "UP007",
 ]
 select = [
@@ -77,6 +78,7 @@ indent-style = "space"
 python_version = '3.10'
 no_implicit_optional = true
 check_untyped_defs = true
+# TODO: apply mypy to tests, too (update pre-commit-config, analogously)
 exclude = ["array-api-tests", "tests"]
 
 [[tool.mypy.overrides]]
@@ -85,7 +87,18 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--ignore=array-api-tests"
-filterwarnings = ["ignore:.*google.protobuf.pyext.*:DeprecationWarning"]
+filterwarnings = [
+    "ignore:.*google.protobuf.pyext.*:DeprecationWarning",
+    # warnings about lossy casts
+    "ignore::UserWarning:ndonnx._typed_array.ort_compat",
+    # upstream test suite failed to automatically parse special cases
+    "ignore:case for:UserWarning",
+    # upstream test suite expected a special case but didn't find it
+    "ignore:Special cases found for:UserWarning",
+    # NumPy warnings for invalid values in divisions
+    "ignore:.*invalid value encountered in (scalar )?divide.*:RuntimeWarning:numpy",
+    "ignore:.*Mean of empty slice.*:RuntimeWarning:numpy"
+]
 
 [tool.typos.default]
 extend-ignore-identifiers-re = ["scatter_nd", "arange"]

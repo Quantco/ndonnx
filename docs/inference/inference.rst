@@ -14,8 +14,8 @@ Note that we're mixing nullable and non-nullable data types in this example.
     import ndonnx as ndx
     import onnx
 
-    x = ndx.array(shape=("N",), dtype=ndx.utf8)
-    y = ndx.array(shape=("M",), dtype=ndx.nutf8)
+    x = ndx.argument(shape=("N",), dtype=ndx.utf8)
+    y = ndx.argument(shape=("M",), dtype=ndx.nutf8)
     z = ndx.reshape(y, x.shape)
 
     model = ndx.build({"x": x, "y": y}, {"z": z})
@@ -40,7 +40,7 @@ ndonnx implements this abstraction by composing a ``values`` and ``null`` mask a
 
     .. code-block:: python
 
-        y = ndx.array(shape=("N",), dtype=ndx.nutf8)
+        y = ndx.argument(shape=("N",), dtype=ndx.nutf8)
         print(y) # Array(dtype=NUtf8)
         print(y.values) # Array(dtype=Utf8)
         print(y.null) # Array(dtype=Boolean)

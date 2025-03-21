@@ -4,6 +4,7 @@ Interoperating with Spox
 `Spox <https://github.com/quantco/spox>`_ defines a Pythonic, direct interface to the ONNX standard and is an effective way to construct ONNX graphs.
 ndonnx builds on Spox and so it is able to provide excellent interoperability with the lower level interface Spox has when needed.
 
+
 When is it useful to interoperate with Spox?
 --------------------------------------------
 
@@ -11,13 +12,14 @@ When is it useful to interoperate with Spox?
 2. You want to reuse an existing ONNX model. Spox's `Inline <https://spox.readthedocs.io/en/latest/guides/inline.html>`_ tool is a powerful utility for this.
 3. You want to dispatch to certain specialized `custom operators <https://onnxruntime.ai/docs/reference/operators/add-custom-op.html>`_ that go beyond the scope of the ONNX standard. This is also achieved via Spox's Inline tool.
 
+
 Moving between Spox and ndonnx
 ------------------------------
 
 ndonnx to Spox
 ~~~~~~~~~~~~~~
 
-Extract a :class:`spox.Var` from an :class:`ndonnx.Array` using the :func:`ndonnx.Array.spox_var` method. This allows you to use Spox to manipulate the ONNX graph more directly.
+Extract a :class:`spox.Var` from an :class:`ndonnx.Array` using the :func:`ndonnx.Array.unwrap_spox` method. This allows you to use Spox to manipulate the ONNX graph more directly.
 
 ..  code-block:: python
 
@@ -25,41 +27,34 @@ Extract a :class:`spox.Var` from an :class:`ndonnx.Array` using the :func:`ndonn
     import ndonnx as ndx
     import spox.opset.ai.onnx.v20 as op
 
-    x = ndx.array(shape=(2, 1), dtype=ndx.utf8)
+    x = ndx.argument(shape=(2, 1), dtype=ndx.utf8)
 
-    var = x.spox_var()
+    var = x.unwrap_spox()
 
     # Freely use Spox
     var = op.string_split(var, delimiter=",")
 
 While this is trivial in the case of data types with a direct correspondence in ONNX, arrays with nullable data types like :class:`ndonnx.nutf8` must first be decomposed into their constituent parts.
-These can be accessed using the :func:`ndonnx.Array.values` property for the data and :func:`ndonnx.Array.null` for the boolean mask.
+This is achieved via the `:meth:ndonnx.Array.disassemble` method.
 
 ..  code-block:: python
 
     import ndonnx as ndx
 
-    x = ndx.array(shape=(2, 1), dtype=ndx.nutf8)
+    x = ndx.argument(shape=(2, 1), dtype=ndx.nutf8)
 
-    # Disassemble the nullable array into its data and null components
-    data, null = x.values, x.null
+    data_var = x.disassemble()["data"]
+    null_var = x.disassemble()["null"]
 
-    # data and null are regular ndonnx arrays
-    print(data, null)
-    # Array(dtype=Utf8) Array(dtype=Boolean)
-
-    # Extract Spox Var
-    data_var = data.spox_var()
-    null_var = null.spox_var()
 
 Spox to ndonnx
 ~~~~~~~~~~~~~~
 
-Taking the ``var`` from the previous example, we can convert it back to an :class:`ndonnx.Array` using the :func:`ndonnx.from_spox_var` function.
+Taking the ``var`` from the previous example, we can convert it back to an :class:`ndonnx.Array` using the :func:`ndonnx.asarray` function.
 
 ..  code-block:: python
 
-    array = ndx.from_spox_var(var)
+    array = ndx.asarray(var)
 
 
 Implementing a one-hot-encode function
@@ -75,7 +70,7 @@ This means that while ndonnx does not directly expose a ``one_hot_encode`` funct
     import spox.opset.ai.onnx.ml.v3 as ml
 
     def one_hot_encode(x: ndx.Array, categories: Iterable[str]) -> ndx.Array:
-        return ndx.from_spox_var(ml.one_hot_encoder(x.spox_var(), cats_strings=categories))
+        return ndx.asarray(ml.one_hot_encoder(x.unwrap_spox(), cats_strings=categories))
 
 We can use this as normal to export and run an ONNX model.
 
@@ -84,7 +79,7 @@ We can use this as normal to export and run an ONNX model.
     import onnxruntime as ort
     import ndonnx as ndx
 
-    x = ndx.array(shape=("N",), dtype=ndx.utf8)
+    x = ndx.argument(shape=("N",), dtype=ndx.utf8)
     y = one_hot_encode(x, ["a", "b", "c"])
 
     model = ndx.build({"x": x}, {"y": y})
@@ -99,5 +94,4 @@ We can use this as normal to export and run an ONNX model.
     # [1. 0. 0.]]
 
 .. note::
-    When working with Spox directly, you step outside of ndonnx. This means ndonnx is unable to propagate values as you might typically expect.
-    :ref:`propagation` explains how you can ensure ndonnx can continue to eagerly propagate available values.
+    See :ref:`propagation` on how to ensure that value propagation is functioning even when using custom ONNX operators.
