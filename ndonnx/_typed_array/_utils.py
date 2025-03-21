@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
 if TYPE_CHECKING:
@@ -53,3 +54,15 @@ def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:
     if isinstance(a, ty):
         return a
     raise TypeError(f"expected `{ty}` found `{type(a)}`")
+
+
+def validate_op_result(
+    x1: TyArrayBase, x2: TyArrayBase, result: T | NotImplementedType, func_name: str
+) -> T:
+    """Validate if the provided result is not `NotImplemented` and raise an error if it
+    is."""
+    if isinstance(result, NotImplementedType):
+        raise TypeError(
+            f"unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
+        )
+    return result

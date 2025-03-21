@@ -19,9 +19,9 @@ from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
 from . import ort_compat as op
+from .dtype_independent_funcs import maximum, minimum, where
 from .indexing import (
     FancySlice,
-    key_to_indices,
     normalize_getitem_key,
 )
 
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
+TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
 
@@ -654,7 +655,7 @@ class TyArray(TyArrayBase):
                 "target rank of broadcasting operation must be statically known"
             )
         if target_rank < self.ndim:
-            raise ValueError("target rank must equal or greater than rank of 'self'")
+            raise ValueError("target rank must be equal or greater than rank of 'self'")
         var = op.expand(self._var, shape._var)
         return type(self)(var)
 
@@ -1297,6 +1298,9 @@ class TyArrayNumber(TyArray):
         return safe_cast(TyArray, self**2)
 
     @overload
+    def __ndx_maximum__(self, rhs: Self, /) -> Self: ...
+
+    @overload
     def __ndx_maximum__(self, rhs: TyArrayNumber | int | float, /) -> TyArrayNumber: ...
 
     @overload
@@ -1309,6 +1313,9 @@ class TyArrayNumber(TyArray):
             forward=True,
             result_type=TyArrayNumber,
         )
+
+    @overload
+    def __ndx_minimum__(self, rhs: Self, /) -> Self: ...
 
     @overload
     def __ndx_minimum__(self, rhs: TyArrayNumber | int | float, /) -> TyArrayNumber: ...
@@ -1914,6 +1921,7 @@ class TyArrayFloat64(TyArrayFloating):
         return float64
 
 
+# TODO: Make private
 def ascoredata(var: Var) -> TyArray:
     dtype = from_numpy_dtype(var.unwrap_tensor().dtype)
 
@@ -2241,22 +2249,6 @@ def _move_ellipsis_back(
 T = TypeVar("T")
 
 
-def _validate(
-    x1: TY_ARRAY, x2: TY_ARRAY, result: T | NotImplementedType, func_name: str
-) -> T:
-    if isinstance(result, NotImplementedType):
-        raise TypeError(
-            f"unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
-        )
-    return result
-
-
-def where(cond: TyArrayBool, x: TY_ARRAY, y: TY_ARRAY) -> TY_ARRAY:
-    # Reflected methods are not implemented on TyArray objects (they only know about primitive ONNX dtypes)
-    res = safe_cast(type(x), x.__ndx_where__(cond, y))
-    return _validate(x, y, res, "where")
-
-
 def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
     # Ensure that this also works with np.generic such as np.int64
     np_dtype = np.dtype(np_dtype)
@@ -2295,3 +2287,116 @@ def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
         return utf8
 
     raise ValueError(f"`{np_dtype}` does not have a corresponding ndonnx data type")
+
+
+def key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
+    """Compute expanded indices for ``key`` for an array of shape ``shape``."""
+    if len(key) == 0:
+        raise NotImplementedError("indexing with an empty key is not yet supported")
+    # TODO: Allow dynamic inputs to DType.__ndx_arange__?
+    indices_per_dim = []
+    for s, length in zip(key, shape):
+        if isinstance(s, int):
+            stop = None if s == -1 else s + 1
+            s = slice(s, stop, 1)
+        indices_per_dim.append(
+            ascoredata(op.range(*[el._var for el in _get_indices(s, length)]))
+        )
+
+    grid = meshgrid(*indices_per_dim, indexing="ij")
+    first, *others = [el.reshape((-1, 1)) for el in grid]
+    res = first.concat(others, axis=-1)
+    return safe_cast(TyArrayInt64, res)
+
+
+def _get_indices(
+    s: slice, length: int | TyArrayInt64
+) -> tuple[TyArrayInt64, TyArrayInt64, TyArrayInt64]:
+    """Array-compatible implementation of ``slice.indices``.
+
+    Slice members must be of type ``int`` or ``None`` while `length` may be an array.
+    """
+    length_ = length if isinstance(length, TyArrayInt64) else const(length, int64)
+
+    step = 1 if s.step is None else s.step
+    if not isinstance(step, int):
+        raise IndexError(f"'step' must be of type 'int' found `{type(step)}`")
+
+    if step == 0:
+        raise IndexError("'step' must not be zero")
+
+    step_is_negative = step < 0
+
+    if step_is_negative:
+        lower = const(-1, int64)
+        upper = length_ + lower
+    else:
+        lower = const(0, int64)
+        upper = length_
+
+    if s.start is None:
+        start_arr = upper if step_is_negative else lower
+    elif isinstance(s.start, int):
+        start_is_neg = s.start < 0
+        slice_start = const(s.start, dtype=int64)
+        if start_is_neg:
+            start_arr = maximum(slice_start + length_, lower)
+        else:
+            start_arr = minimum(slice_start, upper)
+    else:
+        raise IndexError(f"'start' must be 'int' or 'None', found `{s.start}`")
+
+    if s.stop is None:
+        stop = lower if step_is_negative else upper
+    elif isinstance(s.stop, int):
+        stop = const(s.stop, dtype=int64)
+        stop_is_neg = stop < 0
+        if stop_is_neg:
+            stop = maximum(stop + length_, lower)
+        else:
+            stop = minimum(stop, upper)
+    else:
+        raise IndexError(f"'stop' must be 'int' or 'None', found `{s.stop}`")
+
+    return start_arr, stop, const(step, int64)
+
+
+def meshgrid(*arrays: TyArrayBase, indexing: str = "xy") -> list[TyArrayBase]:
+    ndim = len(arrays)
+
+    if indexing not in ("xy", "ij"):
+        raise ValueError(
+            f"'indexing' argument must be one 'xy' or 'ij', found `{indexing}`"
+        )
+
+    base_shape = (1,) * ndim
+    output = [
+        x.reshape(base_shape[:i] + (-1,) + base_shape[i + 1 :])
+        for i, x in enumerate(arrays)
+    ]
+
+    if indexing == "xy" and ndim > 1:
+        # switch first and second axis
+        output[0] = output[0].reshape((1, -1) + base_shape[2:])
+        output[1] = output[1].reshape((-1, 1) + base_shape[2:])
+
+    return broadcast_arrays(*output)
+
+
+def broadcast_arrays(*arrays: TyArrayBase) -> list[TyArrayBase]:
+    if len(arrays) < 2:
+        return [a.copy() for a in arrays]
+
+    def numeric_like(x: TyArrayBase) -> TyArrayInt32:
+        # Using int32 rather than something smaller because we don't
+        # want ort_compat to kick in here.
+        return const(0, dtype=int32).broadcast_to(x.dynamic_shape)
+
+    it = iter(arrays)
+    ret = numeric_like(next(it))
+    while (x := next(it, None)) is not None:
+        ret = ret + numeric_like(x)
+
+    target_shape = ret.dynamic_shape
+
+    return [a.broadcast_to(target_shape) for a in arrays]

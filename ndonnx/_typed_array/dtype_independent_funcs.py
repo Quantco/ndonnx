@@ -2,98 +2,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from collections.abc import Sequence
 from functools import reduce
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
-import numpy as np
-from spox import Var
-
 from ndonnx import DType
-from ndonnx._from_numpy_dtype import from_numpy_dtype
-from ndonnx.types import NestedSequence, PyScalar
+from ndonnx.types import PyScalar
 
-from . import TyArrayBase, datetime, masked_onnx, onnx, promote
+from . import TyArrayBase, promote
 from ._utils import validate_op_result
 
 if TYPE_CHECKING:
-    from .._dtypes import TY_ARRAY_BASE
+    from . import onnx, promote
 
-
-def _infer_sequence(
-    val: NestedSequence,
-) -> DType:
-    types = set()
-    for item in val:
-        if isinstance(item, Sequence) and not isinstance(item, str):
-            types.add(_infer_sequence(item))
-        else:
-            types.add(_infer_dtype(item))
-    if len(types) == 0:
-        return onnx.float64
-    return _result_dtype(*types)
-
-
-def _infer_dtype(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-) -> DType:
-    if isinstance(val, np.ndarray):
-        if val.dtype == object:
-            if not all(isinstance(el, str) for el in val.flatten()):
-                raise ValueError(
-                    "found array with object data type but it contains non-string elements"
-                )
-            return onnx.utf8
-        dtype = from_numpy_dtype(val.dtype)
-        if isinstance(val, np.ma.MaskedArray):
-            if isinstance(dtype, datetime.BaseTimeDType):
-                return dtype
-            return masked_onnx.to_nullable_dtype(dtype)
-        return dtype
-    elif isinstance(val, TyArrayBase):
-        return val.dtype
-    elif isinstance(val, Var):
-        return onnx.from_numpy_dtype(val.unwrap_tensor().dtype)
-    elif isinstance(val, bool):
-        return onnx.bool_
-    elif isinstance(val, int):
-        return onnx.int64
-    elif isinstance(val, float):
-        return onnx.float64
-    elif isinstance(val, str):
-        return onnx.utf8
-    elif isinstance(val, Sequence):
-        return _infer_sequence(val)
-    elif isinstance(val, np.generic):
-        return onnx.from_numpy_dtype(val.dtype)
-    else:
-        raise ValueError(f"unable to infer dtype from `{val}`")
-
-
-@overload
-def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: DType[TY_ARRAY_BASE],
-) -> TY_ARRAY_BASE: ...
-
-
-@overload
-def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | DType = None,
-) -> TyArrayBase: ...
-
-
-def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | DType[TY_ARRAY_BASE] = None,
-) -> TyArrayBase:
-    """Conversion of values of various types into a built-in typed array.
-
-    This function always copies
-    """
-    inferred_dtype = _infer_dtype(val) if dtype is None else dtype
-    return inferred_dtype.__ndx_create__(val)
+TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
 
 
 def concat(
@@ -194,9 +115,6 @@ def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase
 
 
 def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
-    if not isinstance(cond, onnx.TyArrayBool):
-        raise TypeError("'cond' must be a boolean data type.")
-
     res = x.__ndx_where__(cond, y)
     if res is NotImplemented:
         res = y.__ndx_rwhere__(cond, x)

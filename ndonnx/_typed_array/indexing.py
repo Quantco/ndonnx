@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 import numpy as np
 
-from . import onnx, ort_compat, safe_cast
+from . import onnx
 
 if TYPE_CHECKING:
     from .onnx import TyArrayBool, TyArrayInt64, TyArrayInteger
@@ -189,81 +189,3 @@ def _normalize_getitem_key_item(key: GetitemItem) -> GetitemItem:
             f"index arrays must be rank-0 tensors; found rank `{key.ndim}`"
         )
     return key.astype(onnx.int64)
-
-
-def key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
-    """Compute expanded indices for ``key`` for an array of shape ``shape``."""
-    # TODO: Allow dynamic inputs to DType.__ndx_arange__?
-    import ndonnx as ndx
-
-    indices_per_dim = []
-    for s, length in zip(key, shape):
-        if isinstance(s, int):
-            stop = None if s == -1 else s + 1
-            s = slice(s, stop, 1)
-        indices_per_dim.append(
-            ndx.asarray(ort_compat.range(*[el._var for el in _get_indices(s, length)]))
-        )
-
-    grid = ndx.meshgrid(*indices_per_dim, indexing="ij")
-    indices = ndx.concat([ndx.reshape(el, (-1, 1)) for el in grid], axis=-1)
-
-    return safe_cast(onnx.TyArrayInt64, indices._tyarray)
-
-
-def _get_indices(
-    s: slice, length: int | TyArrayInt64
-) -> tuple[TyArrayInt64, TyArrayInt64, TyArrayInt64]:
-    """Array-compatible implementation of ``slice.indices``.
-
-    Slice members must be of type ``int`` or ``None`` while `length` may be an array.
-    """
-    from .funcs import maximum, minimum
-
-    length_ = (
-        length
-        if isinstance(length, onnx.TyArrayInt64)
-        else onnx.const(length, onnx.int64)
-    )
-
-    step = 1 if s.step is None else s.step
-    if not isinstance(step, int):
-        raise IndexError(f"'step' must be of type 'int' found `{type(step)}`")
-
-    if step == 0:
-        raise IndexError("'step' must not be zero")
-
-    step_is_negative = step < 0
-
-    if step_is_negative:
-        lower = onnx.const(-1, onnx.int64)
-        upper = length_ + lower
-    else:
-        lower = onnx.const(0, onnx.int64)
-        upper = length_
-
-    if s.start is None:
-        start_arr = upper if step_is_negative else lower
-    elif isinstance(s.start, int):
-        start_is_neg = s.start < 0
-        slice_start = onnx.const(s.start, dtype=onnx.int64)
-        if start_is_neg:
-            start_arr = maximum(slice_start + length_, lower)
-        else:
-            start_arr = minimum(slice_start, upper)
-    else:
-        raise IndexError(f"'start' must be 'int' or 'None', found `{s.start}`")
-
-    if s.stop is None:
-        stop = lower if step_is_negative else upper
-    elif isinstance(s.stop, int):
-        stop = onnx.const(s.stop, dtype=onnx.int64)
-        stop_is_neg = stop < 0
-        if stop_is_neg:
-            stop = maximum(stop + length_, lower)
-        else:
-            stop = minimum(stop, upper)
-    else:
-        raise IndexError(f"'stop' must be 'int' or 'None', found `{s.stop}`")
-
-    return start_arr, stop, onnx.const(step, onnx.int64)
