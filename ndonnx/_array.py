@@ -14,9 +14,12 @@ from warnings import warn
 import numpy as np
 from spox import Var
 
-from ._dtypes import DType
+from ndonnx import DType
+
 from ._namespace_info import Device, device
 from ._typed_array import TyArrayBase, astyarray, onnx
+from ._typed_array.masked_onnx import TyMaArray
+from .extensions import get_mask
 
 if TYPE_CHECKING:
     from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
@@ -126,8 +129,6 @@ class Array:
 
     @property
     def null(self) -> None | Array:
-        from .extensions import get_mask
-
         warn(
             "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
             DeprecationWarning,
@@ -136,8 +137,6 @@ class Array:
 
     @property
     def values(self) -> Array:
-        from ._typed_array.masked_onnx import TyMaArray
-
         warn(
             "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
             DeprecationWarning,
@@ -157,8 +156,6 @@ class Array:
         return Array._from_tyarray(self._tyarray.copy())
 
     def to_numpy(self) -> np.ndarray | None:
-        from warnings import warn
-
         warn(
             "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
             DeprecationWarning,

@@ -87,9 +87,7 @@ class Info:
         }
 
 
-class Device:
-    def __eq__(self, other) -> bool:
-        return self is device
+class Device: ...
 
 
 device = Device()

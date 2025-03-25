@@ -254,9 +254,8 @@ def put(a: ndx.Array, indices: ndx.Array, updates: ndx.Array, /) -> None:
     `mode="raises". The data types of the update array and the updates
     must match. The indices must be provided as a 1D int64 array.
     """
-    from ._typed_array.onnx import TyArrayInt64
-
-    if not isinstance(indices._tyarray, TyArrayInt64):
+    if not isinstance(indices._tyarray, tydx.onnx.TyArrayInt64):
+        # using isinstance here to get the type narrowing below
         raise TypeError(
             f"'indices' must be provided as an int64 tensor, found `{indices.dtype}`"
         )

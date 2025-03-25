@@ -152,21 +152,6 @@ def test_asarray_masked():
     )
 
 
-@pytest.mark.skip(reason="no longer relevant")
-def test_opset_extensions():
-    import ndonnx._opset_extensions as opx
-    from ndonnx._corearray import _CoreArray
-
-    a = ndx.asarray(
-        np.array([1, 2, 3]),
-        dtype=ndx.int64,
-    )
-    shape = opx.shape(a.data)  # type: ignore
-    # opset_extensions is an internal package that only deals with the internal state (lazy Spox Var and any eager values)
-    assert isinstance(shape, _CoreArray)
-    assert_array_equal(shape.to_numpy(), np.array([3], dtype=np.int64))
-
-
 def test_eager_mode():
     a = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64))
     b = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1], dtype=np.int64))
