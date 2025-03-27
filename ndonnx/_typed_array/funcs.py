@@ -91,7 +91,12 @@ def astyarray(
     This function always copies.
     """
     inferred_dtype = _infer_dtype(val) if dtype is None else dtype
-    return inferred_dtype.__ndx_create__(val)
+    res = inferred_dtype.__ndx_create__(val)
+    if res is NotImplemented:
+        raise ValueError(
+            f"failed to instantiate array of dtype `{inferred_dtype}` from `{val}`"
+        )
+    return res
 
 
 def concat(

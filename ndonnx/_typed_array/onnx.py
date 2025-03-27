@@ -110,7 +110,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
 
     def __ndx_create__(
         self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
-    ) -> TY_ARRAY_co:
+    ) -> TY_ARRAY_co | NotImplementedType:
         if isinstance(val, Var):
             return _var_to_tyarray(val).astype(self)
         elif isinstance(val, PyScalar | np.ndarray | np.generic):
@@ -119,8 +119,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
             return self.__ndx_create__(np.asarray(val))
         elif isinstance(val, TyArrayBase):
             return val.copy().astype(self)
-        else:
-            raise ValueError(f"cannot create array with dtype `{self}` from `{val}`")
+        return NotImplemented
 
     def __ndx_argument__(self, shape: OnnxShape) -> TY_ARRAY_co:
         var = argument(Tensor(self.unwrap_numpy(), shape))

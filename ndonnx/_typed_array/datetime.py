@@ -128,10 +128,7 @@ class DateTime64DType(BaseTimeDType["TyArrayDateTime"]):
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
             return onnx.int64.__ndx_create__(val).astype(self)
-        else:
-            raise ValueError(
-                f"unable to create an array with dtype `{self}` from `{val}`"
-            )
+        return NotImplemented
 
 
 class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
@@ -162,10 +159,7 @@ class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
             return onnx.int64.__ndx_create__(val).astype(self)
-        else:
-            raise ValueError(
-                f"unable to create an array with dtype `{self}` from `{val}`"
-            )
+        return NotImplemented
 
 
 class TimeBaseArray(TyArrayBase):
