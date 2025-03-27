@@ -554,16 +554,30 @@ def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Arr
     return Array._from_tyarray(x._tyarray.repeat(repeats_, axis=axis))
 
 
-def result_type(*arrays_and_dtypes: Array | DType) -> DType:
-    if len(arrays_and_dtypes) == 0:
-        ValueError("at least one array or dtype is required")
-
-    def get_dtype(obj: Array | DType) -> DType:
+def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
+    def dtype_or_scalar(obj: Array | DType | PyScalar) -> DType | PyScalar:
         if isinstance(obj, Array):
             return obj.dtype
         return obj
 
-    return tyfuncs.result_type(*(get_dtype(el) for el in arrays_and_dtypes))
+    if len(arrays_and_dtypes) == 0:
+        ValueError("at least one array or dtype is required")
+    items = sorted(
+        arrays_and_dtypes,
+        key=lambda item: int(isinstance(item, Array | DType)),
+        reverse=True,
+    )
+    first, *others = items
+
+    if not isinstance(first, Array | DType):
+        raise ValueError(
+            "arguments to 'result_type' must contain at least one 'Array' or 'DType' object"
+        )
+
+    if isinstance(first, Array):
+        first = first.dtype
+
+    return tyfuncs.result_type(first, *(dtype_or_scalar(el) for el in others))
 
 
 def roll(
@@ -609,7 +623,7 @@ def squeeze(x: Array, /, axis: int | tuple[int, ...]) -> Array:
 def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
     if not isinstance(indices._tyarray, onnx.TyArrayInt64):
         raise TypeError(
-            "'indices' must be of data type 'int64' found `{indices.dtype}`"
+            f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
     return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 

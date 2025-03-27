@@ -22,6 +22,7 @@ TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase", covariant=True)
 
 
 class DType(ABC, Generic[TY_ARRAY_BASE]):
+    # TODO: Reliably return NotImplemented from dunder methods rather than sometimes raising
     def __ndx_create__(
         self,
         val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,

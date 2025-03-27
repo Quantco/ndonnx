@@ -46,10 +46,11 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
             else:
                 mask = safe_cast(onnx.TyArrayBool, onnx.const(val.mask))
             return make_nullable(data, mask).astype(self)
-        else:
-            return make_nullable(self._unmasked_dtype.__ndx_create__(val), None).astype(
-                self
-            )
+        if isinstance(val, TyMaArray):
+            return val.astype(self)
+        return make_nullable(self._unmasked_dtype.__ndx_create__(val), None).astype(
+            self
+        )
 
     def __str__(self) -> str:
         return type(self).__name__.lower()
@@ -117,15 +118,15 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 class _NNumber(_MaOnnxDType):
     def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, onnx.NumericDTypes | int | float):
-            core_result = onnx.result_type(self._unmasked_dtype, rhs)
+            onnx_result = onnx.result_type(self._unmasked_dtype, rhs)
         elif isinstance(rhs, NumericDTypes):
-            core_result = onnx.result_type(self._unmasked_dtype, rhs._unmasked_dtype)
+            onnx_result = onnx.result_type(self._unmasked_dtype, rhs._unmasked_dtype)
 
         else:
             # No implicit promotion for bools and strings
             return NotImplemented
 
-        return to_nullable_dtype(core_result)
+        return to_nullable_dtype(onnx_result)
 
 
 class NUtf8(_MaOnnxDType):
