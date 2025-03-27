@@ -88,7 +88,7 @@ def astyarray(
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
-    This function always copies
+    This function always copies.
     """
     inferred_dtype = _infer_dtype(val) if dtype is None else dtype
     return inferred_dtype.__ndx_create__(val)

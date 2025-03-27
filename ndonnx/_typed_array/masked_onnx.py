@@ -678,9 +678,22 @@ class TyMaArrayNumber(TyMaArray):
     __pos__ = _make_unary_member_same_type("__pos__")  # type: ignore
     ceil = _make_unary_member_same_type("ceil")  # type: ignore
     floor = _make_unary_member_same_type("floor")  # type: ignore
-    isfinite = _make_unary_member_same_type("isfinite")  # type: ignore
-    isinf = _make_unary_member_same_type("isinf")  # type: ignore
-    isnan = _make_unary_member_same_type("isnan")  # type: ignore
+
+    def isfinite(self) -> TyMaArrayBool:
+        return TyMaArrayBool(
+            data=safe_cast(onnx.TyArrayBool, self._data.isfinite()), mask=self.mask
+        )
+
+    def isinf(self) -> TyMaArrayBool:
+        return TyMaArrayBool(
+            data=safe_cast(onnx.TyArrayBool, self._data.isinf()), mask=self.mask
+        )
+
+    def isnan(self) -> TyMaArrayBool:
+        return TyMaArrayBool(
+            data=safe_cast(onnx.TyArrayBool, self._data.isnan()), mask=self.mask
+        )
+
     round = _make_unary_member_same_type("round")  # type: ignore
     sign = _make_unary_member_same_type("sign")  # type: ignore
     sqrt = _make_unary_member_same_type("sqrt")  # type: ignore

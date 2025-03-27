@@ -349,12 +349,18 @@ def is_onnx_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.DTypes]:
 
 
 def is_numeric_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.NumericDTypes]:
-    """Return ``True`` if ``dtype`` is of a floating point data type."""
+    """Return ``True`` if ``dtype`` is of a numeric data type.
+
+    This does not include masked data types.
+    """
     return isinstance(dtype, tydx.onnx.NumericDTypes)
 
 
 def is_float_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.onnx.FloatingDTypes]:
-    """Return ``True`` if ``dtype`` is of a floating point data type."""
+    """Return ``True`` if ``dtype`` is of a floating point data type.
+
+    This does not include masked data types.
+    """
     return isinstance(dtype, tydx.onnx.FloatingDTypes)
 
 
