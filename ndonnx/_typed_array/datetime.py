@@ -386,7 +386,12 @@ class TyArrayTimeDelta(TimeBaseArray):
         return out
 
     def __add__(self, rhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        if isinstance(rhs, TyArrayTimeDelta | int):
+        if isinstance(rhs, int):
+            rhs = TyArrayTimeDelta(onnx.const(rhs), self.dtype.unit)
+        if isinstance(rhs, TyArrayTimeDelta):
+            if {self.dtype.unit, rhs.dtype.unit} == {"s", "ns"}:
+                self = self.astype(TimeDelta64DType("ns"))
+                rhs = rhs.astype(TimeDelta64DType("ns"))
             return _apply_op(self, rhs, operator.add, True)
         return NotImplemented
 
@@ -406,7 +411,12 @@ class TyArrayTimeDelta(TimeBaseArray):
         return NotImplemented
 
     def __sub__(self, rhs: TyArrayBase | PyScalar) -> TyArrayTimeDelta:
-        if isinstance(rhs, TyArrayTimeDelta | int):
+        if isinstance(rhs, int):
+            rhs = TyArrayTimeDelta(onnx.const(rhs), self.dtype.unit)
+        if isinstance(rhs, TyArrayTimeDelta):
+            if {self.dtype.unit, rhs.dtype.unit} == {"s", "ns"}:
+                self = self.astype(TimeDelta64DType("ns"))
+                rhs = rhs.astype(TimeDelta64DType("ns"))
             return _apply_op(self, rhs, operator.sub, True)
         return NotImplemented
 
@@ -422,12 +432,16 @@ class TyArrayTimeDelta(TimeBaseArray):
             data = (self._data / rhs).astype(onnx.int64)
             return self.dtype._build(onnx.where(self.is_nat, _NAT_SENTINEL, data))
 
-        if isinstance(rhs, TyArrayTimeDelta) and self.dtype == rhs.dtype:
+        if isinstance(rhs, TyArrayTimeDelta):
+            power_diff = _unit_power_diff(self.dtype.unit, rhs.dtype.unit)
             is_nat = self.is_nat | rhs.is_nat
             res = safe_cast(
                 onnx.TyArrayFloat64,
                 self._data.astype(onnx.float64) / rhs._data.astype(onnx.float64),
             )
+
+            if power_diff != 0:
+                res = res * (10**power_diff)
             return onnx.where(is_nat, onnx.const(np.nan, dtype=onnx.float64), res)
 
         return NotImplemented
@@ -636,7 +650,9 @@ def _coerce_other(
         return (onnx.const(other, dtype=onnx.int64), _NAT_SENTINEL == other)
     elif type(this) is type(other):
         if this.dtype.unit != other.dtype.unit:
-            raise ValueError("inter-operation between time units is not implemented")
+            raise ValueError(
+                f"inter operation between time units `{this.dtype.unit}` and `{other.dtype.unit} is not implemented"
+            )
         return (other._data, other.is_nat)
     return NotImplemented
 
@@ -660,17 +676,19 @@ def validate_unit(unit: str) -> Unit:
     raise ValueError(f"unsupported datetime unit `{unit}`")
 
 
-def _convert_unit(arr: TimeBaseArray, new: BaseTimeDType[TIMEARRAY_co]) -> TIMEARRAY_co:
-    new_unit = new.unit
-    old_unit = arr.dtype.unit
+def _unit_power_diff(from_unit: Unit, to_unit: Unit) -> int:
     powers = {
         "s": 0,
         "ms": 3,
         "us": 6,
         "ns": 9,
     }
-    power = powers[new_unit] - powers[old_unit]  # type: ignore
-    if powers == 0:
+    return powers[to_unit] - powers[from_unit]
+
+
+def _convert_unit(arr: TimeBaseArray, new: BaseTimeDType[TIMEARRAY_co]) -> TIMEARRAY_co:
+    power = _unit_power_diff(arr.dtype.unit, new.unit)
+    if power == 0:
         return arr.copy()  # type: ignore
     elif power > 0:
         data = arr._data * (10**power)
