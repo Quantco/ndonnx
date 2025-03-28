@@ -373,8 +373,8 @@ def test_round_trip_int64(unit, time_dtype):
         operator.truediv,
     ],
 )
-@pytest.mark.parametrize("unit1", ["s", "ns"])
-@pytest.mark.parametrize("unit2", ["s", "ns"])
+@pytest.mark.parametrize("unit1", get_args(Unit))
+@pytest.mark.parametrize("unit2", get_args(Unit))
 def test_timedelta_arithmetic(op, unit1, unit2):
     lhs = np.asarray(
         [timedelta(days=1), timedelta(days=2), timedelta(days=3)],
@@ -388,3 +388,15 @@ def test_timedelta_arithmetic(op, unit1, unit2):
 
     onnx_result = op(ndx.asarray(lhs), ndx.asarray(rhs))
     np.testing.assert_array_equal(pd_result, onnx_result.unwrap_numpy(), strict=True)
+
+
+def test_timedelta_dtypes_have_numpy_repr(unit):
+    dtype = ndx.TimeDelta64DType(unit)
+
+    assert dtype.unwrap_numpy() == np.dtype(f"timedelta64[{unit}]")
+
+
+def test_datetime_dtypes_have_numpy_repr(unit):
+    dtype = ndx.DateTime64DType(unit)
+
+    assert dtype.unwrap_numpy() == np.dtype(f"datetime64[{unit}]")

@@ -97,6 +97,9 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
         data = onnx.int64.__ndx_zeros__(shape)
         return self._build(data=data)
 
+    def unwrap_numpy(self) -> np.dtype:
+        return np.dtype(repr(self))
+
 
 class DateTime64DType(BaseTimeDType["TyArrayDateTime"]):
     def _build(self, data: onnx.TyArrayInt64) -> TyArrayDateTime:
