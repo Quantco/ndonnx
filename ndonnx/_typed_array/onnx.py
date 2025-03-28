@@ -391,8 +391,12 @@ class TyArray(TyArrayBase):
         return type(self)(var)
 
     def _getitem_boolmask(self, key: TyArrayBool) -> Self:
-        if not all(ks in (xs, 0, None) for xs, ks in zip(self.shape, key.shape)):
-            raise IndexError("shape of 'key' is incompatible with shape of 'self'")
+        for xs, ks in zip(self.shape, key.shape):
+            if ks in (xs, 0, None) or isinstance(ks, str):
+                continue
+            raise IndexError(
+                f"shape of 'key' (`{key.shape}`) is incompatible with shape of 'self' (`{self.shape}`)"
+            )
         if key.ndim > self.ndim:
             raise IndexError(
                 f"rank of 'key' (`{key.ndim}`) must be less or equal to rank of 'self' (`{self.ndim}`)"
