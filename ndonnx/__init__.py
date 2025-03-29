@@ -21,8 +21,6 @@ else:
 
 from ._dtypes import DType
 from ._from_numpy_dtype import from_numpy_dtype
-from ._array import Array
-
 
 from ._typed_array.onnx import (
     int8,
@@ -39,6 +37,7 @@ from ._typed_array.onnx import (
     utf8,
     bool_ as bool,
 )
+from ._typed_array.datetime import DateTime64DType, TimeDelta64DType
 from ._typed_array.masked_onnx import (
     nint8,
     nint16,
@@ -55,7 +54,7 @@ from ._typed_array.masked_onnx import (
     nbool,
     to_nullable_dtype,
 )
-from ._typed_array.datetime import DateTime64DType, TimeDelta64DType
+from ._array import Array
 from ._funcs import (
     asarray,
     argument,

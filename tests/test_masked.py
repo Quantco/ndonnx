@@ -235,8 +235,54 @@ def test_broadcasting(arrays):
 def test_initialization(np_array):
     actual = ndx.asarray(np_array)
     null = actual.null
-    assert_array_equal(actual.to_numpy(), np_array)
+    assert_array_equal(actual.unwrap_numpy(), np_array)
     if null is None:
         assert np_array.mask is np.ma.nomask
     else:
         np.testing.assert_equal(np_array.mask, null.unwrap_numpy())
+
+
+@pytest.mark.parametrize(
+    "npdtype",
+    [
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+    ],
+)
+def test_masked_integer_to_datetime(npdtype):
+    arr = ndx.asarray(np.ma.MaskedArray([1, 2], mask=[False, True], dtype=npdtype))
+
+    expected = np.asarray([1, "NaT"], dtype="datetime64[s]")
+    candidate = arr.astype(ndx.DateTime64DType("s"))
+
+    np.testing.assert_array_equal(expected, candidate.unwrap_numpy())
+
+
+def test_masked_int64_with_sentinel_to_datetime():
+    arr = ndx.asarray(
+        np.ma.MaskedArray(
+            [1, 2, np.iinfo(np.int64).min], mask=[False, True, False], dtype=np.int64
+        )
+    )
+
+    expected = np.asarray([1, "NaT", "NaT"], dtype="datetime64[s]")
+    candidate = arr.astype(ndx.DateTime64DType("s"))
+
+    np.testing.assert_array_equal(expected, candidate.unwrap_numpy())
+
+
+def test_masked_float_to_datetime():
+    arr = ndx.asarray(
+        np.ma.MaskedArray([1, 2, np.nan], mask=[False, True, False], dtype=np.float64)
+    )
+
+    expected = np.asarray([1, "NaT", "NaT"], dtype="datetime64[s]")
+    candidate = arr.astype(ndx.DateTime64DType("s"))
+
+    np.testing.assert_array_equal(expected, candidate.unwrap_numpy())

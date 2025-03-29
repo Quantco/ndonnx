@@ -17,7 +17,8 @@ from spox import Var
 from ndonnx import DType
 
 from ._namespace_info import Device, device
-from ._typed_array import TyArrayBase, astyarray, onnx
+from ._typed_array import TyArrayBase, onnx
+from ._typed_array import funcs as tyfuncs
 from ._typed_array.masked_onnx import TyMaArray
 from .extensions import get_mask
 
@@ -62,7 +63,7 @@ class Array:
     def _constant(
         cls, /, *, value: PyScalar | np.ndarray, dtype: DType | None
     ) -> Array:
-        return cls._from_tyarray(astyarray(value, dtype=dtype))
+        return cls._from_tyarray(tyfuncs.astyarray(value, dtype=dtype))
 
     @classmethod
     def _from_tyarray(cls, tyarray: TyArrayBase, /) -> Array:
@@ -250,7 +251,7 @@ class Array:
         updates = (
             value._tyarray.astype(self.dtype)
             if isinstance(value, Array)
-            else astyarray(value, dtype=self.dtype)
+            else tyfuncs.astyarray(value, dtype=self.dtype)
         )
 
         if isinstance(key, Array):
@@ -370,7 +371,7 @@ def _astyarray_or_pyscalar(
         return val._tyarray
     if isinstance(val, int | float | str):
         return val
-    return astyarray(val)
+    return tyfuncs.astyarray(val)
 
 
 def _apply_op(

@@ -17,8 +17,8 @@ from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
 from ._namespace_info import Device
-from ._typed_array import astyarray, onnx
 from ._typed_array import funcs as tyfuncs
+from ._typed_array import onnx
 
 
 def argument(
@@ -65,7 +65,7 @@ def asarray(
             f"of data type `{obj.dtype}` without copying data"
         )
     if isinstance(obj, Array):
-        return Array._from_tyarray(astyarray(obj._tyarray, dtype=dtype))
+        return Array._from_tyarray(tyfuncs.astyarray(obj._tyarray, dtype=dtype))
     else:
         if isinstance(obj, Sequence) and not isinstance(obj, str | Array):
             np_arr = np.asarray(obj, dtype=object)
@@ -81,7 +81,7 @@ def asarray(
                 out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])
                 out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
                 return reshape(out, out_shape)
-        return Array._from_tyarray(astyarray(obj, dtype=dtype))
+        return Array._from_tyarray(tyfuncs.astyarray(obj, dtype=dtype))
 
 
 def from_dlpack(

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, TypeVar, overload
 import numpy as np
 from typing_extensions import Self
 
-from ndonnx import DType
+from ndonnx import DateTime64DType, DType, TimeDelta64DType
 from ndonnx._experimental import (
     DTypeInfoV1,
     GetitemIndex,
@@ -67,7 +67,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
             mask = arr.mask
             data_ = arr.data.astype(self._unmasked_dtype)
             return self._build(data=data_, mask=mask)
-        raise NotImplementedError
+        return NotImplemented
 
     @property
     def __ndx_infov1__(self) -> DTypeInfoV1:
@@ -494,6 +494,18 @@ class TyMaArray(TyMaArrayBase):
         elif isinstance(dtype, _MaOnnxDType):
             new_data = self.data.astype(dtype._unmasked_dtype)
             dtype._build(data=new_data, mask=self.mask)
+        elif isinstance(dtype, DateTime64DType | TimeDelta64DType):
+            is_nat = self.mask
+            if isinstance(self._data, onnx.TyArrayFloating):
+                if is_nat is None:
+                    is_nat = self._data.isnan()
+                else:
+                    is_nat |= self._data.isnan()
+            dt_data = self._data.astype(onnx.int64)
+            if is_nat is not None:
+                nat = onnx.const(int(np.iinfo(np.int64).min), dtype=onnx.int64)
+                dt_data = onnx.where(is_nat, nat, dt_data)
+            return dtype._build(dt_data)  # type: ignore
         return NotImplemented
 
     def concat(self, others: list[Self], axis: None | int) -> Self:
