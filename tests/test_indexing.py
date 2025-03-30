@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import ndonnx as ndx
-from ndonnx import _typed_array as tydx
+from ndonnx._typed_array.funcs import astyarray
 from ndonnx._typed_array.onnx import _get_indices, _key_to_indices, _move_ellipsis_back
 
 
@@ -24,9 +24,9 @@ from ndonnx._typed_array.onnx import _get_indices, _key_to_indices, _move_ellips
 )
 def test_get_indices(s: slice, length: int):
     py_res = _get_indices(s, length)
-    assert py_res == tuple(tydx.astyarray(el) for el in s.indices(length))
+    assert py_res == tuple(astyarray(el) for el in s.indices(length))
 
-    assert py_res == _get_indices(s, tydx.astyarray(length, ndx.int64))
+    assert py_res == _get_indices(s, astyarray(length, ndx.int64))
 
 
 @pytest.mark.parametrize(
@@ -55,7 +55,7 @@ def test_key_to_indices(key):
 
     shape = arr._tyarray.dynamic_shape
     arr_key = _key_to_indices(key, shape)
-    two = tydx.astyarray(2)
+    two = astyarray(2)
     arr._tyarray._setitem_int_array(arr_key, two)
 
     np_arr[tuple(key)] = 2
