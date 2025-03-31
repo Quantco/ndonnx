@@ -525,3 +525,17 @@ def test_non_standard_array_reduction_methods(method_name, axis, keepdims):
         return getattr(arr, method_name)(axis=axis, keepdims=keepdims)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+
+
+@pytest.mark.parametrize("constant", [ndx.pi, ndx.e, ndx.nan])
+def test_constants_are_python_floats(constant):
+    # TODO: Upstream this test
+    assert isinstance(constant, float)
+
+
+def test_newaxis_is_alias_none():
+    # TODO: Upstream this test
+    # TODO: Clarify the specs. They currently say that constants need
+    # to be floats but also that `newaxis` is an alias for `None`.
+
+    assert ndx.newaxis is None

@@ -3,10 +3,8 @@
 
 import numpy as np
 
-from ._funcs import asarray
-
-e = asarray(np.e)
-inf = asarray(np.inf)
-nan = asarray(np.nan)
-pi = asarray(np.pi)
+e = float(np.e)
+inf = float(np.inf)
+nan = float(np.nan)
+pi = float(np.pi)
 newaxis = None
