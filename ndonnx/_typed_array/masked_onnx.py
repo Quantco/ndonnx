@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import operator
 from abc import abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
@@ -31,6 +31,8 @@ DTYPE = TypeVar("DTYPE", bound=DType)
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
+KEY = TypeVar("KEY", int, float, str)
+VALUE = TypeVar("VALUE", int, float, str)
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
@@ -522,6 +524,10 @@ class TyMaArray(TyMaArrayBase):
                 )
             mask = safe_cast(onnx.TyArrayBool, masks[0].concat(masks[1:], axis))
         return safe_cast(type(self), make_nullable(data, mask))
+
+    def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyMaArray:
+        data = self._data.apply_mapping(mapping, default=default)
+        return type(self)(data=data, mask=self.mask)
 
     def __ndx_equal__(self, other) -> TyArrayBase | NotImplementedType:
         return _apply_op(self, other, operator.eq, True)

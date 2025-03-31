@@ -151,15 +151,6 @@ def test_static_map(x, mapping, default, expected):
     assert_array_equal(actual.to_numpy(), expected)
 
 
-def test_static_map_unimplemented_for_nullable():
-    a = ndx.asarray([1, 2, 3], dtype=ndx.int64)
-    m = ndx.asarray([True, False, True])
-    a = nda.make_nullable(a, m)
-
-    with pytest.raises(TypeError):
-        nda.static_map(a, {1: 2, 2: 3})
-
-
 @pytest.mark.parametrize(
     "np_arr, test_items, desired",
     [

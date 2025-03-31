@@ -286,3 +286,37 @@ def test_masked_float_to_datetime():
     candidate = arr.astype(ndx.DateTime64DType("s"))
 
     np.testing.assert_array_equal(expected, candidate.unwrap_numpy())
+
+
+def test_static_map_nutf8():
+    np_in = np.ma.MaskedArray(["foo", "bar", "baz"], mask=[0, 1, 0])  # type: ignore
+    arr = ndx.asarray(np_in)
+    candidate = ndx.extensions.static_map(arr, {"foo": "FOO", "bar": "BAR"})
+
+    assert candidate.dtype == ndx.nutf8
+    np.testing.assert_array_equal(
+        np_in.mask,
+        candidate.unwrap_numpy().mask,  # type: ignore
+    )
+
+    np.testing.assert_array_equal(
+        ["FOO", "MISSING"],
+        candidate.unwrap_numpy().data[~candidate.unwrap_numpy().mask],  # type: ignore
+    )
+
+
+def test_static_map_int64():
+    np_in = np.ma.MaskedArray([1, 2, 3], mask=[0, 1, 0])  # type: ignore
+    arr = ndx.asarray(np_in)
+    candidate = ndx.extensions.static_map(arr, {1: 10, 2: 20})
+
+    assert candidate.dtype == ndx.nint64
+    np.testing.assert_array_equal(
+        np_in.mask,
+        candidate.unwrap_numpy().mask,  # type: ignore
+    )
+
+    np.testing.assert_array_equal(
+        [10, 0],
+        candidate.unwrap_numpy().data[~candidate.unwrap_numpy().mask],  # type: ignore
+    )
