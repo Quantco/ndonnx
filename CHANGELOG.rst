@@ -8,7 +8,7 @@ Changelog
 =========
 
 
-0.10.0 (unreleased)
+0.10.0 (2025-04-01)
 -------------------
 
 **Breaking change**

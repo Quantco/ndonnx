@@ -878,6 +878,9 @@ class TyArray(TyArrayBase):
             return self.astype(result_dtype_key).apply_mapping(mapping, default)
 
         values = np.array(list(mapping.values()))
+        # Compat for Windows on numpy 1.x
+        if values.dtype == np.int32:
+            values = values.astype(np.int64)
         if values.dtype.kind in ("O", "U"):
             values = values.astype(str)
             # Don't use values.dtype to cast the default since it may
