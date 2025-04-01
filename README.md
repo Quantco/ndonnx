@@ -93,16 +93,12 @@ In the future we will be enabling a stable API for an extensible data type syste
 
 ## Array API coverage
 
-Array API compatibility is tracked in `array-api-tests`. Missing coverage is tracked in the `skips.txt` file. Contributions are welcome!
-
-Summary(1119 total):
-
-- 961 passed
-- 107 failed
-- 51 deselected
+Array API compatibility tested against the official `array-api-tests` suite.
+Missing coverage is tracked in the `skips.txt` file.
+Contributions are welcome!
 
 Run the tests with:
 
 ```bash
-pixi run arrayapitests --max-examples 16 --hypothesis-seed=0
+pixi run arrayapitests
 ```

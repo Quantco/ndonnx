@@ -7,16 +7,89 @@
 Changelog
 =========
 
-0.10.0 (unreleased)
+
+0.10.0 (2025-04-01)
 -------------------
 
 **Breaking change**
-- Removed the deprecated :func:`ndonnx.promote_nullable` function. Use :func:`ndonnx.additional.make_nullable` instead.
 
-**Array API compliance**
+- Removed the deprecated :func:`ndonnx.promote_nullable` function. Use :func:`ndonnx.extensions.make_nullable` instead.
+- The existing (private) tooling to define custom data types has been removed.
+- The :func:`ndonnx.Array.len` member function has been removed since it is neither defined by ``numpy.ndarray`` nor the Array-API.
+- :func:`ndonnx.Array.size` now returns `int | None` in accordance to with the Array-API rather than a :class:`~ndonnx.Array` instance.
 
-- ndonnx now supports the :func:`ndonnx.__array_namespace_info__` function from the Array API standard.
+
+**Bug fixes**
+
+- The following functions now correctly take the ``keepdims`` argument into account:
+  - :meth:`ndonnx.Array.sum`
+  - :meth:`ndonnx.Array.prod`
+  - :meth:`ndonnx.Array.max`
+  - :meth:`ndonnx.Array.min`
+  - :meth:`ndonnx.Array.all`
+  - :meth:`ndonnx.Array.any`
+
+
+**New features**
+
+- ndonnx gained partial support for `float16` data types.
+- The following functions are now exposed in the ndonnx namespace in accordance to the Array-API standard:
+  - :func:`ndonnx.__array_namespace_info__`
+  - :func:`ndonnx.maximum`
+  - :func:`ndonnx.minimum`
+  - :func:`ndonnx.meshgrid`
+  - :func:`ndonnx.moveaxis`
+  - :func:`ndonnx.tile`
+  - :func:`ndonnx.unstack`
+  - :func:`ndonnx.vecdot`
+- The newly added :mod:`ndonnx.extensions` module exposes the following functions:
+  - :func:`~ndonnx.extensions.datetime_to_year_month_day`
+  - :func:`~ndonnx.extensions.fill_null`
+  - :func:`~ndonnx.extensions.get_mask`
+  - :func:`~ndonnx.extensions.is_float_dtype`
+  - :func:`~ndonnx.extensions.is_integer_dtype`
+  - :func:`~ndonnx.extensions.is_nullable_dtype`
+  - :func:`~ndonnx.extensions.is_nullable_float_dtype`
+  - :func:`~ndonnx.extensions.is_nullable_integer_dtype`
+  - :func:`~ndonnx.extensions.is_numeric_dtype`
+  - :func:`~ndonnx.extensions.is_onnx_dtype`
+  - :func:`~ndonnx.extensions.is_signed_integer_dtype`
+  - :func:`~ndonnx.extensions.s_time_unit`
+  - :func:`~ndonnx.extensions.is_unsigned_integer_dtype`
+  - :func:`~ndonnx.extensions.isin`
+  - :func:`~ndonnx.extensions.make_nullable`
+  - :func:`~ndonnx.extensions.put`
+  - :func:`~ndonnx.extensions.shape` (deprecated in favor of :func:`ndonnx.Array.dynamic_shape`)
+  - :func:`~ndonnx.extensions.static_map`
 - Arrays now expose the :meth:`ndonnx.Array.device` property to improve Array API compatibility. Note that serializing an ONNX model inherently postpones device placement decisions to the runtime so currently one abstract device is supported.
+- The :class:`~ndonnx.Array` object gained the following member functions:
+  - :func:`~ndonnx.Array.disassemble`
+  - :func:`~ndonnx.Array.dynamic_shape`
+  - :func:`~ndonnx.Array.dynamic_size`
+  - :func:`~ndonnx.Array.unwrap_numpy`
+  - :func:`~ndonnx.Array.unwrap_spox`
+
+
+**Deprecations**
+
+- :func:`ndonnx.array` is deprecated in favor of :func:`ndonnx.argument`.
+- :mod:`ndonnx.additional` is deprecated in favor of :func:`ndonnx.extensions`.
+- :func:`ndonnx.from_spox_var` is deprecated in favor of :func:`ndonnx.asarray`.
+- :type:`ndonnx.Nullable` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_dtype`
+- :type:`ndonnx.NullableFloating` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_float_dtype`
+- :type:`ndonnx.NullableIntegral` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_integer_dtype`
+- :type:`ndonnx.Floating` is deprecated in favor of :func:`ndonnx.extensions.is_float_dtype`
+- :type:`ndonnx.Integral` is deprecated in favor of :func:`ndonnx.extensions.is_integer_dtype`
+- :type:`ndonnx.Numerical` is deprecated in favor of :func:`ndonnx.extensions.is_numeric_dtype`
+- :type:`ndonnx.CoreType` is deprecated in favor of :func:`ndonnx.extensions.is_onnx_dtype`
+- :type:`ndonnx.NullableCore` is deprecated in favor of :func:`ndonnx.extensions.is_nullable_dtype`
+- :class:`ndonnx.UnsupportedOperationError` is deprecated in favor of :class:`TypeError`
+- :class:`ndonnx.CastError` is deprecated in favor of :class:`TypeError`
+
+
+**Other changes**
+
+- :func:`~ndonnx.additional.make_nullable` can no longer be used for custom data types.
 
 
 0.9.3 (2024-10-25)

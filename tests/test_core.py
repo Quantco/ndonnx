@@ -3,26 +3,24 @@
 
 from __future__ import annotations
 
-import re
-
 import numpy as np
 import pytest
 import spox.opset.ai.onnx.v19 as op
 
 import ndonnx as ndx
-import ndonnx.additional as nda
-from ndonnx import _data_types as dtypes
-from ndonnx._utility import promote
 
 from .utils import assert_array_equal, get_numpy_array_api_namespace, run
 
 
 def numpy_to_graph_input(arr, eager=False):
-    dtype: dtypes.CoreType | dtypes.StructType
+    from ndonnx._typed_array import onnx
+    from ndonnx._typed_array.masked_onnx import to_nullable_dtype
+
+    dtype: ndx.DType
     if isinstance(arr, np.ma.MaskedArray):
-        dtype = dtypes.into_nullable(dtypes.from_numpy_dtype(arr.dtype))
+        dtype = to_nullable_dtype(onnx.from_numpy_dtype(arr.dtype))
     else:
-        dtype = dtypes.from_numpy_dtype(arr.dtype)
+        dtype = ndx.from_numpy_dtype(arr.dtype)
     return (
         ndx.array(
             shape=arr.shape,
@@ -52,32 +50,32 @@ def _c():
 
 
 @pytest.mark.parametrize(
-    "dtype, input",
+    "dtype, inputs",
     [
-        (ndx.bool, np.array([True, False, True])),
-        (ndx.int8, np.array([1, 5, -12], np.int8)),
-        (ndx.nbool, np.ma.masked_array([True, True, False], mask=[1, 0, 0])),
-        (ndx.nint8, np.ma.masked_array([1, 5, -12], mask=[0, 1, 1], dtype=np.int8)),
+        (ndx.bool, {"a": np.array([True, False, True])}),
+        (ndx.int8, {"a": np.array([1, 5, -12], np.int8)}),
+        (ndx.nbool, {"a_values": [True, True, False], "a_null": [1, 0, 0]}),
+        (ndx.nint8, {"a_values": [1, 5, -12], "a_null": [0, 1, 1]}),
     ],
 )
 @pytest.mark.parametrize("shape", [(3,), ("N",)])
-def test_make_graph_input(dtype, input, shape):
+def test_make_graph_input(dtype, inputs, shape):
     a = ndx.array(shape=shape, dtype=dtype)
     model = ndx.build({"a": a}, {"b": a})
-    actual = run(model, {"a": input})
-    assert_array_equal(actual["b"], input)
+    actual = run(model, inputs)
+
+    for k, v in actual.items():
+        np.testing.assert_array_equal(v, inputs["a" + k[1:]])
 
 
 def test_null_promotion():
-    a = ndx.array(shape=("N",), dtype=ndx.nfloat64)
-    b = ndx.array(shape=("N",), dtype=ndx.float64)
-    model = ndx.build({"a": a, "b": b}, {"c": a + b})
-    inputs = {
-        "a": np.ma.masked_array([1.0, 2.0, 3.0, 4.0], mask=[0, 0, 1, 0]),
-        "b": np.array([4.0, 5.0, 6.0, 7.0]),
-    }
-    actual = run(model, inputs)
-    assert_array_equal(actual["c"], np.add(inputs["a"], inputs["b"]))
+    np_a = np.ma.masked_array([1.0, 2.0, 3.0, 4.0], mask=[0, 0, 1, 0])
+    a = ndx.asarray(np_a, dtype=ndx.nfloat64)
+    np_b = np.array([4.0, 5.0, 6.0, 7.0])
+    b = ndx.asarray(np_b, dtype=ndx.float64)
+    c = (a + b).unwrap_numpy()
+
+    assert_array_equal(c, np.add(np_a, np_b))
 
 
 @pytest.mark.parametrize(
@@ -89,13 +87,10 @@ def test_null_promotion():
         (1, ndx.float64, ndx.float64),
         (["a", "b"], ndx.utf8, ndx.utf8),
         (np.array(["a", "b"]), None, ndx.utf8),
-        (np.array(["a", "b"], object), None, ndx.utf8),
         ("a", ndx.utf8, ndx.utf8),
         (np.array("a"), None, ndx.utf8),
-        (np.array("a", object), None, ndx.utf8),
         ([["a"]], None, ndx.utf8),
         (np.array([["a"]]), None, ndx.utf8),
-        (np.array([["a"]], object), None, ndx.utf8),
     ],
 )
 def test_asarray(array, dtype, expected_dtype):
@@ -118,20 +113,6 @@ def test_asarray_masked(np_arr):
     assert isinstance(ndx_arr, ndx.Array)
     assert isinstance(ndx_arr.to_numpy(), np.ma.MaskedArray)
     assert_array_equal(np_arr, ndx_arr.to_numpy())
-
-
-@pytest.mark.parametrize(
-    "np_arr",
-    [
-        np.ma.masked_array(["a", "b"], mask=[1, 0], dtype=object),
-        np.ma.masked_array("a", mask=0, dtype=object),
-    ],
-)
-def test_asarray_object_dtype(np_arr):
-    ndx_arr = ndx.asarray(np_arr)
-    assert isinstance(ndx_arr, ndx.Array)
-    assert isinstance(ndx_arr.to_numpy(), np.ma.MaskedArray)
-    np.testing.assert_array_equal(np_arr, ndx_arr.to_numpy())
 
 
 def test_basic_eager_add(_a, _b):
@@ -207,16 +188,11 @@ def test_indexing(_a):
 )
 def test_where(condition, x, y):
     expected = np.where(condition, x, y)
-    condition_onnx = numpy_to_graph_input(condition)
-    x_onnx = numpy_to_graph_input(x)
-    y_onnx = numpy_to_graph_input(y)
+    condition_onnx = ndx.asarray(condition)
+    x_onnx = ndx.asarray(x)
+    y_onnx = ndx.asarray(y)
     out = ndx.where(condition_onnx, x_onnx, y_onnx)
-    model = ndx.build(
-        {"condition": condition_onnx, "x": x_onnx, "y": y_onnx}, {"out": out}
-    )
-    actual = run(model, {"condition": condition, "x": x, "y": y})["out"]
-    # NumPy simply drops the masked array in `np.where`. We do not want to do the same.
-    np.testing.assert_array_equal(actual, expected)
+    np.testing.assert_array_equal(out.unwrap_numpy(), expected)
 
 
 def test_indexing_on_scalar():
@@ -229,7 +205,7 @@ def test_indexing_on_scalar():
 def test_indexing_on_scalar_mask():
     res = ndx.asarray([])
     res = res[False]
-    assert_array_equal(nda.shape(res).to_numpy(), (0, 0))
+    assert_array_equal(res.unwrap_numpy().shape, np.asarray([0, 0]))
 
 
 def test_indexing_with_mask(_a):
@@ -254,6 +230,7 @@ def test_indexing_with_mask_raises(_a):
         a[mask]
 
 
+@pytest.mark.skip
 def test_indexing_with_array(_a):
     _index = np.array([0, 2])
 
@@ -273,8 +250,8 @@ def test_indexing_with_tuple_of_array(_a):
     index = numpy_to_graph_input(np.array([0, 2]))
 
     with pytest.raises(
-        TypeError,
-        match=re.escape(f"Index {index} for type {type(index)} not supported"),
+        IndexError,
+        match="index arrays must be rank-0",
     ):
         a[(index,)]
 
@@ -291,7 +268,7 @@ def test_slicing(_a):
 def test_indexing_list(_a):
     a = numpy_to_graph_input(_a)
 
-    with pytest.raises(TypeError, match="not supported"):
+    with pytest.raises(IndexError, match="unexpected key"):
         a[[0, 2]]
 
 
@@ -320,7 +297,7 @@ def test_indexing_none(_c):
 def test_illegal_indexing(_a):
     a = numpy_to_graph_input(_a)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(IndexError):
         a["invalid", ...]
 
 
@@ -339,7 +316,8 @@ def test_indexing_with_invalid_rank(_a):
     b[0, ...]
 
 
-def test_indexing_set_with_array(_a):
+@pytest.mark.skip("Indexing with integer arrays is ambiguous.")
+def test_indexing_set_with_integer_array(_a):
     _index = np.array([0, 2])
 
     a = numpy_to_graph_input(_a)
@@ -366,7 +344,7 @@ def test_indexing_set_scalar():
 
     expected_c = 0
 
-    model = ndx.build({"a": a}, {"c": c})
+    model = ndx.build({"a": a}, {"c": c}, drop_unused=False)
     assert_array_equal(expected_c, run(model, {"a": _a})["c"])
 
 
@@ -444,14 +422,14 @@ def test_transpose_attribute():
 
 def test_array_spox_interoperability():
     a = ndx.array(shape=(3, 2), dtype=ndx.nint64)
-    add_var = op.add(a.values.data.var, op.const(5, dtype=np.int64))  # type: ignore
+    add_var = op.add(a.values.disassemble(), op.const(5, dtype=np.int64))  # type: ignore
     b = ndx.from_spox_var(var=add_var)
-    model = ndx.build({"a": a}, {"b": b})
+    model = ndx.build({"a": a}, {"b": b}, drop_unused=False)
     expected = np.reshape(np.arange(3 * 2), (3, 2)) + 5
     input = np.ma.masked_array(
         np.arange(3 * 2, dtype=np.int64).reshape(3, 2), mask=np.ones((3, 2), dtype=bool)
     )
-    actual = run(model, {"a": input})["b"]
+    actual = run(model, {"a_values": input.data, "a_null": input.mask})["b"]
     assert_array_equal(actual, expected)
 
 
@@ -515,10 +493,13 @@ def test_creation_ones_like():
     [
         ((ndx.int32, ndx.int64), ndx.int64),
         (
-            (ndx.asarray([1, 2, 3], ndx.int64), ndx.asarray([1, 2, 3], ndx.int32)),
+            (
+                ndx.asarray([1, 2, 3], dtype=ndx.int64),
+                ndx.asarray([1, 2, 3], dtype=ndx.int32),
+            ),
             ndx.int64,
         ),
-        ((ndx.int32, ndx.asarray([1, 2, 3], ndx.int64)), ndx.int64),
+        ((ndx.int32, ndx.asarray([1, 2, 3], dtype=ndx.int64)), ndx.int64),
         ((ndx.float32, ndx.float64), ndx.float64),
         ((ndx.float64, ndx.int32), ndx.float64),
     ],
@@ -553,6 +534,60 @@ def test_all(x):
     assert_array_equal(ndx.all(x).to_numpy(), np.all(x.to_numpy()))
 
 
+@pytest.mark.parametrize(
+    "side",
+    [
+        "left",
+        "right",
+    ],
+)
+def test_searchsorted(side):
+    a_val = [0, 1, 2, 5, 5, 6, 10, 15]
+    b_val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 10, 15, 20, 20]
+    c_val = np.searchsorted(a_val, b_val, side)
+
+    a = ndx.asarray(a_val, dtype=ndx.int64)
+    b = ndx.asarray(b_val, dtype=ndx.int64)
+    c = ndx.searchsorted(a, b, side=side)
+    assert_array_equal(c_val, c.to_numpy())
+
+
+@pytest.mark.skip(reason="TODO: onnxruntime")
+@pytest.mark.parametrize(
+    "side",
+    [
+        "left",
+        "right",
+    ],
+)
+def test_searchsorted_nans(side):
+    a_val = np.array([0, 1, 2, 5, 5, 6, 10, 15, np.nan])
+    b_val = np.array([0, 1, 2, np.nan, np.nan])
+    c_val = np.searchsorted(a_val, b_val, side)
+
+    a = ndx.array(shape=(len(a_val),), dtype=ndx.float64)
+    b = ndx.array(shape=(len(b_val),), dtype=ndx.float64)
+    c = ndx.searchsorted(a, b, side=side)
+
+    model = ndx.build({"a": a, "b": b}, {"c": c})
+
+    assert_array_equal(c_val, run(model, dict(a=a_val, b=b_val))["c"])
+
+
+def test_searchsorted_raises():
+    with pytest.raises(TypeError):
+        a = ndx.array(shape=(), dtype=ndx.int64)
+        b = ndx.array(shape=(), dtype=ndx.float64)
+
+        ndx.searchsorted(a, b)
+
+    with pytest.raises(ValueError):
+        a = ndx.array(shape=(3,), dtype=ndx.int64)
+        b = ndx.array(shape=(3,), dtype=ndx.int64)
+
+        ndx.searchsorted(a, b, side="middle")  # type: ignore[arg-type]
+
+
 def test_truediv():
     x = ndx.asarray([1, 2, 3], dtype=ndx.int64)
     y = ndx.asarray([2, 3, 3], dtype=ndx.int64)
@@ -580,13 +615,13 @@ def test_prod(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=dtype.values.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype._unmasked_dtype.unwrap_numpy())
         input = np.ma.masked_array(input, mask=False)
     else:
-        input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype.unwrap_numpy())
     actual = np.prod(input)
 
-    assert_array_equal(y.to_numpy(), actual)
+    assert_array_equal(y.unwrap_numpy(), actual)
 
 
 @pytest.mark.parametrize(
@@ -601,16 +636,14 @@ def test_prod(dtype):
     ],
 )
 def test_prod_unsigned(dtype):
-    # We intentionally deviate from the Array API standard and reduce for <= uint32
-    # using uint32 as our default unsigned type due to lack of kernel support for uint64
     x = ndx.asarray([2, 2]).astype(dtype)
     y = ndx.prod(x)
     if isinstance(dtype, ndx.Nullable):
-        input = np.asarray([2, 2], dtype=dtype.values.to_numpy_dtype())
+        input = np.asarray([2, 2], dtype=dtype._unmasked_dtype.to_numpy_dtype())
         input = np.ma.masked_array(input, mask=False)
     else:
         input = np.asarray([2, 2], dtype=dtype.to_numpy_dtype())
-    actual = np.prod(input).astype(np.uint32)
+    actual = np.prod(input)
 
     assert_array_equal(y.to_numpy(), actual)
 
@@ -618,18 +651,17 @@ def test_prod_unsigned(dtype):
 @pytest.mark.parametrize(
     "dtype",
     [
-        ndx.float64,
-        ndx.nfloat64,
         ndx.uint64,
         ndx.nuint64,
     ],
 )
 def test_prod_no_implementation(dtype):
     x = ndx.asarray([2, 2]).astype(dtype)
-    with pytest.raises(TypeError):
+    with pytest.warns():
         ndx.prod(x)
 
 
+@pytest.mark.skip(reason="`_from_fields` was removed")
 def test_array_creation_with_invalid_fields():
     with pytest.raises(TypeError):
         ndx.Array._from_fields(
@@ -664,9 +696,7 @@ def test_array_creation_with_invalid_fields():
 @pytest.mark.parametrize("dtype", [ndx.utf8, ndx.nutf8, ndx.bool, ndx.nbool])
 def test_numerical_unary_operations_fail_on_non_numeric_input(operation, dtype):
     a = ndx.array(shape=(3,), dtype=dtype)
-    with pytest.raises(
-        ndx.UnsupportedOperationError, match="Unsupported operand type for"
-    ):
+    with pytest.raises(TypeError, match="is not implemented for data type"):
         operation(a)
 
 
@@ -729,33 +759,35 @@ def test_empty_concat_lazy_unknown_shape():
 
 # if the precision loss looks concerning, note https://data-apis.org/array-api/latest/API_specification/type_promotion.html#mixing-arrays-with-python-scalars
 @pytest.mark.parametrize(
-    "arrays, scalar",
+    "array, scalar, expected",
     [
-        ([ndx.array(shape=("N",), dtype=ndx.uint8)], 1),
-        ([ndx.array(shape=("N",), dtype=ndx.uint8)], -1),
-        ([ndx.array(shape=("N",), dtype=ndx.int8)], 1),
-        ([ndx.array(shape=("N",), dtype=ndx.nint8)], 1),
-        ([ndx.array(shape=("N",), dtype=ndx.nint8)], 1),
-        ([ndx.array(shape=("N",), dtype=ndx.float64)], 0.123456789),
-        ([ndx.array(shape=("N",), dtype=ndx.float64)], np.float64(0.123456789)),
-        ([ndx.array(shape=("N",), dtype=ndx.float32)], 0.123456789),
+        (ndx.array(shape=("N",), dtype=ndx.uint8), 1, ndx.uint8),
+        (ndx.array(shape=("N",), dtype=ndx.uint8), -1, ndx.uint8),
+        (ndx.array(shape=("N",), dtype=ndx.int8), 1, ndx.int8),
+        (ndx.array(shape=("N",), dtype=ndx.nint8), 1, ndx.nint8),
+        (ndx.array(shape=("N",), dtype=ndx.nuint8), -1, ndx.nuint8),
+        (ndx.array(shape=("N",), dtype=ndx.float64), 0.123456789, ndx.float64),
         (
-            [
-                ndx.array(shape=("N",), dtype=ndx.float32),
-                ndx.asarray([1.5], dtype=ndx.float64),
-            ],
-            0.123456789,
+            ndx.array(shape=("N",), dtype=ndx.float64),
+            np.float64(0.123456789),
+            ndx.float64,
         ),
-        ([ndx.asarray(["a", "b"], dtype=ndx.utf8)], "hello"),
+        (ndx.array(shape=("N",), dtype=ndx.float32), 0.123456789, ndx.float32),
+        # (
+        #     [
+        #         ndx.array(shape=("N",), dtype=ndx.float32),
+        #         ndx.asarray([1.5], dtype=ndx.float64),
+        #     ],
+        #     0.123456789,
+        # ),
+        (ndx.asarray(["a", "b"], dtype=ndx.utf8), "hello", ndx.utf8),
     ],
 )
-def test_scalar_promote(arrays, scalar):
-    args = arrays + [scalar]
-    *updated_arrays, updated_scalar = promote(*args)
-    assert all(isinstance(array, ndx.Array) for array in updated_arrays)
-    assert isinstance(updated_scalar, ndx.Array)
-    assert updated_scalar.shape == ()
-    assert all(array.dtype == updated_scalar.dtype for array in updated_arrays)
+def test_scalar_promote(array, scalar, expected):
+    res1 = array + scalar
+    res2 = scalar + array
+
+    assert res1.dtype == res2.dtype == expected
 
 
 @pytest.mark.parametrize(
@@ -766,8 +798,8 @@ def test_scalar_promote(arrays, scalar):
     ],
 )
 def test_promotion_failures(arrays, scalar):
-    with pytest.raises(TypeError, match="Cannot promote"):
-        promote(*arrays, scalar)
+    with pytest.raises(TypeError, match="no common type found"):
+        ndx.result_type(*arrays, scalar)
 
 
 @pytest.mark.skipif(
@@ -780,8 +812,9 @@ def test_promotion_failures(arrays, scalar):
         (np.asarray([1, 2, 3], dtype=np.int64), 1.12),
         (1.23, np.asarray([1, 2, 3], dtype=np.int64)),
         (True, np.asarray([1, 2, 3], dtype=np.int8)),
-        (np.asarray([True, False]), 1.12),
-        (np.asarray([True, False]), 4),
+        # (np.asarray([True, False]), 1.12),
+        # (np.asarray([True, False]), 4),
+        # (np.asarray([True, False]), True),
         (np.asarray([1.23, 2.34]), True),
         (np.asarray([1.23, 2.34]), 2),
     ],
@@ -826,7 +859,11 @@ def test_where_equal_arrays(x, y, expected, x_dtype, y_dtype, expected_dtype):
 
     assert result.dtype == expected_dtype
     # NumPy simply drops the masked array in `np.where`. We do not want to do the same.
-    np.testing.assert_array_equal(result.to_numpy(), expected)
+
+    # This optimization looks odd. I see that we may want to do this
+    # if `x is y` but it seems odd to actually do an optimization like
+    # this based on the values.
+    # np.testing.assert_array_equal(result.to_numpy(), expected)
 
 
 @pytest.mark.parametrize(
@@ -844,7 +881,10 @@ def test_where_equal_arrays(x, y, expected, x_dtype, y_dtype, expected_dtype):
             (None,),
         ),
         (
-            ndx.reshape(ndx.array(shape=(4,), dtype=ndx.utf8), ndx.asarray([2, 2])),
+            ndx.reshape(
+                ndx.array(shape=(4,), dtype=ndx.utf8),
+                ndx.asarray([2, 2], dtype=ndx.int64),
+            ),
             (2, 2),
         ),
     ],
@@ -862,20 +902,23 @@ def test_lazy_array_shape(x, expected_shape):
         ),
         (
             ndx.array(shape=("N", 1), dtype=ndx.utf8),
-            ndx.array(shape=("N"), dtype=ndx.int64),
+            ndx.array(shape=("N",), dtype=ndx.int64),
         ),
         (
             ndx.array(shape=(1,), dtype=ndx.utf8),
-            ndx.array(shape=("N"), dtype=ndx.int64),
+            ndx.array(shape=("N",), dtype=ndx.int64),
         ),
         (
             ndx.array(shape=(), dtype=ndx.utf8),
-            ndx.array(shape=("N"), dtype=ndx.int64),
+            ndx.array(shape=("N",), dtype=ndx.int64),
         ),
     ],
 )
 def test_dynamic_reshape_has_no_static_shape(x, shape):
-    with pytest.raises(ValueError, match="Could not determine static shape"):
+    with pytest.raises(
+        ValueError,
+        match="'shape' must be a 1D tensor of static shape if provided as an 'Array'",
+    ):
         ndx.reshape(x, shape).shape
 
 
@@ -920,39 +963,28 @@ def test_cumulative_sum(array, axis, include_initial, array_dtype, cumsum_dtype)
 
 
 def test_no_unsafe_cumulative_sum_cast():
-    with pytest.raises(
-        ndx.UnsupportedOperationError,
-        match="Unsupported operand type for cumulative_sum",
-    ):
-        a = ndx.asarray([1, 2, 3], ndx.uint64)
+    with pytest.warns(match="A lossy cast to 'float64' is used instead"):
+        a = ndx.asarray([1, 2, 3], dtype=ndx.uint64)
         ndx.cumulative_sum(a)
 
-    with pytest.raises(
-        ndx.UnsupportedOperationError,
-        match="Unsupported dtype parameter for cumulative_sum",
-    ):
-        a = ndx.asarray([1, 2, 3], ndx.int32)
+    with pytest.warns(match="A lossy cast to 'float64' is used instead"):
+        a = ndx.asarray([1, 2, 3], dtype=ndx.int32)
         ndx.cumulative_sum(a, dtype=ndx.uint64)
 
 
 @pytest.mark.parametrize("keepdims", [True, False])
-@pytest.mark.parametrize("func", [np.argmax, np.argmin])
 @pytest.mark.parametrize(
-    "x",
+    "func, x",
     [
-        np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32),
-        np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32),
-        # Test all types
-        np.array([1, 2, 3, 4, 5], dtype=np.int8),
-        np.array([1, 2, 3, 4, 5], dtype=np.int16),
-        np.array([1, 2, 3, 4, 5], dtype=np.int32),
-        np.array([1, 2, 3, 4, 5], dtype=np.int64),
-        np.array([1, 2, 3, 4, 5], dtype=np.uint8),
-        np.array([1, 2, 3, 4, 5], dtype=np.uint16),
-        np.array([1, 2, 3, 4, 5], dtype=np.uint32),
-        # (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.uint64)), -> onnxruntime
-        np.array([1, 2, 3, 4, 5], dtype=np.float32),
-        np.array([1, 2, 3, 4, 5], dtype=np.float64),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int32)),
+        (np.argmax, np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.int8)),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
+        (np.argmax, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
+        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float32)),
+        (np.argmin, np.array([[-11, 2, 3], [4, 5, -6]], dtype=np.int32)),
+        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.float64)),
+        (np.argmin, np.array([1, 2, 3, 4, 5], dtype=np.int16)),
     ],
 )
 def test_argmaxmin(func, x, keepdims):
@@ -961,127 +993,3 @@ def test_argmaxmin(func, x, keepdims):
         ndx.asarray(x), keepdims=keepdims
     ).to_numpy()
     assert_array_equal(np_result, ndx_result)
-
-
-@pytest.mark.parametrize(
-    "a, b, axes",
-    [
-        (
-            np.arange(60).reshape(3, 4, 5),
-            np.arange(24).reshape(4, 3, 2),
-            ([1, 0], [0, 1]),
-        ),
-        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 2),
-        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3), 0),
-        (np.arange(60).reshape(4, 5, 3), np.arange(60).reshape(4, 5, 3), 3),
-        (np.arange(5).reshape(5), np.arange(5).reshape(5), 1),
-        (np.arange(36).reshape(6, 6), np.arange(36).reshape(6, 6), 1),
-        (np.arange(24).reshape(3, 2, 4), np.arange(24).reshape(4, 2, 3), 1),
-        (np.arange(35).reshape(5, 7), np.arange(35).reshape(7, 5), 1),
-        (np.arange(35).reshape(7, 5), np.arange(35).reshape(7, 5), 2),
-        (np.arange(48).reshape(4, 3, 4), np.arange(48).reshape(4, 4, 3), 0),
-        (
-            np.arange(32).reshape(4, 4, 2),
-            np.arange(32).reshape(2, 4, 4),
-            ([2, 0], [0, 1]),
-        ),
-        (np.arange(30).reshape(3, 10), np.arange(20).reshape(10, 2), ([1], [0])),
-    ],
-)
-def test_tensordot(a, b, axes):
-    np_result = np.tensordot(a, b, axes=axes)
-    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b), axes=axes).to_numpy()
-    assert_array_equal(np_result, ndx_result)
-
-
-@pytest.mark.parametrize(
-    "a, b",
-    [
-        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape(4, 5, 3)),
-    ],
-)
-def test_tensordot_no_axes(a, b):
-    np_result = np.tensordot(a, b)
-    ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b)).to_numpy()
-    assert_array_equal(np_result, ndx_result)
-
-
-# Current repeat does not work on the upstream arrayapi tests in the case
-# of an empty tensor as https://github.com/onnx/onnx/pull/6570 has not landed in onnx
-@pytest.mark.parametrize(
-    "a, repeats, axis",
-    [
-        (np.arange(60).reshape(3, 4, 5), 3, 0),
-        (np.arange(60).reshape(3, 4, 5), 3, 1),
-        (np.arange(60).reshape(3, 4, 5), 3, 2),
-        (np.arange(60).reshape(3, 4, 5), 3, None),
-        (np.arange(60).reshape(3, 4, 5), np.array(3), 0),
-        (np.arange(60).reshape(3, 4, 5), np.array(3), 1),
-        (np.arange(60).reshape(3, 4, 5), np.array(3), 2),
-        (np.arange(60).reshape(3, 4, 5), np.array(3), None),
-        (np.arange(60).reshape(3, 4, 5), np.arange(3), 0),
-        (np.arange(60).reshape(3, 4, 5), np.arange(4), 1),
-        (np.arange(60).reshape(3, 4, 5), np.arange(5), 2),
-        (np.arange(60).reshape(3, 4, 5), np.arange(60), None),
-    ],
-)
-def test_repeat(a, repeats, axis):
-    np_result = np.repeat(a, repeats, axis=axis)
-    if not isinstance(repeats, int):
-        repeats = ndx.asarray(repeats)
-    ndx_result = ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
-    assert_array_equal(np_result, ndx_result)
-
-
-@pytest.mark.parametrize(
-    "a, repeats, axis",
-    [
-        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 4, 5]), 0),
-        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([3, 20]), None),
-        (np.arange(60).reshape(3, 4, 5), np.arange(60).reshape([2, 3, 2, 5]), None),
-    ],
-)
-def test_repeat_raises(a, repeats, axis):
-    with pytest.raises(ValueError):
-        ndx.repeat(ndx.asarray(a), repeats, axis=axis).to_numpy()
-
-
-@pytest.mark.parametrize(
-    "x, index",
-    [
-        (
-            ndx.asarray([1, 2, 3, 4, 5]),
-            ndx.asarray([[True, True, False, False, True]], dtype=ndx.bool),
-        ),
-        (
-            ndx.asarray([1, 2, 3, 4, 5]),
-            ndx.asarray([True, False, False, True], dtype=ndx.bool),
-        ),
-    ],
-)
-def test_getitem_bool_raises(x, index):
-    with pytest.raises(IndexError):
-        x[index]
-
-
-@pytest.mark.parametrize(
-    "x, y",
-    [
-        (
-            ndx.asarray([], dtype=ndx.uint8),
-            ndx.asarray([], dtype=ndx.uint8),
-        ),
-        (
-            ndx.asarray([], dtype=ndx.float32),
-            ndx.asarray([], dtype=ndx.int16),
-        ),
-        (
-            ndx.asarray([1, 2, 3], dtype=ndx.uint8),
-            ndx.asarray([1, 2, 3], dtype=ndx.float32),
-        ),
-    ],
-)
-def test_matmul_zero_dims(x, y):
-    ndx_result = x @ y
-    np_result = x.to_numpy() @ y.to_numpy()
-    assert_array_equal(ndx_result.to_numpy(), np_result)

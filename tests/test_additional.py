@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import ndonnx as ndx
-import ndonnx.additional as nda
+import ndonnx.extensions as nda
 
 from .utils import assert_array_equal, run
 
@@ -138,6 +138,12 @@ def test_static_map_lazy():
             42,
             [[-1], [-2], [3.142]],
         ),
+        (
+            ndx.asarray([[True], [True], [False]], dtype=ndx.bool),
+            {True: 1, False: 0},
+            True,
+            [[1], [1], [0]],
+        ),
     ],
 )
 def test_static_map(x, mapping, default, expected):
@@ -145,40 +151,39 @@ def test_static_map(x, mapping, default, expected):
     assert_array_equal(actual.to_numpy(), expected)
 
 
-def test_static_map_unimplemented_for_nullable():
-    a = ndx.asarray([1, 2, 3], dtype=ndx.int64)
-    m = ndx.asarray([True, False, True])
-    a = nda.make_nullable(a, m)
-
-    with pytest.raises(ndx.UnsupportedOperationError):
-        nda.static_map(a, {1: 2, 2: 3})
-
-
-@pytest.mark.skipif(
-    sys.platform.startswith("win") and np.__version__ < "2",
-    reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
+@pytest.mark.parametrize(
+    "np_arr, test_items, desired",
+    [
+        (
+            np.array(["hello", "foo", "baz", "!"]),
+            ["foo", "bar", "baz"],
+            [False, True, True, False],
+        ),
+        (np.array(["🚀", "🔴", "hi🟡"]), ["🔴", "🟡", "🟢"], [False, True, False]),
+        # Optimizations for 0 and 1 test_items
+        (np.array(["hello", "world"]), ["hello"], [True, False]),
+        (np.array(["hello", "world"]), [], [False, False]),
+        # Note: this is a breaking change in the "typed array"
+        # refactor, but follows NumPy semantics
+        (np.asarray([np.nan, 1]), [np.nan], [False, False]),
+        (np.asarray([np.nan, 1]), [np.nan, 1], [False, True]),
+        (
+            np.ma.MaskedArray([0, 1, 1], mask=[False, True, False]),
+            [0, 1],
+            [True, False, True],
+        ),
+        (
+            np.ma.MaskedArray([np.nan, 1, 1], mask=[False, True, False]),
+            [np.nan, 1],
+            [False, False, True],
+        ),
+    ],
 )
-def test_isin():
-    a = ndx.array(shape=("N",), dtype=ndx.utf8)
-    b = nda.isin(a, ["foo", "bar", "baz"])
+def test_isin(np_arr, test_items, desired):
+    arr = ndx.asarray(np_arr)
+    actual = nda.isin(arr, test_items)
 
-    model = ndx.build({"a": a}, {"b": b})
-    assert_array_equal(
-        [False, True, True, False],
-        run(model, dict(a=np.array(["hello", "foo", "baz", "!"])))["b"],
-    )
-
-    a = ndx.array(shape=("N",), dtype=ndx.utf8)
-    b = nda.isin(a, ["🔴", "🟡", "🟢"])
-
-    model = ndx.build({"a": a}, {"b": b})
-    assert_array_equal(
-        [False, True, False],
-        run(model, dict(a=np.array(["🚀", "🔴", "hi🟡"])))["b"],
-    )
-
-    a = ndx.asarray(["hello", "world"])
-    assert_array_equal([True, False], nda.isin(a, ["hello"]).to_numpy())
+    np.testing.assert_equal(actual.unwrap_numpy(), desired)
 
 
 @pytest.mark.parametrize(
@@ -205,3 +210,7 @@ def test_make_nullable(dtype, mask):
     result = nda.make_nullable(a, m)
     expected = np.ma.masked_array([1, 2, 3], mask, dtype.to_numpy_dtype())
     assert_array_equal(result.to_numpy(), expected)
+
+
+def test_is_integer_dtype_excludes_boolean():
+    assert not nda.is_integer_dtype(ndx.bool)

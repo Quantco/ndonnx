@@ -1,47 +1,12 @@
 # Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
-
 import json
 from pathlib import Path
 
 import pytest
 
 import ndonnx as ndx
-from ndonnx import _data_types as dtypes
-
-
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        ndx.int8,
-        ndx.int16,
-        ndx.int32,
-        ndx.int64,
-        ndx.float32,
-        ndx.float64,
-        ndx.utf8,
-        ndx.bool,
-        ndx.uint8,
-        ndx.uint16,
-        ndx.uint32,
-        ndx.uint64,
-    ],
-)
-def test_input_output_name_backwards_compatibility(dtype):
-    a = ndx.array(shape=("N",), dtype=dtype)
-    model_proto = ndx.build({"input": a}, {"output": a})
-    assert [node.name for node in model_proto.graph.input] == ["input"]
-    assert [node.name for node in model_proto.graph.output] == ["output"]
-    a = ndx.array(shape=("N",), dtype=ndx._data_types.into_nullable(dtype))
-    model_proto = ndx.build({"input": a}, {"output": a})
-    assert [node.name for node in model_proto.graph.input] == [
-        "input_values",
-        "input_null",
-    ]
-    assert [node.name for node in model_proto.graph.output] == [
-        "output_values",
-        "output_null",
-    ]
+import ndonnx._typed_array as tydx
 
 
 @pytest.mark.parametrize(
@@ -66,7 +31,7 @@ def test_no_namemangling_for_standard_types(dtype):
     model_proto = ndx.build({"input": a}, {"output": a})
     assert [node.name for node in model_proto.graph.input] == ["input"]
     assert [node.name for node in model_proto.graph.output] == ["output"]
-    a = ndx.array(shape=("N",), dtype=dtypes.into_nullable(dtype))
+    a = ndx.array(shape=("N",), dtype=tydx.masked_onnx.to_nullable_dtype(dtype))
     model_proto = ndx.build({"input": a}, {"output": a})
     assert {node.name for node in model_proto.graph.input} == {
         "input_values",
@@ -116,16 +81,7 @@ def test_schema_against_snapshots(dtype, update_schema_snapshots):
 
     mp = ndx.build({"a": a}, {"b": b})
 
-    # These files should not be update automatically!
-    # File names follow NumPy's __str__ semantics for primitive data
-    # types and generally uses lower case. ndonnx does not have the
-    # same __str__ semantics today.
-    if dtype == ndx.bool:
-        dtype = "bool"
-    elif dtype == ndx.nbool:
-        dtype = "nbool"
-    else:
-        dtype = str(dtype).lower()
+    dtype = str(dtype).lower()
     fname = Path(__file__).parent / f"schemas/{dtype}.json"
 
     if update_schema_snapshots:
@@ -146,3 +102,7 @@ def test_schema_against_snapshots(dtype, update_schema_snapshots):
     )
 
     assert expected_schemas == candidate_schemas
+
+    # test json round trip of schema data
+    assert candidate_schemas["input_schema"]["a"] == a.dtype.__ndx_infov1__.__dict__
+    assert candidate_schemas["output_schema"]["b"] == b.dtype.__ndx_infov1__.__dict__
