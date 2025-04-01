@@ -7,6 +7,12 @@
 Changelog
 =========
 
+0.10.1 (2025-04-01)
+-------------------
+
+Technical release to address a PyPI publishing issue.
+
+
 
 0.10.0 (2025-04-01)
 -------------------
