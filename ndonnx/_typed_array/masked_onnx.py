@@ -527,7 +527,7 @@ class TyMaArray(TyMaArrayBase):
 
     def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyMaArray:
         data = self._data.apply_mapping(mapping, default=default)
-        return type(self)(data=data, mask=self.mask)
+        return make_nullable(data, mask=self.mask)
 
     def __ndx_equal__(self, other) -> TyArrayBase | NotImplementedType:
         return _apply_op(self, other, operator.eq, True)
