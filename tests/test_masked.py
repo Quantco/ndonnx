@@ -306,7 +306,7 @@ def test_static_map_nutf8():
 
 
 def test_static_map_int64():
-    np_in = np.ma.MaskedArray([1, 2, 3], mask=[0, 1, 0])  # type: ignore
+    np_in = np.ma.MaskedArray([1, 2, 3], mask=[0, 1, 0], dtype=np.int64)  # type: ignore
     arr = ndx.asarray(np_in)
     candidate = ndx.extensions.static_map(arr, {1: 10, 2: 20})
 
