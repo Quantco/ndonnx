@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.10.2 (2025-04-02)
+-------------------
+
+**Other change**
+
+- Address various deprecation warnings.
+
+
 0.10.1 (2025-04-01)
 -------------------
 

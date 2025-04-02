@@ -37,7 +37,7 @@ def constant_prop(fn, *np_args):
 )
 def test_ops_pyscalar_coretypes(scalar, dtype, res_dtype, op):
     shape = ("N",)
-    arr = ndx.array(shape=shape, dtype=dtype)
+    arr = ndx.argument(shape=shape, dtype=dtype)
 
     assert_equal_dtype_shape(op(scalar, arr), res_dtype, shape)
     assert_equal_dtype_shape(op(arr, scalar), res_dtype, shape)
@@ -54,7 +54,9 @@ def test_ops_pyscalar_coretypes(scalar, dtype, res_dtype, op):
 )
 def test_type_promotion_standard_types(dtype1, dtype2, res_dtype):
     shape = ("N",)
-    res = ndx.array(shape=shape, dtype=dtype1) + ndx.array(shape=shape, dtype=dtype2)
+    res = ndx.argument(shape=shape, dtype=dtype1) + ndx.argument(
+        shape=shape, dtype=dtype2
+    )
 
     assert_equal_dtype_shape(res, res_dtype, shape)
 
@@ -69,7 +71,9 @@ def test_type_promotion_standard_types(dtype1, dtype2, res_dtype):
 )
 def test_type_promotion_or(dtype1, dtype2, res_dtype):
     shape = ("N",)
-    res = ndx.array(shape=shape, dtype=dtype1) | ndx.array(shape=shape, dtype=dtype2)
+    res = ndx.argument(shape=shape, dtype=dtype1) | ndx.argument(
+        shape=shape, dtype=dtype2
+    )
 
     assert_equal_dtype_shape(res, res_dtype, shape)
 
@@ -79,7 +83,7 @@ def test_value_prop():
     np.testing.assert_allclose((arr + arr).unwrap_numpy(), np.array(2))
 
     with pytest.raises(ValueError, match="no propagated value available"):
-        ndx.array(shape=("N",), dtype=ndx.int32).unwrap_numpy()
+        ndx.argument(shape=("N",), dtype=ndx.int32).unwrap_numpy()
 
 
 @pytest.mark.parametrize(
@@ -128,7 +132,7 @@ def test_numerical_ops_with_ort_compat(dtype, values, fun):
 
 
 def test_indexing_shape():
-    arr = ndx.array(shape=("N", "M"), dtype=ndx.nint32)
+    arr = ndx.argument(shape=("N", "M"), dtype=ndx.nint32)
     assert arr[0, :]._tyarray.shape == ("M",)
     assert arr[0, :].shape == (None,)
 
@@ -284,16 +288,16 @@ def test_repr_eager():
 
 def test_repr_lazy():
     assert "array(data: *lazy*, shape=('N',), dtype=int64)" == str(
-        ndx.array(shape=("N",), dtype=ndx.int64)
+        ndx.argument(shape=("N",), dtype=ndx.int64)
     )
     assert "array(data: *lazy*, mask: *lazy*, shape=('N',), dtype=nint64)" == str(
-        ndx.array(shape=("N",), dtype=ndx.nint64)
+        ndx.argument(shape=("N",), dtype=ndx.nint64)
     )
 
 
 def test_schema_v1():
-    a = ndx.array(shape=("N",), dtype=ndx.int64)
-    b = ndx.array(shape=("N",), dtype=ndx.nint64)
+    a = ndx.argument(shape=("N",), dtype=ndx.int64)
+    b = ndx.argument(shape=("N",), dtype=ndx.nint64)
     mp = ndx.build({"a": a, "b": b}, {"c": a + b})
 
     meta = json.loads({el.key: el.value for el in mp.metadata_props}["ndonnx_schema"])
@@ -477,7 +481,7 @@ def test_broadcast_shapes(arrays):
 
 
 def test_array_repr_lazy():
-    arr = ndx.array(shape=("N",), dtype=ndx.DateTime64DType("s"))
+    arr = ndx.argument(shape=("N",), dtype=ndx.DateTime64DType("s"))
     res = repr(arr)
     assert res == "array(data: *lazy*, shape=('N',), dtype=datetime64[s])"
 
@@ -485,7 +489,7 @@ def test_array_repr_lazy():
 @pytest.mark.parametrize("shape", [(3, 4), (1,), ()])
 def test_dynamic_size(shape):
     onnx_shape = tuple(f"foo_{dim_len}" for dim_len in shape)
-    a = ndx.array(shape=onnx_shape, dtype=ndx.int64)
+    a = ndx.argument(shape=onnx_shape, dtype=ndx.int64)
     model = ndx.build({"a": a}, {"size": a.dynamic_size})
 
     np_arr = np.ones(shape, dtype=np.int64)

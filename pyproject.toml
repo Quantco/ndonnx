@@ -97,7 +97,8 @@ filterwarnings = [
     "ignore:Special cases found for:UserWarning",
     # NumPy warnings for invalid values in divisions
     "ignore:.*invalid value encountered in (scalar )?divide.*:RuntimeWarning:numpy",
-    "ignore:.*Mean of empty slice.*:RuntimeWarning:numpy"
+    "ignore:.*Mean of empty slice.*:RuntimeWarning:numpy",
+    "ignore:.*Degrees of freedom.*:RuntimeWarning:numpy",
 ]
 
 [tool.typos.default]
