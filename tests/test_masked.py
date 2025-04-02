@@ -53,7 +53,7 @@ def test_reduce_ops_none_filling(fn_name, default_value):
     fn = getattr(ndx, fn_name)
     np_fn = getattr(np, fn_name)
 
-    a = ndx.array(shape=(3,), dtype=ndx.nfloat32)
+    a = ndx.argument(shape=(3,), dtype=ndx.nfloat32)
     b = fn(a)
 
     model = ndx.build({"a": a}, {"b": b})
@@ -121,7 +121,7 @@ def test_unary_none_propagation(fn_name, args, kwargs):
 
 
 def test_forbidden_masked():
-    a = ndx.array(shape=(3,), dtype=ndx.nint64)
+    a = ndx.argument(shape=(3,), dtype=ndx.nint64)
 
     with pytest.raises(TypeError):
         ndx.arange(a, 0, 1)
@@ -147,7 +147,7 @@ def test_masked_setitem():
 def test_asarray_masked():
     a = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 0, 1])) + 1
     assert_array_equal(
-        a.to_numpy(),
+        a.unwrap_numpy(),
         np.ma.masked_array([2, 3, 4], mask=[0, 0, 1]),
     )
 
@@ -159,15 +159,15 @@ def test_eager_mode():
         np.ma.masked_array([-12, 21, 12213], mask=[1, 0, 0], dtype=np.int64)
     )
     assert_array_equal(
-        (a + b).to_numpy(),
+        (a + b).unwrap_numpy(),
         np.ma.masked_array([2, 4, 6], mask=[0, 0, 1], dtype=np.int64),
     )
     assert_array_equal(
-        (a - b).to_numpy(),
+        (a - b).unwrap_numpy(),
         np.ma.masked_array([0, 0, 0], mask=[0, 0, 1], dtype=np.int64),
     )
     assert_array_equal(
-        (a * c).to_numpy(),
+        (a * c).unwrap_numpy(),
         np.ma.masked_array([-12, 42, 36639], mask=[1, 0, 1], dtype=np.int64),
     )
 
@@ -186,7 +186,7 @@ def test_trilu_masked_input(func):
     expected = func(a)
     pytest.skip("NumPy's 'tril'/'triu' does not propagate the mask")
     actual = getattr(ndx, func.__name__)(ndx.asarray(a))
-    assert_array_equal(actual.to_numpy(), expected)
+    assert_array_equal(actual.unwrap_numpy(), expected)
 
 
 @pytest.mark.parametrize(
@@ -234,7 +234,7 @@ def test_broadcasting(arrays):
 )
 def test_initialization(np_array):
     actual = ndx.asarray(np_array)
-    null = actual.null
+    null = nda.get_mask(actual)
     assert_array_equal(actual.unwrap_numpy(), np_array)
     if null is None:
         assert np_array.mask is np.ma.nomask

@@ -27,7 +27,7 @@ def test_searchsorted(side):
     a = ndx.asarray(a_val, dtype=ndx.int64)
     b = ndx.asarray(b_val, dtype=ndx.int64)
     c = ndx.searchsorted(a, b, side=side)
-    assert_array_equal(c_val, c.to_numpy())
+    assert_array_equal(c_val, c.unwrap_numpy())
 
 
 @pytest.mark.skip(reason="TODO: onnxruntime")
@@ -43,8 +43,8 @@ def test_searchsorted_nans(side):
     b_val = np.array([0, 1, 2, np.nan, np.nan])
     c_val = np.searchsorted(a_val, b_val, side)
 
-    a = ndx.array(shape=(len(a_val),), dtype=ndx.float64)
-    b = ndx.array(shape=(len(b_val),), dtype=ndx.float64)
+    a = ndx.argument(shape=(len(a_val),), dtype=ndx.float64)
+    b = ndx.argument(shape=(len(b_val),), dtype=ndx.float64)
     c = ndx.searchsorted(a, b, side=side)
 
     model = ndx.build({"a": a, "b": b}, {"c": c})
@@ -54,14 +54,14 @@ def test_searchsorted_nans(side):
 
 def test_searchsorted_raises():
     with pytest.raises(TypeError):
-        a = ndx.array(shape=(), dtype=ndx.int64)
-        b = ndx.array(shape=(), dtype=ndx.float64)
+        a = ndx.argument(shape=(), dtype=ndx.int64)
+        b = ndx.argument(shape=(), dtype=ndx.float64)
 
         ndx.searchsorted(a, b)
 
     with pytest.raises(ValueError):
-        a = ndx.array(shape=(3,), dtype=ndx.int64)
-        b = ndx.array(shape=(3,), dtype=ndx.int64)
+        a = ndx.argument(shape=(3,), dtype=ndx.int64)
+        b = ndx.argument(shape=(3,), dtype=ndx.int64)
 
         ndx.searchsorted(a, b, side="middle")  # type: ignore[arg-type]
 
@@ -71,13 +71,13 @@ def test_searchsorted_raises():
     reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
 )
 def test_static_map_lazy():
-    a = ndx.array(shape=(3,), dtype=ndx.int64)
+    a = ndx.argument(shape=(3,), dtype=ndx.int64)
     b = nda.static_map(a, {1: 2, 2: 3})
     model = ndx.build({"a": a}, {"b": b})
     assert_array_equal([0, 2, 3], run(model, {"a": np.array([0, 1, 2])})["b"])
 
     # nans are mapped by static_map
-    a = ndx.array(shape=("N",), dtype=ndx.float64)
+    a = ndx.argument(shape=("N",), dtype=ndx.float64)
     b = nda.static_map(a, {1.0: 2, np.nan: 3, 3.0: 42}, default=-1)
 
     model = ndx.build({"a": a}, {"b": b})
@@ -148,7 +148,7 @@ def test_static_map_lazy():
 )
 def test_static_map(x, mapping, default, expected):
     actual = nda.static_map(x, mapping, default=default)
-    assert_array_equal(actual.to_numpy(), expected)
+    assert_array_equal(actual.unwrap_numpy(), expected)
 
 
 @pytest.mark.parametrize(
@@ -208,8 +208,8 @@ def test_make_nullable(dtype, mask):
     m = ndx.asarray(mask)
 
     result = nda.make_nullable(a, m)
-    expected = np.ma.masked_array([1, 2, 3], mask, dtype.to_numpy_dtype())
-    assert_array_equal(result.to_numpy(), expected)
+    expected = np.ma.masked_array([1, 2, 3], mask, dtype.unwrap_numpy())
+    assert_array_equal(result.unwrap_numpy(), expected)
 
 
 def test_is_integer_dtype_excludes_boolean():

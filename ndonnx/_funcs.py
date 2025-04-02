@@ -176,7 +176,7 @@ def broadcast_arrays(*arrays: Array) -> list[Array]:
     while (x := next(it, None)) is not None:
         ret = ret + numeric_like(x)
 
-    target_shape = ndx.extensions.shape(ret)
+    target_shape = ret.dynamic_shape
 
     return [broadcast_to(a, target_shape) for a in arrays]
 
@@ -455,14 +455,14 @@ def isdtype(dtype: DType, kind: DType | str | tuple[DType | str, ...]) -> bool:
         elif kind == "unsigned integer":
             return dtype in (ndx.uint8, ndx.uint16, ndx.uint32, ndx.uint64)
         elif kind == "integral":
-            return isinstance(dtype, ndx.Integral)
+            return isinstance(dtype, onnx.IntegerDTypes)
         elif kind == "real floating":
-            return isinstance(dtype, ndx.Floating)
+            return isinstance(dtype, onnx.Floating)
         elif kind == "complex floating":
             # 'complex floating' is not supported"
             return False
         elif kind == "numeric":
-            return isinstance(dtype, ndx.Numerical)
+            return isinstance(dtype, onnx.NumericDTypes)
     elif isinstance(kind, DType):
         return dtype == kind
     elif isinstance(kind, tuple):
