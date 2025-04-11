@@ -92,9 +92,9 @@ def test_min_max(op, ndx_dtype, np_dtype, np_array1, np_array2):
 )
 def test_where(x_ty, y_ty, res_ty):
     shape = ("N", "M")
-    cond = ndx.array(shape=shape, dtype=ndx.bool)
-    x = ndx.array(shape=shape, dtype=x_ty)
-    y = ndx.array(shape=shape, dtype=y_ty)
+    cond = ndx.argument(shape=shape, dtype=ndx.bool)
+    x = ndx.argument(shape=shape, dtype=x_ty)
+    y = ndx.argument(shape=shape, dtype=y_ty)
 
     res = ndx.where(cond, x, y)
 

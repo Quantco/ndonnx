@@ -27,11 +27,11 @@ import ndonnx._typed_array as tydx
     ],
 )
 def test_no_namemangling_for_standard_types(dtype):
-    a = ndx.array(shape=("N",), dtype=dtype)
+    a = ndx.argument(shape=("N",), dtype=dtype)
     model_proto = ndx.build({"input": a}, {"output": a})
     assert [node.name for node in model_proto.graph.input] == ["input"]
     assert [node.name for node in model_proto.graph.output] == ["output"]
-    a = ndx.array(shape=("N",), dtype=tydx.masked_onnx.to_nullable_dtype(dtype))
+    a = ndx.argument(shape=("N",), dtype=tydx.masked_onnx.to_nullable_dtype(dtype))
     model_proto = ndx.build({"input": a}, {"output": a})
     assert {node.name for node in model_proto.graph.input} == {
         "input_values",
@@ -76,7 +76,7 @@ def test_schema_against_snapshots(dtype, update_schema_snapshots):
     # We must not break backwards compatibility. We test every type we
     # support that it keeps producing the same schema.
 
-    a = ndx.array(shape=("N",), dtype=dtype)
+    a = ndx.argument(shape=("N",), dtype=dtype)
     b = a[0]  # make the build non-trivial
 
     mp = ndx.build({"a": a}, {"b": b})
