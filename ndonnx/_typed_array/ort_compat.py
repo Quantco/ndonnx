@@ -40,6 +40,7 @@ from spox.opset.ai.onnx.v21 import log as log
 from spox.opset.ai.onnx.v21 import mod as mod
 from spox.opset.ai.onnx.v21 import not_ as not_
 from spox.opset.ai.onnx.v21 import or_ as or_
+from spox.opset.ai.onnx.v21 import reciprocal as reciprocal
 from spox.opset.ai.onnx.v21 import reshape as reshape
 from spox.opset.ai.onnx.v21 import round as round
 from spox.opset.ai.onnx.v21 import scatter_nd as scatter_nd

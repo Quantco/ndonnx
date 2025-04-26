@@ -1704,6 +1704,9 @@ class TyArrayFloating(TyArrayNumber):
     def floor(self) -> Self:
         return type(self)(op.floor(self._var))
 
+    def reciprocal(self) -> Self:
+        return type(self)(op.reciprocal(self._var))
+
     def round(self) -> Self:
         return type(self)(op.round(self._var))
 

@@ -412,6 +412,9 @@ class TyArrayBase(ABC):
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         raise _make_type_error("nonzero", self.dtype)
 
+    def reciprocal(self) -> TyArrayBase:
+        raise _make_type_error("reciprocal", self.dtype)
+
     def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
         raise _make_type_error("take", self.dtype)
 
