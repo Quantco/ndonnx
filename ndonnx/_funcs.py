@@ -408,6 +408,12 @@ def imag(x: Array, /) -> Array:
     raise NotImplementedError
 
 
+def nextafter(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    # Requires special ONNX operator
+    # TODO: Add upstream tracking issue
+    raise NotImplementedError
+
+
 def eye(
     n_rows: int,
     n_cols: int | None = None,
