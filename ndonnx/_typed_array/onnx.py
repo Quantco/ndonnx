@@ -750,8 +750,8 @@ class TyArray(TyArrayBase):
     def count_nonzero(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayInt64:
-        x = (~self.astype(bool_)).astype(int64)
-        return x.sum(axis=axis, keepdims=keepdims, dtype=int64)
+        non_zeros = self.astype(bool_).astype(int64)
+        return non_zeros.sum(axis=axis, keepdims=keepdims, dtype=int64)
 
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         if self.ndim == 0:
@@ -1217,6 +1217,57 @@ class TyArrayNumber(TyArray):
         )
         return type(self)(values)
 
+    def diff(
+        self,
+        /,
+        *,
+        axis: int = -1,
+        n: int = 1,
+        prepend: Self | None = None,
+        append: Self | None = None,
+    ) -> Self:
+        # TODO: Add NOTICE; taken from numpy.diff
+        a = self
+        if n == 0:
+            return a
+        if n < 0:
+            raise ValueError("order must be non-negative but got " + repr(n))
+
+        ndim = a.ndim
+        if ndim == 0:
+            raise ValueError("diff requires input that is at least one dimensional")
+        axis = axis if axis >= 0 else ndim + axis
+
+        combined = []
+        if prepend is not None:
+            if prepend.ndim == 0:
+                shape = a.dynamic_shape.copy()
+                shape[axis] = const(1, int64)
+                prepend = prepend.broadcast_to(shape)
+            combined.append(prepend)
+
+        combined.append(a)
+
+        if append is not None:
+            if append.ndim == 0:
+                shape = a.dynamic_shape.copy()
+                shape[axis] = const(1, int64)
+                append = append.broadcast_to(shape)
+            combined.append(append)
+
+        if len(combined) > 1:
+            a = combined[0].concat(combined[1:], axis=axis)
+
+        slice1 = [slice(None)] * ndim
+        slice2 = [slice(None)] * ndim
+        slice1[axis] = slice(1, None)
+        slice2[axis] = slice(None, -1)
+
+        for _ in range(n):
+            a = a[tuple(slice1)] - a[tuple(slice2)]
+
+        return a
+
     @overload
     def sum(
         self,
@@ -1343,6 +1394,15 @@ class TyArrayNumber(TyArray):
 
     def __rpow__(self, other) -> TyArrayBase:
         return self._apply(other, op.pow, forward=False, result_type=TyArrayNumber)
+
+    @overload
+    def __sub__(self: Self, other: Self | int, /) -> Self: ...
+
+    @overload
+    def __sub__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
+
+    @overload
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
 
     def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.sub, forward=True, result_type=TyArrayNumber)

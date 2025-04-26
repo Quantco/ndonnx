@@ -382,16 +382,19 @@ def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
 
 def expm1(x: Array, /) -> Array:
     # Requires special operator to meet standards precision requirements
+    # TODO: Add upstream tracking issue
     raise NotImplementedError
 
 
 def log1p(x: Array, /) -> Array:
     # Requires special operator to meet standards precision requirements
+    # TODO: Add upstream tracking issue
     raise NotImplementedError
 
 
 def atan2(x1: Array, x2: Array, /) -> Array:
     # Requires special operator to meet standards precision requirements
+    # TODO: Add upstream tracking issue
     raise NotImplementedError
 
 
@@ -753,3 +756,21 @@ def zeros_like(
 ) -> Array:
     dtype = dtype or x.dtype
     return full_like(x, 0, dtype=dtype)
+
+
+def diff(
+    a: Array,
+    /,
+    *,
+    axis: int = -1,
+    n: int = 1,
+    prepend: Array | None = None,
+    append: Array | None = None,
+) -> Array:
+    res = a._tyarray.diff(
+        axis=axis,
+        n=n,
+        prepend=None if prepend is None else prepend._tyarray,
+        append=None if append is None else append._tyarray,
+    )
+    return Array._from_tyarray(res)

@@ -305,6 +305,17 @@ class TyArrayBase(ABC):
     ) -> Self:
         raise _make_type_error("clip", self.dtype)
 
+    def diff(
+        self,
+        /,
+        *,
+        axis: int = -1,
+        n: int = 1,
+        prepend: Self | None = None,
+        append: Self | None = None,
+    ) -> Self:
+        raise _make_type_error("diff", self.dtype)
+
     @overload
     def prod(
         self,
