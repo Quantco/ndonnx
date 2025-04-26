@@ -747,6 +747,22 @@ class TyArray(TyArrayBase):
     def disassemble(self) -> Var:
         return self._var
 
+    def count_nonzero(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        x = (~self.astype(bool_)).astype(int64)
+        return x.sum(axis=axis, keepdims=keepdims, dtype=int64)
+
+    def nonzero(self) -> tuple[TyArrayInt64, ...]:
+        if self.ndim == 0:
+            raise ValueError("'nonzero' is not defined for scalar arrays")
+
+        res = TyArrayInt64(op.non_zero(self._var))
+        out = []
+        for i in range(self.ndim):
+            out.append(res[i, :])
+        return tuple(out)
+
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
         var = op.transpose(self._var, perm=axes)
         return type(self)(var)
@@ -974,6 +990,12 @@ class TyArrayUtf8(TyArray):
 
     def isnan(self) -> TyArrayBool:
         return const(False, dtype=bool_).broadcast_to(self.dynamic_shape)
+
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE_co]) -> TY_ARRAY_BASE_co:
+        if dtype == bool_:
+            # Only the empty string is false-y
+            return (self != const("")).astype(dtype)
+        return super().__ndx_cast_to__(dtype=dtype)
 
 
 class TyArrayNumber(TyArray):
@@ -1345,16 +1367,6 @@ class TyArrayNumber(TyArray):
             promo_result, _ = promote(self, other)
             return (other / self).floor().astype(promo_result.dtype)
         return NotImplemented
-
-    def nonzero(self) -> tuple[TyArrayInt64, ...]:
-        if self.ndim == 0:
-            raise ValueError("'nonzero' is not defined for scalar arrays")
-
-        res = TyArrayInt64(op.non_zero(self._var))
-        out = []
-        for i in range(self.ndim):
-            out.append(res[i, :])
-        return tuple(out)
 
     def sign(self) -> Self:
         return type(self)(op.sign(self._var))

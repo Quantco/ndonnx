@@ -522,17 +522,16 @@ def arg_max(
 def non_zero(
     X: Var,
 ) -> Var:
-    dtype = X.unwrap_tensor().dtype
-    if dtype == np.float64:
-        # is_not_nan = op.not_(op.isnan(X))
-        is_ne_0 = op.not_(op.equal(X, op.const(0.0, dtype=dtype)))
-        return op.non_zero(is_ne_0)
-    mapping: _MappingDictType = {
-        (np.int8, np.int16, np.uint16): np.int32,
-        (np.uint32, np.uint64): np.float32,
-    }
-    if via_dtype := _detour_type(dtype, mapping):
-        X = op.cast(X, to=via_dtype)  # type: ignore
+    if X.unwrap_tensor().dtype.kind == "U":
+        X = op.not_(op.equal(X, const("")))
+    elif X.unwrap_tensor().dtype not in (
+        np.bool_,
+        np.float32,
+        np.int32,
+        np.int64,
+        np.uint8,
+    ):
+        X = op.cast(X, to=np.bool_)
     return op.non_zero(X)
 
 

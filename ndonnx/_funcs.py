@@ -141,6 +141,16 @@ def argmin(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> A
     return Array._from_tyarray(x._tyarray.argmin(axis=axis, keepdims=keepdims))
 
 
+def count_nonzero(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    keepdims: bool = False,
+) -> Array:
+    return Array._from_tyarray(x._tyarray.count_nonzero(axis=axis, keepdims=keepdims))
+
+
 def argsort(
     x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
 ) -> Array:

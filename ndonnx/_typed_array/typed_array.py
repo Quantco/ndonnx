@@ -270,6 +270,11 @@ class TyArrayBase(ABC):
     ) -> TyArrayInt64:
         raise _make_type_error("argmin", self.dtype)
 
+    def count_nonzero(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        raise _make_type_error("count_nonzero", self.dtype)
+
     def argsort(
         self, /, *, axis: int = -1, descending: bool = False, stable: bool = True
     ) -> TyArrayInt64:
