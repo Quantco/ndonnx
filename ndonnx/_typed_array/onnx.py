@@ -20,10 +20,7 @@ from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
 from . import ort_compat as op
 from .dtype_independent_funcs import maximum, minimum, where
-from .indexing import (
-    FancySlice,
-    normalize_getitem_key,
-)
+from .indexing import FancySlice
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
 """Alias signaling that this must be a rank-0 integer tensor."""
@@ -42,11 +39,14 @@ This includes `None`.
 SetitemIndex: TypeAlias = "SetitemItem | tuple[SetitemItem, ...] | _BoolMask"
 GetitemIndex: TypeAlias = "GetitemItem | tuple[GetitemItem, ...] | _BoolMask"
 
-
-TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
-TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
+TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
+
+TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
+
 TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
+
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
 
@@ -322,17 +322,34 @@ class TyArray(TyArrayBase):
             return {"data": "*lazy*"}
 
     def __getitem__(self, key: GetitemIndex) -> Self:
-        key = normalize_getitem_key(key)
+        # Dispatch cases roughly in line with how the standard describes them here
+        # https://data-apis.org/array-api/2024.12/API_specification/indexing.html
 
-        if isinstance(key, bool):
-            key = TyArrayBool(op.const(key))
-        if not isinstance(key, TyArray):
-            return self._getitem_static(key)
-        if isinstance(key, TyArrayBool):
+        # rank-0 indexing
+        if self.ndim == 0 and key == () or key == ...:
+            return self.copy()
+        # Boolean indexing
+        if isinstance(key, TyArrayBool | bool):
+            if isinstance(key, bool):
+                # NOTE: This is not mandated by the standard. Is this needed?
+                key = const(key, dtype=bool_)
             return self._getitem_boolmask(key)
+
+        # Single-axis indexing
+        if _is_single_axis_indexing(key):
+            return self._getitem_multi_axis_indexing((key,))
+
+        # Multi-axis indexing
+        if _is_multi_axis_indexing(key):
+            return self._getitem_multi_axis_indexing(key)
+
+        # Integer-array indexing
+        if _is_integer_array_indexing(key):
+            return self._getitem_integer_array_indexing(key)
+
         raise IndexError(f"cannot index with key `{key}`")
 
-    def _getitem_static(self, key: tuple[GetitemItem, ...]) -> Self:
+    def _getitem_multi_axis_indexing(self, key: tuple[GetitemItem, ...]) -> Self:
         if isinstance(key, list):
             # Technically not supported, but a common pattern
             key = tuple(key)
@@ -432,6 +449,21 @@ class TyArray(TyArrayBase):
 
         res = op.compress(var, key.reshape((-1,))._var, axis=0)
         return type(self)(res)
+
+    def _getitem_integer_array_indexing(
+        self, key: tuple[int | TyArrayInt64, ...]
+    ) -> Self:
+        key_arrays = []
+        for el in key:
+            if isinstance(el, int):
+                key_arrays.append(const(np.asarray([el], np.int64), dtype=int64))
+            else:
+                key_arrays.append(el)
+        key_arrays_tuple = broadcast_arrays(*[el[..., None] for el in key_arrays])
+        key_array = key_arrays_tuple[0].concat(key_arrays_tuple[1:], axis=-1)
+
+        var = op.gather_nd(self._var, key_array._var)
+        return type(self)(var)
 
     def __setitem__(
         self,
@@ -1995,6 +2027,42 @@ def _contains_no_ellipsis(
     return all(not isinstance(el, EllipsisType) for el in seq)
 
 
+def _is_integer_array_indexing(
+    key: GetitemIndex,
+) -> TypeGuard[tuple[int | TyArrayInt64, ...]]:
+    if not isinstance(key, tuple):
+        return False
+    for el in key:
+        if isinstance(el, int):
+            continue
+        if isinstance(el, TyArrayInt64):
+            continue
+        return False
+    return True
+
+
+def _is_single_axis_indexing(
+    key: GetitemIndex,
+) -> TypeGuard[int | _ScalarInt | slice | EllipsisType | None]:
+    if isinstance(key, TyArrayInteger) and key.ndim == 0:
+        return True
+    return isinstance(key, int | slice | EllipsisType | None)
+
+
+def _is_multi_axis_indexing(
+    key: GetitemIndex,
+) -> TypeGuard[tuple[int | _ScalarInt | slice | EllipsisType | None, ...]]:
+    if not isinstance(key, tuple):
+        return False
+    for el in key:
+        if isinstance(el, TyArrayInteger) and el.ndim == 0:
+            continue
+        elif isinstance(el, int | slice | EllipsisType | None):
+            continue
+        return False
+    return True
+
+
 #####################
 # Conversion tables #
 #####################
@@ -2387,12 +2455,12 @@ def meshgrid(*arrays: TyArrayBase, indexing: str = "xy") -> list[TyArrayBase]:
         output[0] = output[0].reshape((1, -1) + base_shape[2:])
         output[1] = output[1].reshape((-1, 1) + base_shape[2:])
 
-    return broadcast_arrays(*output)
+    return list(broadcast_arrays(*output))
 
 
-def broadcast_arrays(*arrays: TyArrayBase) -> list[TyArrayBase]:
+def broadcast_arrays(*arrays: TY_ARRAY_BASE) -> tuple[TY_ARRAY_BASE, ...]:
     if len(arrays) < 2:
-        return [a.copy() for a in arrays]
+        return tuple(a.copy() for a in arrays)
 
     def numeric_like(x: TyArrayBase) -> TyArrayInt32:
         # Using int32 rather than something smaller because we don't
@@ -2406,4 +2474,4 @@ def broadcast_arrays(*arrays: TyArrayBase) -> list[TyArrayBase]:
 
     target_shape = ret.dynamic_shape
 
-    return [a.broadcast_to(target_shape) for a in arrays]
+    return tuple(a.broadcast_to(target_shape) for a in arrays)
