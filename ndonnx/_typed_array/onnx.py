@@ -1025,6 +1025,23 @@ class TyArrayNumber(TyArray):
 
         return type(self)(var)
 
+    def cumulative_prod(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        # See https://github.com/onnx/onnx/issues/6590 for the
+        # discussion on adding an efficient implementation to the
+        # standard
+        return (
+            self.log()
+            .cumulative_sum(axis=axis, dtype=dtype, include_initial=include_initial)
+            .exp()
+        )
+
     def cumulative_sum(
         self,
         /,

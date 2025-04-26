@@ -206,6 +206,20 @@ def concat(
     return Array._from_tyarray(data)
 
 
+def cumulative_prod(
+    x: Array,
+    /,
+    *,
+    axis: int | None = None,
+    dtype: DType | None = None,
+    include_initial: bool = False,
+) -> Array:
+    data = x._tyarray.cumulative_prod(
+        axis=axis, dtype=dtype, include_initial=include_initial
+    )
+    return Array._from_tyarray(data)
+
+
 def cumulative_sum(
     x: Array,
     /,

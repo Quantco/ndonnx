@@ -275,6 +275,16 @@ class TyArrayBase(ABC):
     ) -> TyArrayInt64:
         raise _make_type_error("argsort", self.dtype)
 
+    def cumulative_prod(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        raise _make_type_error("cumulative_prod", self.dtype)
+
     def cumulative_sum(
         self,
         /,
