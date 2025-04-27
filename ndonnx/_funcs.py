@@ -16,6 +16,7 @@ import ndonnx as ndx
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
+from ._array_tyarray_interop import unwrap_tyarray
 from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
@@ -392,7 +393,7 @@ def log1p(x: Array, /) -> Array:
     raise NotImplementedError
 
 
-def atan2(x1: Array, x2: Array, /) -> Array:
+def atan2(x1: Array | int | float, x2: Array | int | float, /) -> Array:
     # Requires special operator to meet standards precision requirements
     # TODO: Add upstream tracking issue
     raise NotImplementedError
@@ -743,10 +744,14 @@ def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
     return sum(prod, axis=axis, dtype=prod.dtype)
 
 
-def where(cond: Array, a: Array, b: Array) -> Array:
+def where(
+    cond: Array,
+    a: Array | int | float | bool | str,
+    b: Array | int | float | bool | str,
+) -> Array:
     if not isinstance(cond._tyarray, onnx.TyArrayBool):
         raise TypeError(f"'cond' must be of data type 'bool', found `{cond.dtype}`")
-    data = tyfuncs.where(cond._tyarray, a._tyarray, b._tyarray)
+    data = tyfuncs.where(cond._tyarray, unwrap_tyarray(a), unwrap_tyarray(b))
     return Array._from_tyarray(data)
 
 

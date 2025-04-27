@@ -10,11 +10,12 @@ import builtins
 import ndonnx as ndx
 from ndonnx import Array, DType
 
+from ._array_tyarray_interop import unwrap_tyarray
 from ._typed_array import funcs as tyfuncs
 
 
-def add(a: Array, b: Array) -> Array:
-    return a + b
+def add(a: Array | int | float, b: Array | int | float) -> Array:
+    return ndx.asarray(a + b)
 
 
 def abs(array: Array, /) -> Array:
@@ -45,28 +46,28 @@ def atanh(array: Array, /) -> Array:
     return Array._from_tyarray(array._tyarray.atanh())
 
 
-def bitwise_and(x1: Array, x2: Array, /) -> Array:
-    return x1 & x2
+def bitwise_and(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+    return ndx.asarray(x1 & x2)
 
 
-def bitwise_left_shift(x1: Array, x2: Array, /) -> Array:
-    return x1 << x2
+def bitwise_left_shift(x1: Array | int, x2: Array | int, /) -> Array:
+    return ndx.asarray(x1 << x2)
 
 
 def bitwise_invert(x: Array, /) -> Array:
     return ~x
 
 
-def bitwise_or(x1: Array, x2: Array, /) -> Array:
-    return x1 | x2
+def bitwise_or(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+    return ndx.asarray(x1 | x2)
 
 
-def bitwise_right_shift(x1: Array, x2: Array, /) -> Array:
-    return x1 >> x2
+def bitwise_right_shift(x1: Array | int, x2: Array | int, /) -> Array:
+    return ndx.asarray(x1 >> x2)
 
 
-def bitwise_xor(x1: Array, x2: Array, /) -> Array:
-    return x1 ^ x2
+def bitwise_xor(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+    return ndx.asarray(x1 ^ x2)
 
 
 def ceil(array: Array, /) -> Array:
@@ -105,12 +106,12 @@ def cosh(x: Array, /) -> Array:
     return Array._from_tyarray(x._tyarray.cosh())
 
 
-def copysign(x1: Array, x2: Array, /) -> Array:
+def copysign(x1: Array | int | float, x2: Array | int | float, /) -> Array:
     raise NotImplementedError
 
 
-def divide(x1: Array, x2: Array, /) -> Array:
-    return x1 / x2
+def divide(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 / x2)
 
 
 def exp(array: Array, /) -> Array:
@@ -121,27 +122,27 @@ def expm1(array: Array, /) -> Array:
     return Array._from_tyarray(array._tyarray.expm1())
 
 
-def equal(x1: Array, x2: Array, /) -> Array:
-    return x1 == x2
+def equal(x1: Array | int | float | bool, x2: Array | int | float | bool, /) -> Array:
+    return ndx.asarray(x1 == x2)
 
 
 def floor(array: Array, /) -> Array:
     return Array._from_tyarray(array._tyarray.floor())
 
 
-def floor_divide(x1: Array, x2: Array, /) -> Array:
-    return x1 // x2
+def floor_divide(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 // x2)
 
 
-def greater(x1: Array, x2: Array, /) -> Array:
-    return x1 > x2
+def greater(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 > x2)
 
 
-def greater_equal(x1: Array, x2: Array, /) -> Array:
-    return x1 >= x2
+def greater_equal(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 >= x2)
 
 
-def hypot(x1: Array, x2: Array, /) -> Array:
+def hypot(x1: Array | int | float, x2: Array | int | float, /) -> Array:
     raise NotImplementedError
 
 
@@ -157,12 +158,12 @@ def isnan(array: Array, /) -> Array:
     return Array._from_tyarray(array._tyarray.isnan())
 
 
-def less(x1: Array, x2: Array, /) -> Array:
-    return x1 < x2
+def less(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 < x2)
 
 
-def less_equal(x1: Array, x2: Array, /) -> Array:
-    return x1 <= x2
+def less_equal(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 <= x2)
 
 
 def log(x: Array, /) -> Array:
@@ -181,60 +182,70 @@ def log10(x: Array, /) -> Array:
     return Array._from_tyarray(x._tyarray.log10())
 
 
-def logaddexp(x1: Array, x2: Array, /) -> Array:
-    return log(exp(x1) + exp(x2))
+def logaddexp(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return Array._from_tyarray(
+        tyfuncs.logaddexp(unwrap_tyarray(x1), unwrap_tyarray(x2))
+    )
 
 
-def logical_and(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(tyfuncs.logical_and(x1._tyarray, x2._tyarray))
+def logical_and(x1: Array | bool, x2: Array | bool, /) -> Array:
+    return Array._from_tyarray(
+        tyfuncs.logical_and(unwrap_tyarray(x1), unwrap_tyarray(x2))
+    )
 
 
 def logical_not(x: Array, /) -> Array:
     return Array._from_tyarray(x._tyarray.logical_not())
 
 
-def logical_or(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(tyfuncs.logical_or(x1._tyarray, x2._tyarray))
+def logical_or(x1: Array | bool, x2: Array | bool, /) -> Array:
+    return Array._from_tyarray(
+        tyfuncs.logical_or(unwrap_tyarray(x1), unwrap_tyarray(x2))
+    )
 
 
-def logical_xor(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(tyfuncs.logical_xor(x1._tyarray, x2._tyarray))
+def logical_xor(x1: Array | bool, x2: Array | bool, /) -> Array:
+    return Array._from_tyarray(
+        tyfuncs.logical_xor(unwrap_tyarray(x1), unwrap_tyarray(x2))
+    )
 
 
-def maximum(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(tyfuncs.maximum(x1._tyarray, x2._tyarray))
+def maximum(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return Array._from_tyarray(tyfuncs.maximum(unwrap_tyarray(x1), unwrap_tyarray(x2)))
 
 
-def minimum(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(tyfuncs.minimum(x1._tyarray, x2._tyarray))
+def minimum(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return Array._from_tyarray(tyfuncs.minimum(unwrap_tyarray(x1), unwrap_tyarray(x2)))
 
 
-def multiply(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(x1._tyarray * x2._tyarray)
+def multiply(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 * x2)
 
 
 def negative(x: Array, /) -> Array:
     return Array._from_tyarray(-x._tyarray)
 
 
-def not_equal(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(x1._tyarray != x2._tyarray)
+def not_equal(
+    x1: Array | int | float | bool, x2: Array | int | float | bool, /
+) -> Array:
+    return ndx.asarray(x1 != x2)
 
 
 def positive(x: Array, /) -> Array:
     return Array._from_tyarray(+x._tyarray)
 
 
-def pow(x1: Array, x2: Array, /) -> Array:
-    return x1**x2
+def pow(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1**x2)
 
 
 def real(x: Array, /) -> Array:
     raise NotImplementedError
 
 
-def remainder(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(x1._tyarray % x2._tyarray)
+def remainder(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 % x2)
 
 
 def round(x: Array, /) -> Array:
@@ -265,8 +276,8 @@ def sqrt(x: Array, /) -> Array:
     return Array._from_tyarray(x._tyarray.sqrt())
 
 
-def subtract(x1: Array, x2: Array, /) -> Array:
-    return Array._from_tyarray(x1._tyarray - x2._tyarray)
+def subtract(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    return ndx.asarray(x1 - x2)
 
 
 def tan(x: Array, /) -> Array:

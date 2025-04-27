@@ -532,8 +532,11 @@ class TyMaArray(TyMaArrayBase):
     def __ndx_equal__(self, other) -> TyArrayBase | NotImplementedType:
         return _apply_op(self, other, operator.eq, True)
 
-    def __ndx_where__(self, cond: onnx.TyArrayBool, y: TyArrayBase, /) -> TyArrayBase:
-        if isinstance(y, onnx.TyArray):
+    def __ndx_where__(
+        self, cond: onnx.TyArrayBool, y: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase:
+        if isinstance(y, onnx.TyArray | PyScalar):
+            _, y = onnx.promote(self._data, y)
             return self.__ndx_where__(cond, make_nullable(y, None))
         if isinstance(y, TyMaArray):
             x_ = self._data
@@ -559,9 +562,10 @@ class TyMaArray(TyMaArrayBase):
         return NotImplemented
 
     def __ndx_rwhere__(
-        self, cond: onnx.TyArrayBool, x: TyArrayBase, /
+        self, cond: onnx.TyArrayBool, x: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
-        if isinstance(x, onnx.TyArray):
+        if isinstance(x, onnx.TyArray | PyScalar):
+            _, x = onnx.promote(self._data, x)
             return make_nullable(x, None).__ndx_where__(cond, self)
         return NotImplemented
 

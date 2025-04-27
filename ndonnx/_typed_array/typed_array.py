@@ -557,6 +557,9 @@ class TyArrayBase(ABC):
     def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
+    def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return NotImplemented
+
     def __and__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
@@ -584,7 +587,13 @@ class TyArrayBase(ABC):
     def __mod__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
+    def __rmod__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return NotImplemented
+
     def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return NotImplemented
+
+    def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
     def __or__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -602,7 +611,13 @@ class TyArrayBase(ABC):
     def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
+    def __rsub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return NotImplemented
+
     def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return NotImplemented
+
+    def __rtruediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return NotImplemented
 
     def __xor__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -629,6 +644,11 @@ class TyArrayBase(ABC):
     # Functions which may return `NotImplemented`
     # Note: Prefixed with `__ndx_` to avoid naming collisions with
     # possible future Python dunder methods
+    def __ndx_logaddexp__(self, rhs: TyArrayBase | int | float, /) -> TyArrayBase:
+        return NotImplemented
+
+    def __ndx_rlogaddexp__(self, lhs: TyArrayBase | int | float, /) -> TyArrayBase:
+        return NotImplemented
 
     def __ndx_logical_and__(self, rhs: TyArrayBase | bool, /) -> TyArrayBase:
         return NotImplemented
@@ -668,12 +688,12 @@ class TyArrayBase(ABC):
         return NotImplemented
 
     def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 
     def __ndx_rwhere__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
         return NotImplemented
 

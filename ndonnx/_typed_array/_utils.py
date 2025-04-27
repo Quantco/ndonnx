@@ -57,12 +57,18 @@ def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:
 
 
 def validate_op_result(
-    x1: TyArrayBase, x2: TyArrayBase, result: T | NotImplementedType, func_name: str
+    x1: TyArrayBase | PyScalar,
+    x2: TyArrayBase | PyScalar,
+    result: T | NotImplementedType,
+    func_name: str,
 ) -> T:
-    """Validate if the provided result is not `NotImplemented` and raise an error if it
-    is."""
+    """Raise an exception if `result` is not `NotImplemented`, otherwise return it."""
+
+    def fmt(x: TyArrayBase | PyScalar) -> str:
+        return str(x) if isinstance(x, PyScalar) else str(x.dtype)
+
     if isinstance(result, NotImplementedType):
         raise TypeError(
-            f"unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
+            f"unsupported operand data types for '{func_name}': `{fmt(x1)}` and `{fmt(x2)}`"
         )
     return result

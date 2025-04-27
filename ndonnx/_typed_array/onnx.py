@@ -953,13 +953,13 @@ class TyArray(TyArrayBase):
 
     @overload
     def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType: ...
 
     def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
-        if isinstance(y, TyArray):
+        if isinstance(y, TyArray | PyScalar):
             x, y = promote(self, y)
             var = op.where(cond._var, x._var, y._var)
             return type(x)(var)
@@ -1386,7 +1386,7 @@ class TyArrayNumber(TyArray):
     def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=True, result_type=TyArrayNumber)
 
-    def __rmul__(self, other: int | float) -> TyArrayBase:
+    def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=False, result_type=TyArrayNumber)
 
     def __pow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -1407,7 +1407,7 @@ class TyArrayNumber(TyArray):
     def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.sub, forward=True, result_type=TyArrayNumber)
 
-    def __rsub__(self, other) -> TyArrayBase:
+    def __rsub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.sub, forward=False, result_type=TyArrayNumber)
 
     def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -1553,7 +1553,7 @@ class TyArrayInteger(TyArrayNumber):
             rhs = float(rhs)
         return super().__truediv__(rhs)
 
-    def __rtruediv__(self, lhs: int | float) -> TyArrayBase:
+    def __rtruediv__(self, lhs: TyArrayBase | PyScalar) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
         if isinstance(lhs, TyArrayNumber):
             return lhs.astype(float64) / self.astype(float64)
@@ -1697,6 +1697,18 @@ class TyArrayFloating(TyArrayNumber):
             var = op.mod(a._var, b._var, fmod=1)
             return safe_cast(TyArrayFloating, _var_to_tyarray(var))
         return super().__mod__(other)
+
+    def __ndx_logaddexp___(self, x2: TyArrayBase | int | float, /) -> TyArrayFloating:
+        if isinstance(x2, TyArrayNumber | int | float):
+            x1, x2 = promote(self, x2)
+            return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
+        return NotImplemented
+
+    def __ndx_rlogaddexp___(self, x1: TyArrayBase | int | float, /) -> TyArrayFloating:
+        if isinstance(x1, TyArrayNumber | int | float):
+            x2, x1 = promote(self, x1)
+            return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
+        return NotImplemented
 
     def ceil(self) -> Self:
         return type(self)(op.ceil(self._var))
