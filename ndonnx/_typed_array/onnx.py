@@ -1610,6 +1610,29 @@ class TyArrayInteger(TyArrayNumber):
     def ceil(self) -> Self:
         return self.copy()
 
+    def cumulative_prod(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        # Requires special handling since the current implementation
+        # is using log/exp which does not exist for integer data types
+        if isinstance(dtype, Integer | None):
+            res = self.astype(float64).cumulative_prod(
+                axis=axis, include_initial=include_initial
+            )
+            if dtype is None:
+                if isinstance(self, TyArrayUnsignedInteger):
+                    return res.astype(uint64)
+                return res.astype(int64)
+            return res.astype(dtype)
+        return super().cumulative_prod(
+            axis=axis, dtype=dtype, include_initial=include_initial
+        )
+
     def floor(self) -> Self:
         return self.copy()
 
