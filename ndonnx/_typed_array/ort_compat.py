@@ -33,6 +33,7 @@ from spox.opset.ai.onnx.v21 import exp as exp  # Only for floats in both standar
 from spox.opset.ai.onnx.v21 import expand as expand
 from spox.opset.ai.onnx.v21 import floor as floor
 from spox.opset.ai.onnx.v21 import gather as gather
+from spox.opset.ai.onnx.v21 import gather_elements as gather_elements
 from spox.opset.ai.onnx.v21 import gather_nd as gather_nd
 from spox.opset.ai.onnx.v21 import isinf as isinf
 from spox.opset.ai.onnx.v21 import isnan as isnan

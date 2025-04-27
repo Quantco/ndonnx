@@ -418,6 +418,9 @@ class TyArrayBase(ABC):
     def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
         raise _make_type_error("take", self.dtype)
 
+    def take_along_axis(self, indices: TyArrayInt64, /, *, axis: int = -1) -> Self:
+        raise _make_type_error("take_along_axis", self.dtype)
+
     def std(
         self,
         *,

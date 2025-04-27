@@ -827,6 +827,10 @@ class TyArray(TyArrayBase):
         var = op.gather(self._var, indices._var, axis=axis)
         return type(self)(var)
 
+    def take_along_axis(self, indices: TyArrayInt64, /, *, axis: int = -1) -> Self:
+        var = op.gather_elements(self._var, indices._var, axis=axis)
+        return type(self)(var)
+
     def tile(self, repetitions: tuple[int, ...], /) -> Self:
         n = self.ndim
         m = len(repetitions)

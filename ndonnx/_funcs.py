@@ -666,6 +666,14 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
     return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 
 
+def take_along_axis(x: Array, indices: Array, /, *, axis: int = -1) -> Array:
+    if not isinstance(indices._tyarray, onnx.TyArrayInt64):
+        raise TypeError(
+            f"'indices' must be of data type 'int64' found `{indices.dtype}`"
+        )
+    return Array._from_tyarray(x._tyarray.take_along_axis(indices._tyarray, axis=axis))
+
+
 def tile(x: Array, repetitions: tuple[int, ...], /) -> Array:
     return Array._from_tyarray(x._tyarray.tile(repetitions))
 
