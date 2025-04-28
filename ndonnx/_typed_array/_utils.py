@@ -6,9 +6,9 @@ from __future__ import annotations
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
-if TYPE_CHECKING:
-    from ndonnx.types import PyScalar
+from ndonnx.types import PyScalar
 
+if TYPE_CHECKING:
     from . import TyArrayBase
     from .masked_onnx import TyMaArray
     from .onnx import TyArray

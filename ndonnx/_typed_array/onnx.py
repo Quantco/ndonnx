@@ -1713,9 +1713,24 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 class TyArrayFloating(TyArrayNumber):
     def __mod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
+            # This function is complicated for two reasons:
+            # 1. The ONNX standard is undefined if dividend is 0, but the array-api is not.
+            # 2. The array-api follows the Python semantics, which are rather odd.
             a, b = promote(self, other)
             var = op.mod(a._var, b._var, fmod=1)
-            return safe_cast(TyArrayFloating, _var_to_tyarray(var))
+            mod = safe_cast(TyArrayFloating, _var_to_tyarray(var))
+            # NOTE: onnxruntime appears to have a bug where the sign
+            # of zeros is only preserved if they are on the
+            # false-branch!
+            # TODO: File a bug!
+            fixed_mod = where((b < 0) == (mod < 0), mod, mod + b)
+            fixed_zeros = where(b > 0, const(0.0, mod.dtype), const(-0.0, mod.dtype))
+            return where(
+                safe_cast(TyArrayBool, ~((mod == 0.0) & (b != 0.0))),
+                fixed_mod,
+                fixed_zeros,
+            )
+
         return super().__mod__(other)
 
     def __rmod__(self, other) -> TyArrayBase:
@@ -1725,13 +1740,13 @@ class TyArrayFloating(TyArrayNumber):
             return safe_cast(TyArrayFloating, _var_to_tyarray(var))
         return super().__mod__(other)
 
-    def __ndx_logaddexp___(self, x2: TyArrayBase | int | float, /) -> TyArrayFloating:
+    def __ndx_logaddexp__(self, x2: TyArrayBase | int | float, /) -> TyArrayFloating:
         if isinstance(x2, TyArrayNumber | int | float):
             x1, x2 = promote(self, x2)
             return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
         return NotImplemented
 
-    def __ndx_rlogaddexp___(self, x1: TyArrayBase | int | float, /) -> TyArrayFloating:
+    def __ndx_rlogaddexp__(self, x1: TyArrayBase | int | float, /) -> TyArrayFloating:
         if isinstance(x1, TyArrayNumber | int | float):
             x2, x1 = promote(self, x1)
             return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
@@ -2357,6 +2372,18 @@ def result_type(
         if ret := _singed_int_with_uint64.get((a, b)):
             return ret
     return NotImplemented
+
+
+@overload
+def promote(
+    lhs: TyArrayFloating, *others: TyArrayFloating | int | float
+) -> tuple[TyArrayFloating, ...]: ...
+
+
+@overload
+def promote(
+    lhs: TyArray, *others: TyArray | bool | int | float | str
+) -> tuple[TyArray, ...]: ...
 
 
 def promote(
