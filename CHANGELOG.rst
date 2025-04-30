@@ -10,6 +10,11 @@ Changelog
 0.10.2 (unreleased)
 -------------------
 
+**New features**
+
+- Support the 2024.12 version of the Array API (except ``nextafter``).
+
+
 **Other change**
 
 - Address various deprecation warnings.
