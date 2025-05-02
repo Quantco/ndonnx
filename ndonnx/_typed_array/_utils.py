@@ -65,7 +65,7 @@ def validate_op_result(
     """Raise an exception if `result` is not `NotImplemented`, otherwise return it."""
 
     def fmt(x: TyArrayBase | PyScalar) -> str:
-        return str(x) if isinstance(x, PyScalar) else str(x.dtype)
+        return str(type(x)) if isinstance(x, PyScalar) else str(x.dtype)
 
     if isinstance(result, NotImplementedType):
         raise TypeError(

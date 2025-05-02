@@ -7,7 +7,7 @@
 Changelog
 =========
 
-0.10.2 (unreleased)
+0.11.0 (unreleased)
 -------------------
 
 **New features**
