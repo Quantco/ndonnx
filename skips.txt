@@ -40,6 +40,7 @@ array_api_tests/test_has_names.py::test_has_names[elementwise-signbit]
 array_api_tests/test_has_names.py::test_has_names[elementwise-atan2]
 array_api_tests/test_has_names.py::test_has_names[elementwise-expm1]
 array_api_tests/test_has_names.py::test_has_names[elementwise-log1p]
+array_api_tests/test_has_names.py::test_has_names[elementwise-nextafter]
 
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
 array_api_tests/test_operators_and_elementwise_functions.py::test_copysign
@@ -47,11 +48,44 @@ array_api_tests/test_operators_and_elementwise_functions.py::test_expm1
 array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
 array_api_tests/test_operators_and_elementwise_functions.py::test_log1p
 array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
+array_api_tests/test_operators_and_elementwise_functions.py::test_nextafter
+
+array_api_tests/test_operators_and_elementwise_functions.py::test_binary_with_scalars_real[atan2]
+array_api_tests/test_operators_and_elementwise_functions.py::test_binary_with_scalars_real[copysign]
+array_api_tests/test_operators_and_elementwise_functions.py::test_binary_with_scalars_real[hypot]
+array_api_tests/test_operators_and_elementwise_functions.py::test_binary_with_scalars_real[nextafter]
 
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i < 0) -> NaN]
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i > 0) -> NaN]
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i is +0) -> NaN]
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i is -0) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is NaN or x2_i is NaN) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i > 0 and x2_i is +0) -> roughly +pi/2]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i > 0 and x2_i is -0) -> roughly +pi/2]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +0 and x2_i > 0) -> +0]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +0 and x2_i is +0) -> +0]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +0 and x2_i is -0) -> roughly +pi]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +0 and x2_i < 0) -> roughly +pi]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -0 and x2_i > 0) -> -0]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -0 and x2_i is +0) -> -0]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -0 and x2_i is -0) -> roughly -pi]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -0 and x2_i < 0) -> roughly -pi]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i < 0 and x2_i is +0) -> roughly -pi/2]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i < 0 and x2_i is -0) -> roughly -pi/2]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i > 0 and isfinite(x1_i) and x2_i is +infinity) -> +0]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i > 0 and isfinite(x1_i) and x2_i is -infinity) -> roughly +pi]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i < 0 and isfinite(x1_i) and x2_i is +infinity) -> -0]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i < 0 and isfinite(x1_i) and x2_i is -infinity) -> roughly -pi]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +infinity and isfinite(x2_i)) -> roughly +pi/2]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -infinity and isfinite(x2_i)) -> roughly -pi/2]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +infinity and x2_i is +infinity) -> roughly +pi/4]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is +infinity and x2_i is -infinity) -> roughly +3pi/4]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -infinity and x2_i is +infinity) -> roughly -pi/4]
+array_api_tests/test_special_cases.py::test_binary[atan2(x1_i is -infinity and x2_i is -infinity) -> roughly -3pi/4]
+array_api_tests/test_special_cases.py::test_binary[nextafter(x1_i is NaN or x2_i is NaN) -> NaN]
+array_api_tests/test_special_cases.py::test_binary[nextafter(x1_i is -0 and x2_i is +0) -> +0]
+array_api_tests/test_special_cases.py::test_binary[nextafter(x1_i is +0 and x2_i is -0) -> -0]
+
 array_api_tests/test_special_cases.py::test_unary[acos(x_i < -1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[acos(x_i > 1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[acosh(x_i < 1) -> NaN]

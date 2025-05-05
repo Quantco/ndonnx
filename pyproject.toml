@@ -102,4 +102,4 @@ filterwarnings = [
 ]
 
 [tool.typos.default]
-extend-ignore-identifiers-re = ["scatter_nd", "arange"]
+extend-ignore-identifiers-re = ["scatter_nd", "arange", "gather_nd"]

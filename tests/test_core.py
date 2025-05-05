@@ -239,17 +239,6 @@ def test_indexing_with_array(_a):
     assert_array_equal(expected_c, actual)
 
 
-def test_indexing_with_tuple_of_array(_a):
-    a = numpy_to_graph_input(_a)
-    index = numpy_to_graph_input(np.array([0, 2]))
-
-    with pytest.raises(
-        IndexError,
-        match="index arrays must be rank-0",
-    ):
-        a[(index,)]
-
-
 def test_slicing(_a):
     a = numpy_to_graph_input(_a)
     b = a[1:2]

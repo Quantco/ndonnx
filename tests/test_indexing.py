@@ -168,3 +168,13 @@ def test_index_scalar_with_scalar_bool():
         return arr[key]
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+
+
+def test_integer_array_indexing():
+    def do(npx):
+        arr = npx.reshape(npx.arange(0, 16, dtype=npx.int64), (4, 4))
+        key = (npx.asarray([0, 1]), npx.asarray([2, 3]))
+
+        return arr[key]
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
