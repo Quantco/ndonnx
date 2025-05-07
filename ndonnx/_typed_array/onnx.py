@@ -1626,7 +1626,7 @@ class TyArrayFloating(TyArrayNumber):
             )
         )
         in_shape = self.dynamic_shape
-        axis_ = _axis_array(axis, in_shape.ndim)
+        axis_ = _axis_array(axis, self.ndim)
         if axis_ is None:
             n_elements = in_shape.prod()
         else:

@@ -7,7 +7,7 @@ from packaging.version import parse
 
 import ndonnx as ndx
 
-AXES = [None, 0, 1, (0, 1), (1, 0), ()]
+AXES = [None, 0, 1, (0, 1), (1, 0), (), (-1, 0), (-1)]
 
 CORRECTIONS = [0, 1, 0.0, 1.0]
 
