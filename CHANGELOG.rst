@@ -12,7 +12,7 @@ Changelog
 
 **Bug fix**
 
-- :func:`ndonnx.mean`, :func:`ndonnx.var`, and :func:`ndonnx.std` now produces correct result if negative axes are provided to the ``axis`` argument.
+- :func:`ndonnx.mean`, :func:`ndonnx.var`, and :func:`ndonnx.std` now produce correct results if axes outside the range of `[-1, 1]` are given.
 
 
 **Other change**
