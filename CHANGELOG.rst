@@ -7,8 +7,13 @@
 Changelog
 =========
 
-0.10.2 (unreleased)
+0.11.0 (2025-05-08)
 -------------------
+
+**Bug fix**
+
+- :func:`ndonnx.mean`, :func:`ndonnx.var`, and :func:`ndonnx.std` now produce correct results if axes outside the range of `[-1, 1]` are given.
+
 
 **Other change**
 
