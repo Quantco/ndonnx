@@ -11,8 +11,10 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import numpy as np
 from typing_extensions import Self
 
-from ndonnx import DType
+from ndonnx import DType, int64
 from ndonnx.types import OnnxShape, PyScalar
+
+from .ort_compat import const, if_
 
 if TYPE_CHECKING:
     from spox import Var
@@ -230,7 +232,13 @@ class TyArrayBase(ABC):
             indices_b = [slice(None) for i in range(x.ndim)]
 
             dim = x.dynamic_shape[axis]
-            shift_ = astyarray(shift) % dim
+            (shift_,) = if_(
+                (dim == 0).disassemble(),
+                then_branch=lambda: (const(0),),
+                else_branch=lambda: (
+                    (astyarray(shift, dtype=int64) % dim).disassemble(),
+                ),
+            )
             # pre roll: |----a------|---b---|
             # postroll: |---b---|----a------|
             #           |-shift-|

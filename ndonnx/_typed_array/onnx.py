@@ -1452,12 +1452,12 @@ class TyArrayInteger(TyArrayNumber):
     def __ror__(self, other) -> TyArrayBase:
         return self._apply_int_only(other, op.bitwise_or, forward=False)
 
-    def __mod__(self, other) -> TyArrayBase:
+    def __mod__(self, other) -> TyArrayInteger:
         return self._apply_int_only(
             other, lambda a, b: op.mod(a, b, fmod=0), forward=True
         )
 
-    def __rmod__(self, other) -> TyArrayBase:
+    def __rmod__(self, other) -> TyArrayInteger:
         return self._apply_int_only(
             other, lambda a, b: op.mod(a, b, fmod=0), forward=False
         )
