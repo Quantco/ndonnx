@@ -393,12 +393,6 @@ def log1p(x: Array, /) -> Array:
     raise NotImplementedError
 
 
-def atan2(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    # Requires special operator to meet standards precision requirements
-    # TODO: Add upstream tracking issue
-    raise NotImplementedError
-
-
 def conj(x: Array, /) -> Array:
     # Support for complex numbers is very broken in the ONNX standard
     raise NotImplementedError
@@ -406,12 +400,6 @@ def conj(x: Array, /) -> Array:
 
 def imag(x: Array, /) -> Array:
     # Support for complex numbers is very broken in the ONNX standard
-    raise NotImplementedError
-
-
-def nextafter(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    # Requires special ONNX operator
-    # TODO: Add upstream tracking issue
     raise NotImplementedError
 
 

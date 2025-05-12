@@ -62,6 +62,13 @@ def atan(array: Array, /) -> Array:
     return Array._from_tyarray(array._tyarray.atan())
 
 
+@_ensure_array_in_args
+def atan2(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    # Requires special operator to meet standards precision requirements
+    # TODO: Add upstream tracking issue
+    raise NotImplementedError
+
+
 def atanh(array: Array, /) -> Array:
     return Array._from_tyarray(array._tyarray.atanh())
 
@@ -265,6 +272,13 @@ def multiply(x1: Array | int | float, x2: Array | int | float, /) -> Array:
 
 def negative(x: Array, /) -> Array:
     return Array._from_tyarray(-x._tyarray)
+
+
+@_ensure_array_in_args
+def nextafter(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+    # Requires special ONNX operator
+    # TODO: Add upstream tracking issue
+    raise NotImplementedError
 
 
 @_ensure_array_in_args
