@@ -7,12 +7,20 @@
 Changelog
 =========
 
-0.11.0 (unreleased)
+0.12.0 (unreleased)
 -------------------
 
 **New features**
 
 - Support the 2024.12 version of the Array API (except ``nextafter``).
+
+
+0.11.0 (2025-05-08)
+-------------------
+
+**Bug fix**
+
+- :func:`ndonnx.mean`, :func:`ndonnx.var`, and :func:`ndonnx.std` now produce correct results if axes outside the range of `[-1, 1]` are given.
 
 
 **Other change**

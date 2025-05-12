@@ -7,7 +7,7 @@ from packaging.version import parse
 
 import ndonnx as ndx
 
-AXES = [None, 0, 1, (0, 1), (1, 0), ()]
+AXES = [None, 0, 1, (0, 1), (1, 0), (), (-1, 0), (-1)]
 
 CORRECTIONS = [0, 1, 0.0, 1.0]
 
@@ -100,3 +100,13 @@ def test_sum(dtype, keepdims, axis, np_arr):
     kwargs = {"keepdims": keepdims, "axis": axis}
 
     _compare_to_numpy(ndx.sum, np.sum, np_arr, kwargs)
+
+
+@pytest.mark.parametrize("axis", [-1, (0, -1), (2, -1), (-3, 3)])
+def test_mean_higher_dim(axis):
+    np_arr = np.arange(0, 3 * 3 * 3 * 3, dtype=np.float32).reshape((3, 3, 3, 3))
+    axis = -2
+    expected = np.mean(np_arr, axis=axis)
+    candidate = ndx.mean(ndx.asarray(np_arr), axis=axis).unwrap_numpy()
+
+    np.testing.assert_array_equal(candidate, expected)
