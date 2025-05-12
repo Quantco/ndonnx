@@ -320,6 +320,7 @@ def sqrt(x: Array, /) -> Array:
     return Array._from_tyarray(x._tyarray.sqrt())
 
 
+@_ensure_array_in_args
 def subtract(x1: Array | int | float, x2: Array | int | float, /) -> Array:
     return ndx.asarray(x1 - x2)
 
