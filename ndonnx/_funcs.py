@@ -539,10 +539,6 @@ def permute_dims(x: Array, /, axes: tuple[int, ...]) -> Array:
     return Array._from_tyarray(data)
 
 
-def reciprocal(x: Array, /) -> Array:
-    return Array._from_tyarray(x._tyarray.reciprocal())
-
-
 def reshape(
     x: Array, /, shape: tuple[int, ...] | Array, *, copy: bool | None = None
 ) -> Array:

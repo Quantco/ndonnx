@@ -226,32 +226,32 @@ def logaddexp(
 
 
 def logical_and(x1: TyArrayBase | bool, x2: TyArrayBase | bool, /) -> TyArrayBase:
-    x1 = onnx.const(x1) if isinstance(x1, bool) else x1
-    x2 = onnx.const(x2) if isinstance(x2, bool) else x2
-
-    res = x1.__ndx_logical_and__(x2)
-    if res is NotImplemented:
+    res: TyArrayBase | NotImplementedType = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logical_and__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_rlogical_and__(x1)
+
     return validate_op_result(x1, x2, res, "logical_and")
 
 
 def logical_or(x1: TyArrayBase | bool, x2: TyArrayBase | bool, /) -> TyArrayBase:
-    x1 = onnx.const(x1) if isinstance(x1, bool) else x1
-    x2 = onnx.const(x2) if isinstance(x2, bool) else x2
-
-    res = x1.__ndx_logical_or__(x2)
-    if res is NotImplemented:
+    res: TyArrayBase | NotImplementedType = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logical_or__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_rlogical_or__(x1)
+
     return validate_op_result(x1, x2, res, "logical_or")
 
 
 def logical_xor(x1: TyArrayBase | bool, x2: TyArrayBase | bool, /) -> TyArrayBase:
-    x1 = onnx.const(x1) if isinstance(x1, bool) else x1
-    x2 = onnx.const(x2) if isinstance(x2, bool) else x2
-
-    res = x1.__ndx_logical_xor__(x2)
-    if res is NotImplemented:
+    res: TyArrayBase | NotImplementedType = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logical_xor__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_rlogical_xor__(x1)
+
     return validate_op_result(x1, x2, res, "logical_xor")
 
 

@@ -301,6 +301,10 @@ def real(x: Array, /) -> Array:
     raise NotImplementedError
 
 
+def reciprocal(x: Array, /) -> Array:
+    return Array._from_tyarray(x._tyarray.reciprocal())
+
+
 @_ensure_array_in_args
 def remainder(x1: Array | int | float, x2: Array | int | float, /) -> Array:
     return ndx.asarray(x1 % x2)
