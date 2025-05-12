@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from types import EllipsisType
 from typing import Any
 
 import numpy as np
@@ -110,62 +109,3 @@ def _compute_stop_slice(
     if isinstance(is_reverse, bool):
         return _MIN if is_reverse else _MAX
     return onnx.where(is_reverse, _asidx(_MIN), _asidx(_MAX))
-
-
-def normalize_getitem_key(
-    key: onnx.GetitemIndex,
-) -> tuple[onnx.GetitemItem, ...] | onnx._BoolMask:
-    from . import onnx
-
-    if isinstance(key, bool):
-        return onnx.const(key, dtype=onnx.bool_)
-    if (
-        isinstance(key, tuple)
-        and len(key) > 0
-        and all(isinstance(el, bool) for el in key)
-    ):
-        key = onnx.const(np.array(key), dtype=onnx.bool_)
-
-    # Fish out the boolean masks before normalizing to tuples
-    if isinstance(key, onnx.TyArrayBool):
-        return key
-
-    if isinstance(key, int | slice | EllipsisType | None | onnx.TyArrayInt64):
-        return (_normalize_getitem_key_item(key),)
-
-    if isinstance(key, tuple):
-        # Cannot use `count` since that will trigger an __eq__ call
-        # with type promotion against `...`
-        if sum(isinstance(el, type(...)) for el in key) > 1:
-            raise IndexError("more than one ellipsis (`...`) in index tuple")
-
-        return tuple(_normalize_getitem_key_item(el) for el in key)
-
-    raise IndexError(f"unexpected key `{key}`")
-
-
-def _normalize_getitem_key_item(key: onnx.GetitemItem) -> onnx.GetitemItem:
-    if isinstance(key, slice):
-        slice_kwargs = {"start": key.start, "stop": key.stop, "step": key.step}
-        out: dict[str, int | None | onnx.TyArrayInt64] = {}
-        for k, arg in slice_kwargs.items():
-            if not isinstance(arg, None | int | onnx.TyArrayInt64):
-                raise IndexError(f"slice argument `{k}` has invalid type `{type(arg)}`")
-            if isinstance(arg, onnx.TyArrayBase):
-                if arg.dtype not in (onnx.int32, onnx.int64) or arg.ndim != 0:
-                    raise IndexError(
-                        f"array-slice argument must be be an int64 scalar. Found `{arg}`"
-                    )
-                out[k] = arg.astype(onnx.int64)
-            else:
-                out[k] = arg
-        return slice(*out.values())  # Beware that we use the dict order here!
-
-    if isinstance(key, int | None | EllipsisType):
-        return key
-
-    if key.ndim != 0:
-        raise IndexError(
-            f"index arrays must be rank-0 tensors; found rank `{key.ndim}`"
-        )
-    return key.astype(onnx.int64)

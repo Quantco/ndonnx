@@ -20,10 +20,7 @@ from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
 from . import ort_compat as op
 from .dtype_independent_funcs import maximum, minimum, where
-from .indexing import (
-    FancySlice,
-    normalize_getitem_key,
-)
+from .indexing import FancySlice
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
 """Alias signaling that this must be a rank-0 integer tensor."""
@@ -42,11 +39,14 @@ This includes `None`.
 SetitemIndex: TypeAlias = "SetitemItem | tuple[SetitemItem, ...] | _BoolMask"
 GetitemIndex: TypeAlias = "GetitemItem | tuple[GetitemItem, ...] | _BoolMask"
 
-
-TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
-TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY = TypeVar("TY_ARRAY", bound="TyArray")
+TY_ARRAY_co = TypeVar("TY_ARRAY_co", bound="TyArray", covariant=True)
+
+TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
+TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
+
 TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
+
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
 
@@ -322,17 +322,34 @@ class TyArray(TyArrayBase):
             return {"data": "*lazy*"}
 
     def __getitem__(self, key: GetitemIndex) -> Self:
-        key = normalize_getitem_key(key)
+        # Dispatch cases roughly in line with how the standard describes them here
+        # https://data-apis.org/array-api/2024.12/API_specification/indexing.html
 
-        if isinstance(key, bool):
-            key = TyArrayBool(op.const(key))
-        if not isinstance(key, TyArray):
-            return self._getitem_static(key)
-        if isinstance(key, TyArrayBool):
+        # rank-0 indexing
+        if self.ndim == 0 and key == () or key == ...:
+            return self.copy()
+        # Boolean indexing
+        if isinstance(key, TyArrayBool | bool):
+            if isinstance(key, bool):
+                # NOTE: This is not mandated by the standard. Is this needed?
+                key = const(key, dtype=bool_)
             return self._getitem_boolmask(key)
+
+        # Single-axis indexing
+        if _is_single_axis_indexing(key):
+            return self._getitem_multi_axis_indexing((key,))
+
+        # Multi-axis indexing
+        if _is_multi_axis_indexing(key):
+            return self._getitem_multi_axis_indexing(key)
+
+        # Integer-array indexing
+        if _is_integer_array_indexing(key):
+            return self._getitem_integer_array_indexing(key)
+
         raise IndexError(f"cannot index with key `{key}`")
 
-    def _getitem_static(self, key: tuple[GetitemItem, ...]) -> Self:
+    def _getitem_multi_axis_indexing(self, key: tuple[GetitemItem, ...]) -> Self:
         if isinstance(key, list):
             # Technically not supported, but a common pattern
             key = tuple(key)
@@ -432,6 +449,21 @@ class TyArray(TyArrayBase):
 
         res = op.compress(var, key.reshape((-1,))._var, axis=0)
         return type(self)(res)
+
+    def _getitem_integer_array_indexing(
+        self, key: tuple[int | TyArrayInt64, ...]
+    ) -> Self:
+        key_arrays = []
+        for el in key:
+            if isinstance(el, int):
+                key_arrays.append(const(np.asarray([el], np.int64), dtype=int64))
+            else:
+                key_arrays.append(el)
+        key_arrays_tuple = broadcast_arrays(*[el[..., None] for el in key_arrays])
+        key_array = key_arrays_tuple[0].concat(key_arrays_tuple[1:], axis=-1)
+
+        var = op.gather_nd(self._var, key_array._var)
+        return type(self)(var)
 
     def __setitem__(
         self,
@@ -715,6 +747,22 @@ class TyArray(TyArrayBase):
     def disassemble(self) -> Var:
         return self._var
 
+    def count_nonzero(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayInt64:
+        non_zeros = self.astype(bool_).astype(int64)
+        return non_zeros.sum(axis=axis, keepdims=keepdims, dtype=int64)
+
+    def nonzero(self) -> tuple[TyArrayInt64, ...]:
+        if self.ndim == 0:
+            raise ValueError("'nonzero' is not defined for scalar arrays")
+
+        res = TyArrayInt64(op.non_zero(self._var))
+        out = []
+        for i in range(self.ndim):
+            out.append(res[i, :])
+        return tuple(out)
+
     def permute_dims(self, axes: tuple[int, ...]) -> Self:
         var = op.transpose(self._var, perm=axes)
         return type(self)(var)
@@ -777,6 +825,10 @@ class TyArray(TyArrayBase):
     def take(self, indices: TyArrayInt64, /, *, axis: int | None = None) -> Self:
         axis = axis or 0
         var = op.gather(self._var, indices._var, axis=axis)
+        return type(self)(var)
+
+    def take_along_axis(self, indices: TyArrayInt64, /, *, axis: int = -1) -> Self:
+        var = op.gather_elements(self._var, indices._var, axis=axis)
         return type(self)(var)
 
     def tile(self, repetitions: tuple[int, ...], /) -> Self:
@@ -905,13 +957,13 @@ class TyArray(TyArrayBase):
 
     @overload
     def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType: ...
 
     def __ndx_where__(
-        self, cond: TyArrayBool, y: TyArrayBase, /
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
     ) -> TyArrayBase | NotImplementedType:
-        if isinstance(y, TyArray):
+        if isinstance(y, TyArray | PyScalar):
             x, y = promote(self, y)
             var = op.where(cond._var, x._var, y._var)
             return type(x)(var)
@@ -942,6 +994,12 @@ class TyArrayUtf8(TyArray):
 
     def isnan(self) -> TyArrayBool:
         return const(False, dtype=bool_).broadcast_to(self.dynamic_shape)
+
+    def __ndx_cast_to__(self, dtype: DType[TY_ARRAY_BASE_co]) -> TY_ARRAY_BASE_co:
+        if dtype == bool_:
+            # Only the empty string is false-y
+            return (self != const("")).astype(dtype)
+        return super().__ndx_cast_to__(dtype=dtype)
 
 
 class TyArrayNumber(TyArray):
@@ -992,6 +1050,23 @@ class TyArrayNumber(TyArray):
         var = op.clip(self._var, min_, max_)
 
         return type(self)(var)
+
+    def cumulative_prod(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        # See https://github.com/onnx/onnx/issues/6590 for the
+        # discussion on adding an efficient implementation to the
+        # standard
+        return (
+            self.log()
+            .cumulative_sum(axis=axis, dtype=dtype, include_initial=include_initial)
+            .exp()
+        )
 
     def cumulative_sum(
         self,
@@ -1146,6 +1221,57 @@ class TyArrayNumber(TyArray):
         )
         return type(self)(values)
 
+    def diff(
+        self,
+        /,
+        *,
+        axis: int = -1,
+        n: int = 1,
+        prepend: Self | None = None,
+        append: Self | None = None,
+    ) -> Self:
+        # TODO: Add NOTICE; taken from numpy.diff
+        a = self
+        if n == 0:
+            return a
+        if n < 0:
+            raise ValueError("order must be non-negative but got " + repr(n))
+
+        ndim = a.ndim
+        if ndim == 0:
+            raise ValueError("diff requires input that is at least one dimensional")
+        axis = axis if axis >= 0 else ndim + axis
+
+        combined = []
+        if prepend is not None:
+            if prepend.ndim == 0:
+                shape = a.dynamic_shape.copy()
+                shape[axis] = const(1, int64)
+                prepend = prepend.broadcast_to(shape)
+            combined.append(prepend)
+
+        combined.append(a)
+
+        if append is not None:
+            if append.ndim == 0:
+                shape = a.dynamic_shape.copy()
+                shape[axis] = const(1, int64)
+                append = append.broadcast_to(shape)
+            combined.append(append)
+
+        if len(combined) > 1:
+            a = combined[0].concat(combined[1:], axis=axis)
+
+        slice1 = [slice(None)] * ndim
+        slice2 = [slice(None)] * ndim
+        slice1[axis] = slice(1, None)
+        slice2[axis] = slice(None, -1)
+
+        for _ in range(n):
+            a = a[tuple(slice1)] - a[tuple(slice2)]
+
+        return a
+
     @overload
     def sum(
         self,
@@ -1264,7 +1390,7 @@ class TyArrayNumber(TyArray):
     def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=True, result_type=TyArrayNumber)
 
-    def __rmul__(self, other: int | float) -> TyArrayBase:
+    def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=False, result_type=TyArrayNumber)
 
     def __pow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -1273,10 +1399,19 @@ class TyArrayNumber(TyArray):
     def __rpow__(self, other) -> TyArrayBase:
         return self._apply(other, op.pow, forward=False, result_type=TyArrayNumber)
 
+    @overload
+    def __sub__(self: Self, other: Self | int, /) -> Self: ...
+
+    @overload
+    def __sub__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
+
+    @overload
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+
     def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.sub, forward=True, result_type=TyArrayNumber)
 
-    def __rsub__(self, other) -> TyArrayBase:
+    def __rsub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.sub, forward=False, result_type=TyArrayNumber)
 
     def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -1296,16 +1431,6 @@ class TyArrayNumber(TyArray):
             promo_result, _ = promote(self, other)
             return (other / self).floor().astype(promo_result.dtype)
         return NotImplemented
-
-    def nonzero(self) -> tuple[TyArrayInt64, ...]:
-        if self.ndim == 0:
-            raise ValueError("'nonzero' is not defined for scalar arrays")
-
-        res = TyArrayInt64(op.non_zero(self._var))
-        out = []
-        for i in range(self.ndim):
-            out.append(res[i, :])
-        return tuple(out)
 
     def sign(self) -> Self:
         return type(self)(op.sign(self._var))
@@ -1432,7 +1557,7 @@ class TyArrayInteger(TyArrayNumber):
             rhs = float(rhs)
         return super().__truediv__(rhs)
 
-    def __rtruediv__(self, lhs: int | float) -> TyArrayBase:
+    def __rtruediv__(self, lhs: TyArrayBase | PyScalar) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
         if isinstance(lhs, TyArrayNumber):
             return lhs.astype(float64) / self.astype(float64)
@@ -1488,6 +1613,29 @@ class TyArrayInteger(TyArrayNumber):
 
     def ceil(self) -> Self:
         return self.copy()
+
+    def cumulative_prod(
+        self,
+        /,
+        *,
+        axis: int | None = None,
+        dtype: DType | None = None,
+        include_initial: bool = False,
+    ) -> TyArrayBase:
+        # Requires special handling since the current implementation
+        # is using log/exp which does not exist for integer data types
+        if isinstance(dtype, Integer | None):
+            res = self.astype(float64).cumulative_prod(
+                axis=axis, include_initial=include_initial
+            )
+            if dtype is None:
+                if isinstance(self, TyArrayUnsignedInteger):
+                    return res.astype(uint64)
+                return res.astype(int64)
+            return res.astype(dtype)
+        return super().cumulative_prod(
+            axis=axis, dtype=dtype, include_initial=include_initial
+        )
 
     def floor(self) -> Self:
         return self.copy()
@@ -1565,9 +1713,24 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 class TyArrayFloating(TyArrayNumber):
     def __mod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
+            # This function is complicated for two reasons:
+            # 1. The ONNX standard is undefined if dividend is 0, but the array-api is not.
+            # 2. The array-api follows the Python semantics, which are rather odd.
             a, b = promote(self, other)
             var = op.mod(a._var, b._var, fmod=1)
-            return safe_cast(TyArrayFloating, _var_to_tyarray(var))
+            mod = safe_cast(TyArrayFloating, _var_to_tyarray(var))
+            # NOTE: onnxruntime appears to have a bug where the sign
+            # of zeros is only preserved if they are on the
+            # false-branch!
+            # TODO: File a bug!
+            fixed_mod = where((b < 0) == (mod < 0), mod, mod + b)
+            fixed_zeros = where(b > 0, const(0.0, mod.dtype), const(-0.0, mod.dtype))
+            return where(
+                safe_cast(TyArrayBool, ~((mod == 0.0) & (b != 0.0))),
+                fixed_mod,
+                fixed_zeros,
+            )
+
         return super().__mod__(other)
 
     def __rmod__(self, other) -> TyArrayBase:
@@ -1577,11 +1740,26 @@ class TyArrayFloating(TyArrayNumber):
             return safe_cast(TyArrayFloating, _var_to_tyarray(var))
         return super().__mod__(other)
 
+    def __ndx_logaddexp__(self, x2: TyArrayBase | int | float, /) -> TyArrayFloating:
+        if isinstance(x2, TyArrayNumber | int | float):
+            x1, x2 = promote(self, x2)
+            return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
+        return NotImplemented
+
+    def __ndx_rlogaddexp__(self, x1: TyArrayBase | int | float, /) -> TyArrayFloating:
+        if isinstance(x1, TyArrayNumber | int | float):
+            x2, x1 = promote(self, x1)
+            return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
+        return NotImplemented
+
     def ceil(self) -> Self:
         return type(self)(op.ceil(self._var))
 
     def floor(self) -> Self:
         return type(self)(op.floor(self._var))
+
+    def reciprocal(self) -> Self:
+        return type(self)(op.reciprocal(self._var))
 
     def round(self) -> Self:
         return type(self)(op.round(self._var))
@@ -1995,6 +2173,42 @@ def _contains_no_ellipsis(
     return all(not isinstance(el, EllipsisType) for el in seq)
 
 
+def _is_integer_array_indexing(
+    key: GetitemIndex,
+) -> TypeGuard[tuple[int | TyArrayInt64, ...]]:
+    if not isinstance(key, tuple):
+        return False
+    for el in key:
+        if isinstance(el, int):
+            continue
+        if isinstance(el, TyArrayInt64):
+            continue
+        return False
+    return True
+
+
+def _is_single_axis_indexing(
+    key: GetitemIndex,
+) -> TypeGuard[int | _ScalarInt | slice | EllipsisType | None]:
+    if isinstance(key, TyArrayInteger) and key.ndim == 0:
+        return True
+    return isinstance(key, int | slice | EllipsisType | None)
+
+
+def _is_multi_axis_indexing(
+    key: GetitemIndex,
+) -> TypeGuard[tuple[int | _ScalarInt | slice | EllipsisType | None, ...]]:
+    if not isinstance(key, tuple):
+        return False
+    for el in key:
+        if isinstance(el, TyArrayInteger) and el.ndim == 0:
+            continue
+        elif isinstance(el, int | slice | EllipsisType | None):
+            continue
+        return False
+    return True
+
+
 #####################
 # Conversion tables #
 #####################
@@ -2158,6 +2372,18 @@ def result_type(
         if ret := _singed_int_with_uint64.get((a, b)):
             return ret
     return NotImplemented
+
+
+@overload
+def promote(
+    lhs: TyArrayFloating, *others: TyArrayFloating | int | float
+) -> tuple[TyArrayFloating, ...]: ...
+
+
+@overload
+def promote(
+    lhs: TyArray, *others: TyArray | bool | int | float | str
+) -> tuple[TyArray, ...]: ...
 
 
 def promote(
@@ -2387,12 +2613,12 @@ def meshgrid(*arrays: TyArrayBase, indexing: str = "xy") -> list[TyArrayBase]:
         output[0] = output[0].reshape((1, -1) + base_shape[2:])
         output[1] = output[1].reshape((-1, 1) + base_shape[2:])
 
-    return broadcast_arrays(*output)
+    return list(broadcast_arrays(*output))
 
 
-def broadcast_arrays(*arrays: TyArrayBase) -> list[TyArrayBase]:
+def broadcast_arrays(*arrays: TY_ARRAY_BASE) -> tuple[TY_ARRAY_BASE, ...]:
     if len(arrays) < 2:
-        return [a.copy() for a in arrays]
+        return tuple(a.copy() for a in arrays)
 
     def numeric_like(x: TyArrayBase) -> TyArrayInt32:
         # Using int32 rather than something smaller because we don't
@@ -2406,4 +2632,4 @@ def broadcast_arrays(*arrays: TyArrayBase) -> list[TyArrayBase]:
 
     target_shape = ret.dynamic_shape
 
-    return [a.broadcast_to(target_shape) for a in arrays]
+    return tuple(a.broadcast_to(target_shape) for a in arrays)

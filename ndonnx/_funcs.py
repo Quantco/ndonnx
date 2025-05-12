@@ -16,6 +16,7 @@ import ndonnx as ndx
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
+from ._array_tyarray_interop import unwrap_tyarray
 from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
@@ -141,6 +142,16 @@ def argmin(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> A
     return Array._from_tyarray(x._tyarray.argmin(axis=axis, keepdims=keepdims))
 
 
+def count_nonzero(
+    x: Array,
+    /,
+    *,
+    axis: int | tuple[int, ...] | None = None,
+    keepdims: bool = False,
+) -> Array:
+    return Array._from_tyarray(x._tyarray.count_nonzero(axis=axis, keepdims=keepdims))
+
+
 def argsort(
     x: Array, /, *, axis: int = -1, descending: bool = False, stable: bool = True
 ) -> Array:
@@ -203,6 +214,20 @@ def concat(
     arrays: tuple[Array, ...] | list[Array], /, *, axis: None | int = 0
 ) -> Array:
     data = tyfuncs.concat([arr._tyarray for arr in arrays], axis=axis)
+    return Array._from_tyarray(data)
+
+
+def cumulative_prod(
+    x: Array,
+    /,
+    *,
+    axis: int | None = None,
+    dtype: DType | None = None,
+    include_initial: bool = False,
+) -> Array:
+    data = x._tyarray.cumulative_prod(
+        axis=axis, dtype=dtype, include_initial=include_initial
+    )
     return Array._from_tyarray(data)
 
 
@@ -358,16 +383,13 @@ def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
 
 def expm1(x: Array, /) -> Array:
     # Requires special operator to meet standards precision requirements
+    # TODO: Add upstream tracking issue
     raise NotImplementedError
 
 
 def log1p(x: Array, /) -> Array:
     # Requires special operator to meet standards precision requirements
-    raise NotImplementedError
-
-
-def atan2(x1: Array, x2: Array, /) -> Array:
-    # Requires special operator to meet standards precision requirements
+    # TODO: Add upstream tracking issue
     raise NotImplementedError
 
 
@@ -628,6 +650,14 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
     return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 
 
+def take_along_axis(x: Array, indices: Array, /, *, axis: int = -1) -> Array:
+    if not isinstance(indices._tyarray, onnx.TyArrayInt64):
+        raise TypeError(
+            f"'indices' must be of data type 'int64' found `{indices.dtype}`"
+        )
+    return Array._from_tyarray(x._tyarray.take_along_axis(indices._tyarray, axis=axis))
+
+
 def tile(x: Array, repetitions: tuple[int, ...], /) -> Array:
     return Array._from_tyarray(x._tyarray.tile(repetitions))
 
@@ -706,10 +736,14 @@ def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
     return sum(prod, axis=axis, dtype=prod.dtype)
 
 
-def where(cond: Array, a: Array, b: Array) -> Array:
+def where(
+    cond: Array,
+    a: Array | int | float | bool | str,
+    b: Array | int | float | bool | str,
+) -> Array:
     if not isinstance(cond._tyarray, onnx.TyArrayBool):
         raise TypeError(f"'cond' must be of data type 'bool', found `{cond.dtype}`")
-    data = tyfuncs.where(cond._tyarray, a._tyarray, b._tyarray)
+    data = tyfuncs.where(cond._tyarray, unwrap_tyarray(a), unwrap_tyarray(b))
     return Array._from_tyarray(data)
 
 
@@ -729,3 +763,21 @@ def zeros_like(
 ) -> Array:
     dtype = dtype or x.dtype
     return full_like(x, 0, dtype=dtype)
+
+
+def diff(
+    a: Array,
+    /,
+    *,
+    axis: int = -1,
+    n: int = 1,
+    prepend: Array | None = None,
+    append: Array | None = None,
+) -> Array:
+    res = a._tyarray.diff(
+        axis=axis,
+        n=n,
+        prepend=None if prepend is None else prepend._tyarray,
+        append=None if append is None else append._tyarray,
+    )
+    return Array._from_tyarray(res)

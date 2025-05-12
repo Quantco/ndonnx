@@ -322,8 +322,10 @@ class TimeBaseArray(TyArrayBase):
         )
 
     def __ndx_where__(
-        self, cond: onnx.TyArrayBool, other: TyArrayBase, /
+        self, cond: onnx.TyArrayBool, other: TyArrayBase | PyScalar, /
     ) -> TyArrayBase:
+        if not isinstance(other, TyArrayBase):
+            return NotImplemented
         if self.dtype != other.dtype or not isinstance(other, type(self)):
             return NotImplemented
 

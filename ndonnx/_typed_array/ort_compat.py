@@ -33,12 +33,15 @@ from spox.opset.ai.onnx.v21 import exp as exp  # Only for floats in both standar
 from spox.opset.ai.onnx.v21 import expand as expand
 from spox.opset.ai.onnx.v21 import floor as floor
 from spox.opset.ai.onnx.v21 import gather as gather
+from spox.opset.ai.onnx.v21 import gather_elements as gather_elements
+from spox.opset.ai.onnx.v21 import gather_nd as gather_nd
 from spox.opset.ai.onnx.v21 import isinf as isinf
 from spox.opset.ai.onnx.v21 import isnan as isnan
 from spox.opset.ai.onnx.v21 import log as log
 from spox.opset.ai.onnx.v21 import mod as mod
 from spox.opset.ai.onnx.v21 import not_ as not_
 from spox.opset.ai.onnx.v21 import or_ as or_
+from spox.opset.ai.onnx.v21 import reciprocal as reciprocal
 from spox.opset.ai.onnx.v21 import reshape as reshape
 from spox.opset.ai.onnx.v21 import round as round
 from spox.opset.ai.onnx.v21 import scatter_nd as scatter_nd
@@ -521,17 +524,16 @@ def arg_max(
 def non_zero(
     X: Var,
 ) -> Var:
-    dtype = X.unwrap_tensor().dtype
-    if dtype == np.float64:
-        # is_not_nan = op.not_(op.isnan(X))
-        is_ne_0 = op.not_(op.equal(X, op.const(0.0, dtype=dtype)))
-        return op.non_zero(is_ne_0)
-    mapping: _MappingDictType = {
-        (np.int8, np.int16, np.uint16): np.int32,
-        (np.uint32, np.uint64): np.float32,
-    }
-    if via_dtype := _detour_type(dtype, mapping):
-        X = op.cast(X, to=via_dtype)  # type: ignore
+    if X.unwrap_tensor().dtype.kind == "U":
+        X = op.not_(op.equal(X, const("")))
+    elif X.unwrap_tensor().dtype not in (
+        np.bool_,
+        np.float32,
+        np.int32,
+        np.int64,
+        np.uint8,
+    ):
+        X = op.cast(X, to=np.bool_)
     return op.non_zero(X)
 
 

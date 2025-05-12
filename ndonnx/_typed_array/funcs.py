@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import reduce
+from types import NotImplementedType
 from typing import Literal, TypeVar, overload
 
 import numpy as np
@@ -193,49 +194,82 @@ def where(cond: onnx.TyArrayBool, x: TYARRAY, y: TYARRAY) -> TYARRAY: ...
 
 
 @overload
-def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase: ...
+def where(
+    cond: onnx.TyArrayBool, x: TyArrayBase | PyScalar, y: TyArrayBase | PyScalar
+) -> TyArrayBase: ...
 
 
-def where(cond: onnx.TyArrayBool, x: TyArrayBase, y: TyArrayBase) -> TyArrayBase:
+def where(
+    cond: onnx.TyArrayBool, x: TyArrayBase | PyScalar, y: TyArrayBase | PyScalar
+) -> TyArrayBase:
     if not isinstance(cond, onnx.TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
 
-    res = x.__ndx_where__(cond, y)
-    if res is NotImplemented:
+    res: NotImplementedType | TyArrayBase = NotImplemented
+    if isinstance(x, TyArrayBase):
+        res = x.__ndx_where__(cond, y)
+    if res is NotImplemented and isinstance(y, TyArrayBase):
         res = y.__ndx_rwhere__(cond, x)
     return validate_op_result(x, y, res, "where")
 
 
-def logical_and(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
-    res = x1.__ndx_logical_and__(x2)
-    if res is NotImplemented:
+def logaddexp(
+    x1: TyArrayBase | int | float, x2: TyArrayBase | int | float, /
+) -> TyArrayBase:
+    res: NotImplementedType | TyArrayBase = NotImplemented
+
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logaddexp__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
+        res = x2.__ndx_logaddexp__(x1)
+    return validate_op_result(x1, x2, res, "logaddexp")
+
+
+def logical_and(x1: TyArrayBase | bool, x2: TyArrayBase | bool, /) -> TyArrayBase:
+    res: TyArrayBase | NotImplementedType = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logical_and__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_rlogical_and__(x1)
+
     return validate_op_result(x1, x2, res, "logical_and")
 
 
-def logical_or(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
-    res = x1.__ndx_logical_or__(x2)
-    if res is NotImplemented:
+def logical_or(x1: TyArrayBase | bool, x2: TyArrayBase | bool, /) -> TyArrayBase:
+    res: TyArrayBase | NotImplementedType = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logical_or__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_rlogical_or__(x1)
+
     return validate_op_result(x1, x2, res, "logical_or")
 
 
-def logical_xor(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
-    res = x1.__ndx_logical_xor__(x2)
-    if res is NotImplemented:
+def logical_xor(x1: TyArrayBase | bool, x2: TyArrayBase | bool, /) -> TyArrayBase:
+    res: TyArrayBase | NotImplementedType = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_logical_xor__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_rlogical_xor__(x1)
+
     return validate_op_result(x1, x2, res, "logical_xor")
 
 
 @overload
 def maximum(x1: TYARRAY, x2: TYARRAY, /) -> TYARRAY: ...
 @overload
-def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase: ...
+def maximum(
+    x1: TyArrayBase | int | float, x2: TyArrayBase | int | float, /
+) -> TyArrayBase: ...
 
 
-def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
-    res = x1.__ndx_maximum__(x2)
-    if res is NotImplemented:
+def maximum(
+    x1: TyArrayBase | int | float, x2: TyArrayBase | int | float, /
+) -> TyArrayBase:
+    res: NotImplementedType | TyArrayBase = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_maximum__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_maximum__(x1)
     return validate_op_result(x1, x2, res, "maximum")
 
@@ -243,12 +277,18 @@ def maximum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
 @overload
 def minimum(x1: TYARRAY, x2: TYARRAY, /) -> TYARRAY: ...
 @overload
-def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase: ...
+def minimum(
+    x1: TyArrayBase | int | float, x2: TyArrayBase | int | float, /
+) -> TyArrayBase: ...
 
 
-def minimum(x1: TyArrayBase, x2: TyArrayBase, /) -> TyArrayBase:
-    res = x1.__ndx_minimum__(x2)
-    if res is NotImplemented:
+def minimum(
+    x1: TyArrayBase | int | float, x2: TyArrayBase | int | float, /
+) -> TyArrayBase:
+    res: NotImplementedType | TyArrayBase = NotImplemented
+    if isinstance(x1, TyArrayBase):
+        res = x1.__ndx_minimum__(x2)
+    if res is NotImplemented and isinstance(x2, TyArrayBase):
         res = x2.__ndx_minimum__(x1)
     return validate_op_result(x1, x2, res, "minimum")
 

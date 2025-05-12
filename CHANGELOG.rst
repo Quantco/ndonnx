@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.12.0 (unreleased)
+-------------------
+
+**New features**
+
+- Support the 2024.12 version of the Array API (except ``nextafter``).
+
+
 0.11.0 (2025-05-08)
 -------------------
 

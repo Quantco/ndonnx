@@ -6,9 +6,9 @@ from __future__ import annotations
 from types import NotImplementedType
 from typing import TYPE_CHECKING, TypeVar, overload
 
-if TYPE_CHECKING:
-    from ndonnx.types import PyScalar
+from ndonnx.types import PyScalar
 
+if TYPE_CHECKING:
     from . import TyArrayBase
     from .masked_onnx import TyMaArray
     from .onnx import TyArray
@@ -57,12 +57,18 @@ def safe_cast(ty: type[T], a: TyArrayBase | bool) -> T:
 
 
 def validate_op_result(
-    x1: TyArrayBase, x2: TyArrayBase, result: T | NotImplementedType, func_name: str
+    x1: TyArrayBase | PyScalar,
+    x2: TyArrayBase | PyScalar,
+    result: T | NotImplementedType,
+    func_name: str,
 ) -> T:
-    """Validate if the provided result is not `NotImplemented` and raise an error if it
-    is."""
+    """Raise an exception if `result` is not `NotImplemented`, otherwise return it."""
+
+    def fmt(x: TyArrayBase | PyScalar) -> str:
+        return str(type(x)) if isinstance(x, PyScalar) else str(x.dtype)
+
     if isinstance(result, NotImplementedType):
         raise TypeError(
-            f"unsupported operand data types for '{func_name}': `{x1.dtype}` and `{x2.dtype}`"
+            f"unsupported operand data types for '{func_name}': `{fmt(x1)}` and `{fmt(x2)}`"
         )
     return result

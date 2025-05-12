@@ -155,3 +155,8 @@ def test_tensordot_no_axes(a, b):
     np_result = np.tensordot(a, b)
     ndx_result = ndx.tensordot(ndx.asarray(a), ndx.asarray(b)).unwrap_numpy()
     np.testing.assert_array_equal(np_result, ndx_result, strict=True)
+
+
+def test_raise_if_neither_argument_is_array():
+    with pytest.raises(TypeError, match="add"):
+        ndx.add(1, 1)
