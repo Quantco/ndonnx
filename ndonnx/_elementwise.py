@@ -20,7 +20,7 @@ F = TypeVar("F", bound=Callable[..., Array])
 
 
 def _ensure_array_in_args(fn: F) -> F:
-    """Decorator for element wise binary functions."""
+    """Decorator for element-wise binary functions."""
 
     @wraps(fn)
     def wrapped(a, b) -> Array:
