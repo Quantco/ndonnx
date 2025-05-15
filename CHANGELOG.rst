@@ -7,8 +7,13 @@
 Changelog
 =========
 
-0.12.0 (unreleased)
+0.12.0 (2025-05-15)
 -------------------
+
+**Bug fix**
+
+- The modulo operator (``%``) now correctly follows Python's semantics if the second argument is negative.
+
 
 **New features**
 
