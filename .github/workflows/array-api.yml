@@ -42,7 +42,7 @@ jobs:
         run: pixi run postinstall
       - name: Run Array API tests (Scheduled)
         if: ${{ github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
-        run: pixi run arrayapitests
+        run: pixi run arrayapitests --max-examples 1000 --hypothesis-seed=""
       - name: Run Array API tests (PR and main branch)
         if: ${{ github.event_name != 'schedule' }}
         run: pixi run arrayapitests --max-examples 16 --hypothesis-seed=0
