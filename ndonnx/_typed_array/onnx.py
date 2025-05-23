@@ -116,7 +116,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         elif isinstance(val, PyScalar | np.ndarray | np.generic):
             return const(val, dtype=self)
         elif isinstance(val, Sequence):
-            return self.__ndx_create__(np.asarray(val))
+            return self.__ndx_create__(np.asarray(val, dtype=self.unwrap_numpy()))
         elif isinstance(val, TyArrayBase):
             return val.copy().astype(self)
         return NotImplemented
@@ -965,6 +965,16 @@ class TyArray(TyArrayBase):
     ) -> TyArrayBase | NotImplementedType:
         if isinstance(y, TyArray | PyScalar):
             x, y = promote(self, y)
+            var = op.where(cond._var, x._var, y._var)
+            return type(x)(var)
+
+        return NotImplemented
+
+    def __ndx_rwhere__(
+        self, cond: TyArrayBool, x: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(x, TyArray | PyScalar):
+            y, x = promote(self, x)
             var = op.where(cond._var, x._var, y._var)
             return type(x)(var)
 
