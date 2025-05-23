@@ -17,7 +17,7 @@ on:
 # Automatically stop old builds on the same branch/PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   array-api-tests:
@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
