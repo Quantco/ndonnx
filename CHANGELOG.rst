@@ -7,8 +7,15 @@
 Changelog
 =========
 
-0.13.0 (2025-05-22)
+0.13.0 (unreleased)
 -------------------
+
+**Bug fixes**
+
+- Add missing onnxruntime workaround for uint32 inputs to ``ndonnx.min`` and ``ndonnx.max``.
+- Fix array instantiation with ``ndonnx.asarray`` and very large Python integers for ``uint64`` data types.
+- Fix passing an Python scalar as the second argument to ``ndonnx.where``.
+
 
 **New features**
 

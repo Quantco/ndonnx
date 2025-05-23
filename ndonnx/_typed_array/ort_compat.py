@@ -289,6 +289,7 @@ reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_s
 # tensor(int64)
 _mapping_reduce_max: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
+    (np.uint32,): np.int64,
     (np.uint64,): Warn(np.float64),
 }
 reduce_max = partial(reduce_op, spox_op=op.reduce_max, mapping=_mapping_reduce_max)
@@ -297,6 +298,7 @@ reduce_max = partial(reduce_op, spox_op=op.reduce_max, mapping=_mapping_reduce_m
 # tensor(int64), tensor(int8), tensor(uint8)
 _mapping_reduce_min: _MappingDictType = {
     (np.int16, np.uint16): np.int32,
+    (np.uint32,): np.int64,
     (np.uint32, np.uint64): Warn(np.float64),
 }
 reduce_min = partial(reduce_op, spox_op=op.reduce_min, mapping=_mapping_reduce_min)
