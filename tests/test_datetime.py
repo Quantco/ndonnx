@@ -61,6 +61,8 @@ def test_datetime_from_np_array(ty, unit):
     "scalar, dtype, res_dtype",
     [
         (1, ndx.DateTime64DType("s"), ndx.DateTime64DType("s")),
+        (1, ndx.DateTime64DType("ms"), ndx.DateTime64DType("ms")),
+        (1, ndx.DateTime64DType("us"), ndx.DateTime64DType("us")),
         (1, ndx.DateTime64DType("ns"), ndx.DateTime64DType("ns")),
     ],
 )
@@ -196,9 +198,11 @@ def test_comparisons_timedelta(op, x, y, unit):
         (["NaT"], ["NaT"]),
     ],
 )
-def test_comparisons_datetime(op, x, y, unit):
-    np_x = np.array(x, f"datetime64[{unit}]")
-    np_y = np.array(y, f"datetime64[{unit}]")
+@pytest.mark.parametrize("unit1", get_args(Unit))
+@pytest.mark.parametrize("unit2", get_args(Unit))
+def test_comparisons_datetime(op, x, y, unit1, unit2):
+    np_x = np.array(x, f"datetime64[{unit1}]")
+    np_y = np.array(y, f"datetime64[{unit2}]")
 
     desired = op(np_x, np_y)
     actual = op(ndx.asarray(np_x), ndx.asarray(np_y))
@@ -216,9 +220,11 @@ def test_comparisons_datetime(op, x, y, unit):
     ],
 )
 @pytest.mark.parametrize("forward", [True, False])
-def test_subtraction_datetime_arrays(x, y, unit, forward):
-    np_x = np.array(x, f"datetime64[{unit}]")
-    np_y = np.array(y, f"datetime64[{unit}]")
+@pytest.mark.parametrize("unit1", get_args(Unit))
+@pytest.mark.parametrize("unit2", get_args(Unit))
+def test_subtraction_datetime_arrays(x, y, unit1, unit2, forward):
+    np_x = np.array(x, f"datetime64[{unit1}]")
+    np_y = np.array(y, f"datetime64[{unit2}]")
 
     desired = np_x - np_y if forward else np_y - np_x
     actual = (
@@ -265,13 +271,13 @@ def test_isnan(unit):
     )
 
 
-@pytest.mark.parametrize(
-    "dtype", ["datetime64[s]", "timedelta64[s]", "datetime64[ns]", "timedelta64[ns]"]
-)
-def test_where(dtype):
+@pytest.mark.parametrize("unit1", get_args(Unit))
+@pytest.mark.parametrize("unit2", get_args(Unit))
+@pytest.mark.parametrize("dtype_name", ["datetime64", "timedelta64"])
+def test_where(dtype_name, unit1, unit2):
     cond = np.asarray([False, True, False])
-    np_arr1 = np.asarray(["NaT", 1, 2], dtype=dtype)
-    np_arr2 = np.asarray(["NaT", "NaT", "NaT"], dtype=dtype)
+    np_arr1 = np.asarray(["NaT", 1, 2], dtype=f"{dtype_name}[{unit1}]")
+    np_arr2 = np.asarray(["NaT", "NaT", "NaT"], dtype=f"{dtype_name}[{unit2}]")
 
     expected = np.where(cond, np_arr1, np_arr2)
     actual = ndx.where(ndx.asarray(cond), ndx.asarray(np_arr1), ndx.asarray(np_arr2))
@@ -400,3 +406,19 @@ def test_datetime_dtypes_have_numpy_repr(unit):
     dtype = ndx.DateTime64DType(unit)
 
     assert dtype.unwrap_numpy() == np.dtype(f"datetime64[{unit}]")
+
+
+@pytest.mark.parametrize("dtype_cls", [ndx.DateTime64DType, ndx.TimeDelta64DType])
+@pytest.mark.parametrize("unit1", get_args(Unit))
+@pytest.mark.parametrize("unit2", get_args(Unit))
+def test_result_type(dtype_cls, unit1, unit2):
+    def do(npx):
+        dtype1 = dtype_cls(unit1)
+        dtype2 = dtype_cls(unit2)
+        if npx == np:
+            dtype1 = dtype1.unwrap_numpy()
+            dtype2 = dtype2.unwrap_numpy()
+
+        return npx.result_type(dtype1, dtype2)
+
+    assert do(np) == do(ndx).unwrap_numpy()

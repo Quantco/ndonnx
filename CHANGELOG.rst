@@ -7,6 +7,17 @@
 Changelog
 =========
 
+0.13.0 (2025-05-22)
+-------------------
+
+**New features**
+
+- The :class:`ndonnx.TimeDelta64DType` and :class:`ndonnx.DateTime64DType` gained support for milli and microseconds as units.
+- :func:`ndonnx.where` now promotes time units between the two branches.
+- Addition, multiplication, division, and subtraction between arrays with timedelta or datetime data types now support promotion between time units.
+- Comparison operations between arrays with timedelta or datetime data types now support promotion between time units.
+
+
 0.12.0 (2025-05-15)
 -------------------
 
