@@ -7,8 +7,13 @@
 Changelog
 =========
 
-0.13.0 (2025-05-22)
+0.13.0 (unreleased)
 -------------------
+
+**Bug fixes**
+
+- ``ndonnx.concat`` no longer raises an error if ``axis=None``, the resulting data type ``int32`` or ``int64``, and one of the provided arrays is zero-sized.
+
 
 **New features**
 
