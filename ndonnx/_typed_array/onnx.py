@@ -10,7 +10,7 @@ from types import EllipsisType, NotImplementedType
 from typing import Literal, TypeAlias, TypeGuard, TypeVar, cast, overload
 
 import numpy as np
-from spox import Tensor, Var, argument
+from spox import Tensor, Var, argument, build, inline
 from typing_extensions import Self
 
 from ndonnx import DType
@@ -19,7 +19,7 @@ from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
 from . import ort_compat as op
-from .dtype_independent_funcs import maximum, minimum, where
+from .dtype_independent_funcs import maximum, minimum, where, zeros
 from .indexing import FancySlice
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
@@ -1394,8 +1394,14 @@ class TyArrayNumber(TyArray):
     def __lt__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.less, forward=True, result_type=TyArrayBool)
 
-    def __matmul__(self, other) -> TyArrayBase:
-        return self._apply(other, op.matmul, forward=True, result_type=TyArrayNumber)
+    def __matmul__(self, other: TyArrayBase) -> TyArrayNumber:
+        if isinstance(other, TyArrayNumber):
+            a, b = promote(self, other)
+            a = safe_cast(TyArrayNumber, a)
+            b = safe_cast(TyArrayNumber, b)
+            return _matmul_mitigate_zero_sized(a, b)
+
+        return NotImplemented
 
     def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=True, result_type=TyArrayNumber)
@@ -2643,3 +2649,86 @@ def broadcast_arrays(*arrays: TY_ARRAY_BASE) -> tuple[TY_ARRAY_BASE, ...]:
     target_shape = ret.dynamic_shape
 
     return tuple(a.broadcast_to(target_shape) for a in arrays)
+
+
+def _matmul_mitigate_zero_sized(
+    a: TY_ARRAY_NUMBER, b: TY_ARRAY_NUMBER
+) -> TY_ARRAY_NUMBER:
+    """Mitigate onnxruntime bug for inputs with 0-length inputs to matmul."""
+
+    # Mitigations of this kind would be better situated in
+    # ort_compat.py, but doing the below in spox-operators is just
+    # needless self-inflicted pain.
+
+    # The core idea of this mitigation is to do a runtime check on the
+    # dimensions of the inputs and the then hide the matmul inside an
+    # if-subgraph. However, there are a couple of complications:
+
+    #   1. The output of the zero-size branch has to match the shape of
+    # the output of the regular matmul. The semantics of that shape
+    # operation are involved
+    # (https://data-apis.org/array-api/draft/API_specification/generated/array_api.matmul.html#array_api.matmul).
+
+    #   2. We have to disable the value propagation or else onnxruntime
+    # will throw a segfault when executing the matmul branch (which is
+    # always happening).
+
+    # We grind our way through 1. The second point is solved by creating
+    # a small ONNX model and inlining it. We could consider doing this
+    # in a more generic fashion to enable faster build times.
+
+    # TODO: Fix upstream in onnxruntime!
+    def dummy_n_1(a: TY_ARRAY_NUMBER, b: TY_ARRAY_NUMBER) -> TyArrayInt64:
+        return a.dynamic_shape[:-1]
+
+    def dummy_1_n(a: TY_ARRAY_NUMBER, b: TY_ARRAY_NUMBER) -> TyArrayInt64:
+        out_shape = b.dynamic_shape
+        out_shape = out_shape[:-2].concat([out_shape[-1:]], axis=0)
+        return out_shape
+
+    def dummy_n_m(a: TY_ARRAY_NUMBER, b: TY_ARRAY_NUMBER) -> TyArrayInt64:
+        a_shape = a.dynamic_shape
+        dummy_a_shape = a_shape.copy()
+        dummy_a_shape[-2:] = const(1)
+
+        b_shape = b.dynamic_shape
+        dummy_b_shape = b_shape.copy()
+        dummy_b_shape[-2:] = const(1)
+
+        dummy_a = zeros(shape=dummy_a_shape, dtype=uint8)
+        dummy_b = zeros(shape=dummy_b_shape, dtype=uint8)
+
+        out_shape = (dummy_a + dummy_b).dynamic_shape
+        out_shape[-2] = a_shape[-2]
+        out_shape[-1] = b_shape[-1]
+        return out_shape
+
+    a_ = type(a)(argument(a._var.unwrap_type()))
+    b_ = type(b)(argument(b._var.unwrap_type()))
+
+    if a_.ndim == 1 and b_.ndim == 1:
+        out_shape = const(np.asarray([], np.int64), int64)
+    elif a_.ndim >= 2 and b_.ndim == 1:
+        out_shape = dummy_n_1(a_, b_)
+    elif a_.ndim == 1 and b_.ndim >= 2:
+        out_shape = dummy_1_n(a_, b_)
+    elif a_.ndim >= 2 and b_.ndim >= 2:
+        out_shape = dummy_n_m(a_, b_)
+    else:
+        raise ValueError(
+            "unsupported input ranks for 'matmul': `{a_.ndim}` and `{b_.ndim}`"
+        )
+
+    dummy_out = zeros(shape=out_shape, dtype=a.dtype)._var
+    res = op.matmul(a_._var, b_._var)
+
+    (var,) = op.if_(
+        safe_cast(TyArrayBool, (a_.dynamic_size * b_.dynamic_size == 0))._var,
+        then_branch=lambda: [dummy_out],
+        else_branch=lambda: [res],
+    )
+    model = build({"a": a_._var, "b": b_._var}, {"res": var})
+    (var_with_propagation,) = inline(model)(a=a._var, b=b._var).values()
+
+    arr = type(a)(var_with_propagation)
+    return arr
