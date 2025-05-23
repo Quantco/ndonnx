@@ -17,7 +17,7 @@ on:
 # Automatically stop old builds on the same branch/PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   array-api-tests:

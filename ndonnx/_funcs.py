@@ -609,6 +609,9 @@ def roll(
     *,
     axis: int | tuple[int, ...] | None = None,
 ) -> Array:
+    print(f"{x=}")
+    print(f"{shift=}")
+    print(f"{axis=}")
     return Array._from_tyarray(x._tyarray.roll(shift=shift, axis=axis))
 
 
