@@ -116,7 +116,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         elif isinstance(val, PyScalar | np.ndarray | np.generic):
             return const(val, dtype=self)
         elif isinstance(val, Sequence):
-            return self.__ndx_create__(np.asarray(val))
+            return self.__ndx_create__(np.asarray(val, dtype=self.unwrap_numpy()))
         elif isinstance(val, TyArrayBase):
             return val.copy().astype(self)
         return NotImplemented
