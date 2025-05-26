@@ -24,7 +24,7 @@ Changelog
 - :func:`ndonnx.where` now promotes time units between the two branches.
 - Addition, multiplication, division, and subtraction between arrays with timedelta or datetime data types now support promotion between time units.
 - Comparison operations between arrays with timedelta or datetime data types now support promotion between time units.
-- Added ``ndonnx.__array_api_version__`` reporting the latest supported version of the Array API specification.
+- Added :attr:`ndonnx.__array_api_version__` reporting the latest supported version of the Array API specification.
 
 
 0.12.0 (2025-05-15)

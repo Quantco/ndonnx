@@ -210,6 +210,7 @@ _default_float = float64
 __array_api_version__ = "2024.12"
 
 __all__ = [
+    "__array_api_version__",
     "__array_namespace_info__",
     "DType",
     # ONNX data types
