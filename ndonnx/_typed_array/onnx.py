@@ -732,7 +732,7 @@ class TyArray(TyArrayBase):
         #
         # TODO: File upstream bug; this may also be what caused the
         # segfaults in onnxruntime in the past!
-        if self.dtype in (int32, int64) and arrays[0].ndim == 1:
+        if arrays[0].dtype in (int32, int64) and arrays[0].ndim == 1:
             dummy_axis = op.const([axis + 1], dtype=np.int64)
             vars = [op.unsqueeze(a._var, dummy_axis) for a in arrays]
             var = op.concat(vars, axis=axis)
