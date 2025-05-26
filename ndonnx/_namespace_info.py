@@ -37,7 +37,7 @@ Capabilities = TypedDict(
     {
         "boolean indexing": bool,
         "data-dependent shapes": bool,
-        "max rank": None | int,
+        "max dimensions": None | int,
     },
 )
 
@@ -49,7 +49,7 @@ class Info:
         return {
             "boolean indexing": True,
             "data-dependent shapes": True,
-            "max rank": None,
+            "max dimensions": None,
         }
 
     def default_device(self) -> Device:

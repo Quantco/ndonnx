@@ -207,7 +207,10 @@ except importlib.metadata.PackageNotFoundError as err:  # pragma: no cover
 _default_int = int64
 _default_float = float64
 
+__array_api_version__ = "2024.12"
+
 __all__ = [
+    "__array_api_version__",
     "__array_namespace_info__",
     "DType",
     # ONNX data types

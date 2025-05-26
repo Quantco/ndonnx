@@ -12,6 +12,7 @@ Changelog
 
 **Bug fixes**
 
+- :func:`ndonnx.__array_namespace_info__.capabilities()` now reports the number of supported dimensions via the ``"max dimensions"`` entry rather than ``"max rank"``.
 - Add missing onnxruntime workaround for uint32 inputs to ``ndonnx.min`` and ``ndonnx.max``.
 - Fix array instantiation with ``ndonnx.asarray`` and very large Python integers for ``uint64`` data types.
 - Fix passing an Python scalar as the second argument to ``ndonnx.where``.
@@ -23,6 +24,7 @@ Changelog
 - :func:`ndonnx.where` now promotes time units between the two branches.
 - Addition, multiplication, division, and subtraction between arrays with timedelta or datetime data types now support promotion between time units.
 - Comparison operations between arrays with timedelta or datetime data types now support promotion between time units.
+- Added :attr:`ndonnx.__array_api_version__` reporting the latest supported version of the Array API specification.
 
 
 0.12.0 (2025-05-15)
