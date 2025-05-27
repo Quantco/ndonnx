@@ -724,21 +724,7 @@ class TyArray(TyArrayBase):
         if len(arrays) == 1:
             return arrays[0].copy()
 
-        # It seems that there is currently a bug(?) in the type/shape
-        # inference in ONNX which prohibits us from concatenating
-        # empty 1D int32 and int64 arrays (see test case). We therefor
-        # do some hacky special-casing here for those types and those
-        # types only. Other data types are fine.
-        #
-        # TODO: File upstream bug; this may also be what caused the
-        # segfaults in onnxruntime in the past!
-        if self.dtype in (int32, int64) and self.ndim == 1:
-            dummy_axis = op.const([axis + 1], dtype=np.int64)
-            vars = [op.unsqueeze(a._var, dummy_axis) for a in arrays]
-            var = op.concat(vars, axis=axis)
-            var = op.squeeze(var, dummy_axis)
-        else:
-            var = op.concat([a._var for a in arrays], axis=0 if axis is None else axis)
+        var = op.concat([a._var for a in arrays], axis=0 if axis is None else axis)
         return type(self)(var)
 
     def copy(self) -> Self:
