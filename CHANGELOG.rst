@@ -7,16 +7,17 @@
 Changelog
 =========
 
-0.13.0 (unreleased)
+0.13.0 (2025-05-27)
 -------------------
 
 **Bug fixes**
 
 - :func:`ndonnx.concat` no longer raises an error if ``axis=None``, the resulting data type is ``int32`` or ``int64``, and one of the provided arrays is zero-sized.
 - :func:`ndonnx.__array_namespace_info__.capabilities()` now reports the number of supported dimensions via the ``"max dimensions"`` entry rather than ``"max rank"``.
-- Add missing onnxruntime workaround for uint32 inputs to :func:`ndonnx.min` and :func:`ndonnx.max`.
+- Add missing onnxruntime workaround for ``uint32`` inputs to :func:`ndonnx.min` and :func:`ndonnx.max`.
 - Fix array instantiation with :func:`ndonnx.asarray` and very large Python integers for ``uint64`` data types.
 - Fix passing an Python scalar as the second argument to :func:`ndonnx.where`.
+- Calling :func:`ndonnx.roll` on zero-sized inputs no longer causes a segfault on Linux.
 
 
 **New features**
