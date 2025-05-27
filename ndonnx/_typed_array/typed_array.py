@@ -12,9 +12,8 @@ import numpy as np
 from typing_extensions import Self
 
 from ndonnx import DType
+from ndonnx._typed_array import safe_cast
 from ndonnx.types import OnnxShape, PyScalar
-
-from .ort_compat import const, if_
 
 if TYPE_CHECKING:
     from spox import Var
@@ -210,7 +209,15 @@ class TyArrayBase(ABC):
         *,
         axis: int | tuple[int, ...] | None = None,
     ) -> Self:
+        # From a user's perspective this is a dtype-independent
+        # default that is very nice to have. However, some
+        # implementation details require us to use int64 and float64
+        # casts on indices explicitly.
+        from . import onnx
+        from .funcs import where
+
         x = self
+
         axis_ = axis
         if isinstance(shift, int):
             shift = (shift,)
@@ -223,27 +230,26 @@ class TyArrayBase(ABC):
             raise ValueError("'shift' and 'axis' must be tuples of equal length")
 
         def _roll_axis(x: Self, shift: int, axis: int, /) -> Self:
-            from .funcs import astyarray
-
             if shift == 0:
                 return x
 
-            indices_a = [slice(None) for i in range(x.ndim)]
-            indices_b = [slice(None) for i in range(x.ndim)]
+            indices_a = [slice(None) for _ in range(x.ndim)]
+            indices_b = [slice(None) for _ in range(x.ndim)]
 
-            dim = x.dynamic_shape[axis]
-            (shift_,) = map(
-                astyarray,
-                if_(
-                    (dim == 0).disassemble(),
-                    then_branch=lambda: (const(0, dtype=np.int64),),
-                    else_branch=lambda: ((astyarray(shift) % dim).disassemble(),),
-                ),
+            # May be zero. mod may crash for integer data types which
+            # is why we compute the following for floats, then fill
+            # the NaNs, and cast back to int
+            dim_length = x.dynamic_shape[axis].astype(onnx.float64)
+            length_mod = safe_cast(
+                onnx.TyArrayFloat64, onnx.const(float(shift), onnx.float64) % dim_length
             )
+            shift_ = where(length_mod.isnan(), onnx.const(0.0), length_mod).astype(
+                onnx.int64
+            )
+
             # pre roll: |----a------|---b---|
             # postroll: |---b---|----a------|
             #           |-shift-|
-
             indices_a[axis] = slice(None, -shift_, 1)
             indices_b[axis] = slice(-shift_, None, 1)
             return x[tuple(indices_b)].concat([x[tuple(indices_a)]], axis=axis)

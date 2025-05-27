@@ -51,7 +51,7 @@ test-coverage = "pytest --cov=ndonnx --cov-report=xml --cov-report=term-missing"
 
 [feature.test.tasks.arrayapitests]
 # Seed and max-examples can be overridden by providing them a second time
-cmd = "pytest array-api-tests/array_api_tests/ -v -rfX --json-report --json-report-file=array-api-tests.json --disable-deadline --disable-extension linalg,fft --skips-file=skips.txt -s --hypothesis-seed 0 --max-examples 16"
+cmd = "pytest array-api-tests/array_api_tests/ -v -rfX --json-report --json-report-file=array-api-tests.json --disable-deadline --disable-extension linalg,fft --skips-file=skips.txt -s --hypothesis-seed 0 --max-examples 100 -n auto"
 [feature.test.tasks.arrayapitests.env]
 ARRAY_API_TESTS_MODULE="ndonnx"
 ARRAY_API_TESTS_VERSION="2024.12"
