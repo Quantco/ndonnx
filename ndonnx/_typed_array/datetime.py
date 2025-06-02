@@ -375,10 +375,12 @@ class TyArrayTimeDelta(TimeBaseArray):
     def __ndx_cast_to__(
         self, dtype: DType[TY_ARRAY_BASE_co]
     ) -> TY_ARRAY_BASE_co | NotImplementedType:
+        # Work around mypy narrowing dtype too eagerly
+        dtype_ = dtype
         if isinstance(dtype, onnx.Int64):
             # Disallow casting to smaller integer types since that
             # would cause an overflow for NaT values
-            return self._data.astype(dtype)
+            return self._data.astype(dtype_)
         if isinstance(dtype, TimeDelta64DType):
             # TODO: Figure out why pyright does not like the below
             return _convert_unit(self, dtype)  # type: ignore
