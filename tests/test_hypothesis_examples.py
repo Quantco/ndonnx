@@ -60,6 +60,14 @@ def test_min():
     np.testing.assert_equal(do(np), do(ndx).unwrap_numpy())
 
 
+def test_max():
+    def do(npx):
+        arr = npx.asarray([2147483649, 1, 1, 1], dtype=npx.int64)
+        return npx.max(arr)
+
+    np.testing.assert_equal(do(np), do(ndx).unwrap_numpy())
+
+
 @pytest.mark.parametrize(
     "arr,key,value",
     [
