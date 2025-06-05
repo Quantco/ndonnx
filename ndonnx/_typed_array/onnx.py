@@ -1227,6 +1227,8 @@ class TyArrayNumber(TyArray):
             # `reduce_max`'s ORT implementation differs from onnx-shape
             # inference for keepdims=False AND noop_with_empty_axes=True.
             return self.copy()
+        if self.ndim == 0 and axis is None:
+            return self.copy()
 
         # ReduceMin/Max in onnxruntime appears to do something buggy
         # for int64 values in a 1D array with very large/small int64
@@ -1248,10 +1250,7 @@ class TyArrayNumber(TyArray):
                 noop_with_empty_axes=False,
             )
         )
-
-        if keepdims:
-            return res.squeeze(-1)
-        return res
+        return res.squeeze(-1)
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
