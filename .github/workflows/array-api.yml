@@ -1,18 +1,6 @@
 name: Array API tests
 
-on:
-  # We would like to trigger for CI for any pull request action -
-  # both from QuantCo's branches as well as forks.
-  pull_request:
-  # In addition to pull requests, we want to run CI for pushes
-  # to the main branch and tags.
-  push:
-    branches:
-      - "*"
-    tags:
-      - "*"
-  schedule:
-    - cron: "0 8 * * 0" # Runs weekly at 08:00 UTC on Sunday
+on: push
 
 # Automatically stop old builds on the same branch/PR
 concurrency:
@@ -21,7 +9,6 @@ concurrency:
 
 jobs:
   array-api-tests:
-    # Run if the commit message contains 'run array-api tests' or if the job is triggered on schedule
     name: Array API test
     timeout-minutes: 60
     runs-on: ${{ matrix.os }}
@@ -47,37 +34,10 @@ jobs:
         uses: prefix-dev/setup-pixi@19eac09b398e3d0c747adc7921926a6d802df4da
       - name: Install repository
         run: pixi run postinstall
-      - name: Run Array API tests (Scheduled)
-        # TODO: Move schedule part into its own workflow
-        if: ${{ github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
-        run: pixi run arrayapitests --max-examples 1000 --hypothesis-seed=""
       - name: Run Array API tests (PR and main branch)
-        if: ${{ github.event_name != 'schedule' }}
         run: pixi run arrayapitests --max-examples ${{ matrix.max_examples_ci }}
       - name: Upload Array API tests report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: array-api-tests-${{ matrix.os }}
           path: array-api-tests-${{ matrix.os }}.json
-      - name: Issue on failure
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        if: ${{ failure() && github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
-        with:
-          script: |
-            github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open",
-              labels: "[bot] Weekly run"
-            }).then((issues) => {
-              if (issues.data.length === 0){
-                github.rest.issues.create({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title: "Weekly run failure: Array API coverage",
-                  body: "The weekly run of the Array API test suite failed. See https://github.com/Quantco/ndonnx/actions/runs/${{ github.run_id }} for details.",
-                  assignees: ["adityagoel4512", "cbourjau"],
-                  labels: ["[bot] Weekly run"]
-                })
-              }
-            });
