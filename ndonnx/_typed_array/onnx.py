@@ -1214,8 +1214,13 @@ class TyArrayNumber(TyArray):
         )
         return _var_to_tyarray(var)
 
-    def max(
-        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    def _min_max(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+        op_name: Literal["min", "max"],
     ) -> Self:
         if axis == ():
             # TODO: File bug:
@@ -1223,25 +1228,40 @@ class TyArrayNumber(TyArray):
             # inference for keepdims=False AND noop_with_empty_axes=True.
             return self.copy()
 
+        # ReduceMin/Max in onnxruntime appears to do something buggy
+        # for int64 values in a 1D array with very large/small int64
+        # values. The axis parameter must be set for this to work,
+        # too! See test_hypothesis_examples.py:test_min
+        # TODO: File upstream issue.
+
+        if axis is None:
+            axis = tuple(range(self.ndim))
+        # _axis_var normalized to positive values. It is thus safe to
+        # expand the last dimension.
         axes = _axis_var(axis, self.ndim)
-        return type(self)(
-            op.reduce_max(
-                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+        spox_op = op.reduce_min if op_name == "min" else op.reduce_max
+        res = type(self)(
+            spox_op(
+                self[..., None]._var,
+                axes=axes,
+                keepdims=keepdims,
+                noop_with_empty_axes=False,
             )
         )
+
+        if keepdims:
+            return res.squeeze(-1)
+        return res
+
+    def max(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        return self._min_max(axis=axis, keepdims=keepdims, op_name="max")
 
     def min(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
-        if axis == ():
-            return self.copy()
-
-        axes = _axis_var(axis, self.ndim)
-        return type(self)(
-            op.reduce_min(
-                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
-            )
-        )
+        return self._min_max(axis=axis, keepdims=keepdims, op_name="min")
 
     @overload
     def prod(
