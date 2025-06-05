@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: "0 1 * * *" # Runs daily at 01:00 UTC each day
   push:
+    branches:
+      - "reorganize-ci"
     paths:
       - ".github/workflows/array-api-daily.yml"
   pull_request:
