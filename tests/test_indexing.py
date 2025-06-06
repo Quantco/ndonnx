@@ -98,6 +98,28 @@ def test_set_index_fancy(dtype):
     np.testing.assert_array_equal(np_arr, arr.unwrap_numpy())
 
 
+def test_getitem_too_long_key_tuple_raises():
+    def do(npx):
+        arr = npx.asarray([1, 2, 3])
+        arr[(1, 2)]
+
+    with pytest.raises(IndexError):
+        do(np)
+    with pytest.raises(IndexError):
+        do(ndx)
+
+
+def test_setitem_too_long_key_tuple_raises():
+    def do(npx):
+        arr = npx.asarray([1, 2, 3])
+        arr[(1, 2)] = 42
+
+    with pytest.raises(IndexError):
+        do(np)
+    with pytest.raises(IndexError):
+        do(ndx)
+
+
 def test_empty_data():
     np_arr = np.ones((0, 0), dtype=bool)
     key = (slice(None, None, None), slice(None, None, None))
