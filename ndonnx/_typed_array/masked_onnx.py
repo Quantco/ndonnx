@@ -43,8 +43,13 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
     ) -> TY_MA_ARRAY_ONNX:
         if isinstance(val, np.ma.MaskedArray):
             data = onnx.const(val.data)
-            if val.mask is np.ma.nomask:
-                mask = None
+            if isinstance(val.mask, np.ma.MaskType):
+                if val.mask is np.ma.nomask:
+                    mask = None
+                else:
+                    mask = onnx.const(
+                        np.full_like(val, True, dtype=bool), dtype=onnx.bool_
+                    )
             else:
                 mask = safe_cast(onnx.TyArrayBool, onnx.const(val.mask))
             return make_nullable(data, mask).astype(self)
