@@ -21,7 +21,7 @@ Changelog
 
 **New workarounds for missing onnxruntime implementations**
 
-- :func:`ndx.any` and :func:`ndx.all` no correctly propagate values even if the input is zero-sized.
+- :func:`ndx.any` and :func:`ndx.all` now correctly propagate values even if the input is zero-sized.
 - :func:`ndonnx.arange` now follows NumPy's semantics for extremely large start, stop, and step values.
 - :func:`ndonnx.min` and :func:`ndonnx.max` now produce correct results for very large values in int64 arrays.
 

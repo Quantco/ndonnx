@@ -528,7 +528,6 @@ class TyArray(TyArrayBase):
 
         # The ellipsis is somewhere else in the key. We replace them
         # with slices.
-        # TODO: there is likely room for further improvements.
         length_ellipsis = self.ndim - (len(key) - 1)
         expanded_key = (
             key[: key.index(...)]
