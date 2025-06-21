@@ -7,6 +7,16 @@
 Changelog
 =========
 
+0.14.0 (unreleased)
+-------------------
+
+**Bug fixes**
+
+- :meth:`ndonnx.Array.dynamic_shape` now returns a rank-0 array for all input ranks.
+- The message of the ``IndexingError`` raise by :meth:`ndonnx.Array.__setitem__` when providing a tuple-key containing int64-arrays now contains an accurate description.
+- Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
+
+
 0.13.0 (2025-05-27)
 -------------------
 

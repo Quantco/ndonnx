@@ -44,6 +44,7 @@ hypothesis = "*"
 onnxruntime = "*"
 mypy = "*"
 ndindex = "*"
+array-api-strict = ">=2.4,<3"
 
 [feature.test.tasks]
 test = "pytest"

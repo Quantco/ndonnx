@@ -120,7 +120,7 @@ class Array:
         if self.ndim == 0:
             Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
         if self.ndim == 1:
-            return self.dynamic_shape
+            return self.dynamic_shape[0]
 
         return Array._from_tyarray(self.dynamic_shape._tyarray.prod())
 
@@ -237,7 +237,7 @@ class Array:
         )
 
     def __getitem__(self, key: GetItemKey, /) -> Array:
-        idx = _normalize_arrays_in_key(key)
+        idx = _normalize_arrays_in_getitem_key(key)
         data = self._tyarray[idx]
         return type(self)._from_tyarray(data)
 
@@ -253,15 +253,9 @@ class Array:
             if isinstance(value, Array)
             else tyfuncs.astyarray(value, dtype=self.dtype)
         )
+        idx = _normalize_arrays_in_setitem_key(key)
 
-        if isinstance(key, Array):
-            if not isinstance(key._tyarray, onnx.TyArrayInteger | onnx.TyArrayBool):
-                raise TypeError(
-                    f"indexing array must have integer or boolean data type; found `{key.dtype}`"
-                )
-            self._tyarray[key._tyarray] = updates
-        else:
-            self._tyarray[key] = updates
+        self._tyarray[idx] = updates
 
     def __bool__(self, /) -> bool:
         return bool(self.unwrap_numpy())
@@ -388,24 +382,44 @@ def _apply_op(
     return NotImplemented
 
 
-def _normalize_arrays_in_key(key: GetItemKey) -> onnx.GetitemIndex:
+def _normalize_arrays_in_getitem_key(key: GetItemKey) -> onnx.GetitemIndex:
     if isinstance(key, Array):
         if isinstance(key._tyarray.dtype, onnx.Bool):
             return key._tyarray.astype(onnx.bool_)
 
     if isinstance(key, int | slice | EllipsisType | Array | None):
-        return _normalize_key_item(key)
+        return _normalize_getitem_key_item(key)
 
     if isinstance(key, tuple):
-        return tuple(_normalize_key_item(el) for el in key)
+        return tuple(_normalize_getitem_key_item(el) for el in key)
 
     raise IndexError(f"unexpected key type: `{type(key)}`")
 
 
-def _normalize_key_item(
+def _normalize_arrays_in_setitem_key(key: SetitemKey) -> onnx.SetitemIndex:
+    if isinstance(key, Array):
+        if isinstance(key._tyarray.dtype, onnx.Bool):
+            return key._tyarray.astype(onnx.bool_)
+
+    if isinstance(key, int | slice | EllipsisType | Array | None):
+        return _normalize_setitem_key_item(key)
+
+    if isinstance(key, tuple):
+        return tuple(_normalize_setitem_key_item(el) for el in key)
+
+    raise IndexError(f"unexpected key type: `{type(key)}`")
+
+
+def _normalize_getitem_key_item(
     item: int | slice | EllipsisType | Array | None,
 ) -> int | slice | EllipsisType | onnx.TyArrayInt64 | None:
-    if isinstance(item, int | EllipsisType | None):
+    return None if item is None else _normalize_setitem_key_item(item)
+
+
+def _normalize_setitem_key_item(
+    item: int | slice | EllipsisType | Array,
+) -> int | slice | EllipsisType | onnx.TyArrayInt64:
+    if isinstance(item, int | EllipsisType):
         return item
 
     if isinstance(item, Array):
