@@ -10,13 +10,14 @@ Changelog
 0.14.0 (unreleased)
 -------------------
 
-**Bug fix**
+**Bug fixes**
 
 - Fix a bug in ``ndonnx.Array.__setitem__`` that occurred when all of the following applied:
   - An ``Ellipsis`` was part of the key
   - The ``Ellipsis`` expanded to at least one dimension
   - The ``Ellipsis`` was not the last element of the key
   - The assigned value was not a scalar or 1D array with length 1.
+- :meth:`ndonnx.Array.dynamic_shape` now returns a rank-0 array for all input ranks.
 
 
 **New workarounds for missing onnxruntime implementations**
