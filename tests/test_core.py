@@ -92,6 +92,9 @@ def test_null_promotion():
         (np.array("a"), None, ndx.utf8),
         ([["a"]], None, ndx.utf8),
         (np.array([["a"]]), None, ndx.utf8),
+        # Check that extreme integers map to the same result as NumPy
+        (-9223371761976868352, ndx.float32, ndx.float32),
+        ([-9223371761976868352], ndx.float32, ndx.float32),
     ],
 )
 def test_asarray(array, dtype, expected_dtype):
@@ -418,18 +421,36 @@ def test_array_spox_interoperability():
     assert_array_equal(actual, expected)
 
 
-def test_creation_arange():
-    a = ndx.arange(0, stop=10)
-    assert_array_equal(a.unwrap_numpy(), np.arange(stop=10))
+@pytest.mark.parametrize(
+    "start, stop, step, dtype",
+    [
+        (0, 10, 2, ndx.int64),
+        (-10, 0, 2, ndx.int64),
+        (-10, 0, 3, ndx.int64),
+        (1, 10, 1, ndx.int64),
+        (0.0, None, -1, ndx.int64),
+        # Hypothesis test cases
+        (
+            -9_223_371_349_660_010_402,
+            -9_223_370_112_709_427_707,
+            45_812_983_809,
+            ndx.float64,
+        ),
+        (-9_223_371_349_660_010_402, -9_223_371_349_660_010_401, 1, ndx.float64),
+    ],
+)
+def test_creation_arange(start, stop, step, dtype: ndx.DType | None):
+    def do(npx):
+        dtype_: np.dtype | ndx.DType | None = dtype
+        if dtype is not None and npx == np:
+            dtype_ = dtype.unwrap_numpy()
+        return npx.arange(start, stop, step, dtype=dtype_)
 
-    b = ndx.arange(1, 10)
-    assert_array_equal(b.unwrap_numpy(), np.arange(1, 10))
+    np_res, ndx_res = do(np), do(ndx).unwrap_numpy()
 
-    c = ndx.arange(1, 10, 2)
-    assert_array_equal(c.unwrap_numpy(), np.arange(1, 10, 2))
-
-    d = ndx.arange(0.0, None, step=-1)
-    assert_array_equal(np.arange(0.0, None, step=-1), d.unwrap_numpy())
+    assert np_res.shape == ndx_res.shape
+    if np_res.size > 0:
+        np.testing.assert_array_equal(np_res[0], ndx_res[0])
 
 
 def test_creation_full():
@@ -506,17 +527,41 @@ def test_propagates_minimal_dtype():
 
 
 @pytest.mark.parametrize(
-    "x",
+    "x, axis",
     [
-        ndx.asarray([True, False, False]),
-        ndx.asarray([False]),
-        ndx.asarray([True]),
-        ndx.asarray([True, True]),
-        ndx.asarray([], dtype=ndx.bool),
+        (np.asarray([True, False, False]), None),
+        (np.asarray([False]), None),
+        (np.asarray([True]), None),
+        (np.asarray([True, True]), None),
+        (np.asarray([[], []], dtype=np.bool_), (0,)),
+        (np.asarray([[], []], dtype=np.bool_), (-2,)),
     ],
 )
-def test_all(x):
-    assert_array_equal(ndx.all(x).unwrap_numpy(), np.all(x.unwrap_numpy()))
+def test_all(x, axis):
+    def do(npx):
+        x_ = npx.asarray(x)
+        return npx.all(x_, axis=axis)
+
+    assert_array_equal(do(np), do(ndx).unwrap_numpy())
+
+
+@pytest.mark.parametrize(
+    "x, axis",
+    [
+        (np.asarray([True, False, False]), None),
+        (np.asarray([False]), None),
+        (np.asarray([True]), None),
+        (np.asarray([True, True]), None),
+        (np.asarray([[], []], dtype=np.bool_), (-2,)),
+        (np.asarray([[], []], dtype=np.bool_), (-2,)),
+    ],
+)
+def test_any(x, axis):
+    def do(npx):
+        x_ = npx.asarray(x)
+        return npx.any(x_, axis=axis)
+
+    assert_array_equal(do(np), do(ndx).unwrap_numpy())
 
 
 @pytest.mark.parametrize(
@@ -743,32 +788,39 @@ def test_empty_concat_lazy_unknown_shape():
 
 
 # if the precision loss looks concerning, note https://data-apis.org/array-api/latest/API_specification/type_promotion.html#mixing-arrays-with-python-scalars
+# Note: NumPy raises for the following:
+# >>> np.asarray(10, np.uint8) + -1
+# *** OverflowError: Python integer -1 out of bounds for uint8
+@pytest.mark.skipif(
+    np.__version__ < "2", reason="NumPy 1.x has different error handling semantics."
+)
 @pytest.mark.parametrize(
-    "array, scalar, expected",
+    "array, scalar, expected, raises",
     [
-        (ndx.argument(shape=("N",), dtype=ndx.uint8), 1, ndx.uint8),
-        (ndx.argument(shape=("N",), dtype=ndx.uint8), -1, ndx.uint8),
-        (ndx.argument(shape=("N",), dtype=ndx.int8), 1, ndx.int8),
-        (ndx.argument(shape=("N",), dtype=ndx.nint8), 1, ndx.nint8),
-        (ndx.argument(shape=("N",), dtype=ndx.nuint8), -1, ndx.nuint8),
-        (ndx.argument(shape=("N",), dtype=ndx.float64), 0.123456789, ndx.float64),
+        (ndx.argument(shape=("N",), dtype=ndx.uint8), 1, ndx.uint8, None),
+        (ndx.argument(shape=("N",), dtype=ndx.uint8), -1, ndx.uint8, OverflowError),
+        (ndx.argument(shape=("N",), dtype=ndx.int8), 1, ndx.int8, None),
+        (ndx.argument(shape=("N",), dtype=ndx.nint8), 1, ndx.nint8, None),
+        (ndx.argument(shape=("N",), dtype=ndx.nuint8), -1, ndx.nuint8, OverflowError),
+        (ndx.argument(shape=("N",), dtype=ndx.float64), 0.123456789, ndx.float64, None),
         (
             ndx.argument(shape=("N",), dtype=ndx.float64),
             np.float64(0.123456789),
             ndx.float64,
+            None,
         ),
-        (ndx.argument(shape=("N",), dtype=ndx.float32), 0.123456789, ndx.float32),
-        # (
-        #     [
-        #         ndx.argument(shape=("N",), dtype=ndx.float32),
-        #         ndx.asarray([1.5], dtype=ndx.float64),
-        #     ],
-        #     0.123456789,
-        # ),
-        (ndx.asarray(["a", "b"], dtype=ndx.utf8), "hello", ndx.utf8),
+        (ndx.argument(shape=("N",), dtype=ndx.float32), 0.123456789, ndx.float32, None),
+        (ndx.asarray(["a", "b"], dtype=ndx.utf8), "hello", ndx.utf8, None),
     ],
 )
-def test_scalar_promote(array, scalar, expected):
+def test_scalar_promote(array, scalar, expected, raises: None | type[OverflowError]):
+    if raises:
+        with pytest.raises(raises):
+            _ = array + scalar
+        with pytest.raises(raises):
+            _ = scalar + array
+        return
+
     res1 = array + scalar
     res2 = scalar + array
 

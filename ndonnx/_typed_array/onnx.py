@@ -6,8 +6,18 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from copy import copy as std_copy
+from functools import wraps
 from types import EllipsisType, NotImplementedType
-from typing import Literal, TypeAlias, TypeGuard, TypeVar, cast, overload
+from typing import (
+    Concatenate,
+    Literal,
+    ParamSpec,
+    TypeAlias,
+    TypeGuard,
+    TypeVar,
+    cast,
+    overload,
+)
 
 import numpy as np
 from spox import Tensor, Var, argument, build, inline
@@ -49,6 +59,34 @@ TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
 
 KEY = TypeVar("KEY", int, float, str)
 VALUE = TypeVar("VALUE", int, float, str)
+
+
+P = ParamSpec("P")
+TY_ARRAY_OUT = TypeVar("TY_ARRAY_OUT", bound="TyArray")
+
+
+def _inline(
+    fun: Callable[Concatenate[TY_ARRAY, P], TY_ARRAY_OUT],
+) -> Callable[Concatenate[TY_ARRAY, P], TY_ARRAY_OUT]:
+    """Build the wrapped function as a self-contained ONNX graph and inline it.
+
+    This is useful for functions which have to use the `If` operator
+    in order to work around bug in the onnxruntime. Without this
+    wrapper, value propagation will be executed in either arm of the
+    `If` node and subsequently fail in one of them (it is the point of
+    the `If` node to avoid the computation of the problematic branch
+    at inference time).
+    """
+
+    @wraps(fun)
+    def inner(self: TY_ARRAY, *args: P.args, **kwargs: P.kwargs) -> TY_ARRAY_OUT:
+        self_arg = self.dtype.__ndx_argument__(self.shape)
+        lazy_res = fun(self_arg, *args, **kwargs)
+
+        model = build({"a": self_arg._var}, {"b": lazy_res._var})
+        return type(lazy_res)(inline(model)(a=self._var)["b"])
+
+    return inner
 
 
 class _OnnxDType(DType[TY_ARRAY_co]):
@@ -138,23 +176,10 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         stop: int | float,
         step: int | float = 1,
     ) -> TY_ARRAY_co:
-        np_dtype = self.unwrap_numpy()
-        np_arr = np.array([start, stop, step])
-
-        if np_dtype.kind != np_arr.dtype.kind:
-            TypeError(
-                f"'start', 'stop', and 'step' have to match data type kind of `{self}`"
-            )
-        # Get everything onto the same type
-        start_, stop_, step_ = np.array([start, stop, step], dtype=np_dtype)
-
-        var = op.range(
-            op.const(start_, np_dtype),
-            op.const(stop_, np_dtype),
-            op.const(step_, np_dtype),
-        )
-
-        return self._build(var)
+        # onnxruntime has issues computing the correct number of
+        # elements if the arguments to this function include very
+        # large numbers. See hypothesis test examples.
+        return const(np.arange(start, stop, step)).astype(self)
 
     def __ndx_eye__(
         self,
@@ -489,8 +514,14 @@ class TyArray(TyArrayBase):
             and any(isinstance(item, TyArrayInteger) for item in key)
         ):
             raise IndexError("'__setitem__' with integer arrays is not supported")
+        elif isinstance(key, tuple):
+            length_without_ellipsis = len([el for el in key if el != ...])
+            if length_without_ellipsis > self.ndim:
+                raise IndexError(
+                    f"too many indices for array: array is `{self.ndim}`-dimensional, but `{length_without_ellipsis}` were indexed"
+                )
 
-        # Shortcut: Remove ellipsis from the front if there is any
+        # Shortcut: Remove trailing ellipsis if any
         if ... in key and key.index(...) == len(key):
             key = key[:-1]
 
@@ -499,11 +530,16 @@ class TyArray(TyArrayBase):
             self._setitem_int_array(arr_key, value)
             return
 
-        # The ellipsis is somewhere else in the key. We need to do some rearangment
-        tmp_dim_perm, reverse_perm, keys_no_ellips = _move_ellipsis_back(self.ndim, key)
-        perm_self = self.permute_dims(tmp_dim_perm)
-        perm_self[keys_no_ellips] = value
-        self._var = perm_self.permute_dims(reverse_perm)._var
+        # The ellipsis is somewhere else in the key. We replace them
+        # with slices.
+        length_ellipsis = self.ndim - (len(key) - 1)
+        expanded_key = (
+            key[: key.index(...)]
+            + length_ellipsis * (slice(None, None),)
+            + key[key.index(...) + 1 :]
+        )
+
+        self[expanded_key] = value
 
     def _setitem_boolmask(self, key: TyArrayBool, value: Self) -> None:
         if self.ndim < key.ndim:
@@ -645,12 +681,17 @@ class TyArray(TyArrayBase):
 
         raise ValueError("no propagated value available")
 
-    def all(
-        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    @_inline
+    def _all_any(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+        op_name: Literal["all", "any"],
     ) -> TyArrayBool:
         if axis == ():
             return self.astype(bool_)
-
         if isinstance(axis, int):
             axis = (axis,)
 
@@ -658,38 +699,65 @@ class TyArray(TyArrayBase):
 
         if bools.ndim == 0:
             if axis:
-                ValueError("'axis' were provided but 'self' is a scalar")
+                raise ValueError("'axis' were provided but 'self' is a scalar")
             # Nothing left to reduce
-            return safe_cast(TyArrayBool, bools)
+            return bools
 
-        axes = op.const(list(axis), np.int64) if axis else None
+        # onnxruntime does not properly support zero-sized input
+        zero_sized = bools.dynamic_size == 0
 
-        # Note: reduce_min, which would support uint8s, appears to be buggy on the onnxruntime
-        # side. Thus we use reduce_prod for now.
-        var = op.reduce_prod(bools.astype(int32)._var, axes=axes, keepdims=keepdims)
-        return safe_cast(TyArrayBool, TyArrayInt32(var).astype(bool_))
+        # Normalize axis to positive values
+        axis = (
+            None
+            if axis is None
+            else tuple(ax if ax >= 0 else ax + self.ndim for ax in axis)
+        )
+        # Compute output shape if we get a zero-size input
+        fill_value_if_zero_size = op_name == "all"
+        if axis is None:
+            if not keepdims:
+                then_branch = [const(fill_value_if_zero_size)._var]
+            else:
+                out_shape = const(np.ones((self.ndim,)), int64)
+                then_branch = [
+                    const(fill_value_if_zero_size).broadcast_to(out_shape)._var
+                ]
+        else:
+            out_shape = self.dynamic_shape
+            one = const(1)
+            for ax in axis:
+                out_shape[ax] = one
+            if not keepdims:
+                axes_to_keep = np.asarray(
+                    [ax for ax in range(self.ndim) if ax not in axis], np.int64
+                )
+                out_shape = out_shape.take(const(axes_to_keep, int64))
+            then_branch = [const(fill_value_if_zero_size).broadcast_to(out_shape)._var]
+
+        spox_op = op.reduce_min if op_name == "all" else op.reduce_max
+        else_branch = [
+            spox_op(
+                bools._var,
+                axes=None if axis is None else op.const(axis, np.int64),
+                keepdims=keepdims,
+            )
+        ]
+        (var,) = op.if_(
+            zero_sized._var,
+            then_branch=lambda: then_branch,
+            else_branch=lambda: else_branch,
+        )
+        return TyArrayBool(var)
+
+    def all(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> TyArrayBool:
+        return self._all_any(axis=axis, keepdims=keepdims, op_name="all")
 
     def any(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> TyArrayBool:
-        if axis == ():
-            return self.astype(bool_)
-        if isinstance(axis, int):
-            axis = (axis,)
-
-        bools = self.astype(bool_)
-
-        if bools.ndim == 0:
-            if axis:
-                ValueError("'axis' were provided but 'self' is a scalar")
-            # Nothing left to reduce
-            return safe_cast(TyArrayBool, bools)
-
-        axes = op.const(list(axis), np.int64) if axis else None
-
-        # Accumulate in float32 to avoid possible overflowing issues
-        var = op.reduce_sum(bools.astype(float32)._var, axes=axes, keepdims=keepdims)
-        return safe_cast(TyArrayBool, TyArrayFloat32(var).astype(bool_))
+        return self._all_any(axis=axis, keepdims=keepdims, op_name="any")
 
     def as_core_dtype(self, dtype: DTypes) -> TyArray:
         raise ValueError(f"casting between `{self.dtype}` and `{dtype}` is undefined")
@@ -1149,34 +1217,53 @@ class TyArrayNumber(TyArray):
         )
         return _var_to_tyarray(var)
 
-    def max(
-        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    def _min_max(
+        self,
+        /,
+        *,
+        axis: int | tuple[int, ...] | None = None,
+        keepdims: bool = False,
+        op_name: Literal["min", "max"],
     ) -> Self:
         if axis == ():
             # TODO: File bug:
             # `reduce_max`'s ORT implementation differs from onnx-shape
             # inference for keepdims=False AND noop_with_empty_axes=True.
             return self.copy()
+        if self.ndim == 0 and axis is None:
+            return self.copy()
 
+        # ReduceMin/Max in onnxruntime appears to do something buggy
+        # for int64 values in a 1D array with very large/small int64
+        # values. The axis parameter must be set for this to work,
+        # too! See test_hypothesis_examples.py:test_min
+        # TODO: File upstream issue.
+
+        if axis is None:
+            axis = tuple(range(self.ndim))
+        # _axis_var normalized to positive values. It is thus safe to
+        # expand the last dimension.
         axes = _axis_var(axis, self.ndim)
-        return type(self)(
-            op.reduce_max(
-                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
+        spox_op = op.reduce_min if op_name == "min" else op.reduce_max
+        res = type(self)(
+            spox_op(
+                self[..., None]._var,
+                axes=axes,
+                keepdims=keepdims,
+                noop_with_empty_axes=False,
             )
         )
+        return res.squeeze(-1)
+
+    def max(
+        self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
+    ) -> Self:
+        return self._min_max(axis=axis, keepdims=keepdims, op_name="max")
 
     def min(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
     ) -> Self:
-        if axis == ():
-            return self.copy()
-
-        axes = _axis_var(axis, self.ndim)
-        return type(self)(
-            op.reduce_min(
-                self._var, axes=axes, keepdims=keepdims, noop_with_empty_axes=False
-            )
-        )
+        return self._min_max(axis=axis, keepdims=keepdims, op_name="min")
 
     @overload
     def prod(
@@ -2159,7 +2246,10 @@ def const(
     if isinstance(obj, bool):
         obj = np.asarray(obj, dtype=bool)
     if isinstance(obj, int):
-        obj = np.asarray(obj, dtype=np.int64)
+        if dtype is None:
+            obj = np.asarray(obj, dtype=np.int64)
+        else:
+            obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
     if isinstance(obj, np.ndarray) and obj.dtype == object:
         if not all(isinstance(el, str) for el in obj.flatten()):
             raise ValueError(
