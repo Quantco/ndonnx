@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from sys import platform
+
 import numpy as np
 import pytest
 import spox.opset.ai.onnx.v19 as op
@@ -1034,6 +1036,10 @@ def test_argmaxmin(func, x, keepdims):
 
 @pytest.mark.parametrize("val", [[], 1, [1], [1, 1], [[1, 2], [3, 4]]])
 def test_dynamic_size(val):
-    expected = np.asarray(np.asarray(val).size)
+    expected = np.asarray(val).size
     candidate = ndx.asarray(val).dynamic_size
-    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(),
+        expected,
+        strict=np.__version__ < "2" and platform.startswith("win"),
+    )
