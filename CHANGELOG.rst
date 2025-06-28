@@ -17,6 +17,8 @@ Changelog
   - The ``Ellipsis`` expanded to at least one dimension
   - The ``Ellipsis`` was not the last element of the key
   - The assigned value was not a scalar or 1D array with length 1.
+- The error message of the ``IndexingError`` raise by :meth:`ndonnx.Array.__setitem__` when providing a tuple-key containing int64-arrays is now accurate.
+- Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
 
 
 **New workarounds for missing onnxruntime implementations**

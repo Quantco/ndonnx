@@ -508,7 +508,11 @@ class TyArray(TyArrayBase):
 
         if isinstance(key, TyArrayBool):
             return self._setitem_boolmask(key, value)
-        elif isinstance(key, TyArrayInteger):
+        elif (
+            isinstance(key, TyArrayInteger)
+            or isinstance(key, tuple)
+            and any(isinstance(item, TyArrayInteger) for item in key)
+        ):
             raise IndexError("'__setitem__' with integer arrays is not supported")
         elif isinstance(key, tuple):
             length_without_ellipsis = len([el for el in key if el != ...])
@@ -2674,8 +2678,8 @@ def _get_indices(
     if s.stop is None:
         stop = lower if step_is_negative else upper
     elif isinstance(s.stop, int):
+        stop_is_neg = s.stop < 0
         stop = const(s.stop, dtype=int64)
-        stop_is_neg = stop < 0
         if stop_is_neg:
             stop = maximum(stop + length_, lower)
         else:
