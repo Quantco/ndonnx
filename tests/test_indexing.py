@@ -163,6 +163,36 @@ def test_setitem_boolean_mask_value_is_array():
     np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
 
 
+@pytest.mark.parametrize(
+    "update",
+    [
+        # Assign scalar value
+        11,
+        # Broadcastable on both dimensions
+        [11],
+        # Broadcast on second dimension
+        [[11], [44]],
+        # Specify all elements instead of broadcasting
+        [[11, 22, 33], [44, 55, 66]],
+    ],
+)
+def test_setitem_on_2d_array_with_boolean_mask(update):
+    # Numpy does not allow using boo_mask.ndim >1 in __setitem__
+    def do(npx):
+        np_arr = np.arange(0, 9, dtype=np.int64).reshape(
+            (
+                3,
+                3,
+            )
+        )
+        arr = npx.asarray(np_arr)
+        key_arr = npx.asarray([True, False, True])
+        arr[key_arr] = npx.asarray(update)
+        return arr
+
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy())
+
+
 def test_scalar_array_key():
     def do(npx):
         arr = npx.asarray([1, 2, 3], dtype=npx.int64)
