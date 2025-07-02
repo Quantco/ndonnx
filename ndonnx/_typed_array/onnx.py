@@ -2674,8 +2674,8 @@ def _get_indices(
     if s.stop is None:
         stop = lower if step_is_negative else upper
     elif isinstance(s.stop, int):
+        stop_is_neg = s.stop < 0
         stop = const(s.stop, dtype=int64)
-        stop_is_neg = stop < 0
         if stop_is_neg:
             stop = maximum(stop + length_, lower)
         else:
