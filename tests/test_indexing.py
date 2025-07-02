@@ -200,3 +200,17 @@ def test_integer_array_indexing():
         return arr[key]
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        ndx.asarray([1]),
+        (ndx.asarray([1]),),
+    ],
+)
+def test_setitem_fancy_indexing_integer_array_raises(key):
+    arr = ndx.asarray([1.0, 1.0])
+
+    with pytest.raises(IndexError, match="__setitem__"):
+        arr[key] = 10.0
