@@ -17,6 +17,7 @@ Changelog
   - The ``Ellipsis`` expanded to at least one dimension
   - The ``Ellipsis`` was not the last element of the key
   - The assigned value was not a scalar or 1D array with length 1.
+- Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
 
 
 **New workarounds for missing onnxruntime implementations**
