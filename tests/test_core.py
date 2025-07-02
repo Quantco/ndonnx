@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from sys import platform
+import platform
 
 import numpy as np
 import pytest
@@ -1041,5 +1041,5 @@ def test_dynamic_size(val):
     np.testing.assert_array_equal(
         candidate.unwrap_numpy(),
         expected,
-        strict=np.__version__ < "2" and platform.startswith("win"),
+        strict=not (np.__version__ < "2" and platform.system() == "Windows"),
     )
