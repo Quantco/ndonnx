@@ -18,7 +18,7 @@ Changelog
   - The ``Ellipsis`` was not the last element of the key
   - The assigned value was not a scalar or 1D array with length 1.
 - :meth:`ndonnx.Array.__setitem__` now correctly handles boolean masks for arrays of two or more dimensions.
-
+- Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
 
 **New workarounds for missing onnxruntime implementations**
 
