@@ -237,13 +237,22 @@ neg = _wrap_unary(
         (np.uint64,): Warn(np.int64),
     },
 )
-# T tensor(bfloat16), tensor(double), tensor(float), tensor(float16), tensor(int16), tensor(int32), tensor(int64), tensor(int8), tensor(uint16), tensor(uint32), tensor(uint64), tensor(uint8)
-sign = op.sign
+
 sin = _wrap_unary(op.sin, _mapping_float_double)
 sinh = _wrap_unary(op.sinh, _mapping_float_only)
 sqrt = _wrap_unary(op.sqrt, _mapping_float_double)
 tan = _wrap_unary(op.tan, _mapping_float_only)
 tanh = _wrap_unary(op.tanh, _mapping_float_double)
+
+
+def sign(
+    input: Var,
+) -> Var:
+    # Sign has good type support but there is a bug for large int64 values on linux
+    if input.unwrap_tensor().dtype == np.int64:
+        tmp = cast(input, to=np.float32)
+        return cast(op.sign(tmp), to=np.int64)
+    return op.sign(input)
 
 
 def reduce_op(
