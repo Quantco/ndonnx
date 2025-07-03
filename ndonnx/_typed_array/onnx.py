@@ -544,27 +544,35 @@ class TyArray(TyArrayBase):
     def _setitem_boolmask(self, key: TyArrayBool, value: Self) -> None:
         if self.ndim < key.ndim:
             raise IndexError("provided boolean mask has higher rank than 'self'")
-        if self.ndim > key.ndim:
-            diff = self.ndim - key.ndim
-            # expand to rank of self
-            idx = [...] + diff * [None]
-            key = key[tuple(idx)]
-
         if value.ndim == 0:
             # We can be sure that we don't run into broadcasting
             # issues with a zero-sized value if the value is a
             # scalar. This allows us to use `where`.
+            if self.ndim > key.ndim:
+                diff = self.ndim - key.ndim
+                # expand to rank of self
+                idx = [...] + diff * [None]
+                key = key[tuple(idx)]
             self._var = op.where(key._var, value._var, self._var)
             return
+        elif value.ndim != 1:
+            # NumPy semantics
+            TypeError(
+                f"assignment value must be 0 or 1-dimensional for boolean indexing, got `{value.ndim}`"
+            )
 
-        int_keys = safe_cast(
-            TyArrayInt64,
-            const(1, int64).broadcast_to(key.dynamic_shape).cumulative_sum() - 1,
-        )[key]
-        arr = self.copy().reshape((-1,))
-        arr.put(int_keys, value.reshape((-1,)))
-        arr.reshape(self.dynamic_shape)
-        self._var = arr._var
+        # The following is essentially doing `self[ndx.nonzero(key)] = value`
+        non_zero = [el[..., None] for el in key.nonzero()]
+        indices_len_last_dim = len(non_zero)
+        indices = non_zero[0].concat(non_zero[1:], axis=-1)
+        update_target_shape = indices.dynamic_shape[:-1].concat(
+            [self.dynamic_shape[indices_len_last_dim:]], axis=0
+        )
+
+        # ScatterND does not support broadcasting the updates
+        updates = value.broadcast_to(update_target_shape)
+
+        self._var = op.scatter_nd(self._var, indices._var, updates._var)
 
     def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
         # The last dim of shape must be statically known (i.e. the
