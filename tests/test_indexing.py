@@ -121,36 +121,33 @@ def test_setitem_too_long_key_tuple_raises():
 
 
 def test_empty_data():
-    np_arr = np.ones((0, 0), dtype=bool)
-    key = (slice(None, None, None), slice(None, None, None))
-    arr = ndx.asarray(np_arr)
+    def do(npx):
+        arr = npx.ones((0, 0), dtype=npx.int64)
+        key = (slice(None, None, None), slice(None, None, None))
+        arr[key] = True
+        return arr
 
-    arr[key] = True
-    np_arr[key] = True
-
-    np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
 
 
 def test_empty_update():
-    np_arr = np.ones((2, 2), dtype=bool)
-    key = (slice(0, 0, None), slice(None, None, None))
-    arr = ndx.asarray(np_arr)
+    def do(npx):
+        arr = npx.ones((2, 2), dtype=npx.int64)
+        key = (slice(0, 0, None), slice(None, None, None))
+        arr[key] = ~arr[key]
+        return arr
 
-    np_arr[key] = ~np_arr[key]
-    update = ~arr[key]
-    arr[key] = update
-
-    np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr)
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
 
 
 def test_setitem_boolean_mask_all_false():
     def do(npx):
-        key = npx.asarray([False, False])
         arr = npx.asarray([1, 2], dtype=npx.int64)
+        key = npx.asarray([False, False])
         arr[key] = arr[key]
         return arr
 
-    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy())
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
 
 
 def test_setitem_boolean_mask_value_is_array():
@@ -163,16 +160,46 @@ def test_setitem_boolean_mask_value_is_array():
         arr[key] = arr[key]
         return arr
 
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        # Assign scalar value
+        11,
+        # Broadcastable on both dimensions
+        [11],
+        # Broadcast on second dimension
+        [[11], [44]],
+        # Specify all elements instead of broadcasting
+        [[11, 22, 33], [44, 55, 66]],
+    ],
+)
+def test_setitem_on_2d_array_with_boolean_mask(update):
+    # Numpy does not allow using boo_mask.ndim >1 in __setitem__
+    def do(npx):
+        np_arr = np.arange(0, 9, dtype=np.int64).reshape(
+            (
+                3,
+                3,
+            )
+        )
+        arr = npx.asarray(np_arr)
+        key_arr = npx.asarray([True, False, True])
+        arr[key_arr] = npx.asarray(update)
+        return arr
+
     np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy())
 
 
 def test_scalar_array_key():
-    np_arr = np.asarray([1, 2, 3], dtype=np.int64)
-    np_key = np.asarray(1, dtype=np.int64)
-    arr = ndx.asarray(np_arr)
-    key = ndx.asarray(np_key)
+    def do(npx):
+        arr = npx.asarray([1, 2, 3], dtype=npx.int64)
+        key = npx.asarray(1, dtype=npx.int64)
+        return arr[key]
 
-    np.testing.assert_array_equal(np_arr[np_key], arr[key].unwrap_numpy())
+    np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
 
 
 def test_index_scalar_with_empty_tuple():
@@ -200,3 +227,17 @@ def test_integer_array_indexing():
         return arr[key]
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        ndx.asarray([1]),
+        (ndx.asarray([1]),),
+    ],
+)
+def test_setitem_fancy_indexing_integer_array_raises(key):
+    arr = ndx.asarray([1.0, 1.0])
+
+    with pytest.raises(IndexError, match="__setitem__"):
+        arr[key] = 10.0
