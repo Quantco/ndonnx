@@ -10,7 +10,7 @@ concurrency:
 jobs:
   array-api-tests:
     name: Array API test
-    timeout-minutes: 60
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,11 +19,11 @@ jobs:
           # Different platforms are faster than others. We try to keep
           # the CI snappy at <= 2min.
           - os: ubuntu-latest
-            max_examples_ci: 50
+            max_examples_ci: 1000
           - os: macos-latest
-            max_examples_ci: 100
+            max_examples_ci: 1000
           - os: windows-latest
-            max_examples_ci: 30
+            max_examples_ci: 1000
     steps:
       - name: Checkout branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
