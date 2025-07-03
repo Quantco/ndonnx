@@ -172,3 +172,10 @@ def test_sign():
         return npx.sign(arr)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+def test_clip():
+    def do(npx):
+        return npx.clip(npx.asarray([2147483648], dtype=npx.int64), min=None, max=0)
+
+    np.testing.assert_array_equal(do(ndx), do(np))
