@@ -248,7 +248,8 @@ tanh = _wrap_unary(op.tanh, _mapping_float_double)
 def sign(
     input: Var,
 ) -> Var:
-    # Sign has good type support but there is a bug for large int64 values on linux
+    # Sign has good type support but there is a bug for large int64
+    # values on Windows and Linux.
     if input.unwrap_tensor().dtype == np.int64:
         tmp = cast(input, to=np.float32)
         return cast(op.sign(tmp), to=np.int64)

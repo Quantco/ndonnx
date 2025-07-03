@@ -163,10 +163,9 @@ def test_raise_if_neither_argument_is_array():
 
 
 def test_sign():
-    # onnxruntime's sign is broken for int64 input with more than two
-    # or more elements in a very strange way. It is able to correctly
-    # process np.iinfo(np.int64).max, but not some medium-large
-    # values.
+    # onnxruntime's sign is broken for int64 input with two or more
+    # elements on Linux and Windows. It is able to correctly process
+    # np.iinfo(np.int64).max, but not some medium-large values.
     def do(npx):
         large_value = 2147483649
         arr = npx.asarray([large_value] * 2, dtype=npx.int64)
