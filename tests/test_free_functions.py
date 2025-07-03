@@ -160,3 +160,13 @@ def test_tensordot_no_axes(a, b):
 def test_raise_if_neither_argument_is_array():
     with pytest.raises(TypeError, match="add"):
         ndx.add(1, 1)
+
+
+def test_sign():
+    # onnxruntime's sign is broken for int64 input with more than two or more elements
+    def do(npx):
+        large_value = 2147483649
+        arr = npx.asarray([large_value] * 2, dtype=npx.int64)
+        return npx.sign(arr)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
