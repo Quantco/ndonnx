@@ -508,7 +508,11 @@ class TyArray(TyArrayBase):
 
         if isinstance(key, TyArrayBool):
             return self._setitem_boolmask(key, value)
-        elif isinstance(key, TyArrayInteger):
+        elif (
+            isinstance(key, TyArrayInteger)
+            or isinstance(key, tuple)
+            and any(isinstance(item, TyArrayInteger) for item in key)
+        ):
             raise IndexError("'__setitem__' with integer arrays is not supported")
         elif isinstance(key, tuple):
             length_without_ellipsis = len([el for el in key if el != ...])
@@ -540,27 +544,35 @@ class TyArray(TyArrayBase):
     def _setitem_boolmask(self, key: TyArrayBool, value: Self) -> None:
         if self.ndim < key.ndim:
             raise IndexError("provided boolean mask has higher rank than 'self'")
-        if self.ndim > key.ndim:
-            diff = self.ndim - key.ndim
-            # expand to rank of self
-            idx = [...] + diff * [None]
-            key = key[tuple(idx)]
-
         if value.ndim == 0:
             # We can be sure that we don't run into broadcasting
             # issues with a zero-sized value if the value is a
             # scalar. This allows us to use `where`.
+            if self.ndim > key.ndim:
+                diff = self.ndim - key.ndim
+                # expand to rank of self
+                idx = [...] + diff * [None]
+                key = key[tuple(idx)]
             self._var = op.where(key._var, value._var, self._var)
             return
+        elif value.ndim != 1:
+            # NumPy semantics
+            TypeError(
+                f"assignment value must be 0 or 1-dimensional for boolean indexing, got `{value.ndim}`"
+            )
 
-        int_keys = safe_cast(
-            TyArrayInt64,
-            const(1, int64).broadcast_to(key.dynamic_shape).cumulative_sum() - 1,
-        )[key]
-        arr = self.copy().reshape((-1,))
-        arr.put(int_keys, value.reshape((-1,)))
-        arr.reshape(self.dynamic_shape)
-        self._var = arr._var
+        # The following is essentially doing `self[ndx.nonzero(key)] = value`
+        non_zero = [el[..., None] for el in key.nonzero()]
+        indices_len_last_dim = len(non_zero)
+        indices = non_zero[0].concat(non_zero[1:], axis=-1)
+        update_target_shape = indices.dynamic_shape[:-1].concat(
+            [self.dynamic_shape[indices_len_last_dim:]], axis=0
+        )
+
+        # ScatterND does not support broadcasting the updates
+        updates = value.broadcast_to(update_target_shape)
+
+        self._var = op.scatter_nd(self._var, indices._var, updates._var)
 
     def _setitem_int_array(self, key: TyArrayInt64, value: Self) -> None:
         # The last dim of shape must be statically known (i.e. the
@@ -2674,8 +2686,8 @@ def _get_indices(
     if s.stop is None:
         stop = lower if step_is_negative else upper
     elif isinstance(s.stop, int):
+        stop_is_neg = s.stop < 0
         stop = const(s.stop, dtype=int64)
-        stop_is_neg = stop < 0
         if stop_is_neg:
             stop = maximum(stop + length_, lower)
         else:
