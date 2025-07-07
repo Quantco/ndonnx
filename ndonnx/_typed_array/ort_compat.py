@@ -798,22 +798,8 @@ def concat(
     *,
     axis: int,
 ) -> Var:
-    # It seems that there is currently a bug(?) in the type/shape
-    # inference in ONNX which prohibits us from concatenating
-    # empty 1D int32 and int64 arrays (see test case). We therefor
-    # do some hacky special-casing here for those types and those
-    # types only. Other data types are fine.
-    #
-    # TODO: File upstream bug; this may also be what caused the
-    # segfaults in onnxruntime in the past!
     tensors = [el.unwrap_tensor() for el in inputs]
-    # All elements must have the same rank at this point
     first_shape = tensors[0].shape
     if first_shape is None:
         raise ValueError("rank of inputs must be statically known")
-    if tensors[0].dtype in (np.int32, np.int64) and len(first_shape) == 1:
-        dummy_axis = op.const([axis + 1], dtype=np.int64)
-        vars = [op.unsqueeze(el, dummy_axis) for el in inputs]
-        var = op.concat(vars, axis=axis)
-        return op.squeeze(var, dummy_axis)
     return op.concat(inputs, axis=0 if axis is None else axis)
