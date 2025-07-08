@@ -415,6 +415,21 @@ _min_max_mapping: _MappingDictType = {
 def max(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
+    if dtype_in.kind == "i":
+        # The max, min, and clip operator appears to be strangely broken in onnxruntime
+        # See: https://github.com/microsoft/onnxruntime/pull/25280
+        # We work around it by using the where operator in those
+        # cases. That only works reasonably if we have two inputs
+        # (which should always be the case for how we use this
+        # operator in ndonnx).
+        try:
+            x, y = data_0
+        except IndexError:
+            raise ValueError(
+                f"workaround for 'Max' operator is only available for two inputs got `{len(data_0)}`"
+            )
+        return where(greater(x, y), x, y)
+
     if via_dtype := _detour_type(dtype_in, _min_max_mapping):
         if isinstance(via_dtype, Warn):
             _warn_lossy("max", dtype_in, via_dtype.ty)
@@ -428,6 +443,20 @@ def max(data_0: Sequence[Var], /) -> Var:
 def min(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
+    if dtype_in == np.int64:
+        # The max, min, and clip operator appears to be strangely broken in onnxruntime
+        # See: https://github.com/microsoft/onnxruntime/pull/25280
+        # We work around it by using the where operator in those
+        # cases. That only works reasonably if we have two inputs
+        # (which should always be the case for how we use this
+        # operator in ndonnx).
+        try:
+            x, y = data_0
+        except IndexError:
+            raise ValueError(
+                f"workaround for 'Min' operator is only available for two inputs got `{len(data_0)}`"
+            )
+        return where(less(x, y), x, y)
     if via_dtype := _detour_type(dtype_in, _min_max_mapping):
         if isinstance(via_dtype, Warn):
             _warn_lossy("max", dtype_in, via_dtype.ty)
