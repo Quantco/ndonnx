@@ -26,7 +26,7 @@ Changelog
 
 - :func:`ndx.any` and :func:`ndx.all` now correctly propagate values even if the input is zero-sized.
 - :func:`ndonnx.arange` now follows NumPy's semantics for extremely large start, stop, and step values.
-- :func:`ndonnx.min` and :func:`ndonnx.max` now produce correct results for very large values in int64 arrays.
+- :func:`ndonnx.min`, :func:`ndonnx.max`, :func:`ndonnx.minimum`, :func:`ndonnx.maximum`, and :func:`ndonnx.clip` now produce correct results for very large values in int64 arrays.
 
 
 0.13.0 (2025-05-27)
