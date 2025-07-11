@@ -28,15 +28,20 @@ if TYPE_CHECKING:
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
 _Axisparam = int | tuple[int, ...] | None
+_PyScalar = bool | int | float | str
 
 
 def _make_binary(
     tyarr_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
 ) -> tuple[_BinaryOp, _BinaryOp]:
     def binary_op_forward(self, other):
+        if not isinstance(other, np.ndarray | Array | _PyScalar):
+            return NotImplemented
         return _apply_op(self, other, tyarr_op)
 
     def binary_op_backward(self, other):
+        if not isinstance(other, np.ndarray | Array | _PyScalar):
+            return NotImplemented
         return _apply_op(other, self, tyarr_op)
 
     return binary_op_forward, binary_op_backward
@@ -369,10 +374,14 @@ def _astyarray_or_pyscalar(
 
 
 def _apply_op(
-    lhs: PyScalar | Array,
-    rhs: PyScalar | Array,
+    lhs: PyScalar | Array | np.ndarray,
+    rhs: PyScalar | Array | np.ndarray,
     op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
 ) -> Array | NotImplementedType:
+    if not isinstance(lhs, _PyScalar | Array):
+        return NotImplemented
+    if not isinstance(rhs, _PyScalar | Array):
+        return NotImplemented
     lhs_ = _astyarray_or_pyscalar(lhs)
     rhs_ = _astyarray_or_pyscalar(rhs)
     data = op(lhs_, rhs_)
