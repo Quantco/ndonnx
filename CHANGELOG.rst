@@ -10,13 +10,14 @@ Changelog
 0.14.0 (unreleased)
 -------------------
 
-**Bug fix**
+**Bug fixes**
 
 - Fix a bug in :meth:`ndonnx.Array.__setitem__` that occurred when all of the following applied:
   - An ``Ellipsis`` was part of the key
   - The ``Ellipsis`` expanded to at least one dimension
   - The ``Ellipsis`` was not the last element of the key
   - The assigned value was not a scalar or 1D array with length 1.
+- :meth:`ndonnx.Array.dynamic_shape` now returns a rank-0 array for all input ranks.
 - The error message of the ``IndexingError`` raise by :meth:`ndonnx.Array.__setitem__` when providing a tuple-key containing int64-arrays is now accurate.
 - Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
 - :meth:`ndonnx.Array.__setitem__` now correctly handles boolean masks for arrays of two or more dimensions.
@@ -25,7 +26,7 @@ Changelog
 
 - :func:`ndx.any` and :func:`ndx.all` now correctly propagate values even if the input is zero-sized.
 - :func:`ndonnx.arange` now follows NumPy's semantics for extremely large start, stop, and step values.
-- :func:`ndonnx.min` and :func:`ndonnx.max` now produce correct results for very large values in int64 arrays.
+- :func:`ndonnx.min`, :func:`ndonnx.max`, :func:`ndonnx.minimum`, :func:`ndonnx.maximum`, and :func:`ndonnx.clip` now produce correct results for very large values in int64 arrays.
 
 
 0.13.0 (2025-05-27)

@@ -248,7 +248,8 @@ tanh = _wrap_unary(op.tanh, _mapping_float_double)
 def sign(
     input: Var,
 ) -> Var:
-    # Sign has good type support but there is a bug for large int64 values on linux
+    # Sign has good type support but there is a bug for large int64
+    # values on Windows and Linux.
     if input.unwrap_tensor().dtype == np.int64:
         tmp = cast(input, to=np.float32)
         return cast(op.sign(tmp), to=np.int64)
@@ -414,6 +415,21 @@ _min_max_mapping: _MappingDictType = {
 def max(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
+    if dtype_in.kind == "i":
+        # The max, min, and clip operator appears to be strangely broken in onnxruntime
+        # See: https://github.com/microsoft/onnxruntime/pull/25280
+        # We work around it by using the where operator in those
+        # cases. That only works reasonably if we have two inputs
+        # (which should always be the case for how we use this
+        # operator in ndonnx).
+        try:
+            x, y = data_0
+        except IndexError:
+            raise ValueError(
+                f"workaround for 'Max' operator is only available for two inputs got `{len(data_0)}`"
+            )
+        return where(greater(x, y), x, y)
+
     if via_dtype := _detour_type(dtype_in, _min_max_mapping):
         if isinstance(via_dtype, Warn):
             _warn_lossy("max", dtype_in, via_dtype.ty)
@@ -427,6 +443,20 @@ def max(data_0: Sequence[Var], /) -> Var:
 def min(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
+    if dtype_in == np.int64:
+        # The max, min, and clip operator appears to be strangely broken in onnxruntime
+        # See: https://github.com/microsoft/onnxruntime/pull/25280
+        # We work around it by using the where operator in those
+        # cases. That only works reasonably if we have two inputs
+        # (which should always be the case for how we use this
+        # operator in ndonnx).
+        try:
+            x, y = data_0
+        except IndexError:
+            raise ValueError(
+                f"workaround for 'Min' operator is only available for two inputs got `{len(data_0)}`"
+            )
+        return where(less(x, y), x, y)
     if via_dtype := _detour_type(dtype_in, _min_max_mapping):
         if isinstance(via_dtype, Warn):
             _warn_lossy("max", dtype_in, via_dtype.ty)
@@ -807,22 +837,8 @@ def concat(
     *,
     axis: int,
 ) -> Var:
-    # It seems that there is currently a bug(?) in the type/shape
-    # inference in ONNX which prohibits us from concatenating
-    # empty 1D int32 and int64 arrays (see test case). We therefor
-    # do some hacky special-casing here for those types and those
-    # types only. Other data types are fine.
-    #
-    # TODO: File upstream bug; this may also be what caused the
-    # segfaults in onnxruntime in the past!
     tensors = [el.unwrap_tensor() for el in inputs]
-    # All elements must have the same rank at this point
     first_shape = tensors[0].shape
     if first_shape is None:
         raise ValueError("rank of inputs must be statically known")
-    if tensors[0].dtype in (np.int32, np.int64) and len(first_shape) == 1:
-        dummy_axis = op.const([axis + 1], dtype=np.int64)
-        vars = [op.unsqueeze(el, dummy_axis) for el in inputs]
-        var = op.concat(vars, axis=axis)
-        return op.squeeze(var, dummy_axis)
     return op.concat(inputs, axis=0 if axis is None else axis)

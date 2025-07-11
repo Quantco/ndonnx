@@ -120,7 +120,7 @@ class Array:
         if self.ndim == 0:
             Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
         if self.ndim == 1:
-            return self.dynamic_shape
+            return self.dynamic_shape[0]
 
         return Array._from_tyarray(self.dynamic_shape._tyarray.prod())
 
