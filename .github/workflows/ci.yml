@@ -1,15 +1,5 @@
 name: CI
-on:
-  # We would like to trigger for CI for any pull request action -
-  # both from QuantCo's branches as well as forks.
-  pull_request:
-  # In addition to pull requests, we want to run CI for pushes to any
-  # branch in `QuantCo/ndonnx` and tags.
-  push:
-    branches:
-      - "*"
-    tags:
-      - "*"
+on: push
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -43,8 +33,7 @@ jobs:
           - windows-latest
         environment:
           - py310
-          - py311
-          - py312
+          - min-onnxruntime
           - np1x
           - default
     steps:
