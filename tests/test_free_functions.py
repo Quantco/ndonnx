@@ -160,3 +160,45 @@ def test_tensordot_no_axes(a, b):
 def test_raise_if_neither_argument_is_array():
     with pytest.raises(TypeError, match="add"):
         ndx.add(1, 1)
+
+
+def test_sign():
+    # onnxruntime's sign is broken for int64 input with two or more
+    # elements on Linux and Windows. It is able to correctly process
+    # np.iinfo(np.int64).max, but not some medium-large values.
+    def do(npx):
+        large_value = 2147483649
+        arr = npx.asarray([large_value] * 2, dtype=npx.int64)
+        return npx.sign(arr)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.skipif(
+    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
+)
+def test_clip():
+    def do(npx):
+        return npx.clip(npx.asarray([2147483648] * 2, dtype=npx.int64), min=None, max=0)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.skipif(
+    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
+)
+def test_min():
+    def do(npx):
+        return npx.minimum(npx.asarray([2147483648] * 2, dtype=npx.int64), 0)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.skipif(
+    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
+)
+def test_max():
+    def do(npx):
+        return npx.maximum(npx.asarray([0] * 2, dtype=npx.int64), 2147483648)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))

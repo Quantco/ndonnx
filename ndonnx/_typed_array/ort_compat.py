@@ -237,13 +237,23 @@ neg = _wrap_unary(
         (np.uint64,): Warn(np.int64),
     },
 )
-# T tensor(bfloat16), tensor(double), tensor(float), tensor(float16), tensor(int16), tensor(int32), tensor(int64), tensor(int8), tensor(uint16), tensor(uint32), tensor(uint64), tensor(uint8)
-sign = op.sign
+
 sin = _wrap_unary(op.sin, _mapping_float_double)
 sinh = _wrap_unary(op.sinh, _mapping_float_only)
 sqrt = _wrap_unary(op.sqrt, _mapping_float_double)
 tan = _wrap_unary(op.tan, _mapping_float_only)
 tanh = _wrap_unary(op.tanh, _mapping_float_double)
+
+
+def sign(
+    input: Var,
+) -> Var:
+    # Sign has good type support but there is a bug for large int64
+    # values on Windows and Linux.
+    if input.unwrap_tensor().dtype == np.int64:
+        tmp = cast(input, to=np.float32)
+        return cast(op.sign(tmp), to=np.int64)
+    return op.sign(input)
 
 
 def reduce_op(
@@ -405,6 +415,21 @@ _min_max_mapping: _MappingDictType = {
 def max(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
+    if dtype_in.kind == "i":
+        # The max, min, and clip operator appears to be strangely broken in onnxruntime
+        # See: https://github.com/microsoft/onnxruntime/pull/25280
+        # We work around it by using the where operator in those
+        # cases. That only works reasonably if we have two inputs
+        # (which should always be the case for how we use this
+        # operator in ndonnx).
+        try:
+            x, y = data_0
+        except IndexError:
+            raise ValueError(
+                f"workaround for 'Max' operator is only available for two inputs got `{len(data_0)}`"
+            )
+        return where(greater(x, y), x, y)
+
     if via_dtype := _detour_type(dtype_in, _min_max_mapping):
         if isinstance(via_dtype, Warn):
             _warn_lossy("max", dtype_in, via_dtype.ty)
@@ -418,6 +443,20 @@ def max(data_0: Sequence[Var], /) -> Var:
 def min(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
+    if dtype_in == np.int64:
+        # The max, min, and clip operator appears to be strangely broken in onnxruntime
+        # See: https://github.com/microsoft/onnxruntime/pull/25280
+        # We work around it by using the where operator in those
+        # cases. That only works reasonably if we have two inputs
+        # (which should always be the case for how we use this
+        # operator in ndonnx).
+        try:
+            x, y = data_0
+        except IndexError:
+            raise ValueError(
+                f"workaround for 'Min' operator is only available for two inputs got `{len(data_0)}`"
+            )
+        return where(less(x, y), x, y)
     if via_dtype := _detour_type(dtype_in, _min_max_mapping):
         if isinstance(via_dtype, Warn):
             _warn_lossy("max", dtype_in, via_dtype.ty)
