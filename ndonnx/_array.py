@@ -23,8 +23,11 @@ from ._typed_array.masked_onnx import TyMaArray
 from .extensions import get_mask
 from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
 
-_BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
+_BinaryOp = Callable[
+    ["Array", "int | bool | str | float | Array | np.ndarray | np.generic"], "Array"
+]
 _Axisparam = int | tuple[int, ...] | None
+_PyScalar = bool | int | float | str
 
 
 def _make_binary(
@@ -382,6 +385,10 @@ def _apply_op(
     rhs: PyScalar | Array | np.ndarray | np.generic,
     op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
 ) -> Array | NotImplementedType:
+    if not isinstance(lhs, _PyScalar | Array | np.ndarray | np.generic):
+        return NotImplemented
+    if not isinstance(rhs, _PyScalar | Array | np.ndarray | np.generic):
+        return NotImplemented
     lhs_ = _astyarray_or_pyscalar(lhs)
     rhs_ = _astyarray_or_pyscalar(rhs)
     data = op(lhs_, rhs_)
