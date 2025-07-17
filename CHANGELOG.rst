@@ -21,6 +21,7 @@ Changelog
 - The error message of the ``IndexingError`` raise by :meth:`ndonnx.Array.__setitem__` when providing a tuple-key containing int64-arrays is now accurate.
 - Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
 - :meth:`ndonnx.Array.__setitem__` now correctly handles boolean masks for arrays of two or more dimensions.
+- Operations between NumPy and ndonnx arrays now correctly call the reverse dunder methods such as :meth:`ndonnx.Array.__radd__` where appropriate.
 
 **New workarounds for missing onnxruntime implementations**
 
