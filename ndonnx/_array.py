@@ -48,6 +48,16 @@ class Array:
 
     _tyarray: TyArrayBase
 
+    # `__array_priority__` governs which operand is first called in
+    # operations involving a NumPy array/generic and a custom class
+    # (like this one). If not set, the first operand is always called
+    # first. This is problematic since NumPy does not directly return
+    # NotImplemented if called with an ndonnx.Array object. Setting
+    # this priority higher than that of a NumPy array (i.e. 0) ensures
+    # that a situation such as `np.ndarray + ndx.Array` will first
+    # call `ndx.Array.__radd__`.
+    __array_priority__ = 1
+
     def __init__(self, *args, **kwargs) -> None:
         raise TypeError(
             "'Array' cannot be instantiated directly. Use the 'ndonnx.array' or 'ndonnx.asarray' functions instead"
