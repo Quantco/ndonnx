@@ -43,8 +43,7 @@ jobs:
           - windows-latest
         environment:
           - py310
-          - py311
-          - py312
+          - min-onnxruntime
           - np1x
           - default
     steps:

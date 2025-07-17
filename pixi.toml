@@ -12,7 +12,7 @@ python = ">=3.10"
 numpy = "*"
 spox = ">=0.10"
 typing_extensions = "*"
-onnx = "*"
+onnx = ">=1.16"
 onnxruntime = ">=1.20"
 
 [host-dependencies]
@@ -41,7 +41,6 @@ pytest-cov = "*"
 pytest-json-report = "*"
 pytest-xdist = "*"
 hypothesis = "*"
-onnxruntime = "*"
 mypy = "*"
 ndindex = "*"
 
@@ -83,6 +82,8 @@ python = "3.12.*"
 [feature.np1x.dependencies]
 python = "3.11.*"
 numpy = "1.*"
+[feature.min-onnxruntime.dependencies]
+onnxruntime = "==1.20.1"
 
 [environments]
 default = ["test", "lint"]
@@ -90,6 +91,7 @@ py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
 np1x = ["np1x", "test"]
+min-onnxruntime = ["min-onnxruntime", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }
