@@ -8,7 +8,7 @@ import operator as std_ops
 from collections.abc import Callable
 from enum import Enum
 from types import EllipsisType, NotImplementedType
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from warnings import warn
 
 import numpy as np
@@ -21,10 +21,7 @@ from ._typed_array import TyArrayBase, onnx
 from ._typed_array import funcs as tyfuncs
 from ._typed_array.masked_onnx import TyMaArray
 from .extensions import get_mask
-
-if TYPE_CHECKING:
-    from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
-
+from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
 
 _BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
 _Axisparam = int | tuple[int, ...] | None
@@ -47,6 +44,16 @@ class Array:
     logic."""
 
     _tyarray: TyArrayBase
+
+    # `__array_priority__` governs which operand is first called in
+    # operations involving a NumPy array/generic and a custom class
+    # (like this one). If not set, the first operand is always called
+    # first. This is problematic since NumPy does not directly return
+    # NotImplemented if called with an ndonnx.Array object. Setting
+    # this priority higher than that of a NumPy array (i.e. 0) ensures
+    # that a situation such as `np.ndarray + ndx.Array` will first
+    # call `ndx.Array.__radd__`.
+    __array_priority__ = 1
 
     def __init__(self, *args, **kwargs) -> None:
         raise TypeError(
@@ -359,8 +366,10 @@ class Array:
 
 
 def _astyarray_or_pyscalar(
-    val: int | float | str | Array | Var | np.ndarray,
+    val: int | float | str | Array | Var | np.ndarray | np.generic,
 ) -> TyArrayBase | int | float | str:
+    if isinstance(val, np.generic):
+        val = np.asarray(val)
     if isinstance(val, Array):
         return val._tyarray
     if isinstance(val, int | float | str):
@@ -369,8 +378,8 @@ def _astyarray_or_pyscalar(
 
 
 def _apply_op(
-    lhs: PyScalar | Array,
-    rhs: PyScalar | Array,
+    lhs: PyScalar | Array | np.ndarray | np.generic,
+    rhs: PyScalar | Array | np.ndarray | np.generic,
     op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
 ) -> Array | NotImplementedType:
     lhs_ = _astyarray_or_pyscalar(lhs)
