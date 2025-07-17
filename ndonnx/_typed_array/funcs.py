@@ -64,6 +64,8 @@ def _infer_dtype(
     elif isinstance(val, Sequence):
         return _infer_sequence(val)
     elif isinstance(val, np.generic):
+        if val.dtype.kind in "Mm":
+            return datetime.from_numpy_dtype(val.dtype)
         return onnx.from_numpy_dtype(val.dtype)
     raise ValueError(f"unable to infer dtype from `{val}`")
 
