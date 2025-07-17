@@ -2623,7 +2623,7 @@ def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
     if np_dtype.kind == "U":
         return utf8
 
-    raise ValueError(f"`{np_dtype}` does not have a corresponding ndonnx data type")
+    raise ValueError(f"`{np_dtype}` does not have a corresponding primitive data type")
 
 
 def _key_to_indices(key: tuple[slice | int, ...], shape: TyArrayInt64) -> TyArrayInt64:
@@ -2804,7 +2804,7 @@ def _matmul_mitigate_zero_sized(
         out_shape = dummy_n_m(a_, b_)
     else:
         raise ValueError(
-            "unsupported input ranks for 'matmul': `{a_.ndim}` and `{b_.ndim}`"
+            f"unsupported input ranks for 'matmul': `{a_.ndim}` and `{b_.ndim}`"
         )
 
     dummy_out = zeros(shape=out_shape, dtype=a.dtype)._var

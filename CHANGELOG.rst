@@ -22,6 +22,7 @@ Changelog
 - Using `slice` objects in the :meth:`ndonnx.Array.__setitem__` no longer require value propagation.
 - :meth:`ndonnx.Array.__setitem__` now correctly handles boolean masks for arrays of two or more dimensions.
 - Operations between NumPy and ndonnx arrays now correctly call the reverse dunder methods such as :meth:`ndonnx.Array.__radd__` where appropriate.
+- Operations between ``numpy.generic`` and :class:`ndonnx.Array` objects now follow the regular type promotion logic.
 
 **New workarounds for missing onnxruntime implementations**
 

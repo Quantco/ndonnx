@@ -684,6 +684,22 @@ def validate_unit(unit: str) -> Unit:
     raise ValueError(f"unsupported datetime unit `{unit}`")
 
 
+def from_numpy_dtype(np_dtype: np.dtype, /) -> DateTime64DType | TimeDelta64DType:
+    if np_dtype.kind == "M":
+        unit_str = np.datetime_data(np_dtype)[0]
+        unit = validate_unit(unit_str)
+        return DateTime64DType(unit=unit)
+
+    if np_dtype.kind == "m":
+        unit_str = np.datetime_data(np_dtype)[0]
+        unit = validate_unit(unit_str)
+        return TimeDelta64DType(unit=unit)
+
+    raise ValueError(
+        f"'{np_dtype}' does not have a corresponding ndonnx time data type"
+    )
+
+
 def _unit_power_diff(from_unit: Unit, to_unit: Unit) -> int:
     powers = {
         "s": 0,
