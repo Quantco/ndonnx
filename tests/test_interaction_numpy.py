@@ -51,7 +51,9 @@ def test_dunders_numpy_generic(op, np_arr, np_gen):
     def do(npx):  # type: ignore[no-redef]
         return op(np_gen, npx.asarray(np_arr))
 
-    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+    np.testing.assert_array_equal(
+        do(ndx).unwrap_numpy(), do(np), strict=np.__version__ >= "2"
+    )
 
 
 def test_datetime_generics():
