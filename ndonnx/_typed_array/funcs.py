@@ -36,6 +36,8 @@ def _infer_sequence(
 def _infer_dtype(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence | np.generic,
 ) -> DType:
+    if isinstance(val, np.generic):
+        return from_numpy_dtype(val.dtype)
     if isinstance(val, np.ndarray):
         if val.dtype == object:
             if not all(isinstance(el, str) for el in val.flatten()):
@@ -63,10 +65,6 @@ def _infer_dtype(
         return onnx.utf8
     elif isinstance(val, Sequence):
         return _infer_sequence(val)
-    elif isinstance(val, np.generic):
-        if val.dtype.kind in "Mm":
-            return datetime.from_numpy_dtype(val.dtype)
-        return onnx.from_numpy_dtype(val.dtype)
     raise ValueError(f"unable to infer dtype from `{val}`")
 
 

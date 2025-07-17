@@ -8,6 +8,8 @@ import pytest
 
 import ndonnx as ndx
 
+from .utils import assert_array_equal
+
 
 @pytest.mark.parametrize(
     "op",
@@ -51,9 +53,7 @@ def test_dunders_numpy_generic(op, np_arr, np_gen):
     def do(npx):  # type: ignore[no-redef]
         return op(np_gen, npx.asarray(np_arr))
 
-    np.testing.assert_array_equal(
-        do(ndx).unwrap_numpy(), do(np), strict=np.__version__ >= "2"
-    )
+    assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
 def test_datetime_generics():
@@ -69,7 +69,7 @@ def test_datetime_generics():
     def do(npx):  # type: ignore[no-redef]
         return npx.asarray(np_arr) - scalar
 
-    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
+    assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
 def test_numpy_array_ndx_array_reverse_dunder_called_correctly():
@@ -79,4 +79,4 @@ def test_numpy_array_ndx_array_reverse_dunder_called_correctly():
     candidate = np_arr + ndx.asarray(np_arr_2)
     expected = np_arr + np_arr_2
 
-    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
+    assert_array_equal(candidate.unwrap_numpy(), expected)
