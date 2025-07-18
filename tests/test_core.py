@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import operator
 import platform
 
 import numpy as np
@@ -1043,3 +1044,35 @@ def test_dynamic_size(val):
         expected,
         strict=not (np.__version__ < "2" and platform.system() == "Windows"),
     )
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.add,
+        operator.and_,
+        operator.floordiv,
+        operator.ge,
+        operator.gt,
+        operator.le,
+        operator.lshift,
+        operator.lt,
+        operator.matmul,
+        operator.mod,
+        operator.mul,
+        operator.or_,
+        operator.pow,
+        operator.rshift,
+        operator.sub,
+        operator.truediv,
+        operator.xor,
+    ],
+)
+def test_not_implemented_from_dunders(op):
+    class Dummy: ...
+
+    arr = ndx.asarray([1, 2])
+    with pytest.raises(TypeError, match="supported"):
+        op(arr, Dummy())
+    with pytest.raises(TypeError, match="supported"):
+        op(Dummy(), arr)
