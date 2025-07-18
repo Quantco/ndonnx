@@ -57,11 +57,11 @@ def _make_binary_dunder(
     #     -> operator.add(TyArray(dtype1), TyArray(dtype2)):
     #        - Tries __add__ and __radd__ on the TyArray objects
     #        - Raise TypeError with bad error message
-    #        - Catch and re-raise with better error message
+    #        - Catch and raise new error with better message
     #   -> Option 2:
     #     -> Manually try __add__ and __radd__ on the TyArray objects
     #       -> Pass through the returned NotImplemented object
-    #       -> Still a bad error message for the user
+    #       -> Still a bad error message for the user, but does not expose internal class names
     #   -> Option 3:
     #     -> Manually try __add__ and __radd__ on the TyArray objects
     #       -> Check for NotImplemented
@@ -447,22 +447,6 @@ def _astyarray_or_pyscalar(
     if isinstance(val, int | float | str):
         return val
     return tyfuncs.astyarray(val)
-
-
-def _apply_op(
-    lhs: PyScalar | Array | np.ndarray | np.generic,
-    rhs: PyScalar | Array | np.ndarray | np.generic,
-    op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
-) -> Array:
-    """Apply a standard library operation on the two operands.
-
-    The 'op' function must return an informative 'TypeError' rather than
-    'NotImplemented' if the operands are incompatible.
-    """
-    lhs_ = _astyarray_or_pyscalar(lhs)
-    rhs_ = _astyarray_or_pyscalar(rhs)
-    data = op(lhs_, rhs_)
-    return Array._from_tyarray(data)
 
 
 def _normalize_arrays_in_getitem_key(key: GetItemKey) -> onnx.GetitemIndex:
