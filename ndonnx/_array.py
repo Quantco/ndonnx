@@ -7,7 +7,7 @@ import math
 import operator as std_ops
 from collections.abc import Callable
 from enum import Enum
-from types import EllipsisType, NotImplementedType
+from types import EllipsisType
 from typing import Any
 from warnings import warn
 
@@ -29,7 +29,13 @@ _BinaryOp = Callable[
 ]
 _Axisparam = int | tuple[int, ...] | None
 
-def _build_forward(std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase], sigil: str, this_name: str, reflected_name: str) -> _BinaryOp:
+
+def _build_forward(
+    std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase],
+    sigil: str,
+    this_name: str,
+    reflected_name: str,
+) -> _BinaryOp:
     def fun(self, rhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
         if isinstance(rhs, PyScalar):
             return Array._from_tyarray(std_op(self._tyarray, rhs))
@@ -48,7 +54,13 @@ def _build_forward(std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase], sigil
 
     return fun
 
-def _build_backward(std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase], sigil: str, this_name: str, reflected_name: str) -> _BinaryOp:
+
+def _build_backward(
+    std_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+    sigil: str,
+    this_name: str,
+    reflected_name: str,
+) -> _BinaryOp:
     def fun(self, lhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
         if isinstance(lhs, PyScalar):
             return Array._from_tyarray(std_op(lhs, self._tyarray))
@@ -67,11 +79,12 @@ def _build_backward(std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase], sigi
 
     return fun
 
+
 def _make_binary_dunder(
-    std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase],
+    std_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
     sigil: str,
     forward_name: str,
-    backward_name: str
+    backward_name: str,
 ) -> tuple[_BinaryOp, _BinaryOp]:
     """Create a forward and reflected version for a binary dunder method."""
 
@@ -106,7 +119,9 @@ def _make_binary_dunder(
     #       -> Check for NotImplemented
     #       -> Raise error with nice error message
     #       -> A bit more cumbersome to implement
-    return _build_forward(std_op, sigil, forward_name, backward_name), _build_backward(std_op, "+", backward_name, forward_name)
+    return _build_forward(std_op, sigil, forward_name, backward_name), _build_backward(
+        std_op, "+", backward_name, forward_name
+    )
 
 
 class Array:
@@ -365,21 +380,31 @@ class Array:
         if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
             return NotImplemented
         return Array._from_tyarray(self._tyarray != _astyarray_or_pyscalar(other))
-    
+
     __add__, __radd__ = _make_binary_dunder(std_ops.add, "+", "__add__", "__radd__")
     __and__, __rand__ = _make_binary_dunder(std_ops.and_, "&", "__and__", "__rand__")
-    __floordiv__, __rfloordiv__ = _make_binary_dunder(std_ops.floordiv, "//", "__floordiv__", "__rfloordiv__")
+    __floordiv__, __rfloordiv__ = _make_binary_dunder(
+        std_ops.floordiv, "//", "__floordiv__", "__rfloordiv__"
+    )
     __ge__, __le__ = _make_binary_dunder(std_ops.ge, ">=", "__ge__", "__le__")
     __gt__, __lt__ = _make_binary_dunder(std_ops.gt, ">", "__gt__", "__lt__")
-    __lshift__, __rlshift__ = _make_binary_dunder(std_ops.lshift, "<<", "__lshift__", "__rlshift__")
-    __matmul__, __rmatmul__ = _make_binary_dunder(std_ops.matmul, "@", "__matmul__", "__rmatmul__")
+    __lshift__, __rlshift__ = _make_binary_dunder(
+        std_ops.lshift, "<<", "__lshift__", "__rlshift__"
+    )
+    __matmul__, __rmatmul__ = _make_binary_dunder(
+        std_ops.matmul, "@", "__matmul__", "__rmatmul__"
+    )
     __mod__, __rmod__ = _make_binary_dunder(std_ops.mod, "%", "__mod__", "__rmod__")
     __mul__, __rmul__ = _make_binary_dunder(std_ops.mul, "*", "__mul__", "__rmul__")
     __or__, __ror__ = _make_binary_dunder(std_ops.or_, "|", "__or__", "__ror__")
     __pow__, __rpow__ = _make_binary_dunder(std_ops.pow, "**", "__pow__", "__rpow__")
-    __rshift__, __rrshift__ = _make_binary_dunder(std_ops.rshift, ">>", "__rshift__", "__rrshift__")
+    __rshift__, __rrshift__ = _make_binary_dunder(
+        std_ops.rshift, ">>", "__rshift__", "__rrshift__"
+    )
     __sub__, __rsub__ = _make_binary_dunder(std_ops.sub, "-", "__sub__", "__rsub__")
-    __truediv__, __rtruediv__ = _make_binary_dunder(std_ops.truediv, "/", "__truediv__", "__rtruediv__")
+    __truediv__, __rtruediv__ = _make_binary_dunder(
+        std_ops.truediv, "/", "__truediv__", "__rtruediv__"
+    )
     __xor__, __rxor__ = _make_binary_dunder(std_ops.xor, "^", "__xor__", "__rxor__")
 
     def __abs__(self, /) -> Array:
