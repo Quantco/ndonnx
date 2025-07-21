@@ -45,6 +45,8 @@ from .utils import assert_array_equal
 def test_dunders_numpy_generic(op, np_arr, np_gen):
     # The first operand is multiplied by two to better test the
     # correct application of non-commutative functions.
+    # NumPy 1.x converts np.uint32(2) * 2 to np.float64. Adding np_gen
+    # with itself preserves the type.
 
     # Forward
     def do(npx):
@@ -54,7 +56,7 @@ def test_dunders_numpy_generic(op, np_arr, np_gen):
 
     # Backward
     def do(npx):  # type: ignore[no-redef]
-        return op(np_gen * 2, npx.asarray(np_arr))
+        return op(np_gen + np_gen, npx.asarray(np_arr))
 
     assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 

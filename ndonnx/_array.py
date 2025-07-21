@@ -37,10 +37,11 @@ def _build_forward(
     reflected_name: str,
 ) -> _BinaryOp:
     def fun(self, rhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
-        if isinstance(rhs, PyScalar):
-            return Array._from_tyarray(std_op(self._tyarray, rhs))
         if isinstance(rhs, np.ndarray | np.generic):
             rhs = Array._constant(value=np.asarray(rhs), dtype=None)
+        if isinstance(rhs, PyScalar):
+            # Note: NumPy generic are subclasses of Python scalars in np1x
+            return Array._from_tyarray(std_op(self._tyarray, rhs))
         if not isinstance(rhs, Array):
             return NotImplemented
         res = getattr(self._tyarray, this_name)(rhs._tyarray)
@@ -62,10 +63,11 @@ def _build_backward(
     reflected_name: str,
 ) -> _BinaryOp:
     def fun(self, lhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
-        if isinstance(lhs, PyScalar):
-            return Array._from_tyarray(std_op(lhs, self._tyarray))
         if isinstance(lhs, np.ndarray | np.generic):
             lhs = Array._constant(value=np.asarray(lhs), dtype=None)
+        if isinstance(lhs, PyScalar):
+            # Note: NumPy generic are subclasses of Python scalars in np1x
+            return Array._from_tyarray(std_op(lhs, self._tyarray))
         if not isinstance(lhs, Array):
             return NotImplemented
         res = getattr(self._tyarray, this_name)(lhs._tyarray)
@@ -120,7 +122,7 @@ def _make_binary_dunder(
     #       -> Raise error with nice error message
     #       -> A bit more cumbersome to implement
     return _build_forward(std_op, sigil, forward_name, backward_name), _build_backward(
-        std_op, "+", backward_name, forward_name
+        std_op, sigil, backward_name, forward_name
     )
 
 
