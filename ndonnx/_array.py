@@ -7,7 +7,7 @@ import math
 import operator as std_ops
 from collections.abc import Callable
 from enum import Enum
-from types import EllipsisType, NotImplementedType
+from types import EllipsisType
 from typing import Any
 from warnings import warn
 
@@ -23,20 +23,107 @@ from ._typed_array.masked_onnx import TyMaArray
 from .extensions import get_mask
 from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
 
-_BinaryOp = Callable[["Array", "int | bool | str | float | Array"], "Array"]
+_BinaryOp = Callable[
+    ["Array", "PyScalar | Array | np.ndarray | np.generic"],
+    "Array",
+]
 _Axisparam = int | tuple[int, ...] | None
 
 
-def _make_binary(
-    tyarr_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+def _build_forward(
+    std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase],
+    sigil: str,
+    this_name: str,
+    reflected_name: str,
+) -> _BinaryOp:
+    def fun(self, rhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
+        if isinstance(rhs, np.ndarray | np.generic):
+            rhs = Array._constant(value=np.asarray(rhs), dtype=None)
+        if isinstance(rhs, PyScalar):
+            # Note: NumPy generic are subclasses of Python scalars in np1x
+            return Array._from_tyarray(std_op(self._tyarray, rhs))
+        if not isinstance(rhs, Array):
+            return NotImplemented
+        res = getattr(self._tyarray, this_name)(rhs._tyarray)
+        if res is NotImplemented:
+            res = getattr(rhs._tyarray, reflected_name)(self._tyarray)
+        if res is NotImplemented:
+            raise TypeError(
+                f"unsupported operand (data) types for `{sigil}`: `{self.dtype}` and `{rhs.dtype}`"
+            )
+        return Array._from_tyarray(res)
+
+    return fun
+
+
+def _build_backward(
+    std_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+    sigil: str,
+    this_name: str,
+    reflected_name: str,
+) -> _BinaryOp:
+    def fun(self, lhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
+        if isinstance(lhs, np.ndarray | np.generic):
+            lhs = Array._constant(value=np.asarray(lhs), dtype=None)
+        if isinstance(lhs, PyScalar):
+            # Note: NumPy generic are subclasses of Python scalars in np1x
+            return Array._from_tyarray(std_op(lhs, self._tyarray))
+        if not isinstance(lhs, Array):
+            return NotImplemented
+        res = getattr(self._tyarray, this_name)(lhs._tyarray)
+        if res is NotImplemented:
+            res = getattr(lhs._tyarray, reflected_name)(self._tyarray)
+        if res is NotImplemented:
+            raise TypeError(
+                f"unsupported operand (data) types for `{sigil}`: `{self.dtype}` and `{lhs.dtype}`"
+            )
+        return Array._from_tyarray(res)
+
+    return fun
+
+
+def _make_binary_dunder(
+    std_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+    sigil: str,
+    forward_name: str,
+    backward_name: str,
 ) -> tuple[_BinaryOp, _BinaryOp]:
-    def binary_op_forward(self, other):
-        return _apply_op(self, other, tyarr_op)
+    """Create a forward and reflected version for a binary dunder method."""
 
-    def binary_op_backward(self, other):
-        return _apply_op(other, self, tyarr_op)
-
-    return binary_op_forward, binary_op_backward
+    # If we return 'NotImplemented' from methods such as __add__ the
+    # interpreter will create an error message that does not display
+    # the arrays dtype. E.g. `"TypeError: ... +: Not Implemented for
+    # 'Array' and 'Other'`. This is ok, if `Other` is some unrelated
+    # class, but we would not want to show an error massage such as
+    # `"TypeError: ... +: Not Implemented for 'Array' and 'Array'` in
+    # cases where the data types are not compatible.
+    #
+    # We want to cover the following scenarios for incompatible operands.
+    #
+    # Other() + Array:
+    #   -> Array.__radd__:
+    #     -> return NotImplemented
+    # Array + Other():
+    #   -> Array.__add__:
+    #     -> return NotImplemented
+    # Array(dtype1) + Array(dtype2):
+    #   -> Option 1:
+    #     -> operator.add(TyArray(dtype1), TyArray(dtype2)):
+    #        - Tries __add__ and __radd__ on the TyArray objects
+    #        - Raise TypeError with bad error message
+    #        - Catch and raise new error with better message
+    #   -> Option 2:
+    #     -> Manually try __add__ and __radd__ on the TyArray objects
+    #       -> Pass through the returned NotImplemented object
+    #       -> Still a bad error message for the user, but does not expose internal class names
+    #   -> Option 3 (Taken in the current implementation):
+    #     -> Manually try __add__ and __radd__ on the TyArray objects
+    #       -> Check for NotImplemented
+    #       -> Raise error with nice error message
+    #       -> A bit more cumbersome to implement
+    return _build_forward(std_op, sigil, forward_name, backward_name), _build_backward(
+        std_op, sigil, backward_name, forward_name
+    )
 
 
 class Array:
@@ -286,35 +373,41 @@ class Array:
 
     # We spell out __eq__ and __ne__ so that mypy may pick up the
     # change in return type (Array rather than bool)
-    def __eq__(self, other) -> Array:  # type: ignore[override]
-        return _apply_op(self, other, std_ops.eq)
+    def __eq__(self, other: PyScalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
+        if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
+            return NotImplemented
+        return Array._from_tyarray(self._tyarray == _astyarray_or_pyscalar(other))
 
-    def __ne__(self, other) -> Array:  # type: ignore[override]
-        return _apply_op(self, other, std_ops.ne)
+    def __ne__(self, other: PyScalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
+        if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
+            return NotImplemented
+        return Array._from_tyarray(self._tyarray != _astyarray_or_pyscalar(other))
 
-    ##################################################################
-    # __r*__ are needed for interacting with Python scalars          #
-    # (e.g. doing 1 + Array(...)). These functions are _NOT_ used to #
-    # dispatch between different `_TypedArray` subclasses.           #
-    ##################################################################
-
-    __add__, __radd__ = _make_binary(std_ops.add)
-    __and__, __rand__ = _make_binary(std_ops.and_)
-    __floordiv__, __rfloordiv__ = _make_binary(std_ops.floordiv)
-    __ge__, _ = _make_binary(std_ops.ge)
-    __gt__, _ = _make_binary(std_ops.gt)
-    __le__, _ = _make_binary(std_ops.le)
-    __lshift__, __rlshift__ = _make_binary(std_ops.lshift)
-    __lt__, _ = _make_binary(std_ops.lt)
-    __matmul__, __rmatmul__ = _make_binary(std_ops.matmul)
-    __mod__, __rmod__ = _make_binary(std_ops.mod)
-    __mul__, __rmul__ = _make_binary(std_ops.mul)
-    __or__, __ror__ = _make_binary(std_ops.or_)
-    __pow__, __rpow__ = _make_binary(std_ops.pow)
-    __rshift__, __rrshift__ = _make_binary(std_ops.rshift)
-    __sub__, __rsub__ = _make_binary(std_ops.sub)
-    __truediv__, __rtruediv__ = _make_binary(std_ops.truediv)
-    __xor__, __rxor__ = _make_binary(std_ops.xor)
+    __add__, __radd__ = _make_binary_dunder(std_ops.add, "+", "__add__", "__radd__")
+    __and__, __rand__ = _make_binary_dunder(std_ops.and_, "&", "__and__", "__rand__")
+    __floordiv__, __rfloordiv__ = _make_binary_dunder(
+        std_ops.floordiv, "//", "__floordiv__", "__rfloordiv__"
+    )
+    __ge__, __le__ = _make_binary_dunder(std_ops.ge, ">=", "__ge__", "__le__")
+    __gt__, __lt__ = _make_binary_dunder(std_ops.gt, ">", "__gt__", "__lt__")
+    __lshift__, __rlshift__ = _make_binary_dunder(
+        std_ops.lshift, "<<", "__lshift__", "__rlshift__"
+    )
+    __matmul__, __rmatmul__ = _make_binary_dunder(
+        std_ops.matmul, "@", "__matmul__", "__rmatmul__"
+    )
+    __mod__, __rmod__ = _make_binary_dunder(std_ops.mod, "%", "__mod__", "__rmod__")
+    __mul__, __rmul__ = _make_binary_dunder(std_ops.mul, "*", "__mul__", "__rmul__")
+    __or__, __ror__ = _make_binary_dunder(std_ops.or_, "|", "__or__", "__ror__")
+    __pow__, __rpow__ = _make_binary_dunder(std_ops.pow, "**", "__pow__", "__rpow__")
+    __rshift__, __rrshift__ = _make_binary_dunder(
+        std_ops.rshift, ">>", "__rshift__", "__rrshift__"
+    )
+    __sub__, __rsub__ = _make_binary_dunder(std_ops.sub, "-", "__sub__", "__rsub__")
+    __truediv__, __rtruediv__ = _make_binary_dunder(
+        std_ops.truediv, "/", "__truediv__", "__rtruediv__"
+    )
+    __xor__, __rxor__ = _make_binary_dunder(std_ops.xor, "^", "__xor__", "__rxor__")
 
     def __abs__(self, /) -> Array:
         data = self._tyarray.__abs__()
@@ -366,8 +459,8 @@ class Array:
 
 
 def _astyarray_or_pyscalar(
-    val: int | float | str | Array | Var | np.ndarray | np.generic,
-) -> TyArrayBase | int | float | str:
+    val: PyScalar | Array | Var | np.ndarray | np.generic,
+) -> TyArrayBase | PyScalar:
     if isinstance(val, np.generic):
         val = np.asarray(val)
     if isinstance(val, Array):
@@ -375,20 +468,6 @@ def _astyarray_or_pyscalar(
     if isinstance(val, int | float | str):
         return val
     return tyfuncs.astyarray(val)
-
-
-def _apply_op(
-    lhs: PyScalar | Array | np.ndarray | np.generic,
-    rhs: PyScalar | Array | np.ndarray | np.generic,
-    op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
-) -> Array | NotImplementedType:
-    lhs_ = _astyarray_or_pyscalar(lhs)
-    rhs_ = _astyarray_or_pyscalar(rhs)
-    data = op(lhs_, rhs_)
-    if data is not NotImplemented:
-        return Array._from_tyarray(data)
-
-    return NotImplemented
 
 
 def _normalize_arrays_in_getitem_key(key: GetItemKey) -> onnx.GetitemIndex:

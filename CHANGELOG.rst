@@ -7,7 +7,7 @@
 Changelog
 =========
 
-0.14.0 (unreleased)
+0.14.0 (2025-07-21)
 -------------------
 
 **Bug fixes**
@@ -23,6 +23,7 @@ Changelog
 - :meth:`ndonnx.Array.__setitem__` now correctly handles boolean masks for arrays of two or more dimensions.
 - Operations between NumPy and ndonnx arrays now correctly call the reverse dunder methods such as :meth:`ndonnx.Array.__radd__` where appropriate.
 - Operations between ``numpy.generic`` and :class:`ndonnx.Array` objects now follow the regular type promotion logic.
+- The following dunder operations on :class:`ndonnx.Array` now correctly return ``NotImplemented`` if one of the operands is not of type ``numpy.ndarray | ndonnx.Array | bool | str | int | float``: ``__add__``, ``__radd__``, ``__and__``, ``__rand__``, ``__floordiv__``, ``__rfloordiv__``, ``__ge__``, ``__gt__``, ``__le__``, ``__lshift__``, ``__rlshift__``, ``__lt__``, ``__matmul__``, ``__rmatmul__``, ``__mod__``, ``__rmod__``, ``__mul__``, ``__rmul__``, ``__or__``, ``__ror__``, ``__pow__``, ``__rpow__``, ``__rshift__``, ``__rrshift__``, ``__sub__``, ``__rsub__``, ``__truediv__``, ``__rtruediv__``, ``__xor__``, ``__rxor__``, ``__eq__``, ``__ne__``
 
 **New workarounds for missing onnxruntime implementations**
 

@@ -146,7 +146,7 @@ def test_arithmetic_timedelta_datetime_lazy(unit):
 
     assert_equal_dtype_shape(arr_dt - arr_td, expected_dtype, shape)
 
-    with pytest.raises(TypeError, match="unsupported operand type"):
+    with pytest.raises(TypeError, match="unsupported operand"):
         _ = arr_td - arr_dt
 
 
