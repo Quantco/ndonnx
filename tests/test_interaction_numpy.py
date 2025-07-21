@@ -44,7 +44,7 @@ from .utils import assert_array_equal
 )
 def test_dunders_numpy_generic(op, np_arr, np_gen):
     # The first operand is multiplied by two to better test the
-    # correct application of non-cummutative functions.
+    # correct application of non-commutative functions.
 
     # Forward
     def do(npx):
