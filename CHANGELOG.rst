@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.14.1 (unreleased)
+-------------------
+
+**Other changes**
+
+- Improve stacklevel presented of various deprecation warnings.
+
+
 0.14.0 (2025-07-21)
 -------------------
 

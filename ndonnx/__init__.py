@@ -405,7 +405,11 @@ def __getattr__(name: str):
     )
 
     def _warn_use_instead(old: str, new: str):
-        warn(f"'{old}' is deprecated in favor of '{new}'", DeprecationWarning)
+        warn(
+            f"'{old}' is deprecated in favor of '{new}'",
+            DeprecationWarning,
+            stacklevel=3,
+        )
 
     superseded = {
         "additional": ("ndonnx.extensions", extensions),

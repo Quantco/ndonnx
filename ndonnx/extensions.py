@@ -37,6 +37,7 @@ def shape(x: ndx.Array, /) -> ndx.Array:
     warn(
         "'ndonnx.shape' is deprecated in favor of 'ndonnx.Array.dynamic_shape'",
         DeprecationWarning,
+        stacklevel=2,
     )
     return x.dynamic_shape
 
