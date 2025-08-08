@@ -76,7 +76,8 @@ def asarray(
             ):
                 # This is a list of ndonnx arrays
                 warn(
-                    "providing a sequence of 'Array's to 'asarray' is not defined by the array-api-standard and may be removed from ndonnx in the future"
+                    "providing a sequence of 'Array's to 'asarray' is not defined by the array-api-standard and may be removed from ndonnx in the future",
+                    stacklevel=2,
                 )
                 dtype = result_type(*np_arr.flatten()) if dtype is None else dtype
                 out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])

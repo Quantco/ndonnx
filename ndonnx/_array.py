@@ -227,6 +227,7 @@ class Array:
         warn(
             "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
             DeprecationWarning,
+            stacklevel=2,
         )
         return get_mask(self)
 
@@ -235,6 +236,7 @@ class Array:
         warn(
             "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
             DeprecationWarning,
+            stacklevel=2,
         )
 
         if isinstance(self._tyarray, TyMaArray):
@@ -254,6 +256,7 @@ class Array:
         warn(
             "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
             DeprecationWarning,
+            stacklevel=2,
         )
         try:
             return self.unwrap_numpy()
@@ -269,6 +272,7 @@ class Array:
         warn(
             "'Array.spox_var' is deprecated in favor of 'Array.disassemble' or 'Array.unwrap_spox'",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self.unwrap_spox()
 

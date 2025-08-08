@@ -71,7 +71,7 @@ def _inline(
     """Build the wrapped function as a self-contained ONNX graph and inline it.
 
     This is useful for functions which have to use the `If` operator
-    in order to work around bug in the onnxruntime. Without this
+    in order to work around bugs in the onnxruntime. Without this
     wrapper, value propagation will be executed in either arm of the
     `If` node and subsequently fail in one of them (it is the point of
     the `If` node to avoid the computation of the problematic branch
