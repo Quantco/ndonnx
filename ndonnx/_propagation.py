@@ -9,6 +9,7 @@ from warnings import warn
 warn(
     "the 'ndonnx._propagation' module is deprecated and can be simply removed.",
     DeprecationWarning,
+    stacklevel=2,
 )
 
 F = TypeVar("F", bound=Callable[..., Any])
