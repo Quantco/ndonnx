@@ -10,6 +10,10 @@ Changelog
 0.14.1 (unreleased)
 -------------------
 
+**New feature**
+
+- :func:`ndonnx.repeat` is now implemented for all built-in data types.
+
 **Other changes**
 
 - Improve stacklevel presented of various deprecation warnings.

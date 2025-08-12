@@ -457,7 +457,58 @@ class TyArrayBase(ABC):
     def repeat(
         self, repeats: int | TyArrayInt64, /, *, axis: int | None = None
     ) -> Self:
-        raise _make_type_error("repeat", self.dtype)
+        # Default implementation of `repeat` that does not depend on the underlying layout
+        from . import onnx
+
+        x = self
+        if axis is None:
+            x = x.reshape((-1,))
+            axis = 0
+
+        if axis < 0:
+            axis += x.ndim
+
+        x_shape = x.dynamic_shape
+
+        if isinstance(repeats, onnx.TyArrayInt64) and repeats.ndim > 1:
+            raise ValueError(
+                f"'repeats' must be 0 or 1 dimensional, but has `{repeats.ndim}` dimensions"
+            )
+
+        if isinstance(repeats, int):
+            repeats = onnx.const(np.asarray(repeats), onnx.int64)
+
+        if repeats.ndim == 0:
+            repeats = repeats[None]
+            # Expand by one dimension and use regular broadcasting to repeat
+            key: list[slice | None] = [slice(None, None)] * (x.ndim + 1)
+            key[axis + 1] = None
+            tmp = x[tuple(key)].broadcast_to(
+                x_shape[: axis + 1].concat([repeats, x_shape[axis + 1 :]], axis=0)
+            )
+            # We now have a shape of (..., self.shape[axis], repeats, ...).
+            # All we need to do is collapse these two axes into one.
+            out_shape = x_shape.copy()
+            out_shape[axis] = safe_cast(onnx.TyArrayInt64, out_shape[axis] * repeats)
+
+            return tmp.reshape(out_shape)
+
+        # Repeats may be of shape (1,)
+        repeats = repeats.broadcast_to(x_shape[axis][None])
+
+        max_rep = repeats.max(keepdims=False)
+        repeated_with_maxrep = x.repeat(max_rep, axis=axis)
+
+        mask2D = onnx.arange(max_rep)[None, :] < repeats[:, None]
+        mask1D = mask2D.reshape((-1,))
+
+        # We can only use __getitem__ with a boolean mask on 1D arrays.
+        # Otherwise, we have to compute indices and use `take`
+        if x.ndim == 1:
+            return repeated_with_maxrep[mask1D]
+
+        indices = onnx.arange(mask1D.dynamic_size)[mask1D]
+        return repeated_with_maxrep.take(indices, axis=axis)
 
     def tile(self, repetitions: tuple[int, ...], /) -> Self:
         raise _make_type_error("tile", self.dtype)
