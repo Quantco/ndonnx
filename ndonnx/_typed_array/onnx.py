@@ -840,11 +840,6 @@ class TyArray(TyArrayBase):
             var = op.reshape(self._var, shape._var, allowzero=True)
         return type(self)(var)
 
-    def repeat(
-        self, repeats: int | TyArrayInt64, /, *, axis: int | None = None
-    ) -> Self:
-        raise NotImplementedError
-
     def searchsorted(
         self,
         x2: Self,
@@ -2820,3 +2815,18 @@ def _matmul_mitigate_zero_sized(
 
     arr = type(a)(var_with_propagation)
     return arr
+
+
+def arange(
+    start: TyArrayInt64,
+    /,
+    stop: TyArrayInt64 | None = None,
+    step: int | TyArrayInt64 = 1,
+) -> TyArrayInt64:
+    if stop is None:
+        stop = start
+        start = const(0)
+    if isinstance(step, int):
+        step = const(step)
+    var = op.range(start=start._var, limit=stop._var, delta=step._var)
+    return TyArrayInt64(var)

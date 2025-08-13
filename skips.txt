@@ -1,6 +1,5 @@
 # Missing implementations which should be perfectly doable
 array_api_tests/test_linalg.py::test_tensordot
-array_api_tests/test_manipulation_functions.py::test_repeat
 
 # Tests that fail due to lossy ORT workarounds, which are tested elsewhere
 array_api_tests/test_statistical_functions.py::test_sum

@@ -7,8 +7,12 @@
 Changelog
 =========
 
-0.14.1 (unreleased)
+0.15.0 (2025-08-13)
 -------------------
+
+**New feature**
+
+- :func:`ndonnx.repeat` is now implemented for all built-in data types.
 
 **Other changes**
 
