@@ -7,6 +7,18 @@
 Changelog
 =========
 
+0.16.0 (unreleased)
+-------------------
+
+**Bug fix**
+
+- :func:`ndonnx.repeat` now works correctly for zero-sized inputs on the minimum supported onnxruntime 1.20.1.
+
+**New feature**
+
+- :func:`ndonnx.max` (:func:`ndonnx.min`) now returns the minimum (maximum) value for the input data type if the reduction takes place over a zero-sized input.
+
+
 0.15.0 (2025-08-13)
 -------------------
 

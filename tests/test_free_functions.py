@@ -187,7 +187,7 @@ def test_clip():
 @pytest.mark.skipif(
     np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
 )
-def test_min():
+def test_minimum():
     def do(npx):
         return npx.minimum(npx.asarray([2147483648] * 2, dtype=npx.int64), 0)
 
@@ -197,8 +197,36 @@ def test_min():
 @pytest.mark.skipif(
     np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
 )
-def test_max():
+def test_maximum():
     def do(npx):
         return npx.maximum(npx.asarray([0] * 2, dtype=npx.int64), 2147483648)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.parametrize("axis", [None, 0, 1, 2])
+@pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize(
+    "op, array, expected",
+    [
+        (ndx.max, ndx.ones((0, 1, 2), dtype=ndx.int64), np.iinfo(np.int64).min),
+        (ndx.max, ndx.ones((0, 1, 2), dtype=ndx.uint64), np.iinfo(np.uint64).min),
+        (ndx.max, ndx.ones((0, 1, 2), dtype=ndx.float64), -np.inf),
+        (ndx.min, ndx.ones((0, 1, 2), dtype=ndx.int64), np.iinfo(np.int64).max),
+        (ndx.min, ndx.ones((0, 1, 2), dtype=ndx.uint64), np.iinfo(np.uint64).max),
+        (ndx.min, ndx.ones((0, 1, 2), dtype=ndx.float64), np.inf),
+    ],
+)
+def test_maxmin_zero_size(op, array, axis, keepdims, expected):
+    # Test optional standard behavior for reduction over zero-sized input
+    # NumPy does not support reducing over zero-sized input, thus we can't test against it
+    res = op(array, axis=axis, keepdims=keepdims)
+    assert res.dtype == array.dtype
+    # Compare shape to `all` which has well tested semantics for zero-sized input
+    assert (
+        res.unwrap_numpy().shape
+        == ndx.all(array.astype(ndx.bool), axis=axis, keepdims=keepdims)
+        .unwrap_numpy()
+        .shape
+    )
+    np.testing.assert_array_equal(res.unwrap_numpy(), expected)

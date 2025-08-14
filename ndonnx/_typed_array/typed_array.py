@@ -459,6 +459,7 @@ class TyArrayBase(ABC):
     ) -> Self:
         # Default implementation of `repeat` that does not depend on the underlying layout
         from . import onnx
+        from .funcs import maximum
 
         x = self
         if axis is None:
@@ -489,14 +490,14 @@ class TyArrayBase(ABC):
             # We now have a shape of (..., self.shape[axis], repeats, ...).
             # All we need to do is collapse these two axes into one.
             out_shape = x_shape.copy()
-            out_shape[axis] = safe_cast(onnx.TyArrayInt64, out_shape[axis] * repeats)
+            out_shape[axis] = out_shape[axis] * repeats
 
             return tmp.reshape(out_shape)
 
         # Repeats may be of shape (1,)
         repeats = repeats.broadcast_to(x_shape[axis][None])
 
-        max_rep = repeats.max(keepdims=False)
+        max_rep = maximum(repeats.max(keepdims=False), onnx.const(0))
         repeated_with_maxrep = x.repeat(max_rep, axis=axis)
 
         mask2D = onnx.arange(max_rep)[None, :] < repeats[:, None]

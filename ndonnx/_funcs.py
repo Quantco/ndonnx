@@ -249,6 +249,11 @@ def cumulative_sum(
 def max(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
+    """Calculates the maximum value of the input array x.
+
+    Reduction over zero-sized inputs return the minimum possible value for the input
+    data type.
+    """
     return Array._from_tyarray(x._tyarray.max(axis=axis, keepdims=keepdims))
 
 
@@ -289,6 +294,11 @@ def moveaxis(
 def min(
     x: Array, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
 ) -> Array:
+    """Calculates the minimum value of the input array x.
+
+    Reduction over zero-sized inputs return the maximum possible value for the input
+    data type.
+    """
     return Array._from_tyarray(x._tyarray.min(axis=axis, keepdims=keepdims))
 
 

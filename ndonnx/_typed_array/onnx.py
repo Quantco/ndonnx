@@ -721,27 +721,12 @@ class TyArray(TyArrayBase):
             else tuple(ax if ax >= 0 else ax + self.ndim for ax in axis)
         )
         # Compute output shape if we get a zero-size input
-        fill_value_if_zero_size = op_name == "all"
-        if axis is None:
-            if not keepdims:
-                then_branch = [const(fill_value_if_zero_size)._var]
-            else:
-                out_shape = const(np.ones((self.ndim,)), int64)
-                then_branch = [
-                    const(fill_value_if_zero_size).broadcast_to(out_shape)._var
-                ]
-        else:
-            out_shape = self.dynamic_shape
-            one = const(1)
-            for ax in axis:
-                out_shape[ax] = one
-            if not keepdims:
-                axes_to_keep = np.asarray(
-                    [ax for ax in range(self.ndim) if ax not in axis], np.int64
-                )
-                out_shape = out_shape.take(const(axes_to_keep, int64))
-            then_branch = [const(fill_value_if_zero_size).broadcast_to(out_shape)._var]
-
+        fill_value_if_zero_size = const(op_name == "all")
+        then_branch = [
+            _output_reduce_zero_size(
+                self, axis=axis, keepdims=keepdims, value=fill_value_if_zero_size
+            )._var
+        ]
         spox_op = op.reduce_min if op_name == "all" else op.reduce_max
         else_branch = [
             spox_op(
@@ -1220,6 +1205,7 @@ class TyArrayNumber(TyArray):
         )
         return _var_to_tyarray(var)
 
+    @_inline
     def _min_max(
         self,
         /,
@@ -1244,6 +1230,26 @@ class TyArrayNumber(TyArray):
 
         if axis is None:
             axis = tuple(range(self.ndim))
+        if isinstance(axis, int):
+            axis = (axis,)
+
+        if self.dtype.unwrap_numpy().kind == "f":
+            zero_size_value = const(
+                float("-inf") if op_name == "max" else float("inf"), self.dtype
+            )
+        elif self.dtype.unwrap_numpy().kind in "iu":
+            if op_name == "max":
+                val = np.iinfo(self.dtype.unwrap_numpy()).min
+            else:
+                val = np.iinfo(self.dtype.unwrap_numpy()).max
+            zero_size_value = const(val, self.dtype)
+        else:
+            raise TypeError(f"unexpected data type `{self.dtype}`")
+        then_branch = [
+            _output_reduce_zero_size(
+                self, axis=axis, keepdims=keepdims, value=zero_size_value
+            )._var
+        ]
         # _axis_var normalized to positive values. It is thus safe to
         # expand the last dimension.
         axes = _axis_var(axis, self.ndim)
@@ -1256,7 +1262,15 @@ class TyArrayNumber(TyArray):
                 noop_with_empty_axes=False,
             )
         )
-        return res.squeeze(-1)
+        else_branch = [res.squeeze(-1)._var]
+
+        return type(self)(
+            op.if_(
+                (self.dynamic_size == 0)._var,
+                then_branch=lambda: then_branch,
+                else_branch=lambda: else_branch,
+            )[0]
+        )
 
     def max(
         self, /, *, axis: int | tuple[int, ...] | None = None, keepdims: bool = False
@@ -1482,6 +1496,13 @@ class TyArrayNumber(TyArray):
             return _matmul_mitigate_zero_sized(a, b)
 
         return NotImplemented
+
+    @overload
+    def __mul__(self, other: int) -> Self: ...
+    @overload
+    def __mul__(self, other: Self) -> Self: ...
+    @overload
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
 
     def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=True, result_type=TyArrayNumber)
@@ -2830,3 +2851,28 @@ def arange(
         step = const(step)
     var = op.range(start=start._var, limit=stop._var, delta=step._var)
     return TyArrayInt64(var)
+
+
+def _output_reduce_zero_size(
+    x: TyArray, axis: tuple[int, ...] | None, keepdims: bool, value: TyArray
+) -> TyArray:
+    """Output of a reduce operation if the input is zero-sized."""
+    if axis is None:
+        if not keepdims:
+            return value
+        out_shape = const(np.ones((x.ndim,)), int64)
+        return value.broadcast_to(out_shape)
+
+    # Normalize axes
+    axis = tuple(ax if ax >= 0 else ax + x.ndim for ax in axis)
+
+    out_shape = x.dynamic_shape
+    one = const(1)
+    for ax in axis:
+        out_shape[ax] = one
+    if not keepdims:
+        axes_to_keep = np.asarray(
+            [ax for ax in range(x.ndim) if ax not in axis], np.int64
+        )
+        out_shape = out_shape.take(const(axes_to_keep, int64))
+    return value.broadcast_to(out_shape)
