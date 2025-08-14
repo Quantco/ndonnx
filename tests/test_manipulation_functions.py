@@ -38,6 +38,7 @@ def test_concat_axis_none_zero_sized():
         (np.ones((3, 0, 3)), 2, 2),
         (np.ones((3, 0, 3)), [2], 2),
         (np.ones((3, 0, 3)), [1, 0, 2], 2),
+        (np.ones((3, 0, 3)), [], 1),
         # other data types
         (["a", "b", "c"], np.asarray([2]), None),
         (np.asarray([1, 2, 3], dtype="datetime64[s]"), np.asarray([2]), None),
@@ -47,7 +48,7 @@ def test_repeat(x, repeats, axis):
     def do(npx):
         repeats_ = repeats
         if isinstance(repeats, list | np.ndarray):
-            repeats_ = npx.asarray(repeats_)
+            repeats_ = npx.asarray(repeats_, dtype=npx.int64)
         return npx.repeat(npx.asarray(x), repeats_, axis=axis)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
