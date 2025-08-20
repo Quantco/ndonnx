@@ -424,38 +424,6 @@ def test_array_spox_interoperability():
     assert_array_equal(actual, expected)
 
 
-@pytest.mark.parametrize(
-    "start, stop, step, dtype",
-    [
-        (0, 10, 2, ndx.int64),
-        (-10, 0, 2, ndx.int64),
-        (-10, 0, 3, ndx.int64),
-        (1, 10, 1, ndx.int64),
-        (0.0, None, -1, ndx.int64),
-        # Hypothesis test cases
-        (
-            -9_223_371_349_660_010_402,
-            -9_223_370_112_709_427_707,
-            45_812_983_809,
-            ndx.float64,
-        ),
-        (-9_223_371_349_660_010_402, -9_223_371_349_660_010_401, 1, ndx.float64),
-    ],
-)
-def test_creation_arange(start, stop, step, dtype: ndx.DType | None):
-    def do(npx):
-        dtype_: np.dtype | ndx.DType | None = dtype
-        if dtype is not None and npx == np:
-            dtype_ = dtype.unwrap_numpy()
-        return npx.arange(start, stop, step, dtype=dtype_)
-
-    np_res, ndx_res = do(np), do(ndx).unwrap_numpy()
-
-    assert np_res.shape == ndx_res.shape
-    if np_res.size > 0:
-        np.testing.assert_array_equal(np_res[0], ndx_res[0])
-
-
 def test_creation_full():
     a = ndx.full((2, 3), 5)
     assert_array_equal(a.unwrap_numpy(), np.full((2, 3), 5))

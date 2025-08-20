@@ -84,12 +84,14 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
     def __ndx_arange__(
         self,
-        start: int | float,
-        stop: int | float,
-        step: int | float = 1,
+        start: int | float | TyArrayBase,
+        stop: int | float | TyArrayBase,
+        step: int | float | TyArrayBase = 1,
     ) -> TY_MA_ARRAY_ONNX:
         # Get everything onto the same type
         data = self._unmasked_dtype.__ndx_arange__(start, stop, step)
+        if data is NotImplemented:
+            return NotImplemented
         return self._build(data=data, mask=None)
 
     def __ndx_eye__(
@@ -117,7 +119,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
         return self._build(data=data, mask=None)
 
 
-class _NNumber(_MaOnnxDType):
+class _NNumber(_MaOnnxDType[TY_MA_ARRAY_ONNX]):
     def __ndx_result_type__(self, rhs: DType | PyScalar) -> DType | NotImplementedType:
         if isinstance(rhs, onnx.NumericDTypes | int | float):
             onnx_result = onnx.result_type(self._unmasked_dtype, rhs)

@@ -105,34 +105,34 @@ def any(
 
 
 def arange(
-    start: int | float,
+    start: int | float | Array,
     /,
-    stop: int | float | None = None,
-    step: int | float = 1,
+    stop: int | float | Array | None = None,
+    step: int | float | Array = 1,
     *,
     dtype: DType | None = None,
     device: None | Device = None,
 ) -> Array:
-    if dtype is None:
-        if builtins.all(
-            isinstance(el, int) for el in [start, stop, step] if el is not None
-        ):
-            dtype = ndx._default_int
-        else:
-            dtype = ndx._default_float
-    dtype = dtype or ndx._default_float
+    for item in [start, stop, step]:
+        if item is None:
+            continue
+        if isinstance(item, Array):
+            if not item.ndim == 0:
+                raise ValueError("array arguments to 'arange' must be of rank 0")
+        elif not isinstance(item, int | float):
+            raise TypeError(
+                f"unexpected type for 'start', 'stop', or 'step': `{type(item)}`"
+            )
 
     if stop is None:
         stop = start
         start = 0
 
-    for el in [start, stop, step]:
-        if not isinstance(el, int | float):
-            raise TypeError(
-                f"unexpected type for 'start', 'stop', or 'step': `{type(el)}`"
-            )
+    array_or_scalar = [
+        el._tyarray if isinstance(el, Array) else el for el in [start, stop, step]
+    ]
 
-    return Array._from_tyarray(tyfuncs.arange(dtype, start, stop, step))
+    return Array._from_tyarray(tyfuncs.arange(dtype, *array_or_scalar))
 
 
 def argmax(x: Array, /, *, axis: int | None = None, keepdims: bool = False) -> Array:

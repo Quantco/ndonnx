@@ -53,9 +53,9 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
     # Construction functions
     def __ndx_arange__(
         self,
-        start: int | float,
-        stop: int | float,
-        step: int | float = 1,
+        start: int | float | TyArrayBase,
+        stop: int | float | TyArrayBase,
+        step: int | float | TyArrayBase = 1,
     ) -> TY_ARRAY_BASE:
         return NotImplemented
 

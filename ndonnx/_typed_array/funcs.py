@@ -293,14 +293,28 @@ def minimum(
 
 
 def arange(
-    dtype: DType[TY_ARRAY_BASE_co],
-    start: int | float,
-    stop: int | float,
-    step: int | float = 1,
-) -> TY_ARRAY_BASE_co:
-    res = dtype.__ndx_arange__(start, stop, step)
-    if res is NotImplemented:
-        raise TypeError(f"'arange' is not implemented for `{dtype}`")
+    dtype: DType[TY_ARRAY_BASE_co] | None,
+    start: int | float | TyArrayBase,
+    stop: int | float | TyArrayBase,
+    step: int | float | TyArrayBase = 1,
+) -> TyArrayBase:
+    if dtype is None:
+        if all(isinstance(el, int) for el in [start, stop, step]):
+            dtypes: list[DType] = [onnx.int64]
+        elif all(isinstance(el, int | float) for el in [start, stop, step]):
+            dtypes = [onnx.float64]
+        else:
+            dtypes = [
+                el.dtype for el in [start, stop, step] if isinstance(el, TyArrayBase)
+            ]
+    else:
+        dtypes = [dtype]
+    for dtype_ in dtypes:
+        res = dtype_.__ndx_arange__(start, stop, step)
+        if res is not NotImplemented:
+            break
+    else:
+        raise ValueError("'arange' is not implemented for the provided inputs")
     return res
 
 

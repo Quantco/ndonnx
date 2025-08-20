@@ -74,11 +74,25 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
 
     def __ndx_arange__(
         self,
-        start: int | float,
-        stop: int | float,
-        step: int | float = 1,
+        start: int | float | TyArrayBase,
+        stop: int | float | TyArrayBase,
+        step: int | float | TyArrayBase = 1,
     ) -> TIMEARRAY_co:
-        data = onnx.int64.__ndx_arange__(start, stop, step)
+        # check if we would get the same unit as self. Otherwise, we
+        # return not implemented, and rely on this function being
+        # called for the other unit.
+        sss = [start, stop, step]
+        sss_promoted = []
+        for s in sss:
+            if isinstance(s, TimeBaseArray):
+                if _result_unit(self.unit, s.dtype.unit) != self.unit:
+                    return NotImplemented
+                sss_promoted.append(s.astype(type(s.dtype)(unit=s.dtype.unit)))
+            elif isinstance(s, int):
+                sss_promoted.append(onnx.const(s).astype(self))
+            else:
+                return NotImplemented
+        data = onnx.int64.__ndx_arange__(*[el._data for el in sss_promoted])
         return self._build(data=data)
 
     def __ndx_eye__(
