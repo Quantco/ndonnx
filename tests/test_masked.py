@@ -121,9 +121,9 @@ def test_unary_none_propagation(fn_name, args, kwargs):
 
 
 def test_forbidden_masked():
-    a = ndx.argument(shape=(3,), dtype=ndx.nint64)
+    a = ndx.argument(shape=(), dtype=ndx.nint64)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         ndx.arange(a, 0, 1)
 
 

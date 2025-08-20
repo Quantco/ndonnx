@@ -170,17 +170,6 @@ class _OnnxDType(DType[TY_ARRAY_co]):
             author="ndonnx", type_name=self.__class__.__name__, meta=None
         )
 
-    def __ndx_arange__(
-        self,
-        start: int | float,
-        stop: int | float,
-        step: int | float = 1,
-    ) -> TY_ARRAY_co:
-        # onnxruntime has issues computing the correct number of
-        # elements if the arguments to this function include very
-        # large numbers. See hypothesis test examples.
-        return const(np.arange(start, stop, step)).astype(self)
-
     def __ndx_eye__(
         self,
         n_rows: int,
@@ -209,7 +198,24 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         return scalar.broadcast_to(shape)
 
 
-class _Number(_OnnxDType[TY_ARRAY_co]): ...
+class _Number(_OnnxDType[TY_ARRAY_co]):
+    def __ndx_arange__(
+        self,
+        start: int | float | TyArrayBase,
+        stop: int | float | TyArrayBase,
+        step: int | float | TyArrayBase = 1,
+    ) -> TY_ARRAY_co:
+        # onnxruntime has issues computing the correct number of
+        # elements if the arguments to this function include very
+        # large numbers. See hypothesis test examples.
+
+        if all(isinstance(el, int | float) for el in [start, stop, step]):
+            return const(np.arange(start, stop, step)).astype(self)
+        sss = [
+            const(el, self) if isinstance(el, int | float) else el.astype(self)
+            for el in [start, stop, step]
+        ]
+        return self._build(op.range(*[arr._var for arr in sss]))
 
 
 class Utf8(_OnnxDType["TyArrayUtf8"]):

@@ -17,6 +17,7 @@ Changelog
 **New feature**
 
 - :func:`ndonnx.max` (:func:`ndonnx.min`) now returns the minimum (maximum) value for the input data type if the reduction takes place over a zero-sized input.
+- :func:`ndonnx.arange` now also allows arrays as inputs.
 
 
 0.15.0 (2025-08-13)
