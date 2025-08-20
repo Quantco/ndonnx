@@ -113,8 +113,7 @@ def arange(
     dtype: DType | None = None,
     device: None | Device = None,
 ) -> Array:
-    sss = [start, stop, step]
-    for item in sss:
+    for item in [start, stop, step]:
         if item is None:
             continue
         if isinstance(item, Array):
