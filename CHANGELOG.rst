@@ -7,6 +7,13 @@
 Changelog
 =========
 
+0.17.0 (unreleased)
+-------------------
+
+**Bug fix**
+
+- :func:`ndonnx.clip` now works correctly when an integer dtype array and float type min or max values are given
+
 0.16.0 (2025-08-20)
 -------------------
 
