@@ -189,7 +189,7 @@ def test_clip():
 )
 def test_int_float_clip():
     def do(npx):
-        return npx.clip(npx.asarray([1,2]), min=1.5, max=1.5)
+        return npx.clip(npx.asarray([1, 2]), min=1.5, max=1.5)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
