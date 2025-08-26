@@ -184,9 +184,6 @@ def test_clip():
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
-@pytest.mark.skipif(
-    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
-)
 def test_int_float_clip():
     def do(npx):
         return npx.clip(npx.asarray([1, 2]), min=1.5, max=1.5)
