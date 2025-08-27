@@ -127,7 +127,7 @@ def clip(
 
     min_ = None if min is None else ndx.asarray(min, dtype=dtype)._tyarray
     max_ = None if max is None else ndx.asarray(max, dtype=dtype)._tyarray
-    return Array._from_tyarray(x._tyarray.astype(dtype).clip(min=min_, max=max_))
+    return Array._from_tyarray(x._tyarray.clip(min=min_, max=max_))
 
 
 def cos(x: Array, /) -> Array:
