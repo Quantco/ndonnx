@@ -189,9 +189,6 @@ def test_clip(array, min, max):
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
-@pytest.mark.skipif(
-    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
-)
 def test_minimum():
     def do(npx):
         return npx.minimum(npx.asarray([2147483648] * 2, dtype=npx.int64), 0)
@@ -199,9 +196,6 @@ def test_minimum():
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
-@pytest.mark.skipif(
-    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
-)
 def test_maximum():
     def do(npx):
         return npx.maximum(npx.asarray([0] * 2, dtype=npx.int64), 2147483648)
