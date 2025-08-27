@@ -174,19 +174,10 @@ def test_sign():
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
-@pytest.mark.skipif(
-    np.__version__ < "2", reason="'clip' has a different API in NumPy 1.x"
-)
-def test_clip():
+@pytest.mark.parametrize("array, min, max", [(np.asarray([2147483648] * 2, dtype=np.int64), None, 0), (np.asarray([1, 2], dtype=np.int64), 1.5, 1.5), (np.asarray([1.5, 2.5], dtype=np.float64), 2, 3)])
+def test_clip(array, min, max):
     def do(npx):
-        return npx.clip(npx.asarray([2147483648] * 2, dtype=npx.int64), min=None, max=0)
-
-    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
-
-
-def test_int_float_clip():
-    def do(npx):
-        return npx.clip(npx.asarray([1, 2]), 1.5, 1.5)
+        return npx.clip(npx.asarray(array), min, max)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
