@@ -70,3 +70,8 @@ def test_arange_array_arg(start, stop, step):
     np_res, ndx_res = do(np), do(ndx).unwrap_numpy()
 
     np.testing.assert_array_equal(np_res[0], ndx_res[0], strict=True)
+
+
+def test_timedelta_creation_from_timedelta():
+    arr = ndx.asarray(np.asarray([1]), dtype=ndx.TimeDelta64DType("ns"))
+    np.testing.assert_array_equal(arr.to_numpy(), ndx.asarray(arr).to_numpy())

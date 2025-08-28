@@ -175,6 +175,8 @@ class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
                     "cannot create datetime with unit count other than '1'"
                 )
             return onnx.const(val.astype(np.int64)).astype(TimeDelta64DType(unit=unit))
+        elif isinstance(val, TyArrayTimeDelta):
+            return val.copy()
         elif isinstance(val, int) or (
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
