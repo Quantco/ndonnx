@@ -143,7 +143,7 @@ class DateTime64DType(BaseTimeDType["TyArrayDateTime"]):
                 )
             return onnx.const(val.astype(np.int64)).astype(DateTime64DType(unit=unit))
         elif isinstance(val, TyArrayDateTime):
-            return val.copy()
+            return val.__ndx_cast_to__(self)
         elif isinstance(val, int) or (
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
@@ -175,6 +175,8 @@ class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
                     "cannot create datetime with unit count other than '1'"
                 )
             return onnx.const(val.astype(np.int64)).astype(TimeDelta64DType(unit=unit))
+        elif isinstance(val, TyArrayTimeDelta):
+            return val.__ndx_cast_to__(self)
         elif isinstance(val, int) or (
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
