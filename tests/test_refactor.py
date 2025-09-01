@@ -326,7 +326,7 @@ def test_remainder(np_arr2):
     )
 
 
-def test_dynamic_shape_propagates_staticlly_known_shape():
+def test_dynamic_shape_propagates_statically_known_shape():
     shape = (
         2,
         2,
