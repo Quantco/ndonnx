@@ -70,3 +70,27 @@ def test_arange_array_arg(start, stop, step):
     np_res, ndx_res = do(np), do(ndx).unwrap_numpy()
 
     np.testing.assert_array_equal(np_res[0], ndx_res[0], strict=True)
+
+
+@pytest.mark.parametrize(
+    "time_dtype_np, time_dtype_ndx",
+    [("timedelta64", ndx.TimeDelta64DType), ("datetime64", ndx.DateTime64DType)],
+)
+@pytest.mark.parametrize("initial_unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("new_unit", ["s", "ms", "us", "ns"])
+def test_time_dtype_creation_from_time_dtype(
+    time_dtype_np, time_dtype_ndx, initial_unit, new_unit
+):
+    def do(npx):
+        initial_dtype = (
+            time_dtype_np + f"[{initial_unit}]"
+            if npx == np
+            else time_dtype_ndx(initial_unit)
+        )
+        new_dtype = (
+            time_dtype_np + f"[{new_unit}]" if npx == np else time_dtype_ndx(new_unit)
+        )
+        arr = npx.asarray(np.asarray([1]), dtype=initial_dtype)
+        return npx.asarray(arr, dtype=new_dtype)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
