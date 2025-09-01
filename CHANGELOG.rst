@@ -12,7 +12,12 @@ Changelog
 
 **Breaking change**
 
-- :func:`ndonnx.clip` now behaves like NumPy when an integer dtype array and float type min or max values are given
+- :func:`ndonnx.clip` now behaves like NumPy when an integer dtype array and float type min or max values are given.
+
+**Bug fix**
+
+- Calling :func:`ndonnx.asarray` on an :class:`ndonnx.Array` object with a ``timedelta64`` or ``datetime64`` data type no longer raises an exception.
+
 
 0.16.0 (2025-08-20)
 -------------------
