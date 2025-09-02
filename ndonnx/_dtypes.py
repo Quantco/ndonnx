@@ -89,7 +89,7 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         return self.__class__.__name__
 
     @deprecated(
-        "'to_numpy_dtype' is deprecated. Use `unwarp_numpy` method instead",
+        "'to_numpy_dtype' is deprecated. Use the 'unwrap_numpy' method instead",
     )
     def to_numpy_dtype(self) -> np.dtype:
         return self.unwrap_numpy()
