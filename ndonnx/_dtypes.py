@@ -6,10 +6,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from types import NotImplementedType
 from typing import TYPE_CHECKING, Generic, TypeVar
-from warnings import warn
 
 import numpy as np
 from spox import Var
+from typing_extensions import deprecated
 
 if TYPE_CHECKING:
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
@@ -88,13 +88,10 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
     def __repr__(self) -> str:
         return self.__class__.__name__
 
+    @deprecated(
+        "'to_numpy_dtype' is deprecated. Use `unwarp_numpy` method instead",
+    )
     def to_numpy_dtype(self) -> np.dtype:
-        warn(
-            "'to_numpy_dtype' is deprecated. Use `unwarp_numpy` method instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
         return self.unwrap_numpy()
 
     def unwrap_numpy(self) -> np.dtype:

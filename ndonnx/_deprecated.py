@@ -5,20 +5,18 @@
 from __future__ import annotations
 
 from typing import TypeAlias
-from warnings import warn
 
 from spox import Var
+from typing_extensions import deprecated
 
 import ndonnx as ndx
 from ndonnx import _typed_array as tydx
 
 
+@deprecated(
+    "'from_spox_var' is deprecated in favor of 'asarray'",
+)
 def from_spox_var(var: Var) -> ndx.Array:
-    warn(
-        "'from_spox_var' is deprecated in favor of 'asarray'",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return ndx.asarray(var)
 
 
