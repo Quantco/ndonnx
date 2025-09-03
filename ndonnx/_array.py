@@ -9,10 +9,10 @@ from collections.abc import Callable
 from enum import Enum
 from types import EllipsisType
 from typing import Any
-from warnings import warn
 
 import numpy as np
 from spox import Var
+from typing_extensions import deprecated
 
 from ndonnx import DType
 
@@ -223,22 +223,17 @@ class Array:
         return Array._from_tyarray(self._tyarray.T)
 
     @property
+    @deprecated(
+        "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
+    )
     def null(self) -> None | Array:
-        warn(
-            "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return get_mask(self)
 
     @property
+    @deprecated(
+        "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
+    )
     def values(self) -> Array:
-        warn(
-            "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
         if isinstance(self._tyarray, TyMaArray):
             return Array._from_tyarray(self._tyarray.data)
         if isinstance(self._tyarray, onnx.TyArray):
@@ -252,28 +247,24 @@ class Array:
     def copy(self) -> Array:
         return Array._from_tyarray(self._tyarray.copy())
 
+    @deprecated(
+        "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
+    )
     def to_numpy(self) -> np.ndarray | None:
-        warn(
-            "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         try:
             return self.unwrap_numpy()
         except ValueError:
             return None
 
+    @deprecated(
+        "'Array.spox_var' is deprecated in favor of 'Array.disassemble' or 'Array.unwrap_spox'",
+    )
     def spox_var(self) -> Var:
         """Unwrap the underlying ``spox.Var`` object if ``self`` is of primitive data
         type.
 
         Otherwise, raise an exception.
         """
-        warn(
-            "'Array.spox_var' is deprecated in favor of 'Array.disassemble' or 'Array.unwrap_spox'",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.unwrap_spox()
 
     def unwrap_spox(self) -> Var:

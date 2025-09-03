@@ -5,10 +5,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Literal, TypeAlias, TypeVar, get_args
-from warnings import warn
 
 import numpy as np
-from typing_extensions import TypeIs
+from typing_extensions import TypeIs, deprecated
 
 import ndonnx as ndx
 
@@ -21,6 +20,9 @@ KEY: TypeAlias = SCALAR
 VALUE = TypeVar("VALUE", int, float, str)
 
 
+@deprecated(
+    "'ndonnx.shape' is deprecated in favor of 'ndonnx.Array.dynamic_shape'",
+)
 def shape(x: ndx.Array, /) -> ndx.Array:
     """Returns shape of an array.
 
@@ -34,11 +36,6 @@ def shape(x: ndx.Array, /) -> ndx.Array:
     out: Array
         Array of shape
     """
-    warn(
-        "'ndonnx.shape' is deprecated in favor of 'ndonnx.Array.dynamic_shape'",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     return x.dynamic_shape
 
 
