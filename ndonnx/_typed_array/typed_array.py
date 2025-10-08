@@ -62,7 +62,7 @@ class TyArrayBase(ABC):
 
     @property
     @abstractmethod
-    def dtype(self: _Self_co) -> DType[_Self_co]: ...
+    def dtype(self) -> DType[Self]: ...
 
     @property
     @abstractmethod
