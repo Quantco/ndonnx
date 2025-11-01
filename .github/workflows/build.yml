@@ -16,13 +16,13 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@194d461b21b6c5717c722ffc597fa91ed2ff29fa
+        uses: prefix-dev/setup-pixi@28eb668aafebd9dede9d97c4ba1cd9989a4d0004
         with:
           environments: build
       - name: Build project
         run: pixi run -e build build-wheel
       - name: Upload package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: artifact
           path: dist/*
@@ -38,7 +38,7 @@ jobs:
       id-token: write
     environment: pypi
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: artifact
           path: dist
@@ -55,7 +55,7 @@ jobs:
       id-token: write
     environment: pypi
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: artifact
           path: dist
