@@ -12,7 +12,12 @@ Changelog
 
 **Breaking change**
 
-- :func:`ndonnx.clip` now behaves like NumPy when an integer dtype array and float type min or max values are given
+- :func:`ndonnx.clip` now behaves like NumPy when an integer dtype array and float type min or max values are given.
+
+**Other change**
+
+- Reduction operations now produce more efficient graphs.
+
 
 0.16.0 (2025-08-20)
 -------------------

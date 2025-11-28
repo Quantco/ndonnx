@@ -2863,20 +2863,22 @@ def _output_reduce_zero_size(
     x: TyArray, axis: tuple[int, ...] | None, keepdims: bool, value: TyArray
 ) -> TyArray:
     """Output of a reduce operation if the input is zero-sized."""
-    if axis is None:
-        if not keepdims:
-            return value
-        out_shape = const(np.ones((x.ndim,)), int64)
-        return value.broadcast_to(out_shape)
+    if axis is None or len(axis) == x.ndim:
+        # No need for complicated shenanigans if we reduce over all axes
+        if keepdims:
+            out_shape = const(np.ones((x.ndim,)), int64)
+            return value.broadcast_to(out_shape)
+        return value
 
     # Normalize axes
     axis = tuple(ax if ax >= 0 else ax + x.ndim for ax in axis)
 
     out_shape = x.dynamic_shape
     one = const(1)
-    for ax in axis:
-        out_shape[ax] = one
-    if not keepdims:
+    if keepdims:
+        for ax in axis:
+            out_shape[ax] = one
+    else:
         axes_to_keep = np.asarray(
             [ax for ax in range(x.ndim) if ax not in axis], np.int64
         )
