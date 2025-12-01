@@ -7,7 +7,7 @@
 Changelog
 =========
 
-0.17.0 (unreleased)
+0.17.0 (2025-12-01)
 -------------------
 
 **Breaking change**
