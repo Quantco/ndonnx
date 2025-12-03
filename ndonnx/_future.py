@@ -4,7 +4,7 @@
 # Copyright (c) QuantCo 2024-2024
 # SPDX-License-Identifier: LicenseRef-QuantCo
 
-import importlib
+import importlib.util
 from collections.abc import Callable
 from contextlib import contextmanager
 from functools import partial, wraps
