@@ -520,7 +520,7 @@ class TyMaArray(TyMaArrayBase):
             masks = []
             for el in [self] + others:
                 masks.append(
-                    onnx.const(False, onnx.bool_).broadcast_to(self.data.dynamic_shape)
+                    onnx.const(False, onnx.bool_).broadcast_to(el.data.dynamic_shape)
                     if el.mask is None
                     else el.mask
                 )

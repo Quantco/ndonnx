@@ -48,11 +48,19 @@ def test_reshape_with_array():
     reason="NumPy 1.x does not provide `concat` function",
 )
 def test_concat(np_arrays, axis):
-    arrays = [ndx.asarray(arr) for arr in np_arrays]
-    expected = np.concat(np_arrays, axis=axis)
-    candidate = ndx.concat(arrays, axis=axis).unwrap_numpy()
+    def do(npx):
+        arrays = [npx.asarray(arr) for arr in np_arrays]
+        return npx.concat(arrays, axis=axis)
 
-    np.testing.assert_equal(expected, candidate)
+    np.testing.assert_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+def test_concat_zero_sized():
+    arrays = [
+        ndx.asarray(np.ma.MaskedArray([], []), dtype=ndx.nutf8),
+        ndx.asarray(["foo"], dtype=ndx.utf8).astype(ndx.nutf8),
+    ]
+    ndx.concat(arrays).unwrap_numpy()
 
 
 @pytest.mark.parametrize("op", ["maximum", "minimum"])

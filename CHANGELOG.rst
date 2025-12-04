@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.17.1 (2025-12-04)
+-------------------
+
+**Bug fix**
+
+- The masks of nullable arrays are now concatenated correctly.
+
+
 0.17.0 (2025-12-01)
 -------------------
 
