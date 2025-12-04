@@ -69,6 +69,13 @@ class TyArrayBase(ABC):
     def dynamic_shape(self) -> TyArrayInt64: ...
 
     @property
+    def dynamic_size(self) -> TyArrayInt64:
+        # TODO make this an abstractmethod once downstream has migrated
+        from . import onnx
+
+        return safe_cast(onnx.TyArrayInt64, self.dynamic_shape.prod())
+
+    @property
     @abstractmethod
     def shape(self) -> OnnxShape: ...
 

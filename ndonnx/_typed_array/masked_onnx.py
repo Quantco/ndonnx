@@ -401,6 +401,10 @@ class TyMaArray(TyMaArrayBase):
         return self.data.dynamic_shape
 
     @property
+    def dynamic_size(self) -> onnx.TyArrayInt64:
+        return self.data.dynamic_size
+
+    @property
     def shape(self) -> OnnxShape:
         return self.data.shape
 
