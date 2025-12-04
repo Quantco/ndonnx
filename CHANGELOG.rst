@@ -12,7 +12,7 @@ Changelog
 
 **Bug fix**
 
-- Nullable arrays with an unset mask are now concatenated correctly.
+- The masks of nullable arrays are now concatenated correctly.
 
 
 0.17.0 (2025-12-01)
