@@ -458,7 +458,7 @@ class TyMaArray(TyMaArrayBase):
     def unwrap_numpy(self) -> np.ndarray:
         return np.ma.MaskedArray(
             data=self.data.unwrap_numpy(),
-            mask=None if self.mask is None else self.mask.unwrap_numpy(),
+            mask=np.ma.nomask if self.mask is None else self.mask.unwrap_numpy(),
         )
 
     def __getitem__(self, key: GetitemIndex) -> Self:

@@ -210,7 +210,7 @@ class _Number(_OnnxDType[TY_ARRAY_co]):
         # large numbers. See hypothesis test examples.
 
         if all(isinstance(el, int | float) for el in [start, stop, step]):
-            return const(np.arange(start, stop, step)).astype(self)
+            return const(np.arange(start, stop, step)).astype(self)  # type: ignore
         sss = [
             const(el, self) if isinstance(el, int | float) else el.astype(self)
             for el in [start, stop, step]
