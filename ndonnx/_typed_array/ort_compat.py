@@ -14,11 +14,11 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from warnings import warn
 
+import ml_dtypes
 import numpy as np
 import spox.opset.ai.onnx.ml.v4 as ml
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
-from spox.opset.ai.onnx.v21 import abs as abs
 from spox.opset.ai.onnx.v21 import and_ as and_
 from spox.opset.ai.onnx.v21 import bitwise_and as bitwise_and
 from spox.opset.ai.onnx.v21 import bitwise_not as bitwise_not
@@ -194,6 +194,7 @@ def _warn_lossy(fun_name: str, unsupported: np.dtype, via: type[np.generic]):
     )
 
 
+abs = _wrap_unary(op.abs, {(ml_dtypes.bfloat16,): np.float32})
 # The following is a commonly used set of input types in numeric binary functions
 # T: tensor(double), tensor(float), tensor(int32), tensor(int64)
 _common_mapping: _MappingDictType = {

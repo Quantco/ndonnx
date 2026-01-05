@@ -19,6 +19,7 @@ from typing import (
     overload,
 )
 
+import ml_dtypes
 import numpy as np
 from spox import Tensor, Var, argument, build, inline
 from typing_extensions import Self
@@ -111,6 +112,8 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         if self == uint64:
             return np.dtype("uint64")
 
+        if self == bfloat16:
+            return np.dtype(ml_dtypes.bfloat16)
         if self == float16:
             return np.dtype("float16")
         if self == float32:
@@ -287,6 +290,11 @@ class UInt64(Integer["TyArrayUInt64"]):
         return TyArrayUInt64(var)
 
 
+class BFloat16(Floating["TyArrayBFloat16"]):
+    def _build(self, var: Var) -> TyArrayBFloat16:
+        return TyArrayBFloat16(var)
+
+
 class Float16(Floating["TyArrayFloat16"]):
     def _build(self, var: Var) -> TyArrayFloat16:
         return TyArrayFloat16(var)
@@ -305,6 +313,7 @@ class Float64(Floating["TyArrayFloat64"]):
 # Non-nullable Singleton instances
 bool_: Bool = Bool()
 
+bfloat16: BFloat16 = BFloat16()
 float16: Float16 = Float16()
 float32: Float32 = Float32()
 float64: Float64 = Float64()
@@ -324,7 +333,7 @@ utf8: Utf8 = Utf8()
 # Union types
 #
 # Union types are exhaustive and don't create ambiguities with respect to user-defined subtypes.
-FloatingDTypes = Float16 | Float32 | Float64
+FloatingDTypes = BFloat16 | Float16 | Float32 | Float64
 SignedIntegerDTypes = Int8 | Int16 | Int32 | Int64
 UnsignedIntegerDTypes = UInt8 | UInt16 | UInt32 | UInt64
 IntegerDTypes = SignedIntegerDTypes | UnsignedIntegerDTypes
@@ -2223,6 +2232,12 @@ class TyArrayUInt64(TyArrayUnsignedInteger):
         return uint64
 
 
+class TyArrayBFloat16(TyArrayFloating):
+    @property
+    def dtype(self) -> BFloat16:
+        return bfloat16
+
+
 class TyArrayFloat16(TyArrayFloating):
     @property
     def dtype(self) -> Float16:
@@ -2397,13 +2412,17 @@ _mixed_integers: dict[tuple[_Number, _Number], NumericDTypes] = {
 _mixed_integers |= {(k[1], k[0]): v for k, v in _mixed_integers.items()}
 
 _floating_floating: dict[tuple[_Number, _Number], NumericDTypes] = {
+    (bfloat16, float16): float16,
+    (bfloat16, float32): float32,
+    (bfloat16, float64): float64,
+    # TODO
     (float16, float16): float16,
     (float16, float32): float32,
-    (float32, float16): float32,
     (float16, float64): float64,
-    (float64, float16): float64,
+    (float32, float16): float32,
     (float32, float32): float32,
     (float32, float64): float64,
+    (float64, float16): float64,
     (float64, float32): float64,
     (float64, float64): float64,
 }
@@ -2630,6 +2649,8 @@ def from_numpy_dtype(np_dtype: np.dtype) -> DTypes:
     if np_dtype == np.uint64:
         return uint64
 
+    if np_dtype == ml_dtypes.bfloat16:
+        return bfloat16
     if np_dtype == np.float16:
         return float16
     if np_dtype == np.float32:

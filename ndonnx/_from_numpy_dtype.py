@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ml_dtypes
 import numpy as np
 
 from ndonnx._typed_array import datetime, onnx
@@ -19,7 +20,7 @@ def from_numpy_dtype(
 
     # We don't support "T" ("Text" is the kind used for `StringDType` in numpy >= 2), yet.
     # See https://numpy.org/neps/nep-0055-string_dtype.html#python-api-for-stringdtype
-    if np_dtype.kind in ["U", "i", "b", "f", "u"]:
+    if np_dtype.kind in ["U", "i", "b", "f", "u"] or np_dtype == ml_dtypes.bfloat16:
         return onnx.from_numpy_dtype(np_dtype)
 
     raise ValueError(f"'{np_dtype}' does not have a corresponding ndonnx data type")

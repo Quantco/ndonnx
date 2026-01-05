@@ -11,10 +11,19 @@ def warn_when_prop_fails():
     yield
 
 
-@pytest.fixture(autouse=True)
-def use_spox_ort_value_prop():
+@pytest.fixture(autouse=True, params=["ort", "ref"])
+def use_spox_ort_value_prop(monkeypatch: pytest.MonkeyPatch, request):
     # TODO: parametrize over the reference runtime and onnxruntime once the former becomes more mature.
-    _value_prop._VALUE_PROP_BACKEND = _value_prop.ValuePropBackend.ONNXRUNTIME
+    if request.param == "ort":
+        monkeypatch.setattr(
+            _value_prop, "_VALUE_PROP_BACKEND", _value_prop.ValuePropBackend.ONNXRUNTIME
+        )
+    elif request.param == "ref":
+        monkeypatch.setattr(
+            _value_prop, "_VALUE_PROP_BACKEND", _value_prop.ValuePropBackend.REFERENCE
+        )
+    else:
+        raise NotImplementedError
 
 
 def pytest_addoption(parser):
