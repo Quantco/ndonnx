@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -848,13 +848,13 @@ class TyArray(TyArrayBase):
         if side not in ("left", "right"):
             raise ValueError("side must be 'left' or 'right'")
 
-        x1 = x1[:, None]
-        x2 = x2[None, :]
+        x1 = x1[None, :]
+        x2 = x2[..., :, None]
 
         if side == "left":
-            indices = (x1 < x2).astype(int64).sum(axis=0)
+            indices = (x1 < x2).astype(int64).sum(axis=-1)
         else:
-            indices = (x1 <= x2).astype(int64).sum(axis=0)
+            indices = (x1 <= x2).astype(int64).sum(axis=-1)
 
         return safe_cast(TyArrayInt64, indices)
 

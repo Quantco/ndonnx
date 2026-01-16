@@ -172,8 +172,7 @@ def _wrap_binary(
 def _mitigate_segfault_from_zero_dims(
     fun: Callable[[Var, Var], Var],
 ) -> Callable[[Var, Var], Var]:
-    """ORT crashes for mut/mat/mul if one of the terms is a rank-1 with zero
-    elements."""
+    """ORT crashes for mat/mul if one of the terms is a rank-1 with zero elements."""
 
     def wrapped(a: Var, b: Var) -> Var:
         a_shape = a.unwrap_tensor().shape or ()
