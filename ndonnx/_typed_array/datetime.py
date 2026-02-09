@@ -245,6 +245,10 @@ class TimeBaseArray(TyArrayBase):
         return self._data.dynamic_shape
 
     @property
+    def dynamic_size(self) -> onnx.TyArrayInt64:
+        return self._data.dynamic_size
+
+    @property
     def mT(self) -> Self:  # noqa: N802
         data = self._data.mT
 

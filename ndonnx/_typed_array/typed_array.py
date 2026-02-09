@@ -70,6 +70,10 @@ class TyArrayBase(ABC):
 
     @property
     @abstractmethod
+    def dynamic_size(self) -> TyArrayInt64: ...
+
+    @property
+    @abstractmethod
     def shape(self) -> OnnxShape: ...
 
     @property
