@@ -18,10 +18,8 @@ else:
         "ndonnx will use the (incomplete) reference implementation for value propagation."
     )
 
-
 from ._dtypes import DType
 from ._from_numpy_dtype import from_numpy_dtype
-
 from ._typed_array.onnx import (
     int8,
     int16,
@@ -195,7 +193,8 @@ from ._infos import finfo, iinfo
 from ._namespace_info import __array_namespace_info__
 from ._constants import e, inf, nan, pi, newaxis
 from ._build import build
-from . import extensions as extensions
+from . import extensions
+from . import dtypes
 
 try:
     __version__ = importlib.metadata.version(__name__)
@@ -389,6 +388,8 @@ __all__ = [
     "to_nullable_dtype",
     "extensions",
     "from_numpy_dtype",
+    # NumPy interop
+    "dtypes",
 ]
 
 

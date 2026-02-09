@@ -8,6 +8,7 @@ from ndonnx._typed_array import onnx as onnx
 from ndonnx._typed_array import promote as promote
 from ndonnx._typed_array import safe_cast as safe_cast
 from ndonnx._typed_array.onnx import GetitemIndex, SetitemIndex
+from ndonnx._typed_array.string import StringArrayNan
 
 __all__ = [
     "onnx",
@@ -18,4 +19,5 @@ __all__ = [
     "SchemaV1",
     "safe_cast",
     "promote",
+    "StringArrayNan",
 ]

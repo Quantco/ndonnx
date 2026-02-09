@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -2256,6 +2256,10 @@ def const(
 
 @overload
 def const(obj: int, dtype: None = None) -> TyArrayInt64: ...
+
+
+@overload
+def const(obj: str, dtype: None = None) -> TyArrayUtf8: ...
 
 
 @overload
