@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -206,6 +206,13 @@ class Array:
 
     @property
     def dynamic_size(self) -> Array:
+        """Return the size of an array as scalar array.
+
+        Contrary to `Array.size` this function also works on dynamically sized arrays.
+        """
+        # Special cases that allow for shortcuts
+        if self.ndim == 0:
+            Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
         size = self._tyarray.dynamic_size
         return Array._from_tyarray(size)
 

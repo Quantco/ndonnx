@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.17.2 (unreleased)
+-------------------
+
+**Other change**
+
+- :func:`ndonnx.Array.dynamic_size` now produces more efficient graphs.
+
+
 0.17.1 (2025-12-05)
 -------------------
 
