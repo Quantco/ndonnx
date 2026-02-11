@@ -1,0 +1,64 @@
+site_name: ndonnx
+site_description: Export array-api compliant code to ONNX
+site_url: https://ndonnx.readthedocs.io/
+repo_name: quantco/ndonnx
+repo_url: https://github.com/quantco/ndonnx
+edit_uri: edit/main/docs/
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://spox.readthedocs.io/en/latest/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+            - https://ndonnx.readthedocs.io/en/latest/objects.inv
+          # https://mkdocstrings.github.io/python
+          paths: [ndonnx]
+          options:
+            filters:
+              - "!^_" # Disable all single underscore methods ("protected")
+              # - "^__" # re-enable double underscore methods ("dunder")
+            extensions:
+              - griffe_inherited_docstrings:
+                  merge: true
+            allow_inspection: true
+            members_order: alphabetical
+            signature_crossrefs: true
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            show_signature: true
+            show_source: false
+            show_symbol_type_heading: true
+            docstring_style: numpy
+            docstring_section_style: list
+            separate_signature: true
+            merge_init_into_class: true
+            inherited_members: true
+
+nav:
+  - Welcome: index.md
+  - Guides:
+      - Getting started: gettingstarted.md
+      - conversion: modelconversion.md
+      - Spox interoperability: spoxintegration.md
+  - Advanced use cases:
+      - Experimental features: experimental.md
+      - Inference: inference.md
+  - API Documentation:
+      - Namespace: api/namespace.md
+      - Array: api/array.md
+      - extensions: api/extensions.md
+      - Data types: datatypes.md
+  - Changelog: CHANGELOG.md
+  - Motivation: motivation.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tasklist:
+      custom_checkbox: true

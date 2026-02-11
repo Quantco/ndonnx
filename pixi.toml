@@ -17,17 +17,20 @@ setuptools = ">=61"
 setuptools-scm = "*"
 spox = ">=0.10"
 typing_extensions = "*"
-
 [feature.docs.dependencies]
-make = "*"
-numpydoc = "*"
-sphinx = "*"
-sphinxcontrib-apidoc = "*"
-sphinx_rtd_theme = "*"
-sphinx-toolbox = "*"
-nbsphinx = "*"
+mkdocs = "*"
+mkdocs-material = "*"
+mkdocstrings = "*"
+mkdocstrings-python = "*"
+griffe-inherited-docstrings = "*"
+ruff = ">=0.14.4"
+zensical = ">=0.0.21,<0.0.22"
 [feature.docs.tasks]
-docs = "cd docs && make html"
+docs-test-build-strict = "mkdocs build --strict"
+# zensical has no strict mode yet but strives for compatibility with
+# mkdocs. We build using the former solely to check for warnings.
+docs = "zensical serve"
+docs-build-zensical = "zensical build"
 
 [feature.build.dependencies]
 python-build = "*"
@@ -78,6 +81,8 @@ python = "3.10.*"
 python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
+[feature.py313.dependencies]
+python = "3.13.*"
 [feature.np1x.dependencies]
 python = "3.11.*"
 numpy = "1.*"
@@ -89,6 +94,7 @@ default = ["test", "lint"]
 py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
+py313 = ["py313", "test"]
 np1x = ["np1x", "test"]
 min-onnxruntime = ["min-onnxruntime", "test"]
 docs = ["docs"]
