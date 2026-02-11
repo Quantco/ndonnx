@@ -11,7 +11,7 @@ traditionally been error-prone and challenging to maintain.
 
 Existing tooling revolves around [ONNX converter
 libraries](https://onnx.ai/onnx/intro/converters.html). The fundamental
-problem with this approach that inference logic must be **duplicated**.
+problem with this approach is that inference logic must be **duplicated**.
 It is first expressed in an API suitable for training using host
 libraries like NumPy or PyTorch and then reimplemented again in terms of
 ONNX operators using a library like

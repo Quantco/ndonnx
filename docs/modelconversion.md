@@ -25,7 +25,7 @@ X_train, X_test, y_train, y_test = train_test_split(dataset.data, dataset.target
 We should begin by noting that only the inference logic is relevant for
 deployment. Since we would like to fit our classification model using
 scikit-learn’s `LogisticRegression` estimator, we are interested in
-exporting the logic of it's prediction method to ONNX.
+exporting the logic of its prediction method to ONNX.
 
 Unfortunately, `LogisticRegression.predict` does not yet adhere to the
 Array API which would have made it immediately convertible to ONNX using
@@ -73,8 +73,8 @@ print(model.predict(ndx.asarray(X_test)).unwrap_numpy())
 
 ## Exporting to ONNX
 
-Now that we have fit `model` and it’s inference path `predict` is Array
-API compatible, we can export it to ONNX using ndonnx.
+Now that we have fit `model` and its inference path `predict` is Array-API
+compatible, we can export it to ONNX using ndonnx.
 
 1.  Begin by creating a placeholder array representing the input of our
     model. These are arrays that contain no data, only a shape (which

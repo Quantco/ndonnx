@@ -7,6 +7,7 @@ corresponding data type in the ONNX standard.
 
 | Name          | Description                                                      | Array API | ONNX primitive |
 | ------------- | ---------------------------------------------------------------- | --------- | -------------- |
+| `float16`     | 16-bit floating point number                                     | Yes       | Yes            |
 | `float32`     | 32-bit floating point number                                     | Yes       | Yes            |
 | `float64`     | 64-bit floating point number                                     | Yes       | Yes            |
 | `int8`        | 8-bit signed integer                                             | Yes       | Yes            |
