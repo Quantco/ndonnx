@@ -40,7 +40,7 @@ nav:
   - Welcome: index.md
   - Guides:
       - Getting started: gettingstarted.md
-      - conversion: modelconversion.md
+      # - Model conversion: modelconversion.md  # not very helpful
       - Spox interoperability: spoxintegration.md
   - Advanced use cases:
       - Experimental features: experimental.md
@@ -48,7 +48,7 @@ nav:
   - API Documentation:
       - Namespace: api/namespace.md
       - Array: api/array.md
-      - extensions: api/extensions.md
+      - Extensions: api/extensions.md
       - Data types: datatypes.md
   - Changelog: CHANGELOG.md
   - Motivation: motivation.md

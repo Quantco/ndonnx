@@ -22,35 +22,4 @@ be mirrored.
 We identified that an [Array
 API](https://data-apis.org/array-api/latest/) standard compliant
 interface to ONNX would solve these problems by uniting these APIs while
-retaining complete development flexibility. This motivated us to create
-ndonnx.
-
-## Practical features for expressing ONNX computation graphs
-
-Beyond solving the code duplication problem outlined above, ndonnx has
-several features that make it a compelling choice for expressing ONNX
-computation graphs:
-
-1.  **ndonnx is an array library**. Features like type promotion,
-    advanced slicing, and other high-level functions you can come to
-    expect from array libraries like NumPy and PyTorch are present in
-    ndonnx. This leads to more concise, less buggy converters compared
-    to using lower level libraries that only expose the [ONNX operator
-    set](https://github.com/onnx/onnx/blob/main/docs/Operators.md).
-2.  [Interoperability](spoxintegration.md). Parts of the ONNX
-    standard are unsuitable for the Array abstraction such as the LSTM
-    operator. ndonnx can be used incrementally where useful and where
-    not, you can drop down to the ONNX operator set since ndonnx builds
-    on [Spox](https://github.com/quantco/spox).
-3.  **Constant folding**. Arrays whose values can be determined before
-    even building the ONNX graph are eagerly computed. This means that
-    the exported ONNX computational graph is as lean as possible.
-4.  [User-defined data types (experimental)](experimental.md).
-    ONNX specifies a narrow set of C-inspired data types. When defining
-    Machine Learning pipelines, domain-specific types like datetimes and
-    nullability are useful. We expose an experimental API for defining
-    "struct" types as a user. We were inspired by NumPy's [structured
-    arrays](https://numpy.org/doc/stable/user/basics.rec.html) and
-    Arrow's
-    [StructType](https://arrow.apache.org/docs/python/generated/pyarrow.StructType.html)
-    and use this feature extensively.
+retaining complete development flexibility.

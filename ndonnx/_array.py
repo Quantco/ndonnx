@@ -429,27 +429,27 @@ class Array:
 
     # Non-standard functions exposed by NumPy and ndonnx <=0.9
     def sum(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
-        """See :py:func:`ndonnx.sum` for documentation."""
+        """See [ndonnx.sum][] for documentation."""
         return Array._from_tyarray(self._tyarray.sum(axis=axis, keepdims=keepdims))
 
     def prod(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
-        """See :py:func:`ndonnx.prod` for documentation."""
+        """See [ndonnx.prod][] for documentation."""
         return Array._from_tyarray(self._tyarray.prod(axis=axis, keepdims=keepdims))
 
     def max(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
-        """See :py:func:`ndonnx.max` for documentation."""
+        """See [ndonnx.max][] for documentation."""
         return Array._from_tyarray(self._tyarray.max(axis=axis, keepdims=keepdims))
 
     def min(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
-        """See :py:func:`ndonnx.min` for documentation."""
+        """See [ndonnx.min][] for documentation."""
         return Array._from_tyarray(self._tyarray.min(axis=axis, keepdims=keepdims))
 
     def all(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
-        """See :py:func:`ndonnx.all` for documentation."""
+        """See [ndonnx.all][] for documentation."""
         return Array._from_tyarray(self._tyarray.all(axis=axis, keepdims=keepdims))
 
     def any(self, axis: _Axisparam = 0, keepdims: bool = False) -> Array:
-        """See :py:func:`ndonnx.any` for documentation."""
+        """See [ndonnx.any][] for documentation."""
         return Array._from_tyarray(self._tyarray.any(axis=axis, keepdims=keepdims))
 
 
