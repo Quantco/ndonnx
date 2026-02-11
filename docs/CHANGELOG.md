@@ -10,7 +10,7 @@
 
 **Breaking change**
 
-- `ndonnx.clip` now behaves like NumPy when an integer dtype array and
+- [ndonnx.clip][] now behaves like NumPy when an integer dtype array and
   float type min or max values are given.
 
 **Other change**
@@ -21,21 +21,21 @@
 
 **Bug fix**
 
-- `ndonnx.repeat` now works correctly for zero-sized inputs on the
+- [ndonnx.repeat][] now works correctly for zero-sized inputs on the
   minimum supported onnxruntime 1.20.1.
 
 **New feature**
 
-- `ndonnx.max` (`ndonnx.min`) now returns the minimum (maximum) value
+- [ndonnx.max][] ([ndonnx.min][]) now returns the minimum (maximum) value
   for the input data type if the reduction takes place over a zero-sized
   input.
-- `ndonnx.arange` now also allows arrays as inputs.
+- [ndonnx.arange][] now also allows arrays as inputs.
 
 ## 0.15.0 (2025-08-13)
 
 **New feature**
 
-- `ndonnx.repeat` is now implemented for all built-in data types.
+- [ndonnx.repeat][] is now implemented for all built-in data types.
 
 **Other changes**
 
@@ -47,25 +47,25 @@
 
 - Fix a bug in `ndonnx.Array.__setitem__` that occurred when all of the
   following applied:
-  - An `Ellipsis` was part of the key
-  - The `Ellipsis` expanded to at least one dimension
-  - The `Ellipsis` was not the last element of the key
-  - The assigned value was not a scalar or 1D array with length 1.
-- `ndonnx.Array.dynamic_shape` now returns a rank-0 array for all input
+    - An `Ellipsis` was part of the key
+    - The `Ellipsis` expanded to at least one dimension
+    - The `Ellipsis` was not the last element of the key
+    - The assigned value was not a scalar or 1D array with length 1.
+- [ndonnx.Array.dynamic_shape][] now returns a rank-0 array for all input
   ranks.
 - The error message of the `IndexingError` raise by
   `ndonnx.Array.__setitem__` when providing a tuple-key containing
   int64-arrays is now accurate.
-- Using <span class="title-ref">slice</span> objects in the
+- Using `slice` objects in the
   `ndonnx.Array.__setitem__` no longer require value propagation.
 - `ndonnx.Array.__setitem__` now correctly handles boolean masks for
   arrays of two or more dimensions.
 - Operations between NumPy and ndonnx arrays now correctly call the
   reverse dunder methods such as `ndonnx.Array.__radd__` where
   appropriate.
-- Operations between `numpy.generic` and `ndonnx.Array` objects now
+- Operations between `numpy.generic` and [ndonnx.Array][] objects now
   follow the regular type promotion logic.
-- The following dunder operations on `ndonnx.Array` now correctly return
+- The following dunder operations on [ndonnx.Array][] now correctly return
   `NotImplemented` if one of the operands is not of type
   `numpy.ndarray | ndonnx.Array | bool | str | int | float`: `__add__`,
   `__radd__`, `__and__`, `__rand__`, `__floordiv__`, `__rfloordiv__`,
@@ -77,37 +77,37 @@
 
 **New workarounds for missing onnxruntime implementations**
 
-- `ndx.any` and `ndx.all` now correctly propagate values even if the
+- [ndonnx.any][] and [ndonnx.all][] now correctly propagate values even if the
   input is zero-sized.
-- `ndonnx.arange` now follows NumPy's semantics for extremely large
+- [ndonnx.arange][] now follows NumPy's semantics for extremely large
   start, stop, and step values.
-- `ndonnx.min`, `ndonnx.max`, `ndonnx.minimum`, `ndonnx.maximum`, and
-  `ndonnx.clip` now produce correct results for very large values in
+- [ndonnx.min][], [ndonnx.max][], [ndonnx.minimum][], [ndonnx.maximum][], and
+  [ndonnx.clip][] now produce correct results for very large values in
   int64 arrays.
 
 ## 0.13.0 (2025-05-27)
 
 **Bug fixes**
 
-- `ndonnx.concat` no longer raises an error if `axis=None`, the
+- [ndonnx.concat][] no longer raises an error if `axis=None`, the
   resulting data type is `int32` or `int64`, and one of the provided
   arrays is zero-sized.
 - `ndonnx.__array_namespace_info__.capabilities()` now reports the
   number of supported dimensions via the `"max dimensions"` entry rather
   than `"max rank"`.
-- Add missing onnxruntime workaround for `uint32` inputs to `ndonnx.min`
-  and `ndonnx.max`.
-- Fix array instantiation with `ndonnx.asarray` and very large Python
+- Add missing onnxruntime workaround for `uint32` inputs to [ndonnx.min][]
+  and [ndonnx.max][].
+- Fix array instantiation with [ndonnx.asarray][] and very large Python
   integers for `uint64` data types.
-- Fix passing an Python scalar as the second argument to `ndonnx.where`.
-- Calling `ndonnx.roll` on zero-sized inputs no longer causes a segfault
+- Fix passing a Python scalar as the second argument to [ndonnx.where][].
+- Calling [ndonnx.roll][] on zero-sized inputs no longer causes a segfault
   on Linux.
 
 **New features**
 
-- The `ndonnx.TimeDelta64DType` and `ndonnx.DateTime64DType` gained
+- The [ndonnx.TimeDelta64DType][] and [ndonnx.DateTime64DType][] gained
   support for milli and microseconds as units.
-- `ndonnx.where` now promotes time units between the two branches.
+- [ndonnx.where][] now promotes time units between the two branches.
 - Addition, multiplication, division, and subtraction between arrays
   with timedelta or datetime data types now support promotion between
   time units.
@@ -125,15 +125,14 @@
 
 **New features**
 
-- Support the 2024.12 version of the Array API (except `nextafter`).
+- Support the 2024.12 version of the Array API (except [ndonnx.nextafter][]).
 
 ## 0.11.0 (2025-05-08)
 
 **Bug fix**
 
-- `ndonnx.mean`, `ndonnx.var`, and `ndonnx.std` now produce correct
-  results if axes outside the range of <span class="title-ref">\[-1,
-  1\]</span> are given.
+- [ndonnx.mean][], [ndonnx.var][], and [ndonnx.std][] now produce correct
+  results if axes outside the range of `[-1, 1]` are given.
 
 **Other change**
 
@@ -148,100 +147,98 @@ Technical release to address a PyPI publishing issue.
 **Breaking change**
 
 - Removed the deprecated `ndonnx.promote_nullable` function. Use
-  `ndonnx.extensions.make_nullable` instead.
+  [ndonnx.extensions.make_nullable][] instead.
 - The existing (private) tooling to define custom data types has been
   removed.
 - The `ndonnx.Array.len` member function has been removed since it is
   neither defined by `numpy.ndarray` nor the Array-API.
-- `ndonnx.Array.size` now returns <span class="title-ref">int \|
-  None</span> in accordance to with the Array-API rather than a
-  `~ndonnx.Array` instance.
+- [ndonnx.Array.size][] now returns `int | None` in accordance with the Array-API rather than an
+  [ndonnx.Array][] instance.
 
 **Bug fixes**
 
 - The following functions now correctly take the `keepdims` argument
   into account:
-  - `ndonnx.Array.sum`
-  - `ndonnx.Array.prod`
-  - `ndonnx.Array.max`
-  - `ndonnx.Array.min`
-  - `ndonnx.Array.all`
-  - `ndonnx.Array.any`
+    - [ndonnx.Array.sum][]
+    - [ndonnx.Array.prod][]
+    - [ndonnx.Array.max][]
+    - [ndonnx.Array.min][]
+    - [ndonnx.Array.all][]
+    - [ndonnx.Array.any][]
 
 **New features**
 
-- ndonnx gained partial support for
-  <span class="title-ref">float16</span> data types.
+- ndonnx gained partial support for `float16` data types.
 - The following functions are now exposed in the ndonnx namespace in
   accordance to the Array-API standard:
-  - `ndonnx.__array_namespace_info__`
-  - `ndonnx.maximum`
-  - `ndonnx.minimum`
-  - `ndonnx.meshgrid`
-  - `ndonnx.moveaxis`
-  - `ndonnx.tile`
-  - `ndonnx.unstack`
-  - `ndonnx.vecdot`
+    - `ndonnx.__array_namespace_info__`
+    - [ndonnx.maximum][]
+    - [ndonnx.minimum][]
+    - [ndonnx.meshgrid][]
+    - [ndonnx.moveaxis][]
+    - [ndonnx.tile][]
+    - [ndonnx.unstack][]
+    - [ndonnx.vecdot][]
 - The newly added `ndonnx.extensions` module exposes the following
   functions:
-  - `~ndonnx.extensions.datetime_to_year_month_day`
-  - `~ndonnx.extensions.fill_null`
-  - `~ndonnx.extensions.get_mask`
-  - `~ndonnx.extensions.is_float_dtype`
-  - `~ndonnx.extensions.is_integer_dtype`
-  - `~ndonnx.extensions.is_nullable_dtype`
-  - `~ndonnx.extensions.is_nullable_float_dtype`
-  - `~ndonnx.extensions.is_nullable_integer_dtype`
-  - `~ndonnx.extensions.is_numeric_dtype`
-  - `~ndonnx.extensions.is_onnx_dtype`
-  - `~ndonnx.extensions.is_signed_integer_dtype`
-  - `~ndonnx.extensions.s_time_unit`
-  - `~ndonnx.extensions.is_unsigned_integer_dtype`
-  - `~ndonnx.extensions.isin`
-  - `~ndonnx.extensions.make_nullable`
-  - `~ndonnx.extensions.put`
-  - `~ndonnx.extensions.shape` (deprecated in favor of
-    `ndonnx.Array.dynamic_shape`)
-  - `~ndonnx.extensions.static_map`
-- Arrays now expose the `ndonnx.Array.device` property to improve Array
+    - [ndonnx.extensions.datetime_to_year_month_day][]
+    - [ndonnx.extensions.fill_null][]
+    - [ndonnx.extensions.get_mask][]
+    - [ndonnx.extensions.is_float_dtype][]
+    - [ndonnx.extensions.is_integer_dtype][]
+    - [ndonnx.extensions.is_nullable_dtype][]
+    - [ndonnx.extensions.is_nullable_float_dtype][]
+    - [ndonnx.extensions.is_nullable_integer_dtype][]
+    - [ndonnx.extensions.is_numeric_dtype][]
+    - [ndonnx.extensions.is_onnx_dtype][]
+    - [ndonnx.extensions.is_signed_integer_dtype][]
+    - [ndonnx.extensions.is_time_unit][]
+    - [ndonnx.extensions.is_unsigned_integer_dtype][]
+    - [ndonnx.extensions.isin][]
+    - [ndonnx.extensions.make_nullable][]
+    - [ndonnx.extensions.put][]
+    - [ndonnx.extensions.shape][] (deprecated in favor of
+      [ndonnx.Array.dynamic_shape][])
+    - [ndonnx.extensions.static_map][]
+- Arrays now expose the [ndonnx.Array.device][] property to improve Array
   API compatibility. Note that serializing an ONNX model inherently
   postpones device placement decisions to the runtime so currently one
   abstract device is supported.
-- The `~ndonnx.Array` object gained the following member functions:
-  - `~ndonnx.Array.disassemble`
-  - `~ndonnx.Array.dynamic_shape`
-  - `~ndonnx.Array.dynamic_size`
-  - `~ndonnx.Array.unwrap_numpy`
-  - `~ndonnx.Array.unwrap_spox`
+- The [ndonnx.Array][] object gained the following member functions:
+    - [ndonnx.Array.disassemble][]
+    - [ndonnx.Array.dynamic_shape][]
+    - [ndonnx.Array.dynamic_size][]
+    - [ndonnx.Array.unwrap_numpy][]
+    - [ndonnx.Array.unwrap_spox][]
 
 **Deprecations**
 
-- `ndonnx.array` is deprecated in favor of `ndonnx.argument`.
+- `ndonnx.array` is deprecated in favor of [ndonnx.argument][].
 - `ndonnx.additional` is deprecated in favor of `ndonnx.extensions`.
-- `ndonnx.from_spox_var` is deprecated in favor of `ndonnx.asarray`.
+- `ndonnx.from_spox_var` is deprecated in favor of [ndonnx.asarray][].
 - `ndonnx.Nullable` is deprecated in favor of
-  `ndonnx.extensions.is_nullable_dtype`
+  [ndonnx.extensions.is_nullable_dtype][]
 - `ndonnx.NullableFloating` is deprecated in favor of
-  `ndonnx.extensions.is_nullable_float_dtype`
+  [ndonnx.extensions.is_nullable_float_dtype][]
 - `ndonnx.NullableIntegral` is deprecated in favor of
-  `ndonnx.extensions.is_nullable_integer_dtype`
+  [ndonnx.extensions.is_nullable_integer_dtype][]
 - `ndonnx.Floating` is deprecated in favor of
-  `ndonnx.extensions.is_float_dtype`
+  [ndonnx.extensions.is_float_dtype][]
 - `ndonnx.Integral` is deprecated in favor of
-  `ndonnx.extensions.is_integer_dtype`
+  [ndonnx.extensions.is_integer_dtype][]
 - `ndonnx.Numerical` is deprecated in favor of
-  `ndonnx.extensions.is_numeric_dtype`
+  [ndonnx.extensions.is_numeric_dtype][]
 - `ndonnx.CoreType` is deprecated in favor of
-  `ndonnx.extensions.is_onnx_dtype`
+  [ndonnx.extensions.is_onnx_dtype][]
 - `ndonnx.NullableCore` is deprecated in favor of
-  `ndonnx.extensions.is_nullable_dtype`
+  [ndonnx.extensions.is_nullable_dtype][]
 - `ndonnx.UnsupportedOperationError` is deprecated in favor of
   `TypeError`
 - `ndonnx.CastError` is deprecated in favor of `TypeError`
 
 **Other changes**
 
-- `~ndonnx.additional.make_nullable` can no longer be used for custom
+- `ndonnx.additional.make_nullable` can no longer be used for custom
   data types.
 
 ## 0.9.3 (2024-10-25)
@@ -259,8 +256,7 @@ Technical release to address a PyPI publishing issue.
 
 - Fixed a bug in the construction of nullable arrays using
   `ndonnx.asarray` where the shape of the null field would not match the
-  values field if the provided
-  <span class="title-ref">np.ma.MaskedArray</span>'s mask was scalar.
+  values field if the provided `np.ma.MaskedArray`'s mask was scalar.
 - Fixed a bug in the implementation of `ndonnx.ones_like` where the
   static shape was being used to construct the array of ones.
 
@@ -273,7 +269,7 @@ Technical release to address a PyPI publishing issue.
 - User defined data types can now define how they are indexed (via
   `__getitem__`) by implementing the `getitem` function.
 - `ndonnx.NullableCore` is now public, encapsulating nullable variants
-  of \`CoreType\`s exported by ndonnx.
+  of `CoreType`s exported by ndonnx.
 
 **Bug fixes**
 
@@ -291,7 +287,7 @@ Technical release to address a PyPI publishing issue.
 
 **Breaking change**
 
-- Iterating over dynamic dimensions of `~ndonnx.Array` is no longer
+- Iterating over dynamic dimensions of [ndonnx.Array][] is no longer
   allowed since it commonly lead to infinite loops when used without an
   explicit break condition.
 
@@ -315,19 +311,19 @@ Technical release to address a PyPI publishing issue.
 - Expose the `ndonnx.isdtype` function.
 
 - Custom data types can now override array functions:
-  - `ndonnx.zeros`
-  - `ndonnx.zeros_like`
-  - `ndonnx.ones`
-  - `ndonnx.ones_like`
-  - `ndonnx.full`
-  - `ndonnx.full_like`
-  - `ndonnx.arange`
-  - `ndonnx.arange`
-  - `ndonnx.eye`
-  - `ndonnx.tril`
-  - `ndonnx.triu`
-  - `ndonnx.linspace`
-  - `ndonnx.where`
+    - `ndonnx.zeros`
+    - `ndonnx.zeros_like`
+    - `ndonnx.ones`
+    - `ndonnx.ones_like`
+    - `ndonnx.full`
+    - `ndonnx.full_like`
+    - `ndonnx.arange`
+    - `ndonnx.arange`
+    - `ndonnx.eye`
+    - `ndonnx.tril`
+    - `ndonnx.triu`
+    - `ndonnx.linspace`
+    - `ndonnx.where`
 
 - The `ndonnx._experimental.UniformShapeOperations` now provides
   implementations of shape operations that are generic across all data
@@ -350,8 +346,7 @@ Technical release to address a PyPI publishing issue.
 - Fixes scalar promotion logic to more accurately reflect the Array API
   standard. Promotion requires at least one array to be present and
   scalars adopt the dtype of the arrays being promoted with it.
-  <span class="title-ref">ndx.utf8</span> and
-  <span class="title-ref">ndx.nutf8</span> cannot be promoted with any
+  `ndx.utf8` and `ndx.nutf8` cannot be promoted with any
   other dtypes.
 - Fixes failure when broadcasting nullable data type arrays together in
   `broadcast_arrays`.

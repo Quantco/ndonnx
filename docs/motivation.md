@@ -37,7 +37,7 @@ computation graphs:
     ndonnx. This leads to more concise, less buggy converters compared
     to using lower level libraries that only expose the [ONNX operator
     set](https://github.com/onnx/onnx/blob/main/docs/Operators.md).
-2.  `Interoperability </spox/spoxintegration>`. Parts of the ONNX
+2.  [Interoperability](spoxintegration.md). Parts of the ONNX
     standard are unsuitable for the Array abstraction such as the LSTM
     operator. ndonnx can be used incrementally where useful and where
     not, you can drop down to the ONNX operator set since ndonnx builds
@@ -45,7 +45,7 @@ computation graphs:
 3.  **Constant folding**. Arrays whose values can be determined before
     even building the ONNX graph are eagerly computed. This means that
     the exported ONNX computational graph is as lean as possible.
-4.  `User-defined data types (experimental) </experimental/experimental>`.
+4.  [User-defined data types (experimental)](experimental.md).
     ONNX specifies a narrow set of C-inspired data types. When defining
     Machine Learning pipelines, domain-specific types like datetimes and
     nullability are useful. We expose an experimental API for defining

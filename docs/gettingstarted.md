@@ -10,7 +10,7 @@ implements a superset of the Array API standard. The complete Array API
 specification can be found
 [elsewhere](https://data-apis.org/array-api/latest/API_specification/index.html).
 Additional parts of the API specific to ndonnx are listed
-`here <../api/ndonnx.extensions>`.
+[here](api/extensions.md).
 
 ### Creating Arrays
 
@@ -18,7 +18,7 @@ ndonnx arrays can be instantiated from NumPy arrays, scalars or Python
 lists. Unlike most other libraries, ndonnx arrays can also be created
 only from a shape and data type. While these arrays don't contain any
 data, they are used to trace computation graphs to facilitate ONNX
-export. This is discussed in more detail in the `onnx-export` section
+export. This is discussed in more detail in the [ONNX Export](#onnx-export) section
 below.
 
 ```python
@@ -37,7 +37,7 @@ c = ndx.argument(shape=("N", "M"), dtype=ndx.utf8)
 ### The ndonnx namespace
 
 The top-level `ndonnx` namespace contains various functions such as
-<span class="title-ref">ndonnx.sum</span> that are mandated by the
+`ndonnx.sum` that are mandated by the
 Array-API standard. Additional functions that go beyond the standard may
 be found in the `ndonnx.extensions` module.
 
@@ -79,7 +79,7 @@ print(c) # Array([6 7], dtype=Int64)
 
 ndonnx provides not only Array API compliant data types but also strings
 and nullable variants. You can find a full list
-`here <../datatypes/datatypes>`.
+[here](datatypes.md).
 
 ```python
 import ndonnx as ndx
@@ -138,10 +138,9 @@ onnx.save(model, "mean_drop_outliers.onnx")
 
 We can visualize this model using [Netron](https://netron.app/).
 
-<img src="../_static/modelhorizontal.png" style="width:100.0%"
-alt="ONNX model" />
+![ONNX model](_static/modelhorizontal.png)
 
 > [!NOTE]
 > ndonnx will write versioned metadata in your ONNX model that may be
 > used by downstream inference oriented libraries. You can find out more
-> in the `Inference Utilities <../inference/inference>` section.
+> in the [Inference Utilities](inference.md) section.

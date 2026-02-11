@@ -80,38 +80,37 @@ API compatible, we can export it to ONNX using ndonnx.
 
 1.  Begin by creating a placeholder array representing the input of our
     model. These are arrays that contain no data, only a shape (which
-    may be symbolic) and data type. The shape is (“N”, 4) since we may
-    have an arbitrary batch dimension “N” and always have 4 features as
+    may be symbolic) and data type. The shape is ("N", 4) since we may
+    have an arbitrary batch dimension "N" and always have 4 features as
     input.
 
-    > ```python
-    > X = ndx.argument(shape=("N", 4), dtype=ndx.float64)
-    > ```
+    ```python
+    X = ndx.argument(shape=("N", 4), dtype=ndx.float64)
+    ```
 
 2.  Call `predict` just as normal, providing X as input. The output
     array also does not have any data associated with it since its value
     depends on `X`.
 
-    > ```python
-    > y = model.predict(X)
-    > assert y.to_numpy() is None
-    > ```
+    ```python
+    y = model.predict(X)
+    assert y.to_numpy() is None
+    ```
 
 3.  Build the ONNX graph with `ndonnx.build` and persist it to disk. The
     dictionary names are the names given to the inputs and outputs in
     the ONNX graph.
 
-    > ```python
-    > onnx_model = ndx.build({"X": X}, {"y": y})
-    > onnx.save(onnx_model, "classify_iris.onnx")
-    > ```
+    ```python
+    onnx_model = ndx.build({"X": X}, {"y": y})
+    onnx.save(onnx_model, "classify_iris.onnx")
+    ```
 
-4.  Visualize the ONNX model using Netron. It’s a fairly small model and
+4.  Visualize the ONNX model using Netron. It's a fairly small model and
     you might be able to carefully map some of the ONNX operators to the
     operations that generated them.
 
-    > <img src="../_static/classify_iris.png" class="align-center"
-    > alt="Iris Classification Model" />
+    ![Iris Classification Model](_static/classify_iris.png)
 
 ## Use the ONNX model in production
 

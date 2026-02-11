@@ -1,7 +1,7 @@
 # Data Types
 
 ndonnx exposes the following data types. There is also
-`unstable support <../experimental/experimental>` for defining your own
+[unstable support](experimental.md) for defining your own
 structured data types. "Primitive" data types have a directly
 corresponding data type in the ONNX standard.
 

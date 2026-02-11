@@ -13,7 +13,6 @@ plugins:
             - https://docs.python.org/3/objects.inv
             - https://spox.readthedocs.io/en/latest/objects.inv
             - https://numpy.org/doc/stable/objects.inv
-            - https://ndonnx.readthedocs.io/en/latest/objects.inv
           # https://mkdocstrings.github.io/python
           paths: [ndonnx]
           options:

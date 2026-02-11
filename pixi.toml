@@ -26,7 +26,7 @@ griffe-inherited-docstrings = "*"
 ruff = ">=0.14.4"
 zensical = ">=0.0.21,<0.0.22"
 [feature.docs.tasks]
-docs-test-build-strict = "mkdocs build --strict"
+docs-test-build-strict = "mkdocs build --strict -d /tmp/ndonnx/"
 # zensical has no strict mode yet but strives for compatibility with
 # mkdocs. We build using the former solely to check for warnings.
 docs = "zensical serve"

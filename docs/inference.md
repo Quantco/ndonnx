@@ -25,8 +25,7 @@ onnx.save(model, "reshape.onnx")
 
 We can visualize the model using Netron:
 
-<img src="../_static/reshape.png" class="align-center"
-alt="Reshape Model" />
+![Reshape Model](_static/reshape.png)
 
 ### Why do we have three inputs?
 
@@ -52,7 +51,7 @@ exporting to ONNX.
 > ```
 
 The suffixes `_values` and `_null` are not present when using standard
-`"core" data types <../datatypes/datatypes>` found in the ONNX standard.
+"core" [data types](datatypes.md) found in the ONNX standard.
 
 ## Inspecting metadata
 
@@ -67,26 +66,26 @@ For the example model above, we extract the following schema:
 
 ```json
 {
-  "version": 1,
-  "input_schema": {
-    "x": {
-      "type_name": "Utf8",
-      "author": "ndonnx",
-      "meta": null
+    "version": 1,
+    "input_schema": {
+        "x": {
+            "type_name": "Utf8",
+            "author": "ndonnx",
+            "meta": null
+        },
+        "y": {
+            "type_name": "NUtf8",
+            "author": "ndonnx",
+            "meta": null
+        }
     },
-    "y": {
-      "type_name": "NUtf8",
-      "author": "ndonnx",
-      "meta": null
+    "output_schema": {
+        "z": {
+            "type_name": "NUtf8",
+            "author": "ndonnx",
+            "meta": null
+        }
     }
-  },
-  "output_schema": {
-    "z": {
-      "type_name": "NUtf8",
-      "author": "ndonnx",
-      "meta": null
-    }
-  }
 }
 ```
 
