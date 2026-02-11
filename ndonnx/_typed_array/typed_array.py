@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -67,6 +67,10 @@ class TyArrayBase(ABC):
     @property
     @abstractmethod
     def dynamic_shape(self) -> TyArrayInt64: ...
+
+    @property
+    @abstractmethod
+    def dynamic_size(self) -> TyArrayInt64: ...
 
     @property
     @abstractmethod

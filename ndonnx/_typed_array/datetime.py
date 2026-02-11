@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 """Implementation of "custom" datetime-related data types."""
 
@@ -243,6 +243,10 @@ class TimeBaseArray(TyArrayBase):
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self._data.dynamic_shape
+
+    @property
+    def dynamic_size(self) -> onnx.TyArrayInt64:
+        return self._data.dynamic_size
 
     @property
     def mT(self) -> Self:  # noqa: N802
