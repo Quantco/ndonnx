@@ -53,16 +53,21 @@ import ndonnx as ndx
 
 x = ndx.argument(shape=(2, 1), dtype=ndx.nutf8)
 
-data_var = x.disassemble()["data"]
+data_var = x.disassemble()["values"]
 null_var = x.disassemble()["null"]
 ```
 
 ### Spox to ndonnx
 
-Taking the `var` from the previous example, we can convert it back to an
+Taking the `var` from the earlier example, we can convert it back to an
 `ndonnx.Array` using the `ndonnx.asarray` function.
 
 ```python
+import ndonnx as ndx
+
+x = ndx.argument(shape=(2, 1), dtype=ndx.utf8)
+
+var = x.unwrap_spox()
 array = ndx.asarray(var)
 ```
 
@@ -79,16 +84,11 @@ by going through Spox.
 from typing import Iterable
 import ndonnx as ndx
 import spox.opset.ai.onnx.ml.v3 as ml
+import onnxruntime as ort
+import onnx
 
 def one_hot_encode(x: ndx.Array, categories: Iterable[str]) -> ndx.Array:
     return ndx.asarray(ml.one_hot_encoder(x.unwrap_spox(), cats_strings=categories))
-```
-
-We can use this as normal to export and run an ONNX model.
-
-```python
-import onnxruntime as ort
-import ndonnx as ndx
 
 x = ndx.argument(shape=("N",), dtype=ndx.utf8)
 y = one_hot_encode(x, ["a", "b", "c"])
@@ -99,10 +99,10 @@ onnx.save(model, "one_hot_encode.onnx")
 sess = ort.InferenceSession("one_hot_encode.onnx")
 out, = sess.run(None, {"x": ["c", "b", "b", "a"]})
 print(out)
-# [[0. 0. 1.]
-# [0. 1. 0.]
-# [0. 1. 0.]
-# [1. 0. 0.]]
+#> [[0. 0. 1.]
+#> [0. 1. 0.]
+#> [0. 1. 0.]
+#> [1. 0. 0.]]
 ```
 
 > [!NOTE]

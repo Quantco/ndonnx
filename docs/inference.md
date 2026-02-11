@@ -17,7 +17,7 @@ import onnx
 
 x = ndx.argument(shape=("N",), dtype=ndx.utf8)
 y = ndx.argument(shape=("M",), dtype=ndx.nutf8)
-z = ndx.reshape(y, x.shape)
+z = ndx.reshape(y, x.dynamic_shape)
 
 model = ndx.build({"x": x, "y": y}, {"z": z})
 onnx.save(model, "reshape.onnx")

@@ -14,7 +14,7 @@ exists for the onnxruntime in the form of a shared library:
 
 ```python
 import ndonnx as ndx
-from ndonnx._experimental import propagate_with_custom_operators
+from ndonnx._future import propagate_with_custom_operators
 
 @propagate_with_custom_operators("path/to/shared_library.so")
 def my_op(x: ndx.Array) -> ndx.Array:

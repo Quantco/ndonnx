@@ -12,8 +12,6 @@ by loading the dataset.
 ```python
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import make_pipeline
-import numpy as np
 import ndonnx as ndx
 from sklearn.model_selection import train_test_split
 import onnx
@@ -48,7 +46,7 @@ class LogisticRegressionArrayAPI(LogisticRegression):
             intercept = xp.asarray(self.intercept_)
             classes = xp.asarray(self.classes_)
             index = xp.argmax(X @ coef.T + intercept, axis=1)
-            return xp.take(classes, xp.astype(index, xp.int32), axis=0)
+            return xp.take(classes, xp.astype(index, xp.int64), axis=0)
         else:
             return super().predict(X)
 ```
@@ -67,10 +65,10 @@ using a variety of array backends like NumPy, JAX and ndonnx.
 import ndonnx as ndx
 
 print(model.predict(X_test))
-# array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
+#> array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
 
-print(model.predict(ndx.asarray(X_test)).to_numpy())
-# array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
+print(model.predict(ndx.asarray(X_test)).unwrap_numpy())
+#> array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
 ```
 
 ## Exporting to ONNX
@@ -88,13 +86,10 @@ API compatible, we can export it to ONNX using ndonnx.
     X = ndx.argument(shape=("N", 4), dtype=ndx.float64)
     ```
 
-2.  Call `predict` just as normal, providing X as input. The output
-    array also does not have any data associated with it since its value
-    depends on `X`.
+2.  Call `predict` just as normal, providing X as input.
 
     ```python
     y = model.predict(X)
-    assert y.to_numpy() is None
     ```
 
 3.  Build the ONNX graph with `ndonnx.build` and persist it to disk. The
@@ -130,5 +125,5 @@ inference_session = ort.InferenceSession("classify_iris.onnx")
 out, = inference_session.run(None, {"X": X_test})
 
 print(out)
-# array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
+#> array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
 ```

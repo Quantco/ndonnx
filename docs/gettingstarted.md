@@ -45,7 +45,7 @@ be found in the `ndonnx.extensions` module.
 import ndonnx as ndx
 import ndonnx.extensions as nde
 
-a = ndx.asarray([1, 2, 3])
+a = ndx.asarray([1.0, 2.0, 3.0])
 
 # Functions and operators as defined by the Array API
 b = 1 / ndx.logaddexp(a, 2.0)
@@ -113,22 +113,26 @@ def mean_drop_outliers(a, low=-5, high=5):
 
 np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 4]))
 onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 4]))
-np.testing.assert_equal(np_result, onnx_result.to_numpy())
+np.testing.assert_equal(np_result, onnx_result.unwrap_numpy())
 ```
 
 ## ONNX Export
 
-ndonnx arrays do not _need_ to hold data. They can instead be
-instantiated with only a _shape_ and _data type_. This gives you the
-ability to persist the traced computation graph as an ONNX model and
-provide compatible input values only at inference time.
+ndonnx arrays do not _need_ to hold data. Arrays can be instantiated
+with only a _shape_ and _data type_. This gives you the ability to
+persist the traced computation graph as an ONNX model and provide
+compatible input values only at inference time.
 
 ```python
 import ndonnx as ndx
 import onnx
 
+def mean_drop_outliers(a, low=-5, high=5):
+    xp = a.__array_namespace__()
+    return xp.mean(a[(low < a) & (a < high)])
+
 # Instantiate placeholder ndonnx array
-x = ndx.argument(shape=("N",), dtype=ndx.int64)
+x = ndx.argument(shape=("N",), dtype=ndx.float64)
 y = mean_drop_outliers(x)
 
 # Build and save my ONNX model to disk

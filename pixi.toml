@@ -45,6 +45,10 @@ pytest-xdist = "*"
 hypothesis = "*"
 mypy = "*"
 ndindex = "*"
+scikit-learn = ">=1.7.2,<2"
+
+[feature.test.pypi-dependencies]
+pytest-examples = "*"
 
 [feature.test.tasks]
 test = "pytest"
