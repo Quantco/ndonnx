@@ -144,7 +144,8 @@ We can visualize this model using [Netron](https://netron.app/).
 
 ![ONNX model](_static/modelhorizontal.png)
 
-> [!NOTE]
-> ndonnx will write versioned metadata in your ONNX model that may be
-> used by downstream inference oriented libraries. You can find out more
-> in the [Inference Utilities](inference.md) section.
+!!! note
+
+    ndonnx will write versioned metadata in your ONNX model that may be
+    used by downstream inference oriented libraries. You can find out more
+    in the [Inference Utilities](inference.md) section.

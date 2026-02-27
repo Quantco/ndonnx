@@ -105,6 +105,5 @@ print(out)
 #> [1. 0. 0.]]
 ```
 
-> [!NOTE]
-> See [Value propagation with custom operators](experimental.md#value-propagation-with-custom-operators) on how to ensure that value propagation is
-> functioning even when using custom ONNX operators.
+!!! note
+See [value propagation with custom operators](experimental.md#value-propagation-with-custom-operators) on how to ensure that value propagation is functioning even when using custom ONNX operators.

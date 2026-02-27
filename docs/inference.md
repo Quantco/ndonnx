@@ -39,16 +39,18 @@ data. ndonnx implements this abstraction by composing a `values` and
 `null` mask array, which is decomposed into `y_values` and `y_null` when
 exporting to ONNX.
 
-> [!NOTE]
-> `ndonnx.Array.values` and `ndonnx.Array.null` may be used to access
-> these components.
->
-> ```python
-> y = ndx.argument(shape=("N",), dtype=ndx.nutf8)
-> print(y) # Array(dtype=NUtf8)
-> print(y.values) # Array(dtype=Utf8)
-> print(y.null) # Array(dtype=Boolean)
-> ```
+!!! note
+[ndonnx.extensions.get_data][] and [ndonnx.extensions.get_mask][] may be used to access
+these components.
+
+    ```python
+    import ndonnx as ndx
+
+    y = ndx.argument(shape=("N",), dtype=ndx.nutf8)
+    print(y) # Array(dtype=NUtf8)
+    print(ndx.extensions.get_data(y)) # Array(dtype=Utf8)
+    print(ndx.extensions.get_mask(y)) # Array(dtype=Boolean)
+    ```
 
 The suffixes `_values` and `_null` are not present when using standard
 "core" [data types](datatypes.md) found in the ONNX standard.
@@ -96,7 +98,7 @@ similarly combined for output values. Inference code can be expressed at
 the same level of abstraction as the higher level data types provided by
 ndonnx.
 
-> [!NOTE]
-> Nullable data types are entirely opt-in in ndonnx. If you don't
-> instantiate a nullable array you can safely expect not to produce one
-> from a ndonnx function, unless explicitly a constructor.
+!!! note
+Nullable data types are entirely opt-in in ndonnx. If you don't
+instantiate a nullable array you can safely expect not to produce one
+from a ndonnx function, unless explicitly a constructor.

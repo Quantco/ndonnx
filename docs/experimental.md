@@ -21,6 +21,7 @@ def my_op(x: ndx.Array) -> ndx.Array:
     return ndx.asarray(my_op(x.disassemble()))
 ```
 
-> [!WARNING]
-> Using custom operators may limit the portability of your exported ONNX
-> model since not all runtimes may implement a non-standard operator.
+!!! warning
+
+    Using custom operators may limit the portability of your exported ONNX
+    model since not all runtimes may implement a non-standard operator.
