@@ -46,12 +46,11 @@ Additional functions that go beyond the standard may be found in the ``ndonnx.ex
         a = ndx.asarray([1, 2, 3])
 
         # Functions and operators as defined by the Array API
-        b = 1 / ndx.logaddexp(a, 2.0)
-        print(b) # Array([0.44651931 0.37502795 0.3021017 ], dtype=Float64)
-
+        b = ndx.min(a)
+        print(b) # array(data: 1, dtype=int64)
         # Functions unique to ndonnx
         c = nde.isin(a, [1, 3])
-        print(c) # Array([True False True], dtype=Boolean)
+        print(c) # array(data: [True, False, True], dtype=bool)
 
 
 Slicing, Indexing, and Broadcasting
@@ -112,7 +111,7 @@ Writing code in a strictly Array API compliant fashion makes it instantly reusab
 
         np_result = mean_drop_outliers(np.asarray([-10, 0.5, 1, 4]))
         onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 4]))
-        np.testing.assert_equal(np_result, onnx_result.to_numpy())
+        np.testing.assert_equal(np_result, onnx_result.unwrap_numpy())
 
 
 .. _onnx-export:
@@ -130,7 +129,7 @@ This gives you the ability to persist the traced computation graph as an ONNX mo
         import onnx
 
         # Instantiate placeholder ndonnx array
-        x = ndx.argument(shape=("N",), dtype=ndx.int64)
+        x = ndx.argument(shape=("N",), dtype=ndx.float64)
         y = mean_drop_outliers(x)
 
         # Build and save my ONNX model to disk

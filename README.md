@@ -58,7 +58,7 @@ It has a couple of key features:
   jax_result = mean_drop_outliers(jnp.asarray([-10, 0.5, 1, 5]))
   onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
 
-  assert np_result == onnx_result.to_numpy() == jax_result == 0.75
+  assert np_result == onnx_result.unwrap_numpy() == jax_result == 0.75
   ```
 
 - It supports ONNX export. This allows you persist your logic into an ONNX computation graph.
