@@ -1543,18 +1543,6 @@ class TyArrayNumber(TyArray):
     def __rtruediv__(self, other) -> TyArrayBase:
         return self._apply(other, op.div, forward=False, result_type=TyArrayNumber)
 
-    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
-        if isinstance(other, TyArrayNumber | int | float):
-            promo_result, _ = promote(self, other)
-            return (self / other).floor().astype(promo_result.dtype)
-        return NotImplemented
-
-    def __rfloordiv__(self, other) -> TyArrayBase:
-        if isinstance(other, int | float):
-            promo_result, _ = promote(self, other)
-            return (other / self).floor().astype(promo_result.dtype)
-        return NotImplemented
-
     def sign(self) -> Self:
         return type(self)(op.sign(self._var))
 
@@ -1670,6 +1658,31 @@ class TyArrayInteger(TyArrayNumber):
                 b, a = promote(self, other)
             var = op(a._var, b._var)
             return safe_cast(TyArrayInteger, _var_to_tyarray(var))
+        return NotImplemented
+
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        if isinstance(other, TyArrayInteger | int):
+            # div operator truncates towards zero, but we need to floor
+            trunc = self._apply(other, op.div, forward=True, result_type=TyArrayNumber)
+            needs_fix = safe_cast(
+                TyArrayBool, ((self ^ other) < 0) & ((self % other) != 0)
+            )
+            return trunc - where(
+                needs_fix, const(1, dtype=trunc.dtype), const(0, dtype=trunc.dtype)
+            )
+
+        if isinstance(other, TyArrayNumber | float):
+            promo_result, _ = promote(self, other)
+            return (self / other).floor().astype(promo_result.dtype)
+        return NotImplemented
+
+    def __rfloordiv__(self, other) -> TyArrayBase:
+        if isinstance(other, int):
+            return const(other, self.dtype) // self
+
+        if isinstance(other, int | float):
+            promo_result, _ = promote(self, other)
+            return (other / self).floor().astype(promo_result.dtype)
         return NotImplemented
 
     def __truediv__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
@@ -1834,6 +1847,18 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 
 
 class TyArrayFloating(TyArrayNumber):
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        if isinstance(other, TyArrayNumber | int | float):
+            promo_result, _ = promote(self, other)
+            return (self / other).floor().astype(promo_result.dtype)
+        return NotImplemented
+
+    def __rfloordiv__(self, other) -> TyArrayBase:
+        if isinstance(other, int | float):
+            promo_result, _ = promote(self, other)
+            return (other / self).floor().astype(promo_result.dtype)
+        return NotImplemented
+
     def __mod__(self, other) -> TyArrayBase:
         if isinstance(other, TyArrayFloating | float):
             # This function is complicated for two reasons:
