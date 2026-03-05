@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -595,6 +595,27 @@ def test_truediv():
     z = x / y
     assert nde.is_float_dtype(z.dtype)
     assert_array_equal(z.unwrap_numpy(), np.array([0.5, 2 / 3, 1.0]))
+
+
+@pytest.mark.parametrize("negate", [True, False])
+@pytest.mark.parametrize("a_array", [True, False])
+@pytest.mark.parametrize("b_array", [True, False])
+def test_integer_floordiv(negate, a_array, b_array):
+    # The test case is motivated by time-dtypes and their unit conversion
+    def do(npx):
+
+        a = 1009843199999999995
+        b = 1000000000
+
+        if negate:
+            a = -a
+        if a_array:
+            a = npx.asarray(a)
+        if b_array:
+            b = npx.asarray(b)
+        return npx.asarray(a // b)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
 @pytest.mark.parametrize(
