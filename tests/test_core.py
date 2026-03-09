@@ -618,6 +618,17 @@ def test_integer_floordiv(negate, a_array, b_array):
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
+@pytest.mark.parametrize("left_dtype", [np.int64, np.int32, np.float32])
+@pytest.mark.parametrize("right_dtype", [np.uint64, np.uint32, np.float32])
+def test_integer_floordiv_mixed_dtype(left_dtype, right_dtype):
+    def do(npx):
+        signed = npx.asarray(np.array([-7, -3, 5]).astype(left_dtype))
+        unsigned = npx.asarray(np.array([2, 4, 3]).astype(right_dtype))
+        return npx.asarray(unsigned // signed)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
 @pytest.mark.parametrize(
     "dtype",
     [

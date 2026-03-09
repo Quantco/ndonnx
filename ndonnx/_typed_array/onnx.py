@@ -1454,6 +1454,15 @@ class TyArrayNumber(TyArray):
     def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.add, forward=False, result_type=TyArrayNumber)
 
+    def __rfloordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        # See comment in TyArraySignedInteger.__floordiv__ for further
+        # context and why this may be a good example for the `__r*__`
+        # methods.
+        if isinstance(other, int | float):
+            rhs, lhs = promote(self, other)
+            return lhs.__floordiv__(rhs)
+        return NotImplemented
+
     @overload
     def __ge__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
 
@@ -1660,31 +1669,6 @@ class TyArrayInteger(TyArrayNumber):
             return safe_cast(TyArrayInteger, _var_to_tyarray(var))
         return NotImplemented
 
-    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
-        if isinstance(other, TyArrayInteger | int):
-            # div operator truncates towards zero, but we need to floor
-            trunc = self._apply(other, op.div, forward=True, result_type=TyArrayNumber)
-            needs_fix = safe_cast(
-                TyArrayBool, ((self ^ other) < 0) & ((self % other) != 0)
-            )
-            return trunc - where(
-                needs_fix, const(1, dtype=trunc.dtype), const(0, dtype=trunc.dtype)
-            )
-
-        if isinstance(other, TyArrayNumber | float):
-            promo_result, _ = promote(self, other)
-            return (self / other).floor().astype(promo_result.dtype)
-        return NotImplemented
-
-    def __rfloordiv__(self, other) -> TyArrayBase:
-        if isinstance(other, int):
-            return const(other, self.dtype) // self
-
-        if isinstance(other, int | float):
-            promo_result, _ = promote(self, other)
-            return (other / self).floor().astype(promo_result.dtype)
-        return NotImplemented
-
     def __truediv__(self, rhs: TyArrayBase | PyScalar) -> TyArrayBase:
         # Casting rules are implementation defined. We default to float64 like NumPy
         if isinstance(rhs, TyArrayNumber):
@@ -1793,6 +1777,36 @@ class TyArrayInteger(TyArrayNumber):
 
 
 class TyArraySignedInteger(TyArrayInteger):
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        # TODO: At the time of writing I believe this to be a good
+        # general approach to implementing dunder methods. We should
+        # consider combing through the existing one to have them all
+        # on the same footing.
+        #
+        # 1. Select the cases where we know exactly what to do without
+        # further promotion.
+        # 2. Select the cases where we know that a type promotion
+        # should happen (i.e `isinstance(other, int | float | TyArrayNumber)`,
+        # but the ultimate implementation depends on the result of the
+        # promotion.
+        # 3. `return NotImplemented`
+        # 4. `__r*__` only ever deals with python scalars and there it
+        # always must use `promote`. These should actually live in `TyArray`.
+        if isinstance(other, type(self)):
+            # div operator truncates towards zero, but we need to floor
+            trunc = _binary(op.div, type(self))(self, other)
+            needs_fix = safe_cast(
+                TyArrayBool, ((self ^ other) < 0) & ((self % other) != 0)
+            )
+            return trunc - needs_fix.astype(self.dtype)
+
+        if isinstance(other, TyArrayNumber | int | float):
+            # Deferred to the promoted type.
+            a, b = promote(self, other)
+            return a.__floordiv__(b)
+
+        return NotImplemented
+
     # The array-api standard defines the right shift as arithmetic
     # (i.e. sign-propagating). The ONNX standard is logical.
 
@@ -1808,6 +1822,18 @@ class TyArraySignedInteger(TyArrayInteger):
 
 
 class TyArrayUnsignedInteger(TyArrayInteger):
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        if isinstance(other, type(self)):
+            # div does truncation, but that is fine if we only deal with unsigned integers
+            return _binary(op.div, type(self))(self, other)
+
+        if isinstance(other, TyArrayNumber | int | float):
+            # Deferred to the promoted type.
+            a, b = promote(self, other)
+            return a.__floordiv__(b)
+
+        return NotImplemented
+
     def __abs__(self) -> Self:
         return self.copy()
 
@@ -1848,15 +1874,13 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 
 class TyArrayFloating(TyArrayNumber):
     def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
-        if isinstance(other, TyArrayNumber | int | float):
-            promo_result, _ = promote(self, other)
-            return (self / other).floor().astype(promo_result.dtype)
-        return NotImplemented
+        if isinstance(other, type(self)):
+            return _binary(op.div, type(self))(self, other).floor()
 
-    def __rfloordiv__(self, other) -> TyArrayBase:
-        if isinstance(other, int | float):
-            promo_result, _ = promote(self, other)
-            return (other / self).floor().astype(promo_result.dtype)
+        if isinstance(other, TyArrayNumber | int | float):
+            a, b = promote(self, other)
+            return a.__floordiv__(b)
+
         return NotImplemented
 
     def __mod__(self, other) -> TyArrayBase:
@@ -2909,3 +2933,13 @@ def _output_reduce_zero_size(
         )
         out_shape = out_shape.take(const(axes_to_keep, int64))
     return value.broadcast_to(out_shape)
+
+
+def _binary(
+    op: Callable[[Var, Var], Var], otype: type[TY_ARRAY]
+) -> Callable[[TY_ARRAY, TY_ARRAY], TY_ARRAY]:
+    def do(a: TY_ARRAY, b: TY_ARRAY) -> TY_ARRAY:
+        res = op(a._var, b._var)
+        return safe_cast(otype, _var_to_tyarray(res))
+
+    return do
