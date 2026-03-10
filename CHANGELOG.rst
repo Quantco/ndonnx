@@ -7,6 +7,12 @@
 Changelog
 =========
 
+0.17.3 (2026-03-10)
+
+**Bug fix**
+
+- Integer floordiv (``//``) is now computed correctly even for very large integers.
+
 0.17.2 (2026-02-13)
 -------------------
 
