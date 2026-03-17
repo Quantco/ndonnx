@@ -12,8 +12,10 @@ Changelog
 
 **Bug fixes**
 
-- Fix typo in ``__rtruediv__`` method name on ``TyMaArrayNumber``.
-- Add missing ``return``/``raise`` statements across several functions.
+- Reverse true division now works for nullable numeric arrays, so expressions such as ``1 / arr`` behave correctly.
+- :func:`ndonnx.result_type` now raises ``ValueError`` if called without any arguments.
+- Invalid array-based slice bounds now raise ``IndexError`` during indexing.
+- Datetime ``put`` operations now reject values with a mismatched dtype.
 
 0.17.3 (2026-03-10)
 -------------------
