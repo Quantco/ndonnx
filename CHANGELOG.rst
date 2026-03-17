@@ -7,7 +7,16 @@
 Changelog
 =========
 
+0.17.4 (unreleased)
+-------------------
+
+**Bug fixes**
+
+- Fix typo in ``__rtruediv__`` method name on ``TyMaArrayNumber``.
+- Add missing ``return``/``raise`` statements across several functions.
+
 0.17.3 (2026-03-10)
+-------------------
 
 **Bug fix**
 
