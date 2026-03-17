@@ -212,7 +212,7 @@ class Array:
         """
         # Special cases that allow for shortcuts
         if self.ndim == 0:
-            Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
+            return Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
         size = self._tyarray.dynamic_size
         return Array._from_tyarray(size)
 
@@ -514,11 +514,13 @@ def _normalize_setitem_key_item(
         if isinstance(el, int | None):
             return el
         if not isinstance(el.dtype, onnx.Integer):
-            IndexError(
+            raise IndexError(
                 f"arrays in 'slice' objects must be of integer data types; found `{el.dtype}"
             )
         if el.ndim != 0:
-            IndexError(f"arrays in 'slice' objects must be rank-0; found `{el.ndim}")
+            raise IndexError(
+                f"arrays in 'slice' objects must be rank-0; found `{el.ndim}"
+            )
         return el._tyarray.astype(onnx.int64)
 
     if isinstance(item, slice):

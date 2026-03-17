@@ -594,7 +594,7 @@ def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
         return obj
 
     if len(arrays_and_dtypes) == 0:
-        ValueError("at least one array or dtype is required")
+        raise ValueError("at least one array or dtype is required")
     items = sorted(
         arrays_and_dtypes,
         key=lambda item: int(isinstance(item, Array | DType)),
