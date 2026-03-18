@@ -561,6 +561,11 @@ class TyArray(TyArrayBase):
                 key = key[tuple(idx)]
             self._var = op.where(key._var, value._var, self._var)
             return
+        if key.ndim == self.ndim and value.ndim > 1:
+            raise TypeError(
+                "ndonnx boolean array indexing assignment requires a 0 or "
+                f"1-dimensional input, input has {value.ndim} dimensions"
+            )
 
         # The following is essentially doing `self[ndx.nonzero(key)] = value`
         non_zero = [el[..., None] for el in key.nonzero()]
