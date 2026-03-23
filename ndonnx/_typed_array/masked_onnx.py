@@ -691,7 +691,7 @@ class TyMaArrayNumber(TyMaArray):
     __sub__, __rsub__ = _make_binary_pair(operator.sub)  # type: ignore
     __mod__, __rmod__ = _make_binary_pair(operator.mod)  # type: ignore
     __mul__, __rmul__ = _make_binary_pair(operator.mul)  # type: ignore
-    __truediv__, __rtruedive__ = _make_binary_pair(operator.truediv)  # type: ignore
+    __truediv__, __rtruediv__ = _make_binary_pair(operator.truediv)  # type: ignore
     __ge__, _ = _make_binary_pair(operator.ge)  # type: ignore
     __le__, _ = _make_binary_pair(operator.le)  # type: ignore
     __gt__, _ = _make_binary_pair(operator.gt)  # type: ignore

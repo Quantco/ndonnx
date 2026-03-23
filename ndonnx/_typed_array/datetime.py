@@ -237,7 +237,9 @@ class TimeBaseArray(TyArrayBase):
         /,
     ) -> None:
         if self.dtype != value.dtype:
-            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+            raise TypeError(
+                f"data type of 'value' must match array's, found `{value.dtype}`"
+            )
         self._data.put(key, value._data)
 
     @property

@@ -163,31 +163,63 @@ def test_setitem_boolean_mask_value_is_array():
     np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy(), strict=True)
 
 
+def test_setitem_boolean_mask_rejects_higher_dim_key():
+    def do(npx):
+        arr = npx.asarray([1, 2, 3], dtype=npx.int64)
+        key = npx.asarray([[True, False, True], [False, True, False]])
+        arr[key] = 99
+
+    with pytest.raises(IndexError):
+        do(np)
+    with pytest.raises(IndexError):
+        do(ndx)
+
+
 @pytest.mark.parametrize(
-    "update",
+    "shape, key, value",
     [
-        # Assign scalar value
-        11,
-        # Broadcastable on both dimensions
-        [11],
-        # Broadcast on second dimension
-        [[11], [44]],
-        # Specify all elements instead of broadcasting
-        [[11, 22, 33], [44, 55, 66]],
+        # 1d array, 1d mask, 2d value
+        ((3,), [True, True, False], [[9], [8]]),
+        # 2d array, 2d mask, 2d value
+        (
+            (3, 3),
+            [[True, False, True], [False, True, False], [True, True, False]],
+            [[91], [92]],
+        ),
     ],
 )
-def test_setitem_on_2d_array_with_boolean_mask(update):
-    # Numpy does not allow using boo_mask.ndim >1 in __setitem__
+def test_setitem_boolean_mask_rejects_higher_dim_value(shape, key, value):
     def do(npx):
-        np_arr = np.arange(0, 9, dtype=np.int64).reshape(
-            (
-                3,
-                3,
-            )
-        )
+        np_arr = np.arange(0, np.prod(shape), dtype=np.int64).reshape(shape)
         arr = npx.asarray(np_arr)
-        key_arr = npx.asarray([True, False, True])
-        arr[key_arr] = npx.asarray(update)
+        arr[npx.asarray(key)] = npx.asarray(value)
+
+    with pytest.raises(TypeError, match="boolean array indexing"):
+        do(np)
+    with pytest.raises(TypeError, match="boolean array indexing"):
+        do(ndx)
+
+
+@pytest.mark.parametrize(
+    "key, update",
+    [
+        ([True, False, True], 11),
+        ([True, False, True], [11]),
+        ([True, False, True], [[11], [44]]),
+        ([True, False, True], [[11, 22, 33], [44, 55, 66]]),
+        ([True, False, True], [99, 88, 77]),
+        ([[True, False, True], [False, True, False], [True, True, False]], 99),
+        (
+            [[True, False, True], [False, True, False], [True, True, False]],
+            [91, 92, 93, 94, 95],
+        ),
+    ],
+)
+def test_setitem_on_2d_array_with_boolean_mask(key, update):
+    def do(npx):
+        np_arr = np.arange(0, 9, dtype=np.int64).reshape((3, 3))
+        arr = npx.asarray(np_arr)
+        arr[npx.asarray(key)] = npx.asarray(update)
         return arr
 
     np.testing.assert_array_equal(do(np), do(ndx).unwrap_numpy())

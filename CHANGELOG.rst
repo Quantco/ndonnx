@@ -7,7 +7,19 @@
 Changelog
 =========
 
+0.17.4 (2026-03-23)
+-------------------
+
+**Bug fixes**
+
+- Reverse true division now works for nullable numeric arrays, so expressions such as ``1 / arr`` behave correctly.
+- :func:`ndonnx.result_type` now raises ``ValueError`` if called without any arguments.
+- Invalid array-based slice bounds now raise ``IndexError`` during indexing.
+- Datetime ``put`` operations now reject values with a mismatched dtype.
+- Boolean mask ``__setitem__`` now raises ``TypeError`` when the value has too many dimensions, matching NumPy.
+
 0.17.3 (2026-03-10)
+-------------------
 
 **Bug fix**
 
