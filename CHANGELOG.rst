@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.18.0 (2026-04-02)
+-------------------
+
+**New feature**
+
+- :func:`ndonnx.take` and :func:`ndonnx.take_along_axis` can now be used with datetime and timedelta data types.
+
+
 0.17.4 (2026-03-23)
 -------------------
 

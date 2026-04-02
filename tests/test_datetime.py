@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
@@ -304,6 +304,40 @@ def test_clip(data, min, max, unit):
     ).unwrap_numpy()
 
     np.testing.assert_array_equal(actual, desired, strict=True)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[s]", "timedelta64[s]"])
+def test_take(dtype):
+    np_arr = np.asarray([1, "NaT", 0], dtype=dtype)
+
+    def do(npx):
+        indices = np.asarray([[1], [2], [0], [-1]], dtype=np.int64)
+        return npx.take(npx.asarray(np_arr), npx.asarray(indices))
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[s]", "timedelta64[s]"])
+def test_take_along_axis(dtype):
+    np_arr = np.asarray(
+        [
+            [1, "NaT", 0],
+            [10, 20, 30],
+        ],
+        dtype=dtype,
+    )
+
+    def do(npx):
+        indices = np.asarray(
+            [
+                [1],
+                [-1],
+            ],
+            dtype=np.int64,
+        )
+        return npx.take_along_axis(npx.asarray(np_arr), npx.asarray(indices), axis=-1)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
 @pytest.mark.parametrize(
