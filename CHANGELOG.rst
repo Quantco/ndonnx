@@ -7,13 +7,16 @@
 Changelog
 =========
 
-0.18.0 (2026-04-02)
+0.18.0 (2026-04-07)
 -------------------
 
 **New feature**
 
 - :func:`ndonnx.take` and :func:`ndonnx.take_along_axis` can now be used with datetime and timedelta data types.
 
+**Bug fix**
+
+- :func:`ndonnx.take` and :func:`ndonnx.take_along_axis` now validate their ``indices`` and ``axis`` arguments in adherence with the array-api standard.
 
 0.17.4 (2026-03-23)
 -------------------

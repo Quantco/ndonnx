@@ -306,13 +306,21 @@ def test_clip(data, min, max, unit):
     np.testing.assert_array_equal(actual, desired, strict=True)
 
 
+@pytest.mark.parametrize(
+    "x, indices, axis",
+    [
+        ([1, "NaT", 0], [1, 2, 0, -1], None),
+        ([[1, "NaT", 0], [10, 20, 30]], [-1, 2, 0], -1),
+        ([[1, "NaT", 0], [10, 20, 30]], [-1, 1, 0], 0),
+    ],
+)
 @pytest.mark.parametrize("dtype", ["datetime64[s]", "timedelta64[s]"])
-def test_take(dtype):
-    np_arr = np.asarray([1, "NaT", 0], dtype=dtype)
+def test_take(x, indices, axis, dtype):
+    np_arr = np.asarray(x, dtype=dtype)
 
     def do(npx):
-        indices = np.asarray([[1], [2], [0], [-1]], dtype=np.int64)
-        return npx.take(npx.asarray(np_arr), npx.asarray(indices))
+        indices_ = np.asarray(indices, dtype=np.int64)
+        return npx.take(npx.asarray(np_arr), npx.asarray(indices_), axis=axis)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 

@@ -658,6 +658,12 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
         raise TypeError(
             f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
+    if indices.ndim != 1:
+        raise ValueError("'indices' must be a 1D array")
+    if axis is None and x.ndim > 1:
+        raise ValueError(
+            "'axis' argument must be provided if 'x' has more than one axis"
+        )
     return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 
 
@@ -666,6 +672,13 @@ def take_along_axis(x: Array, indices: Array, /, *, axis: int = -1) -> Array:
         raise TypeError(
             f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
+    if indices.ndim != x.ndim:
+        raise ValueError("'x' and 'indices' must have the same number of axes")
+    if not (-x.ndim <= axis < x.ndim):
+        raise ValueError(
+            "'axis' argument must be compatible with number of axes in 'x'"
+        )
+
     return Array._from_tyarray(x._tyarray.take_along_axis(indices._tyarray, axis=axis))
 
 
