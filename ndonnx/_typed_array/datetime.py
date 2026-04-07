@@ -242,6 +242,14 @@ class TimeBaseArray(TyArrayBase):
             )
         self._data.put(key, value._data)
 
+    def take(self, indices: onnx.TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        data = self._data.take(indices, axis=axis)
+        return type(self)(data, unit=self.dtype.unit)
+
+    def take_along_axis(self, indices: onnx.TyArrayInt64, /, *, axis: int = -1) -> Self:
+        data = self._data.take_along_axis(indices, axis=axis)
+        return type(self)(data, unit=self.dtype.unit)
+
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self._data.dynamic_shape
