@@ -1525,6 +1525,12 @@ class TyArrayNumber(TyArray):
     def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=False, result_type=TyArrayNumber)
 
+    def __rmod__(self, other) -> TyArrayBase:
+        if isinstance(other, int | float):
+            b, a = promote(self, other)
+            return a.__mod__(b)
+        return NotImplemented
+
     def __pow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.pow, forward=True, result_type=TyArrayNumber)
 
@@ -1697,15 +1703,16 @@ class TyArrayInteger(TyArrayNumber):
     def __ror__(self, other) -> TyArrayBase:
         return self._apply_int_only(other, op.bitwise_or, forward=False)
 
-    def __mod__(self, other) -> TyArrayInteger:
-        return self._apply_int_only(
-            other, lambda a, b: op.mod(a, b, fmod=0), forward=True
-        )
+    def __mod__(self, other) -> TyArrayBase:
+        if isinstance(other, type(self)):
+            var = op.mod(self._var, other._var, fmod=0)
+            return safe_cast(type(self), _var_to_tyarray(var))
 
-    def __rmod__(self, other) -> TyArrayInteger:
-        return self._apply_int_only(
-            other, lambda a, b: op.mod(a, b, fmod=0), forward=False
-        )
+        if isinstance(other, TyArrayNumber | int | float):
+            a, b = promote(self, other)
+            return a.__mod__(b)
+
+        return NotImplemented
 
     def __xor__(self, other) -> TyArrayBase:
         return self._apply_int_only(other, op.bitwise_xor, forward=True)
@@ -1884,33 +1891,30 @@ class TyArrayFloating(TyArrayNumber):
         return NotImplemented
 
     def __mod__(self, other) -> TyArrayBase:
-        if isinstance(other, TyArrayFloating | float):
+        if isinstance(other, type(self)):
             # This function is complicated for two reasons:
             # 1. The ONNX standard is undefined if dividend is 0, but the array-api is not.
             # 2. The array-api follows the Python semantics, which are rather odd.
-            a, b = promote(self, other)
-            var = op.mod(a._var, b._var, fmod=1)
+            var = op.mod(self._var, other._var, fmod=1)
             mod = safe_cast(TyArrayFloating, _var_to_tyarray(var))
             # NOTE: onnxruntime appears to have a bug where the sign
             # of zeros is only preserved if they are on the
             # false-branch!
             # TODO: File a bug!
-            fixed_mod = where((b < 0) == (mod < 0), mod, mod + b)
-            fixed_zeros = where(b > 0, const(0.0, mod.dtype), const(-0.0, mod.dtype))
+            fixed_mod = where((other < 0) == (mod < 0), mod, mod + other)
+            fixed_zeros = where(
+                other > 0, const(0.0, mod.dtype), const(-0.0, mod.dtype)
+            )
             return where(
-                safe_cast(TyArrayBool, ~((mod == 0.0) & (b != 0.0))),
+                safe_cast(TyArrayBool, ~((mod == 0.0) & (other != 0.0))),
                 fixed_mod,
                 fixed_zeros,
             )
+        if isinstance(other, TyArrayNumber | int | float):
+            a, b = promote(self, other)
+            return a.__mod__(b)
 
-        return super().__mod__(other)
-
-    def __rmod__(self, other) -> TyArrayBase:
-        if isinstance(other, TyArrayFloating | float):
-            b, a = promote(self, other)
-            var = op.mod(a._var, b._var, fmod=1)
-            return safe_cast(TyArrayFloating, _var_to_tyarray(var))
-        return super().__mod__(other)
+        return NotImplemented
 
     def __ndx_logaddexp__(self, x2: TyArrayBase | int | float, /) -> TyArrayFloating:
         if isinstance(x2, TyArrayNumber | int | float):

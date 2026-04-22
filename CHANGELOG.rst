@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.18.1 (2026-04-22)
+-------------------
+
+**Bug fix**
+
+- Fixed a regression that forbade using the modulo operator between integers and floats.
+
+
 0.18.0 (2026-04-07)
 -------------------
 
