@@ -17,4 +17,15 @@ def test_floating_point_modulo_follows_python(x, y):
         return x_arr % y_arr
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
-    assert do(ndx).unwrap_numpy() == x % y
+    assert do(ndx).unwrap_numpy() == x % y  # Compare to Python result
+
+
+@pytest.mark.parametrize("a,b", [(12.3, 3), (12, 3.3)])
+def test_mod_float_int(a, b):
+    a1 = np.asarray(a)
+    a2 = np.asarray(b)
+
+    def do(npx):
+        return npx.asarray(a1) % npx.asarray(a2)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
