@@ -34,18 +34,22 @@ from .indexing import FancySlice
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
 """Alias signaling that this must be a rank-0 integer tensor."""
+
 _BoolMask: TypeAlias = "TyArrayBool"
 """Alias signaling that this must be a rank-1 boolean tensor."""
+
 SetitemItem: TypeAlias = "int | slice | EllipsisType | _ScalarInt"
 """A single item; i.e. not a tuple nor a boolean mask.
 
 This does not include `None`.
 """
+
 GetitemItem: TypeAlias = "int | slice | EllipsisType | _ScalarInt | None"
 """A single item (; i.e. not a tuple nor a boolean mask) for __getitem__.
 
 This includes `None`.
 """
+
 SetitemIndex: TypeAlias = "SetitemItem | tuple[SetitemItem, ...] | _BoolMask"
 GetitemIndex: TypeAlias = "GetitemItem | tuple[GetitemItem, ...] | _BoolMask"
 
@@ -70,12 +74,11 @@ def _inline(
 ) -> Callable[Concatenate[TY_ARRAY, P], TY_ARRAY_OUT]:
     """Build the wrapped function as a self-contained ONNX graph and inline it.
 
-    This is useful for functions which have to use the `If` operator
-    in order to work around bugs in the onnxruntime. Without this
-    wrapper, value propagation will be executed in either arm of the
-    `If` node and subsequently fail in one of them (it is the point of
-    the `If` node to avoid the computation of the problematic branch
-    at inference time).
+    This is useful for functions which have to use the `If` operator in order to work
+    around bugs in the onnxruntime. Without this wrapper, value propagation will be
+    executed in either arm of the `If` node and subsequently fail in one of them (it is
+    the point of the `If` node to avoid the computation of the problematic branch at
+    inference time).
     """
 
     @wraps(fun)
@@ -2322,7 +2325,8 @@ def const(
 ) -> TyArray:
     """Create a constant from the given value.
 
-    The `dtype` argument may be used in favor of a subsequent `astype` call to create a cleaner ONNX graph.
+    The `dtype` argument may be used in favor of a subsequent `astype` call to create a
+    cleaner ONNX graph.
     """
     # don't blindly fall back to NumPy to maintain better np1x
     # compatibility on Windows which defaults to int32
@@ -2641,7 +2645,6 @@ def _move_ellipsis_back(
     key: tuple[SetitemItem, ...],
 ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[SetitemItem, ...]]:
     """Permute axes such that the ellipsis-axes are at the end."""
-
     if ... not in key:
         raise ValueError("No ellipsis found in 'key'")
     ellipsis_pos = key.index(...)

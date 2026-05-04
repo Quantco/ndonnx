@@ -27,20 +27,21 @@ def argument(
     shape: OnnxShape,
     dtype: ndx.DType,
 ) -> Array:
-    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
+    """Creates a new lazy ndonnx array.
 
-    Parameters
-    ----------
-    shape
-        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
-        `None`-dimensions denote unknown dimensions.
-    dtype
-        The data type of the array.
+    This is used to define inputs to an ONNX model.
+        Parameters
+        ----------
+        shape
+            The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
+            `None`-dimensions denote unknown dimensions.
+        dtype
+            The data type of the array.
 
-    Returns
-    -------
-    Array
-        The new array representing input(s) of the computational graphs.
+        Returns
+        -------
+        Array
+            The new array representing input(s) of the computational graphs.
     """
     return Array._argument(shape=shape, dtype=dtype)
 

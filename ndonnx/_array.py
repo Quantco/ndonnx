@@ -89,7 +89,6 @@ def _make_binary_dunder(
     backward_name: str,
 ) -> tuple[_BinaryOp, _BinaryOp]:
     """Create a forward and reflected version for a binary dunder method."""
-
     # If we return 'NotImplemented' from methods such as __add__ the
     # interpreter will create an error message that does not display
     # the arrays dtype. E.g. `"TypeError: ... +: Not Implemented for
