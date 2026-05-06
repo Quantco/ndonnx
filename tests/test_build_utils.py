@@ -1,9 +1,10 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 from pathlib import Path
 
 import pytest
+from onnx import ModelProto
 
 import ndonnx as ndx
 import ndonnx._typed_array as tydx
@@ -106,3 +107,28 @@ def test_schema_against_snapshots(dtype, update_schema_snapshots):
     # test json round trip of schema data
     assert candidate_schemas["input_schema"]["a"] == a.dtype.__ndx_infov1__.__dict__
     assert candidate_schemas["output_schema"]["b"] == b.dtype.__ndx_infov1__.__dict__
+
+
+def test_unused_inputs_not_in_schema():
+    a = ndx.argument(shape=("N",), dtype=ndx.float64)
+    b = ndx.argument(shape=("N",), dtype=ndx.float64)
+    unused = ndx.argument(shape=("N",), dtype=ndx.float64)
+
+    c = a + b
+
+    no_drop = ndx.build(
+        inputs={"a": a, "b": b, "unused": unused}, outputs={"c": c}, drop_unused=False
+    )
+
+    def _get_input_schema(model_proto: ModelProto):
+        for entry in model_proto.metadata_props:
+            if entry.key == "ndonnx_schema":
+                return json.loads(entry.value)["input_schema"]
+        raise KeyError("'ndonnx_schema' not present")
+
+    assert "unused" in _get_input_schema(no_drop)
+
+    drop = ndx.build(
+        inputs={"a": a, "b": b, "unused": unused}, outputs={"c": c}, drop_unused=True
+    )
+    assert "unused" not in _get_input_schema(drop)
