@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 
@@ -32,9 +32,16 @@ def build(
 
     mp = spox_build(ins, outs, drop_unused_inputs=drop_unused)
 
+    # Get names for the schema from the `GraphProto` in case unused inputs were dropped.
+    final_input_names = [input.name for input in mp.graph.input]
+
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
-            input_schema={k: v.dtype.__ndx_infov1__ for k, v in inputs.items()},
+            input_schema={
+                k: v.dtype.__ndx_infov1__
+                for k, v in inputs.items()
+                if k in final_input_names
+            },
             output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
             version=1,
         ).to_json()
