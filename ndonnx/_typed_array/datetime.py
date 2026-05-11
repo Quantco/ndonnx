@@ -684,7 +684,6 @@ def _coerce_other(
 ) -> tuple[onnx.TyArrayInt64, onnx.TyArrayBool] | NotImplementedType:
     """Validate that dtypes are compatible and get ``data`` and ``is_nat`` mask from
     other."""
-
     if isinstance(other, int):
         return (onnx.const(other, dtype=onnx.int64), _NAT_SENTINEL == other)
     elif type(this) is type(other):

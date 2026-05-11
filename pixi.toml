@@ -63,7 +63,7 @@ PYTHONWARNINGS="ignore::UserWarning:ndonnx._typed_array.ort_compat,ignore:case f
 [feature.lint.dependencies]
 pre-commit = "*"
 insert-license-header = "*"
-docformatter = "*"
+docformatter = "!=1.7.8"  # Regressions make it disagree with ruff-format
 ruff = "*"
 prettier = "*"
 pre-commit-hooks = "*"

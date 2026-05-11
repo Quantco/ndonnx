@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -248,9 +248,9 @@ def get_data(x: ndx.Array, /) -> ndx.Array:
 def put(a: ndx.Array, indices: ndx.Array, updates: ndx.Array, /) -> None:
     """Replaces specified elements of an array with given values.
 
-    This function follows the semantics of `numpy.put` with
-    `mode="raises". The data types of the update array and the updates
-    must match. The indices must be provided as a 1D int64 array.
+    This function follows the semantics of `numpy.put` with `mode="raises". The data
+    types of the update array and the updates must match. The indices must be provided
+    as a 1D int64 array.
     """
     if not isinstance(indices._tyarray, tydx.onnx.TyArrayInt64):
         # using isinstance here to get the type narrowing below
