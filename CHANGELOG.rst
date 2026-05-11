@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.18.2 (2026-05-06)
+-------------------
+
+**Bug fix**
+
+- Fixed an issue whereby any unused inputs dropped via the `drop_unused` argument to :func:`ndonnx.build` were still included in `ndonnx_schema`.
+
+
 0.18.1 (2026-04-22)
 -------------------
 
