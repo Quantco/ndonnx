@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.19.0 (2026-05-15)
+-------------------
+
+**New feature**
+
+- The :mod:`~ndonnx.extensions` module now publicly exposes the :func:`~ndonnx.extensions.is_nullable_numeric_dtype` and :func:`~ndonnx.extensions.get_data` functions.
+
+
 0.18.2 (2026-05-06)
 -------------------
 
