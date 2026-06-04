@@ -5,7 +5,6 @@ import operator
 
 import numpy as np
 import pytest
-from packaging.version import parse
 
 import ndonnx as ndx
 
@@ -359,9 +358,7 @@ def test_bitshift_right(np_left, right):
     np_res = np_left >> right
     ndx_res = ndx_left >> ndx_right
 
-    np.testing.assert_array_equal(
-        ndx_res.unwrap_numpy(), np_res, strict=parse(np.__version__).major >= 2
-    )  # type: ignore
+    np.testing.assert_array_equal(ndx_res.unwrap_numpy(), np_res, strict=True)  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -378,9 +375,6 @@ def test_bitshift_right(np_left, right):
         (np.array(0, np.uint16), np.array([0, 1, 2], np.int8)),
         (np.array(3, np.uint16), np.array(1, np.uint8)),
     ],
-)
-@pytest.mark.skipif(
-    parse(np.__version__).major < 2, reason="NumPy 1.x has different casting rules."
 )
 def test_bitshift_left(left, right):
     def to_ndx_if_array(obj: np.ndarray | int) -> ndx.Array | int:
@@ -420,9 +414,8 @@ def test_masked_where():
 
 @pytest.mark.parametrize("scalar", [True, False, 0, 1, 0.0, -0.0, np.float32(1)])
 def test_asarray_matches_numpy(scalar):
-    is_np2 = np.__version__.startswith("2")
     np.testing.assert_array_equal(
-        np.asarray(scalar), ndx.asarray(scalar).unwrap_numpy(), strict=is_np2
+        np.asarray(scalar), ndx.asarray(scalar).unwrap_numpy(), strict=True
     )
 
 
