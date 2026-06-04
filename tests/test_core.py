@@ -952,6 +952,9 @@ def test_dynamic_reshape_has_no_static_shape(x, shape):
         ndx.reshape(x, shape).shape
 
 
+@pytest.mark.skipif(
+    np.__version__ < "2.1", reason="'numpy.cumulative_sum' was added in 2.1.0"
+)
 @pytest.mark.parametrize("include_initial", [True, False])
 @pytest.mark.parametrize(
     "array_dtype",
