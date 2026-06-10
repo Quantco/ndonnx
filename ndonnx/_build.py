@@ -10,7 +10,12 @@ from ._schema import SchemaV1
 
 
 def build(
-    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=False
+    inputs: dict[str, Array],
+    outputs: dict[str, Array],
+    drop_unused: bool = False,
+    *,
+    input_prefix: str = "",
+    output_prefix: str = "",
 ) -> onnx.ModelProto:
     """Build and ONNX model from the provided argument-Arrays and outputs.
 
@@ -20,14 +25,20 @@ def build(
         Inputs of the model
     outputs
         Outputs of the model
+    drop_unused
+        Drop unused inputs from the model.
+    input_prefix
+        Prefix to prepend to all input names in the graph.
+    output_prefix
+        Prefix to prepend to all output names in the graph.
 
     Returns
     -------
     onnx.ModelProto
         ONNX model
     """
-    ins = _arrays_to_vars(inputs)
-    outs = _arrays_to_vars(outputs)
+    ins = _arrays_to_vars(inputs, prefix=input_prefix)
+    outs = _arrays_to_vars(outputs, prefix=output_prefix)
 
     mp = spox_build(ins, outs, drop_unused_inputs=drop_unused)
 
@@ -36,16 +47,26 @@ def build(
     graph_inputs = [input.name for input in mp.graph.input]
     kept_inputs = []
     for name, arr in inputs.items():
-        if any(n in graph_inputs for n in _disassemble_named_array(name, arr)):
+        if any(
+            n in graph_inputs
+            for n in _disassemble_named_array(f"{input_prefix}{name}", arr)
+        ):
             kept_inputs.append(name)
 
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
             input_schema={
-                k: v.dtype.__ndx_infov1__ for k, v in inputs.items() if k in kept_inputs
+                f"{input_prefix}{k}": v.dtype.__ndx_infov1__
+                for k, v in inputs.items()
+                if k in kept_inputs
             },
-            output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
+            output_schema={
+                f"{output_prefix}{k}": v.dtype.__ndx_infov1__
+                for k, v in outputs.items()
+            },
             version=1,
+            input_prefix=input_prefix,
+            output_prefix=output_prefix,
         ).to_json()
     }
     onnx.helper.set_model_props(mp, schema_v1)
@@ -53,10 +74,10 @@ def build(
     return mp
 
 
-def _arrays_to_vars(dct_of_arrs: dict[str, Array]) -> dict[str, Var]:
+def _arrays_to_vars(dct_of_arrs: dict[str, Array], prefix: str = "") -> dict[str, Var]:
     out: dict[str, Var] = {}
     for name, arr in dct_of_arrs.items():
-        out |= _disassemble_named_array(name, arr)
+        out |= _disassemble_named_array(f"{prefix}{name}", arr)
     return out
 
 

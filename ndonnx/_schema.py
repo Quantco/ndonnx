@@ -52,6 +52,8 @@ class SchemaV1:
     input_schema: dict[str, DTypeInfoV1]
     output_schema: dict[str, DTypeInfoV1]
     version: Literal[1]
+    input_prefix: str | None = None
+    output_prefix: str | None = None
 
     @classmethod
     def parse_json(cls, s: str, /) -> SchemaV1:
@@ -65,7 +67,14 @@ class SchemaV1:
                 k: DTypeInfoV1(**v) for k, v in parsed["output_schema"].items()
             },
             version=1,
+            input_prefix=parsed.get("input_prefix"),
+            output_prefix=parsed.get("output_prefix"),
         )
 
     def to_json(self) -> str:
-        return json.dumps(self, default=vars)
+        def default(o):
+            if isinstance(o, SchemaV1):
+                return {k: v for k, v in vars(o).items() if v not in (None, "")}
+            return vars(o)
+
+        return json.dumps(self, default=default)
