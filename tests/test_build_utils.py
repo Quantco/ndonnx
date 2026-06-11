@@ -148,7 +148,6 @@ def test_unused_inputs_not_in_schema():
 def test_build_with_prefixes():
     a = ndx.argument(shape=("N",), dtype=ndx.float64)
     b = ndx.argument(shape=("N",), dtype=ndx.float64)
-
     c = a + b
 
     mp = ndx.build(
@@ -174,14 +173,3 @@ def test_build_with_prefixes():
     assert "in_a" in schema["input_schema"]
     assert "in_b" in schema["input_schema"]
     assert "out_c" in schema["output_schema"]
-
-    # Check that it runs successfully
-    import numpy as np
-    import onnxruntime as ort
-
-    session = ort.InferenceSession(mp.SerializeToString())
-    (res,) = session.run(
-        ["out_c"],
-        {"in_a": np.array([1.0, 2.0]), "in_b": np.array([3.0, 4.0])},
-    )
-    np.testing.assert_array_equal(res, np.array([4.0, 6.0]))

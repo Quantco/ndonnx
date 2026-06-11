@@ -37,8 +37,8 @@ def build(
     onnx.ModelProto
         ONNX model
     """
-    ins = _arrays_to_vars(inputs, prefix=input_prefix)
-    outs = _arrays_to_vars(outputs, prefix=output_prefix)
+    ins = {f"{input_prefix}{k}": v for k, v in _arrays_to_vars(inputs).items()}
+    outs = {f"{output_prefix}{k}": v for k, v in _arrays_to_vars(outputs).items()}
 
     mp = spox_build(ins, outs, drop_unused_inputs=drop_unused)
 
@@ -74,10 +74,10 @@ def build(
     return mp
 
 
-def _arrays_to_vars(dct_of_arrs: dict[str, Array], prefix: str = "") -> dict[str, Var]:
+def _arrays_to_vars(dct_of_arrs: dict[str, Array]) -> dict[str, Var]:
     out: dict[str, Var] = {}
     for name, arr in dct_of_arrs.items():
-        out |= _disassemble_named_array(f"{prefix}{name}", arr)
+        out |= _disassemble_named_array(name, arr)
     return out
 
 
