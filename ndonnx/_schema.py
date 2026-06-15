@@ -67,8 +67,8 @@ class SchemaV1:
                 k: DTypeInfoV1(**v) for k, v in parsed["output_schema"].items()
             },
             version=1,
-            input_prefix=parsed.get("input_prefix") or "",
-            output_prefix=parsed.get("output_prefix") or "",
+            input_prefix=parsed.get("input_prefix", ""),
+            output_prefix=parsed.get("output_prefix", ""),
         )
 
     def to_json(self) -> str:

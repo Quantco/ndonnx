@@ -37,8 +37,11 @@ def build(
     onnx.ModelProto
         ONNX model
     """
-    ins = {f"{input_prefix}{k}": v for k, v in _arrays_to_vars(inputs).items()}
-    outs = {f"{output_prefix}{k}": v for k, v in _arrays_to_vars(outputs).items()}
+    inputs = {f"{input_prefix}{k}": v for k, v in inputs.items()}
+    outputs = {f"{output_prefix}{k}": v for k, v in outputs.items()}
+
+    ins = _arrays_to_vars(inputs)
+    outs = _arrays_to_vars(outputs)
 
     mp = spox_build(ins, outs, drop_unused_inputs=drop_unused)
 
@@ -47,23 +50,15 @@ def build(
     graph_inputs = [input.name for input in mp.graph.input]
     kept_inputs = []
     for name, arr in inputs.items():
-        if any(
-            n in graph_inputs
-            for n in _disassemble_named_array(f"{input_prefix}{name}", arr)
-        ):
+        if any(n in graph_inputs for n in _disassemble_named_array(name, arr)):
             kept_inputs.append(name)
 
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
             input_schema={
-                f"{input_prefix}{k}": v.dtype.__ndx_infov1__
-                for k, v in inputs.items()
-                if k in kept_inputs
+                k: v.dtype.__ndx_infov1__ for k, v in inputs.items() if k in kept_inputs
             },
-            output_schema={
-                f"{output_prefix}{k}": v.dtype.__ndx_infov1__
-                for k, v in outputs.items()
-            },
+            output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
             version=1,
             input_prefix=input_prefix,
             output_prefix=output_prefix,
