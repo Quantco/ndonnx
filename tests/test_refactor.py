@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 import json
 import operator
@@ -301,7 +301,6 @@ def test_schema_v1():
 
     meta = json.loads({el.key: el.value for el in mp.metadata_props}["ndonnx_schema"])
 
-    # Schema as used prior to the rewrite
     expected = {
         "input_schema": {
             "a": {"author": "ndonnx", "meta": None, "type_name": "Int64"},
@@ -311,6 +310,8 @@ def test_schema_v1():
             "c": {"author": "ndonnx", "meta": None, "type_name": "NInt64"}
         },
         "version": 1,
+        "input_prefix": "",
+        "output_prefix": "",
     }
     assert meta == expected
 

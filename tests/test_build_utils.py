@@ -143,3 +143,33 @@ def test_unused_inputs_not_in_schema():
     drop = ndx.build(inputs={"a": a}, outputs={"b": b}, drop_unused=True)
 
     assert "a" in _get_input_schema(no_drop)
+
+
+def test_build_with_prefixes():
+    a = ndx.argument(shape=("N",), dtype=ndx.float64)
+    b = ndx.argument(shape=("N",), dtype=ndx.float64)
+    c = a + b
+
+    mp = ndx.build(
+        inputs={"a": a, "b": b},
+        outputs={"c": c},
+        input_prefix="in_",
+        output_prefix="out_",
+    )
+
+    # Check graph inputs and outputs names
+    assert {node.name for node in mp.graph.input} == {"in_a", "in_b"}
+    assert [node.name for node in mp.graph.output] == ["out_c"]
+
+    # Check schema stored in metadata
+    schema = None
+    for entry in mp.metadata_props:
+        if entry.key == "ndonnx_schema":
+            schema = json.loads(entry.value)
+            break
+    assert schema is not None
+    assert schema["input_prefix"] == "in_"
+    assert schema["output_prefix"] == "out_"
+    assert "in_a" in schema["input_schema"]
+    assert "in_b" in schema["input_schema"]
+    assert "out_c" in schema["output_schema"]

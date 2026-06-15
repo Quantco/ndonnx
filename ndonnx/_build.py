@@ -10,7 +10,12 @@ from ._schema import SchemaV1
 
 
 def build(
-    inputs: dict[str, Array], outputs: dict[str, Array], drop_unused=False
+    inputs: dict[str, Array],
+    outputs: dict[str, Array],
+    drop_unused: bool = False,
+    *,
+    input_prefix: str = "",
+    output_prefix: str = "",
 ) -> onnx.ModelProto:
     """Build and ONNX model from the provided argument-Arrays and outputs.
 
@@ -20,12 +25,21 @@ def build(
         Inputs of the model
     outputs
         Outputs of the model
+    drop_unused
+        Drop unused inputs from the model.
+    input_prefix
+        Prefix to prepend to all input names in the graph.
+    output_prefix
+        Prefix to prepend to all output names in the graph.
 
     Returns
     -------
     onnx.ModelProto
         ONNX model
     """
+    inputs = {f"{input_prefix}{k}": v for k, v in inputs.items()}
+    outputs = {f"{output_prefix}{k}": v for k, v in outputs.items()}
+
     ins = _arrays_to_vars(inputs)
     outs = _arrays_to_vars(outputs)
 
@@ -46,6 +60,8 @@ def build(
             },
             output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
             version=1,
+            input_prefix=input_prefix,
+            output_prefix=output_prefix,
         ).to_json()
     }
     onnx.helper.set_model_props(mp, schema_v1)
