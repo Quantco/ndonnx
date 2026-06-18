@@ -22,8 +22,9 @@ ndonnx is an ONNX-backed Python array library that implements the `Array API sta
    :maxdepth: 1
    :caption: Advanced Use Cases
 
-   Experimental Features <experimental/experimental>
-   Inference Utilities <inference/inference>
+   Adding metadata to an artifact <advanced/adding-metadata>
+   Experimental Features <advanced/experimental>
+   Inference Utilities <advanced/inference>
 
 .. toctree::
     :maxdepth: 1
