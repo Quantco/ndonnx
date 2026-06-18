@@ -4,7 +4,7 @@ Adding metadata to an artifact
 The ONNX specification allows for adding metadata to an artifact.
 Ndonnx does not offer dedicated tooling to write this data directly, but it can be achieved using the ``onnx`` package as shown below.
 Metadata is stored as a string-to-string mapping.
-Ndonnx stores its own metadata under the ``"ndonnx_schema"`` key which should not be overwritten.
+Ndonnx stores its own metadata under the ``"ndonnx_schema"`` key, which should not be overwritten.
 
 ..  code-block:: python
 
