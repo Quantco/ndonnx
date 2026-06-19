@@ -78,10 +78,8 @@ python = "3.10.*"
 python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
-[feature.np1x.dependencies]
-python = "3.11.*"
-numpy = "1.*"
-[feature.min-onnxruntime.dependencies]
+[feature.oldies.dependencies]
+numpy = "2.0.*"
 onnxruntime = "==1.20.1"
 
 [environments]
@@ -89,8 +87,7 @@ default = ["test", "lint"]
 py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
-np1x = ["np1x", "test"]
-min-onnxruntime = ["min-onnxruntime", "test"]
+oldies = ["oldies", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }

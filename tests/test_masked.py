@@ -10,7 +10,7 @@ import pytest
 import ndonnx as ndx
 import ndonnx.extensions as nda
 
-from .utils import assert_array_equal, get_numpy_array_api_namespace, run
+from .utils import assert_array_equal, run
 
 
 def testfill_null():
@@ -99,15 +99,8 @@ def test_unary_none_propagation(fn_name, args, kwargs):
     a = ndx.asarray(a_np, dtype=ndx.nfloat32)
     b = fn(a, *args)
 
-    # model = ndx.build({"a": a}, {"b": b})
-    # ret_b = run(model, {"a": inp_a})["b"]
     missing_a = a_np.mask
-    if np.__version__ < "2":
-        if not (np_fn := getattr(np.ma, fn_name, None)):
-            pytest.skip(reason=f"function `{fn_name}` not supported for np1x.")
-    else:
-        npx = get_numpy_array_api_namespace()
-        np_fn = getattr(npx, fn_name)
+    np_fn = getattr(np, fn_name)
 
     # Numpy might complain about invalid values
     with warnings.catch_warnings():
