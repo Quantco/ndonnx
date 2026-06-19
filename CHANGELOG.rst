@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.20.0 (2026-06-16)
+-------------------
+
+**New feature**
+
+- The `:func:ndonnx.build` function gained the optional ``input_prefix`` and ``output_prefix`` arguments and the ``ndonnx_schema`` metadata schema was amended accordingly.
+
+
 0.19.0 (2026-05-15)
 -------------------
 
