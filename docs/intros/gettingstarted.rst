@@ -145,4 +145,4 @@ We can visualize this model using `Netron <https://netron.app/>`_.
 
 .. note::
     ndonnx will write versioned metadata in your ONNX model that may be used by downstream inference oriented libraries.
-    You can find out more in the :doc:`Inference Utilities <../inference/inference>` section.
+    You can find out more in the :doc:`Inference Utilities <../advanced/inference>` section.
