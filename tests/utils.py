@@ -45,15 +45,6 @@ def _make_session(model_proto: onnx.ModelProto) -> ort.InferenceSession:
     )
 
 
-def get_numpy_array_api_namespace():
-    if np.__version__ < "2":
-        import numpy.array_api as npx
-
-        return npx
-    else:
-        return np
-
-
 def assert_array_equal(
     actual: np.ndarray,
     expected: np.ndarray,
@@ -61,9 +52,7 @@ def assert_array_equal(
     if np.asarray(actual).dtype.kind == np.asarray(expected).dtype.kind == "U":
         actual = np.asarray(actual, object)
         expected = np.asarray(expected, object)
-    np.testing.assert_array_equal(
-        actual, expected, strict=np.__version__.startswith("2")
-    )
+    np.testing.assert_array_equal(actual, expected, strict=True)
     assert isinstance(expected, np.ma.masked_array) == isinstance(
         actual, np.ma.masked_array
     )

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import operator
-import platform
 
 import numpy as np
 import pytest
@@ -13,7 +12,7 @@ import spox.opset.ai.onnx.v19 as op
 import ndonnx as ndx
 import ndonnx.extensions as nde
 
-from .utils import assert_array_equal, get_numpy_array_api_namespace, run
+from .utils import assert_array_equal, run
 
 
 def numpy_to_graph_input(arr, eager=False):
@@ -379,10 +378,9 @@ def test_matrix_transpose():
     b = ndx.matrix_transpose(a)
 
     model = ndx.build({"a": a}, {"b": b})
-    npx = get_numpy_array_api_namespace()
     assert_array_equal(
         run(model, {"a": np.arange(3 * 2 * 3, dtype=np.int64).reshape(3, 2, 3)})["b"],
-        npx.matrix_transpose(npx.reshape(npx.arange(3 * 2 * 3), (3, 2, 3))),
+        np.matrix_transpose(np.reshape(np.arange(3 * 2 * 3), (3, 2, 3))),
     )
 
 
@@ -391,8 +389,7 @@ def test_matrix_transpose_attribute():
     b = a.mT
 
     model = ndx.build({"a": a}, {"b": b})
-    npx = get_numpy_array_api_namespace()
-    expected = npx.reshape(npx.arange(3 * 2 * 3), (3, 2, 3)).mT
+    expected = np.reshape(np.arange(3 * 2 * 3), (3, 2, 3)).mT
 
     assert_array_equal(
         run(model, {"a": np.arange(3 * 2 * 3, dtype=np.int64).reshape(3, 2, 3)})["b"],
@@ -794,9 +791,6 @@ def test_empty_concat_lazy_unknown_shape():
 # Note: NumPy raises for the following:
 # >>> np.asarray(10, np.uint8) + -1
 # *** OverflowError: Python integer -1 out of bounds for uint8
-@pytest.mark.skipif(
-    np.__version__ < "2", reason="NumPy 1.x has different error handling semantics."
-)
 @pytest.mark.parametrize(
     "array, scalar, expected, raises",
     [
@@ -842,10 +836,6 @@ def test_promotion_failures(arrays, scalar):
         ndx.result_type(*arrays, scalar)
 
 
-@pytest.mark.skipif(
-    np.__version__ <= "1",
-    reason="Cross kind scalar promotion not specified in NumPy < 2",
-)
 @pytest.mark.parametrize(
     "x, y",
     [
@@ -963,7 +953,7 @@ def test_dynamic_reshape_has_no_static_shape(x, shape):
 
 
 @pytest.mark.skipif(
-    not np.__version__.startswith("2"), reason="NumPy >= 2 used for test assertions"
+    np.__version__ < "2.1", reason="'numpy.cumulative_sum' was added in 2.1.0"
 )
 @pytest.mark.parametrize("include_initial", [True, False])
 @pytest.mark.parametrize(
@@ -1042,7 +1032,7 @@ def test_dynamic_size(val):
     np.testing.assert_array_equal(
         candidate.unwrap_numpy(),
         expected,
-        strict=not (np.__version__ < "2" and platform.system() == "Windows"),
+        strict=True,
     )
 
 

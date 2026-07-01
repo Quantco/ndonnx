@@ -44,8 +44,7 @@ jobs:
           - windows-latest
         environment:
           - py310
-          - min-onnxruntime
-          - np1x
+          - oldies
           - default
     steps:
       - name: Checkout branch
