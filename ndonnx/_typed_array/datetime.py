@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 """Implementation of "custom" datetime-related data types."""
 
@@ -237,12 +237,26 @@ class TimeBaseArray(TyArrayBase):
         /,
     ) -> None:
         if self.dtype != value.dtype:
-            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+            raise TypeError(
+                f"data type of 'value' must match array's, found `{value.dtype}`"
+            )
         self._data.put(key, value._data)
+
+    def take(self, indices: onnx.TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        data = self._data.take(indices, axis=axis)
+        return type(self)(data, unit=self.dtype.unit)
+
+    def take_along_axis(self, indices: onnx.TyArrayInt64, /, *, axis: int = -1) -> Self:
+        data = self._data.take_along_axis(indices, axis=axis)
+        return type(self)(data, unit=self.dtype.unit)
 
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
         return self._data.dynamic_shape
+
+    @property
+    def dynamic_size(self) -> onnx.TyArrayInt64:
+        return self._data.dynamic_size
 
     @property
     def mT(self) -> Self:  # noqa: N802
@@ -670,7 +684,6 @@ def _coerce_other(
 ) -> tuple[onnx.TyArrayInt64, onnx.TyArrayBool] | NotImplementedType:
     """Validate that dtypes are compatible and get ``data`` and ``is_nat`` mask from
     other."""
-
     if isinstance(other, int):
         return (onnx.const(other, dtype=onnx.int64), _NAT_SENTINEL == other)
     elif type(this) is type(other):

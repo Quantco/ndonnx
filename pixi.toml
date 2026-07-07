@@ -8,7 +8,7 @@ platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64", "win-64"]
 postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-check -e ."
 
 [dependencies]
-numpy = "*"
+numpy = "<2.5"
 onnx = ">=1.16"
 onnxruntime = ">=1.20"
 pip = "*"
@@ -63,7 +63,7 @@ PYTHONWARNINGS="ignore::UserWarning:ndonnx._typed_array.ort_compat,ignore:case f
 [feature.lint.dependencies]
 pre-commit = "*"
 insert-license-header = "*"
-docformatter = "*"
+docformatter = "!=1.7.8"  # Regressions make it disagree with ruff-format
 ruff = "*"
 prettier = "*"
 pre-commit-hooks = "*"

@@ -30,12 +30,12 @@ jobs:
           - default
     steps:
       - name: Checkout branch
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           submodules: recursive
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@82d477f15f3a381dbcc8adc1206ce643fe110fb7
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11
         with:
           environments: ${{ matrix.environment }}
       - name: Install repository
@@ -43,12 +43,12 @@ jobs:
       - name: Run Array API tests (Scheduled)
         run: pixi run -e ${{ matrix.environment }} arrayapitests --max-examples 1000 --hypothesis-seed=""
       - name: Upload Array API tests report
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: array-api-tests-${{ matrix.os }}
           path: array-api-tests-${{ matrix.os }}.json
       - name: Issue on failure
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         if: ${{ failure() && github.event_name == 'schedule' && github.ref == 'refs/heads/main' }}
         with:
           script: |

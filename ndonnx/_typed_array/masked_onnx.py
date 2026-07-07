@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -401,6 +401,10 @@ class TyMaArray(TyMaArrayBase):
         return self.data.dynamic_shape
 
     @property
+    def dynamic_size(self) -> onnx.TyArrayInt64:
+        return self.data.dynamic_size
+
+    @property
     def shape(self) -> OnnxShape:
         return self.data.shape
 
@@ -458,7 +462,7 @@ class TyMaArray(TyMaArrayBase):
     def unwrap_numpy(self) -> np.ndarray:
         return np.ma.MaskedArray(
             data=self.data.unwrap_numpy(),
-            mask=None if self.mask is None else self.mask.unwrap_numpy(),
+            mask=np.ma.nomask if self.mask is None else self.mask.unwrap_numpy(),
         )
 
     def __getitem__(self, key: GetitemIndex) -> Self:
@@ -687,7 +691,7 @@ class TyMaArrayNumber(TyMaArray):
     __sub__, __rsub__ = _make_binary_pair(operator.sub)  # type: ignore
     __mod__, __rmod__ = _make_binary_pair(operator.mod)  # type: ignore
     __mul__, __rmul__ = _make_binary_pair(operator.mul)  # type: ignore
-    __truediv__, __rtruedive__ = _make_binary_pair(operator.truediv)  # type: ignore
+    __truediv__, __rtruediv__ = _make_binary_pair(operator.truediv)  # type: ignore
     __ge__, _ = _make_binary_pair(operator.ge)  # type: ignore
     __le__, _ = _make_binary_pair(operator.le)  # type: ignore
     __gt__, _ = _make_binary_pair(operator.gt)  # type: ignore

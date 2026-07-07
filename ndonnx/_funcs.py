@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -27,20 +27,21 @@ def argument(
     shape: OnnxShape,
     dtype: ndx.DType,
 ) -> Array:
-    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
+    """Creates a new lazy ndonnx array.
 
-    Parameters
-    ----------
-    shape
-        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
-        `None`-dimensions denote unknown dimensions.
-    dtype
-        The data type of the array.
+    This is used to define inputs to an ONNX model.
+        Parameters
+        ----------
+        shape
+            The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
+            `None`-dimensions denote unknown dimensions.
+        dtype
+            The data type of the array.
 
-    Returns
-    -------
-    Array
-        The new array representing input(s) of the computational graphs.
+        Returns
+        -------
+        Array
+            The new array representing input(s) of the computational graphs.
     """
     return Array._argument(shape=shape, dtype=dtype)
 
@@ -594,7 +595,7 @@ def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
         return obj
 
     if len(arrays_and_dtypes) == 0:
-        ValueError("at least one array or dtype is required")
+        raise ValueError("at least one array or dtype is required")
     items = sorted(
         arrays_and_dtypes,
         key=lambda item: int(isinstance(item, Array | DType)),
@@ -658,6 +659,12 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
         raise TypeError(
             f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
+    if indices.ndim != 1:
+        raise ValueError("'indices' must be a 1D array")
+    if axis is None and x.ndim > 1:
+        raise ValueError(
+            "'axis' argument must be provided if 'x' has more than one axis"
+        )
     return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 
 
@@ -666,6 +673,13 @@ def take_along_axis(x: Array, indices: Array, /, *, axis: int = -1) -> Array:
         raise TypeError(
             f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
+    if indices.ndim != x.ndim:
+        raise ValueError("'x' and 'indices' must have the same number of axes")
+    if not (-x.ndim <= axis < x.ndim):
+        raise ValueError(
+            "'axis' argument must be compatible with number of axes in 'x'"
+        )
+
     return Array._from_tyarray(x._tyarray.take_along_axis(indices._tyarray, axis=axis))
 
 

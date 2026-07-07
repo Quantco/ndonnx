@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -55,6 +55,7 @@ class TyArrayBase(ABC):
     @abstractmethod
     def __ndx_value_repr__(self) -> dict[str, str]:
         """A string representation of the fields to be used in ``Array.__repr__```."""
+
         # Note: It is unfortunate that this part of the API relies on
         # the rather useless `dict[str, str]` type hint. `TypedDict`
         # is not a viable solution (?) since it does not play nicely
@@ -67,6 +68,10 @@ class TyArrayBase(ABC):
     @property
     @abstractmethod
     def dynamic_shape(self) -> TyArrayInt64: ...
+
+    @property
+    @abstractmethod
+    def dynamic_size(self) -> TyArrayInt64: ...
 
     @property
     @abstractmethod

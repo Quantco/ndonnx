@@ -1,11 +1,13 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 """Compatibility layer to work around missing kernels in onnxruntime.
 
 Currently targets 1.20.1:
 https://github.com/microsoft/onnxruntime/blob/v1.20.1/docs/OperatorKernels.md
 
-Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md`` between two tags (e.g. https://github.com/microsoft/onnxruntime/compare/v1.19.0..v1.20.1/).
+Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md``
+between two tags (e.g.
+https://github.com/microsoft/onnxruntime/compare/v1.19.0..v1.20.1/).
 """
 
 from __future__ import annotations

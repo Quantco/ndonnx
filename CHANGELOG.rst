@@ -7,6 +7,75 @@
 Changelog
 =========
 
+0.20.0 (2026-06-16)
+-------------------
+
+**New feature**
+
+- The `:func:ndonnx.build` function gained the optional ``input_prefix`` and ``output_prefix`` arguments and the ``ndonnx_schema`` metadata schema was amended accordingly.
+
+
+0.19.0 (2026-05-15)
+-------------------
+
+**New feature**
+
+- The :mod:`~ndonnx.extensions` module now publicly exposes the :func:`~ndonnx.extensions.is_nullable_numeric_dtype` and :func:`~ndonnx.extensions.get_data` functions.
+
+
+0.18.2 (2026-05-06)
+-------------------
+
+**Bug fix**
+
+- Fixed an issue whereby any unused inputs dropped via the `drop_unused` argument to :func:`ndonnx.build` were still included in `ndonnx_schema`.
+
+
+0.18.1 (2026-04-22)
+-------------------
+
+**Bug fix**
+
+- Fixed a regression that forbade using the modulo operator between integers and floats.
+
+
+0.18.0 (2026-04-07)
+-------------------
+
+**New feature**
+
+- :func:`ndonnx.take` and :func:`ndonnx.take_along_axis` can now be used with datetime and timedelta data types.
+
+**Bug fix**
+
+- :func:`ndonnx.take` and :func:`ndonnx.take_along_axis` now validate their ``indices`` and ``axis`` arguments in adherence with the array-api standard.
+
+0.17.4 (2026-03-23)
+-------------------
+
+**Bug fixes**
+
+- Reverse true division now works for nullable numeric arrays, so expressions such as ``1 / arr`` behave correctly.
+- :func:`ndonnx.result_type` now raises ``ValueError`` if called without any arguments.
+- Invalid array-based slice bounds now raise ``IndexError`` during indexing.
+- Datetime ``put`` operations now reject values with a mismatched dtype.
+- Boolean mask ``__setitem__`` now raises ``TypeError`` when the value has too many dimensions, matching NumPy.
+
+0.17.3 (2026-03-10)
+-------------------
+
+**Bug fix**
+
+- Integer floordiv (``//``) is now computed correctly even for very large integers.
+
+0.17.2 (2026-02-13)
+-------------------
+
+**Other change**
+
+- :func:`ndonnx.Array.dynamic_size` now produces more efficient graphs.
+
+
 0.17.1 (2025-12-05)
 -------------------
 

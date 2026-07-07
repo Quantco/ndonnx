@@ -59,7 +59,7 @@ Notice how versatile our implementation is now. We can make predictions using a 
     print(model.predict(X_test))
     # array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
 
-    print(model.predict(ndx.asarray(X_test)).to_numpy())
+    print(model.predict(ndx.asarray(X_test)).unwrap_numpy())
     # array([0, 0, 0, 1, 2, 2, 0, 1, 2, 1, 0, 2, 1, 1, 1, 2, 2, 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 2, 2, 2])
 
 
@@ -79,7 +79,7 @@ Now that we have fit ``model`` and it’s inference path ``predict`` is Array AP
     ..  code-block:: python
 
         y = model.predict(X)
-        assert y.to_numpy() is None
+        assert y.unwrap_numpy() is None
 
 3. Build the ONNX graph with :func:`ndonnx.build` and persist it to disk. The dictionary names are the names given to the inputs and outputs in the ONNX graph.
 
