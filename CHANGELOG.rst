@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.21.0 (unreleased)
+-------------------
+
+**Dependencies**
+
+- ndonnx now requires `python>=3.11` and `numpy>=2`.
+
+
 0.20.0 (2026-06-16)
 -------------------
 

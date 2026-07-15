@@ -12,6 +12,7 @@ from typing import (
     Concatenate,
     Literal,
     ParamSpec,
+    Self,
     TypeAlias,
     TypeGuard,
     TypeVar,
@@ -21,7 +22,6 @@ from typing import (
 
 import numpy as np
 from spox import Tensor, Var, argument, build, inline
-from typing_extensions import Self
 
 from ndonnx import DType
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar

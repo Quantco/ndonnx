@@ -7,10 +7,9 @@ import operator
 from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, TypeVar, overload
+from typing import TYPE_CHECKING, Self, TypeVar, overload
 
 import numpy as np
-from typing_extensions import Self
 
 from ndonnx import DateTime64DType, DType, TimeDelta64DType
 from ndonnx._experimental import (
