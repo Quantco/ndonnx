@@ -15,7 +15,7 @@ pip = "*"
 python = ">=3.11"
 setuptools = ">=61"
 setuptools-scm = "*"
-spox = ">=0.10"
+spox = ">=0.17"
 typing_extensions = "*"
 
 [feature.docs.dependencies]
