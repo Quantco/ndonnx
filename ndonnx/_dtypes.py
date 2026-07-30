@@ -5,11 +5,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
 from spox import Var
 from typing_extensions import deprecated
+
+from ndonnx.types import DTypeAlias
 
 if TYPE_CHECKING:
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
@@ -96,3 +98,30 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
     def unwrap_numpy(self) -> np.dtype:
         raise ValueError(f"`{self}` provides no corresponding NumPy data type")
+
+
+DTYPE_ALIAS_MAP: dict[DTypeAlias, DType] = {
+    bool: onnx.bool_,
+    "bool": onnx.bool_,
+    int: onnx.int64,
+    "int": onnx.int64,
+    float: onnx.float64,
+    "float": onnx.float64,
+}
+
+
+@overload
+def normalize_dtype(dtype: None) -> None: ...
+
+
+@overload
+def normalize_dtype(dtype: DType | DTypeAlias) -> DType: ...
+
+
+def normalize_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
+    """Normalize a ``dtype`` argument, mapping aliases to DType instances."""
+    if dtype is None or isinstance(dtype, DType):
+        return dtype
+    if mapped_dtype := DTYPE_ALIAS_MAP.get(dtype):
+        return mapped_dtype
+    raise TypeError(f"unrecognized dtype argument: `{dtype}`")

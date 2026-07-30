@@ -11,38 +11,12 @@ import numpy as np
 from spox import Var
 
 from ndonnx import DType, from_numpy_dtype
-from ndonnx.types import DTypeAlias, NestedSequence, PyScalar
+from ndonnx.types import NestedSequence, PyScalar
 
 from . import TyArrayBase, datetime, masked_onnx, onnx, promote
 from ._utils import validate_op_result
 
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
-
-PYTHON_DTYPE_MAP: dict[DTypeAlias, DType] = {
-    bool: onnx.bool_,
-    "bool": onnx.bool_,
-    int: onnx.int64,
-    "int": onnx.int64,
-    float: onnx.float64,
-    "float": onnx.float64,
-}
-
-
-@overload
-def map_python_dtype(dtype: None) -> None: ...
-
-
-@overload
-def map_python_dtype(dtype: DType | DTypeAlias) -> DType: ...
-
-
-def map_python_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
-    """Intercept a ``dtype`` argument to support Python type aliases."""
-    if dtype is None or isinstance(dtype, DType):
-        return dtype
-    if mapped_dtype := PYTHON_DTYPE_MAP.get(dtype):
-        return mapped_dtype
-    raise TypeError(f"unrecognized dtype argument: `{dtype}`")
 
 
 def _infer_sequence(
@@ -104,19 +78,18 @@ def astyarray(
 @overload
 def astyarray(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | DTypeAlias | DType = None,
+    dtype: None | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | DTypeAlias | DType[TY_ARRAY_BASE_co] = None,
+    dtype: None | DType[TY_ARRAY_BASE_co] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
     This function always copies.
     """
-    dtype = map_python_dtype(dtype)
     inferred_dtype = _infer_dtype(val) if dtype is None else dtype
     res = inferred_dtype.__ndx_create__(val)
     if res is NotImplemented:
@@ -320,12 +293,11 @@ def minimum(
 
 
 def arange(
-    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias | None,
+    dtype: DType[TY_ARRAY_BASE_co] | None,
     start: int | float | TyArrayBase,
     stop: int | float | TyArrayBase,
     step: int | float | TyArrayBase = 1,
-) -> TY_ARRAY_BASE_co:
-    dtype = map_python_dtype(dtype)
+) -> TyArrayBase:
     if dtype is None:
         if all(isinstance(el, int) for el in [start, stop, step]):
             dtypes: list[DType] = [onnx.int64]
@@ -347,14 +319,13 @@ def arange(
 
 
 def eye(
-    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias,
+    dtype: DType[TY_ARRAY_BASE_co],
     n_rows: int,
     n_cols: int | None = None,
     /,
     *,
     k: int = 0,
 ) -> TY_ARRAY_BASE_co:
-    dtype = map_python_dtype(dtype)
     res = dtype.__ndx_eye__(n_rows, n_cols, k=k)
     if res is NotImplemented:
         raise TypeError(f"'eye' is not implemented for `{dtype}`")
@@ -362,10 +333,9 @@ def eye(
 
 
 def ones(
-    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias,
+    dtype: DType[TY_ARRAY_BASE_co],
     shape: tuple[int, ...] | onnx.TyArrayInt64,
 ) -> TY_ARRAY_BASE_co:
-    dtype = map_python_dtype(dtype)
     res = dtype.__ndx_ones__(shape)
     if res is NotImplemented:
         raise TypeError(f"'ones' is not implemented for `{dtype}`")
@@ -373,10 +343,9 @@ def ones(
 
 
 def zeros(
-    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias,
+    dtype: DType[TY_ARRAY_BASE_co],
     shape: tuple[int, ...] | onnx.TyArrayInt64,
 ) -> TY_ARRAY_BASE_co:
-    dtype = map_python_dtype(dtype)
     res = dtype.__ndx_zeros__(shape)
     if res is NotImplemented:
         raise TypeError(f"'zeros' is not implemented for `{dtype}`")

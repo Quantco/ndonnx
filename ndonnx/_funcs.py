@@ -17,6 +17,7 @@ from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
+from ._dtypes import normalize_dtype
 from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
@@ -43,7 +44,7 @@ def argument(
         Array
             The new array representing input(s) of the computational graphs.
     """
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     return Array._argument(shape=shape, dtype=dtype)
 
 
@@ -55,6 +56,7 @@ def asarray(
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if not copy and copy is not None:
         # Must copy or raise
         if not isinstance(obj, Array):
@@ -115,6 +117,7 @@ def arange(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     for item in [start, stop, step]:
         if item is None:
             continue
@@ -175,7 +178,7 @@ def astype(
     copy: bool = True,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     if not copy and x.dtype == dtype:
         return x
     return x.astype(dtype)
@@ -234,7 +237,7 @@ def cumulative_prod(
     dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     data = x._tyarray.cumulative_prod(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
@@ -249,7 +252,7 @@ def cumulative_sum(
     dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     data = x._tyarray.cumulative_sum(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
@@ -320,7 +323,7 @@ def prod(
     dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     return Array._from_tyarray(
         x._tyarray.prod(axis=axis, dtype=dtype, keepdims=keepdims)
     )
@@ -355,7 +358,7 @@ def sum(
     dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     return Array._from_tyarray(
         x._tyarray.sum(axis=axis, dtype=dtype, keepdims=keepdims)
     )
@@ -462,7 +465,7 @@ def full(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     if dtype is None:
         dtype = tyfuncs._infer_dtype(fill_value)
 
@@ -491,7 +494,7 @@ def full_like(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype)
+    dtype = normalize_dtype(dtype)
     shape = x.dynamic_shape
     fill = asarray(fill_value, dtype=dtype or x.dtype)
     return broadcast_to(fill, shape)
@@ -531,7 +534,7 @@ def linspace(
     device: None | Device = None,
     endpoint: bool = True,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype) or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     if not isinstance(dtype, onnx.DTypes):
         raise ValueError(f"only primitive data types are supported, found `{dtype}`")
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
@@ -551,7 +554,7 @@ def ones(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype) or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(tyfuncs.ones(dtype, shape))
 
@@ -563,7 +566,7 @@ def ones_like(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype) or x.dtype
+    dtype = normalize_dtype(dtype) or x.dtype
     return full_like(x, 1, dtype=dtype)
 
 
@@ -799,7 +802,7 @@ def zeros(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype) or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(tyfuncs.zeros(dtype, shape))
 
@@ -811,7 +814,7 @@ def zeros_like(
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = tyfuncs.map_python_dtype(dtype) or x.dtype
+    dtype = normalize_dtype(dtype) or x.dtype
     return full_like(x, 0, dtype=dtype)
 
 
