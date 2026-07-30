@@ -16,7 +16,6 @@ from typing_extensions import deprecated
 
 from ndonnx import DType
 
-from ._dtypes import normalize_dtype
 from ._namespace_info import Device, device
 from ._typed_array import TyArrayBase, onnx
 from ._typed_array import funcs as tyfuncs
@@ -239,6 +238,8 @@ class Array:
         raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
     def astype(self, dtype: DType | DTypeAlias, *, copy=True) -> Array:
+        from ._funcs import normalize_dtype  # avoid a circular import
+
         dtype = normalize_dtype(dtype)
         new_data = self._tyarray.astype(dtype, copy=copy)
         return Array._from_tyarray(new_data)

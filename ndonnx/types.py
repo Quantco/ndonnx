@@ -28,14 +28,12 @@ PyScalar = bool | int | float | str
 NestedSequence = Sequence["PyScalar | NestedSequence"]
 
 DTypeAlias: TypeAlias = (
-    type[bool]
-    | type[int]
-    | type[float]
-    | Literal["bool"]
-    | Literal["int"]
-    | Literal["float"]
+    (type[bool] | type[int] | type[float])
+    | Literal["bool", "int", "float"]
+    | Literal["int8", "int16", "int32", "int64"]
+    | Literal["uint8", "uint16", "uint32", "uint64"]
+    | Literal["float16", "float32", "float64"]
 )
-
 
 __all__ = [
     "StrictShape",

@@ -6,7 +6,7 @@ from __future__ import annotations
 import builtins
 import math
 from collections.abc import Sequence
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, overload
 from warnings import warn
 
 import numpy as np
@@ -17,10 +17,47 @@ from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
-from ._dtypes import normalize_dtype
 from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
+
+DTYPE_ALIAS_MAP = {
+    bool: onnx.bool_,
+    int: onnx.int64,
+    float: onnx.float64,
+    "bool": onnx.bool_,
+    "int": onnx.int64,
+    "float": onnx.float64,
+    "int8": onnx.int8,
+    "int16": onnx.int16,
+    "int32": onnx.int32,
+    "int64": onnx.int64,
+    "uint8": onnx.uint8,
+    "uint16": onnx.uint16,
+    "uint32": onnx.uint32,
+    "uint64": onnx.uint64,
+    "float16": onnx.float16,
+    "float32": onnx.float32,
+    "float64": onnx.float64,
+}
+
+
+@overload
+def normalize_dtype(dtype: None) -> None: ...
+
+
+@overload
+def normalize_dtype(dtype: DType | DTypeAlias) -> DType: ...
+
+
+def normalize_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
+    """Normalize a ``dtype`` argument, mapping aliases to DType instances."""
+    if dtype is None or isinstance(dtype, DType):
+        return dtype
+    if mapped_dtype := DTYPE_ALIAS_MAP.get(dtype):
+        return mapped_dtype
+
+    raise TypeError(f"unrecognized dtype argument: `{dtype}`")
 
 
 def argument(
