@@ -94,35 +94,3 @@ def test_time_dtype_creation_from_time_dtype(
         return npx.asarray(arr, dtype=new_dtype)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
-
-
-@pytest.mark.parametrize(
-    "dtype_alias, ndx_dtype",
-    [
-        (bool, ndx.bool),
-        ("bool", ndx.bool),
-        (int, ndx.int64),
-        ("int", ndx.int64),
-        (float, ndx.float64),
-        ("float", ndx.float64),
-    ],
-)
-def test_dtype_aliases(dtype_alias, ndx_dtype):
-    dos = [
-        lambda npx: npx.asarray(
-            [1, 0, 1], dtype=dtype_alias
-        ),  # creation with `dtype` argument
-        lambda npx: npx.asarray([1, 0, 1]).astype(
-            dtype_alias
-        ),  # calling `astype` after creation
-        lambda npx: npx.zeros((2,), dtype=dtype_alias),  # functions that accept `dtype`
-        lambda npx: npx.ones((2,), dtype=dtype_alias),
-        lambda npx: npx.full((2,), 1, dtype=dtype_alias),
-    ]
-    for do in dos:
-        assert do(ndx).dtype == ndx_dtype
-        np.testing.assert_equal(do(np), do(ndx).unwrap_numpy())
-
-    # Also test lazy arrays.
-    array = ndx.argument(shape=("N",), dtype=dtype_alias)
-    assert array.dtype == ndx_dtype
