@@ -100,16 +100,6 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
         raise ValueError(f"`{self}` provides no corresponding NumPy data type")
 
 
-DTYPE_ALIAS_MAP: dict[DTypeAlias, DType] = {
-    bool: onnx.bool_,
-    "bool": onnx.bool_,
-    int: onnx.int64,
-    "int": onnx.int64,
-    float: onnx.float64,
-    "float": onnx.float64,
-}
-
-
 @overload
 def normalize_dtype(dtype: None) -> None: ...
 
@@ -122,6 +112,20 @@ def normalize_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
     """Normalize a ``dtype`` argument, mapping aliases to DType instances."""
     if dtype is None or isinstance(dtype, DType):
         return dtype
-    if mapped_dtype := DTYPE_ALIAS_MAP.get(dtype):
+
+    # Avoid a circular import.
+    from ._typed_array import onnx
+
+    dtype_alias_map = {
+        bool: onnx.bool_,
+        "bool": onnx.bool_,
+        int: onnx.int64,
+        "int": onnx.int64,
+        float: onnx.float64,
+        "float": onnx.float64,
+    }
+
+    if mapped_dtype := dtype_alias_map.get(dtype):
         return mapped_dtype
+
     raise TypeError(f"unrecognized dtype argument: `{dtype}`")
