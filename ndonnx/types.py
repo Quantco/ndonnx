@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from types import EllipsisType
-from typing import TYPE_CHECKING, TypeAlias, Union
+from typing import TYPE_CHECKING, Literal, TypeAlias, Union
 
 if TYPE_CHECKING:
     from ._array import Array
@@ -26,7 +26,15 @@ SetitemKey: TypeAlias = Union[
 
 PyScalar = bool | int | float | str
 NestedSequence = Sequence["PyScalar | NestedSequence"]
-PyScalarType: TypeAlias = type[bool] | type[int] | type[float] | type[str] | str
+
+DTypeAlias: TypeAlias = (
+    type[bool]
+    | type[int]
+    | type[float]
+    | Literal["bool"]
+    | Literal["int"]
+    | Literal["float"]
+)
 
 
 __all__ = [

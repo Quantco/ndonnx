@@ -11,14 +11,14 @@ import numpy as np
 from spox import Var
 
 from ndonnx import DType, from_numpy_dtype
-from ndonnx.types import NestedSequence, PyScalar, PyScalarType
+from ndonnx.types import DTypeAlias, NestedSequence, PyScalar
 
 from . import TyArrayBase, datetime, masked_onnx, onnx, promote
 from ._utils import validate_op_result
 
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
-PYTHON_DTYPE_MAP: dict[PyScalarType, DType] = {
+PYTHON_DTYPE_MAP: dict[DTypeAlias, DType] = {
     bool: onnx.bool_,
     "bool": onnx.bool_,
     int: onnx.int64,
@@ -33,10 +33,10 @@ def map_python_dtype(dtype: None) -> None: ...
 
 
 @overload
-def map_python_dtype(dtype: DType | PyScalarType) -> DType: ...
+def map_python_dtype(dtype: DType | DTypeAlias) -> DType: ...
 
 
-def map_python_dtype(dtype: DType | PyScalarType | None) -> DType | None:
+def map_python_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
     """Intercept a ``dtype`` argument to support Python type aliases."""
     if dtype is None or isinstance(dtype, DType):
         return dtype
@@ -104,13 +104,13 @@ def astyarray(
 @overload
 def astyarray(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | PyScalarType | DType = None,
+    dtype: None | DTypeAlias | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
     val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
-    dtype: None | PyScalarType | DType[TY_ARRAY_BASE_co] = None,
+    dtype: None | DTypeAlias | DType[TY_ARRAY_BASE_co] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
@@ -320,7 +320,7 @@ def minimum(
 
 
 def arange(
-    dtype: DType[TY_ARRAY_BASE_co] | PyScalarType | None,
+    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias | None,
     start: int | float | TyArrayBase,
     stop: int | float | TyArrayBase,
     step: int | float | TyArrayBase = 1,
@@ -347,7 +347,7 @@ def arange(
 
 
 def eye(
-    dtype: DType[TY_ARRAY_BASE_co] | PyScalarType,
+    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias,
     n_rows: int,
     n_cols: int | None = None,
     /,
@@ -362,7 +362,7 @@ def eye(
 
 
 def ones(
-    dtype: DType[TY_ARRAY_BASE_co] | PyScalarType,
+    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias,
     shape: tuple[int, ...] | onnx.TyArrayInt64,
 ) -> TY_ARRAY_BASE_co:
     dtype = map_python_dtype(dtype)
@@ -373,7 +373,7 @@ def ones(
 
 
 def zeros(
-    dtype: DType[TY_ARRAY_BASE_co] | PyScalarType,
+    dtype: DType[TY_ARRAY_BASE_co] | DTypeAlias,
     shape: tuple[int, ...] | onnx.TyArrayInt64,
 ) -> TY_ARRAY_BASE_co:
     dtype = map_python_dtype(dtype)

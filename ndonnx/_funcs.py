@@ -13,7 +13,7 @@ import numpy as np
 from spox import Var
 
 import ndonnx as ndx
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar, PyScalarType
+from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
@@ -25,7 +25,7 @@ from ._typed_array import onnx
 def argument(
     *,
     shape: OnnxShape,
-    dtype: ndx.DType | PyScalarType,
+    dtype: ndx.DType | DTypeAlias,
 ) -> Array:
     """Creates a new lazy ndonnx array.
 
@@ -51,7 +51,7 @@ def asarray(
     obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
     /,
     *,
-    dtype: ndx.DType | PyScalarType | None = None,
+    dtype: ndx.DType | DTypeAlias | None = None,
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
@@ -112,7 +112,7 @@ def arange(
     stop: int | float | Array | None = None,
     step: int | float | Array = 1,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     for item in [start, stop, step]:
@@ -169,7 +169,7 @@ def nonzero(x: Array, /) -> tuple[Array, ...]:
 
 def astype(
     x: Array,
-    dtype: DType | PyScalarType,
+    dtype: DType | DTypeAlias,
     /,
     *,
     copy: bool = True,
@@ -231,7 +231,7 @@ def cumulative_prod(
     /,
     *,
     axis: int | None = None,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype)
@@ -246,7 +246,7 @@ def cumulative_sum(
     /,
     *,
     axis: int | None = None,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype)
@@ -317,7 +317,7 @@ def prod(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype)
@@ -352,7 +352,7 @@ def sum(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype)
@@ -377,7 +377,7 @@ def var(
 def empty(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     return zeros(shape=shape, dtype=dtype)
@@ -387,7 +387,7 @@ def empty_like(
     x: Array,
     /,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     return zeros_like(x, dtype=dtype)
@@ -436,7 +436,7 @@ def eye(
     /,
     *,
     k: int = 0,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     nparr = np.eye(n_rows, n_cols, k=k)
@@ -459,7 +459,7 @@ def full(
     shape: int | tuple[int, ...] | Array,
     fill_value: bool | int | float | str,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype)
@@ -488,7 +488,7 @@ def full_like(
     /,
     fill_value: bool | int | float | str,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype)
@@ -527,7 +527,7 @@ def linspace(
     /,
     num: int,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
     endpoint: bool = True,
 ) -> Array:
@@ -548,7 +548,7 @@ def matrix_transpose(x: Array, /) -> Array:
 def ones(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype) or ndx._default_float
@@ -560,7 +560,7 @@ def ones_like(
     x: Array,
     /,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype) or x.dtype
@@ -796,7 +796,7 @@ def where(
 def zeros(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype) or ndx._default_float
@@ -808,7 +808,7 @@ def zeros_like(
     x: Array,
     /,
     *,
-    dtype: DType | PyScalarType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     dtype = tyfuncs.map_python_dtype(dtype) or x.dtype
