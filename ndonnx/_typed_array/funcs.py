@@ -20,9 +20,11 @@ TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=Tr
 
 PYTHON_DTYPE_MAP: dict[PyScalarType, DType] = {
     bool: onnx.bool_,
+    "bool": onnx.bool_,
     int: onnx.int64,
+    "int": onnx.int64,
     float: onnx.float64,
-    str: onnx.utf8,
+    "float": onnx.float64,
 }
 
 

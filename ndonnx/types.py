@@ -26,7 +26,7 @@ SetitemKey: TypeAlias = Union[
 
 PyScalar = bool | int | float | str
 NestedSequence = Sequence["PyScalar | NestedSequence"]
-PyScalarType: TypeAlias = type[bool] | type[int] | type[float] | type[str]
+PyScalarType: TypeAlias = type[bool] | type[int] | type[float] | type[str] | str
 
 
 __all__ = [
