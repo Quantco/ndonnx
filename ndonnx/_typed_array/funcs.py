@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def map_python_dtype(dtype: DType | PyScalarType) -> DType: ...
 
 
 def map_python_dtype(dtype: DType | PyScalarType | None) -> DType | None:
-    """Intercept a ``dtype`` argument to support for python type aliases."""
+    """Intercept a ``dtype`` argument to support Python type aliases."""
     if dtype is None or isinstance(dtype, DType):
         return dtype
     if mapped_dtype := PYTHON_DTYPE_MAP.get(dtype):
