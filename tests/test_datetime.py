@@ -393,8 +393,10 @@ def test_unit_conversion_preserves_nat(from_unit, to_unit, time_dtype):
 @pytest.mark.parametrize("to_unit", get_args(Unit))
 @pytest.mark.parametrize("time_dtype", ["datetime64", "timedelta64"])
 def test_unit_conversion(from_unit, to_unit, time_dtype):
-    # make sure we are above 1e9 so that a conversion from ns to s is lossless
-    np_arr0 = np.asarray([int(1e12), -int(1e12)], f"{time_dtype}[{from_unit}]")
+    # Make sure we are at least 1e9 so that a conversion from ns to s is
+    # lossless, but also make sure conversion from s to ns does not overflow
+    # (max seconds in dateimte64[ns] = (2^63 - 1) / 10^9 ≈ 9e9).
+    np_arr0 = np.asarray([int(5e9), -int(5e9)], f"{time_dtype}[{from_unit}]")
     np_to_dtype = np.dtype(f"{time_dtype}[{to_unit}]")
     np_arr1 = np_arr0.astype(np_to_dtype)
     arr0 = ndx.asarray(np_arr0)
