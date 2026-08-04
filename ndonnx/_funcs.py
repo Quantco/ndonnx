@@ -6,14 +6,14 @@ from __future__ import annotations
 import builtins
 import math
 from collections.abc import Sequence
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, overload
 from warnings import warn
 
 import numpy as np
 from spox import Var
 
 import ndonnx as ndx
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
@@ -21,11 +21,49 @@ from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
 
+DTYPE_ALIAS_MAP = {
+    bool: onnx.bool_,
+    int: onnx.int64,
+    float: onnx.float64,
+    "bool": onnx.bool_,
+    "int": onnx.int64,
+    "float": onnx.float64,
+    "int8": onnx.int8,
+    "int16": onnx.int16,
+    "int32": onnx.int32,
+    "int64": onnx.int64,
+    "uint8": onnx.uint8,
+    "uint16": onnx.uint16,
+    "uint32": onnx.uint32,
+    "uint64": onnx.uint64,
+    "float16": onnx.float16,
+    "float32": onnx.float32,
+    "float64": onnx.float64,
+}
+
+
+@overload
+def normalize_dtype(dtype: None) -> None: ...
+
+
+@overload
+def normalize_dtype(dtype: DType | DTypeAlias) -> DType: ...
+
+
+def normalize_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
+    """Normalize a ``dtype`` argument, mapping aliases to DType instances."""
+    if dtype is None or isinstance(dtype, DType):
+        return dtype
+    if mapped_dtype := DTYPE_ALIAS_MAP.get(dtype):
+        return mapped_dtype
+
+    raise TypeError(f"unrecognized dtype argument: `{dtype}`")
+
 
 def argument(
     *,
     shape: OnnxShape,
-    dtype: ndx.DType,
+    dtype: ndx.DType | DTypeAlias,
 ) -> Array:
     """Creates a new lazy ndonnx array.
 
@@ -43,6 +81,7 @@ def argument(
         Array
             The new array representing input(s) of the computational graphs.
     """
+    dtype = normalize_dtype(dtype)
     return Array._argument(shape=shape, dtype=dtype)
 
 
@@ -50,10 +89,11 @@ def asarray(
     obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
     /,
     *,
-    dtype: ndx.DType | None = None,
+    dtype: ndx.DType | DTypeAlias | None = None,
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if not copy and copy is not None:
         # Must copy or raise
         if not isinstance(obj, Array):
@@ -111,9 +151,10 @@ def arange(
     stop: int | float | Array | None = None,
     step: int | float | Array = 1,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     for item in [start, stop, step]:
         if item is None:
             continue
@@ -167,8 +208,14 @@ def nonzero(x: Array, /) -> tuple[Array, ...]:
 
 
 def astype(
-    x: Array, dtype: DType, /, *, copy: bool = True, device: None | Device = None
+    x: Array,
+    dtype: DType | DTypeAlias,
+    /,
+    *,
+    copy: bool = True,
+    device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if not copy and x.dtype == dtype:
         return x
     return x.astype(dtype)
@@ -224,9 +271,10 @@ def cumulative_prod(
     /,
     *,
     axis: int | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     data = x._tyarray.cumulative_prod(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
@@ -238,9 +286,10 @@ def cumulative_sum(
     /,
     *,
     axis: int | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     data = x._tyarray.cumulative_sum(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
@@ -308,9 +357,10 @@ def prod(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     return Array._from_tyarray(
         x._tyarray.prod(axis=axis, dtype=dtype, keepdims=keepdims)
     )
@@ -342,9 +392,10 @@ def sum(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     return Array._from_tyarray(
         x._tyarray.sum(axis=axis, dtype=dtype, keepdims=keepdims)
     )
@@ -366,14 +417,18 @@ def var(
 def empty(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     return zeros(shape=shape, dtype=dtype)
 
 
 def empty_like(
-    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+    x: Array,
+    /,
+    *,
+    dtype: DType | DTypeAlias | None = None,
+    device: None | Device = None,
 ) -> Array:
     return zeros_like(x, dtype=dtype)
 
@@ -421,7 +476,7 @@ def eye(
     /,
     *,
     k: int = 0,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     nparr = np.eye(n_rows, n_cols, k=k)
@@ -444,9 +499,10 @@ def full(
     shape: int | tuple[int, ...] | Array,
     fill_value: bool | int | float | str,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if dtype is None:
         dtype = tyfuncs._infer_dtype(fill_value)
 
@@ -472,9 +528,10 @@ def full_like(
     /,
     fill_value: bool | int | float | str,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     shape = x.dynamic_shape
     fill = asarray(fill_value, dtype=dtype or x.dtype)
     return broadcast_to(fill, shape)
@@ -510,11 +567,11 @@ def linspace(
     /,
     num: int,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
     endpoint: bool = True,
 ) -> Array:
-    dtype = dtype or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     if not isinstance(dtype, onnx.DTypes):
         raise ValueError(f"only primitive data types are supported, found `{dtype}`")
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
@@ -531,18 +588,22 @@ def matrix_transpose(x: Array, /) -> Array:
 def ones(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = dtype or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(tyfuncs.ones(dtype, shape))
 
 
 def ones_like(
-    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+    x: Array,
+    /,
+    *,
+    dtype: DType | DTypeAlias | None = None,
+    device: None | Device = None,
 ) -> Array:
-    dtype = dtype or x.dtype
+    dtype = normalize_dtype(dtype) or x.dtype
     return full_like(x, 1, dtype=dtype)
 
 
@@ -775,18 +836,22 @@ def where(
 def zeros(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = dtype or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(tyfuncs.zeros(dtype, shape))
 
 
 def zeros_like(
-    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+    x: Array,
+    /,
+    *,
+    dtype: DType | DTypeAlias | None = None,
+    device: None | Device = None,
 ) -> Array:
-    dtype = dtype or x.dtype
+    dtype = normalize_dtype(dtype) or x.dtype
     return full_like(x, 0, dtype=dtype)
 
 

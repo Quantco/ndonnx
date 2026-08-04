@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
@@ -333,7 +333,8 @@ def eye(
 
 
 def ones(
-    dtype: DType[TY_ARRAY_BASE_co], shape: tuple[int, ...] | onnx.TyArrayInt64
+    dtype: DType[TY_ARRAY_BASE_co],
+    shape: tuple[int, ...] | onnx.TyArrayInt64,
 ) -> TY_ARRAY_BASE_co:
     res = dtype.__ndx_ones__(shape)
     if res is NotImplemented:
@@ -342,7 +343,8 @@ def ones(
 
 
 def zeros(
-    dtype: DType[TY_ARRAY_BASE_co], shape: tuple[int, ...] | onnx.TyArrayInt64
+    dtype: DType[TY_ARRAY_BASE_co],
+    shape: tuple[int, ...] | onnx.TyArrayInt64,
 ) -> TY_ARRAY_BASE_co:
     res = dtype.__ndx_zeros__(shape)
     if res is NotImplemented:

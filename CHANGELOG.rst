@@ -12,7 +12,28 @@ Changelog
 
 **Dependencies**
 
-- ndonnx now requires `numpy>=2`.
+- ndonnx now requires ``numpy>=2``.
+
+**New feature**
+
+- Most functions and methods accepting ``dtype`` as an argument now support the following aliases:
+  - ``bool``: ``ndonnx.bool``
+  - ``int``: ``ndonnx.int64``
+  - ``float``: ``ndonnx.float64``
+  - ``"bool"``: ``ndonnx.bool``
+  - ``"int"``: ``ndonnx.int64``
+  - ``"float"``: ``ndonnx.float64``
+  - ``"int8"``: ``ndonnx.int8``
+  - ``"int16"``: ``ndonnx.int16``
+  - ``"int32"``: ``ndonnx.int32``
+  - ``"int64"``: ``ndonnx.int64``
+  - ``"uint8"``: ``ndonnx.uint8``
+  - ``"uint16"``: ``ndonnx.uint16``
+  - ``"uint32"``: ``ndonnx.uint32``
+  - ``"uint64"``: ``ndonnx.uint64``
+  - ``"float16"``: ``ndonnx.float16``
+  - ``"float32"``: ``ndonnx.float32``
+  - ``"float64"``: ``ndonnx.float64``
 
 
 0.20.0 (2026-06-16)

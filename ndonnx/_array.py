@@ -21,7 +21,7 @@ from ._typed_array import TyArrayBase, onnx
 from ._typed_array import funcs as tyfuncs
 from ._typed_array.masked_onnx import TyMaArray
 from .extensions import get_mask
-from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
+from .types import DTypeAlias, GetItemKey, OnnxShape, PyScalar, SetitemKey
 
 _BinaryOp = Callable[
     ["Array", "PyScalar | Array | np.ndarray | np.generic"],
@@ -235,7 +235,10 @@ class Array:
             return Array._from_tyarray(self._tyarray)
         raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
 
-    def astype(self, dtype: DType, *, copy=True) -> Array:
+    def astype(self, dtype: DType | DTypeAlias, *, copy=True) -> Array:
+        from ._funcs import normalize_dtype  # avoid a circular import
+
+        dtype = normalize_dtype(dtype)
         new_data = self._tyarray.astype(dtype, copy=copy)
         return Array._from_tyarray(new_data)
 
