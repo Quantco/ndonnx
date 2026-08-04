@@ -26,7 +26,7 @@ jobs:
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f
         with:
-          environments: default lint
+          environments: default default-py311 lint
       - name: pre-commit
         run: pixi run pre-commit-run --color=always --show-diff-on-failure
 

@@ -86,6 +86,7 @@ onnxruntime = "==1.20.1"
 
 [environments]
 default = ["test", "lint"]
+default-py311 = ["py311", "test", "lint"]
 py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
