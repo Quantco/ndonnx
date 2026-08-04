@@ -10,6 +10,10 @@ Changelog
 0.21.0 (unreleased)
 -------------------
 
+**Dependencies**
+
+- ndonnx now requires ``numpy>=2``.
+
 **New feature**
 
 - Most functions and methods accepting ``dtype`` as an argument now support the following aliases:

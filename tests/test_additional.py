@@ -1,7 +1,6 @@
 # Copyright (c) QuantCo 2023-2025
 # SPDX-License-Identifier: BSD-3-Clause
 
-import sys
 
 import numpy as np
 import pytest
@@ -66,15 +65,13 @@ def test_searchsorted_raises():
         ndx.searchsorted(a, b, side="middle")  # type: ignore[arg-type]
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win") and np.__version__ < "2",
-    reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
-)
 def test_static_map_lazy():
     a = ndx.argument(shape=(3,), dtype=ndx.int64)
     b = nda.static_map(a, {1: 2, 2: 3})
     model = ndx.build({"a": a}, {"b": b})
-    assert_array_equal([0, 2, 3], run(model, {"a": np.array([0, 1, 2])})["b"])
+    assert_array_equal(
+        np.asarray([0, 2, 3]), run(model, {"a": np.array([0, 1, 2])})["b"]
+    )
 
     # nans are mapped by static_map
     a = ndx.argument(shape=("N",), dtype=ndx.float64)
@@ -82,15 +79,11 @@ def test_static_map_lazy():
 
     model = ndx.build({"a": a}, {"b": b})
     assert_array_equal(
-        [-1, -1, 42, 3],
+        np.asarray([-1, -1, 42, 3]),
         run(model, {"a": np.array([0.0, 2.0, 3.0, np.nan])})["b"],
     )
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win") and np.__version__ < "2",
-    reason="ORT 1.18 not registering LabelEncoder(4) only on Windows.",
-)
 @pytest.mark.parametrize(
     "x, mapping, default, expected",
     [

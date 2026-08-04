@@ -8,14 +8,14 @@ platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64", "win-64"]
 postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-check -e ."
 
 [dependencies]
-numpy = "*"
+numpy = ">=2"
 onnx = ">=1.16"
 onnxruntime = ">=1.20"
 pip = "*"
 python = ">=3.10"
 setuptools = ">=61"
 setuptools-scm = "*"
-spox = ">=0.10"
+spox = ">=0.17"
 typing_extensions = "*"
 
 [feature.docs.dependencies]
@@ -78,10 +78,8 @@ python = "3.10.*"
 python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
-[feature.np1x.dependencies]
-python = "3.11.*"
-numpy = "1.*"
-[feature.min-onnxruntime.dependencies]
+[feature.oldies.dependencies]
+numpy = "2.0.*"
 onnxruntime = "==1.20.1"
 
 [environments]
@@ -90,8 +88,7 @@ default-py311 = ["py311", "test", "lint"]
 py310 = ["py310", "test"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
-np1x = ["np1x", "test"]
-min-onnxruntime = ["min-onnxruntime", "test"]
+oldies = ["oldies", "test"]
 docs = ["docs"]
 build = ["build"]
 lint = { features = ["lint"], no-default-feature = true }
