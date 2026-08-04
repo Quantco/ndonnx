@@ -985,9 +985,6 @@ class TyArray(TyArrayBase):
             return self.astype(result_dtype_key).apply_mapping(mapping, default)
 
         values = np.array(list(mapping.values()))
-        # Compat for Windows on numpy 1.x
-        if values.dtype == np.int32:
-            values = values.astype(np.int64)
         if values.dtype.kind in ("O", "U"):
             values = values.astype(str)
             # Don't use values.dtype to cast the default since it may
@@ -2328,15 +2325,7 @@ def const(
     The `dtype` argument may be used in favor of a subsequent `astype` call to create a
     cleaner ONNX graph.
     """
-    # don't blindly fall back to NumPy to maintain better np1x
-    # compatibility on Windows which defaults to int32
-    if isinstance(obj, bool):
-        obj = np.asarray(obj, dtype=bool)
-    if isinstance(obj, int):
-        if dtype is None:
-            obj = np.asarray(obj, dtype=np.int64)
-        else:
-            obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
+    # Special case for converting object arrays to string.
     if isinstance(obj, np.ndarray) and obj.dtype == object:
         if not all(isinstance(el, str) for el in obj.flatten()):
             raise ValueError(
@@ -2344,9 +2333,8 @@ def const(
             )
         obj = obj.astype(str)
     else:
-        obj = np.asarray(obj)
-    if dtype is not None:
-        obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
+        obj = np.asarray(obj, dtype=dtype.unwrap_numpy() if dtype is not None else None)
+
     return _var_to_tyarray(op.const(obj))
 
 

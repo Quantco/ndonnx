@@ -40,7 +40,6 @@ def _build_forward(
         if isinstance(rhs, np.ndarray | np.generic):
             rhs = Array._constant(value=np.asarray(rhs), dtype=None)
         if isinstance(rhs, PyScalar):
-            # Note: NumPy generic are subclasses of Python scalars in np1x
             return Array._from_tyarray(std_op(self._tyarray, rhs))
         if not isinstance(rhs, Array):
             return NotImplemented
@@ -66,7 +65,6 @@ def _build_backward(
         if isinstance(lhs, np.ndarray | np.generic):
             lhs = Array._constant(value=np.asarray(lhs), dtype=None)
         if isinstance(lhs, PyScalar):
-            # Note: NumPy generic are subclasses of Python scalars in np1x
             return Array._from_tyarray(std_op(lhs, self._tyarray))
         if not isinstance(lhs, Array):
             return NotImplemented
