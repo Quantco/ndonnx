@@ -17,12 +17,12 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = ["numpy>=2", "spox>=0.17", "typing_extensions"]
 keywords = ["numpy", "onnx", "array-api"]
 
@@ -74,7 +74,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = '3.10'
+python_version = '3.11'
 no_implicit_optional = true
 check_untyped_defs = true
 # TODO: apply mypy to tests, too (update pre-commit-config, analogously)

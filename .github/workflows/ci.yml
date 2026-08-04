@@ -43,7 +43,6 @@ jobs:
           - macos-latest
           - windows-latest
         environment:
-          - py310
           - oldies
           - default
     steps:

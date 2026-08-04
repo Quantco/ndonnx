@@ -23,9 +23,9 @@ from ndonnx._experimental import (
 
 if TYPE_CHECKING:
     from types import NotImplementedType
+    from typing import Self
 
     from spox import Var
-    from typing_extensions import Self
 
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 

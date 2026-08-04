@@ -12,7 +12,7 @@ Changelog
 
 **Dependencies**
 
-- ndonnx now requires ``numpy>=2``.
+- ndonnx now requires ``python>=3.11`` and ``numpy>=2``.
 
 **New feature**
 

@@ -6,10 +6,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Literal, Self, TypeVar, overload
 
 import numpy as np
-from typing_extensions import Self
 
 from ndonnx import DType
 from ndonnx._typed_array import safe_cast
