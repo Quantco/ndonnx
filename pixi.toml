@@ -77,9 +77,7 @@ python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
 [feature.py313.dependencies]
-python = "3.12.*"
-[feature.py314.dependencies]
-python = "3.12.*"
+python = "3.13.*"
 [feature.oldies.dependencies]
 python = "3.11.*"
 numpy = "2.0.*"
@@ -91,7 +89,6 @@ default-py311 = ["py311", "test", "lint"]
 py311 = ["py311", "test"]
 py312 = ["py312", "test"]
 py313 = ["py313", "test"]
-py314 = ["py314", "test"]
 oldies = ["oldies", "test"]
 docs = ["docs"]
 build = ["build"]
