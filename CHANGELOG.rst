@@ -7,6 +7,15 @@
 Changelog
 =========
 
+
+0.21.1 (unreleased)
+-------------------
+
+**Other change**
+
+- Fixed deprecation warnings emitted from ``numpy >=2.5``.
+
+
 0.21.0 (2026-08-07)
 -------------------
 
