@@ -20,7 +20,7 @@ from ndonnx._experimental import (
     onnx,
     safe_cast,
 )
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import NestedSequence, OnnxShape, PyScalar, Scalar
 
 if TYPE_CHECKING:
     from spox import Var
@@ -38,7 +38,7 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
     _unmasked_dtype: onnx._OnnxDType
 
     def __ndx_create__(
-        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
+        self, val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_MA_ARRAY_ONNX:
         if isinstance(val, np.ma.MaskedArray):
             data = onnx.const(val.data)
