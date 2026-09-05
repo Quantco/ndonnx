@@ -14,6 +14,10 @@ Changelog
 
 - Added support for :func:`ndonnx.log1p` and :func:`ndonnx.expm1`.
 
+**Bug fix**
+
+- Supported NumPy scalar values are now accepted by the type annotations of :func:`ndonnx.asarray`.
+
 **Other change**
 
 - Fixed deprecation warnings emitted from ``numpy >=2.5``.

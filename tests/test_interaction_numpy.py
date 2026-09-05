@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
@@ -9,6 +9,39 @@ import pytest
 import ndonnx as ndx
 
 from .utils import assert_array_equal
+
+
+@pytest.mark.parametrize(
+    "scalar, expected_dtype",
+    [
+        (np.bool_(True), ndx.bool),
+        (np.int8(-3), ndx.int8),
+        (np.int64(-3), ndx.int64),
+        (np.longlong(-3), ndx.int64),
+        (np.uint8(3), ndx.uint8),
+        (np.uint64(3), ndx.uint64),
+        (np.ulonglong(3), ndx.uint64),
+        (np.float16(3.25), ndx.float16),
+        (np.float32(3.25), ndx.float32),
+        (np.float64(3.25), ndx.float64),
+        (np.str_("x"), ndx.utf8),
+    ],
+)
+def test_asarray_numpy_scalar(scalar, expected_dtype):
+    candidate = ndx.asarray(scalar)
+
+    assert candidate.dtype == expected_dtype
+    assert candidate.shape == ()
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(), np.asarray(scalar), strict=True
+    )
+
+
+def test_asarray_nested_numpy_scalars():
+    candidate = ndx.asarray([np.int8(1), np.int64(2)])
+
+    assert candidate.dtype == ndx.int64
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), np.asarray([1, 2]))
 
 
 @pytest.mark.parametrize(

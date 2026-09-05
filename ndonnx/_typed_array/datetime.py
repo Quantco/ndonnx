@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
     from spox import Var
 
-    from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+    from ndonnx.types import NestedSequence, OnnxShape, PyScalar, Scalar
 
 
 Unit = Literal["ns", "us", "ms", "s"]
@@ -132,7 +132,7 @@ class DateTime64DType(BaseTimeDType["TyArrayDateTime"]):
         return f"datetime64[{self.unit}]"
 
     def __ndx_create__(
-        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
+        self, val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TyArrayDateTime:
         if isinstance(val, np.ndarray) and val.dtype.kind == "M":
             unit, count = np.datetime_data(val.dtype)
@@ -165,7 +165,7 @@ class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
         return f"timedelta64[{self.unit}]"
 
     def __ndx_create__(
-        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
+        self, val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TyArrayTimeDelta:
         if isinstance(val, np.ndarray) and val.dtype.kind == "m":
             unit, count = np.datetime_data(val.dtype)
