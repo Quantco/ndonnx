@@ -7,6 +7,8 @@ from collections.abc import Sequence
 from types import EllipsisType
 from typing import TYPE_CHECKING, Literal, TypeAlias, Union
 
+import numpy as np
+
 if TYPE_CHECKING:
     from ._array import Array
 
@@ -25,7 +27,27 @@ SetitemKey: TypeAlias = Union[
 ]
 
 PyScalar = bool | int | float | str
-NestedSequence = Sequence["PyScalar | NestedSequence"]
+# Use concrete classes so this alias remains valid in isinstance. The longlong
+# classes can be distinct from the fixed-width aliases on supported platforms.
+NumpyScalar = (
+    np.bool_
+    | np.int8
+    | np.int16
+    | np.int32
+    | np.int64
+    | np.longlong
+    | np.uint8
+    | np.uint16
+    | np.uint32
+    | np.uint64
+    | np.ulonglong
+    | np.float16
+    | np.float32
+    | np.float64
+    | np.str_
+)
+Scalar = PyScalar | NumpyScalar
+NestedSequence = Sequence["Scalar | NestedSequence"]
 
 DTypeAlias: TypeAlias = (
     (type[bool] | type[int] | type[float])

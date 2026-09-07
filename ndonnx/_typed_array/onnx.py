@@ -24,7 +24,7 @@ import numpy as np
 from spox import Tensor, Var, argument, build, inline
 
 from ndonnx import DType
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import NestedSequence, OnnxShape, PyScalar, Scalar
 
 from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
@@ -150,7 +150,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         return NotImplemented
 
     def __ndx_create__(
-        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
+        self, val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_ARRAY_co | NotImplementedType:
         if isinstance(val, Var):
             return _var_to_tyarray(val).astype(self)
@@ -2302,9 +2302,7 @@ def _var_to_tyarray(var: Var) -> TyArray:
 
 
 @overload
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]
-) -> TY_ARRAY_co: ...
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]) -> TY_ARRAY_co: ...
 
 
 @overload
@@ -2312,14 +2310,10 @@ def const(obj: int, dtype: None = None) -> TyArrayInt64: ...
 
 
 @overload
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
-) -> TyArray: ...
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType | None = None) -> TyArray: ...
 
 
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
-) -> TyArray:
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType | None = None) -> TyArray:
     """Create a constant from the given value.
 
     The `dtype` argument may be used in favor of a subsequent `astype` call to create a

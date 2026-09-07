@@ -12,7 +12,7 @@ from spox import Var
 from typing_extensions import deprecated
 
 if TYPE_CHECKING:
-    from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+    from ndonnx.types import NestedSequence, OnnxShape, PyScalar, Scalar
 
     from ._schema import DTypeInfoV1
     from ._typed_array import TyArrayBase, onnx
@@ -24,7 +24,7 @@ TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase", covariant=True)
 class DType(ABC, Generic[TY_ARRAY_BASE]):
     def __ndx_create__(
         self,
-        val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+        val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     ) -> TY_ARRAY_BASE | NotImplementedType:
         return NotImplemented
 

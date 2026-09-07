@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.21.1 (unreleased)
+-------------------
+
+**Bug fix**
+
+- Supported NumPy scalar values are now accepted by the type annotations of :func:`ndonnx.asarray`.
+
+
 0.21.0 (2026-08-07)
 -------------------
 
