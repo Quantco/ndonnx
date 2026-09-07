@@ -313,3 +313,13 @@ def test_static_map_int64():
         [10, 0],
         candidate.unwrap_numpy().data[~candidate.unwrap_numpy().mask],  # type: ignore
     )
+
+
+def test_is_constant_on_partially_constant_array():
+    x = ndx.argument(shape=(3,), dtype=ndx.int64)
+    data = ndx.asarray(np.array([1, 2, 3], dtype=np.int64))
+    arr = ndx.extensions.make_nullable(data, x > 0)
+
+    assert arr._tyarray.data.is_constant
+    assert not arr._tyarray.mask.is_constant
+    assert not arr._tyarray.is_constant

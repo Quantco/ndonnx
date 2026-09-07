@@ -411,7 +411,7 @@ class TyMaArray(TyMaArrayBase):
     def is_constant(self) -> bool:
         if self.mask is None:
             return self.data.is_constant
-        return self.data.is_constant and self.data.is_constant
+        return self.data.is_constant and self.mask.is_constant
 
     def _pass_through_same_type(self, fun_name: str, *args, **kwargs) -> Self:
         data = getattr(self.data, fun_name)(*args, **kwargs)
