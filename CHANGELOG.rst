@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.22.0 (unreleased)
+-------------------
+
+**Other change**
+
+- Models build with ndonnx now target the operator support of ``onnxruntime >=1.26.0``.
+
+
 0.21.0 (2026-08-07)
 -------------------
 
