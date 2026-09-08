@@ -37,15 +37,11 @@ array_api_tests/test_has_names.py::test_has_names[elementwise-imag]
 array_api_tests/test_has_names.py::test_has_names[elementwise-real]
 array_api_tests/test_has_names.py::test_has_names[elementwise-signbit]
 array_api_tests/test_has_names.py::test_has_names[elementwise-atan2]
-array_api_tests/test_has_names.py::test_has_names[elementwise-expm1]
-array_api_tests/test_has_names.py::test_has_names[elementwise-log1p]
 array_api_tests/test_has_names.py::test_has_names[elementwise-nextafter]
 
 array_api_tests/test_operators_and_elementwise_functions.py::test_atan2
 array_api_tests/test_operators_and_elementwise_functions.py::test_copysign
-array_api_tests/test_operators_and_elementwise_functions.py::test_expm1
 array_api_tests/test_operators_and_elementwise_functions.py::test_hypot
-array_api_tests/test_operators_and_elementwise_functions.py::test_log1p
 array_api_tests/test_operators_and_elementwise_functions.py::test_signbit
 array_api_tests/test_operators_and_elementwise_functions.py::test_nextafter
 
@@ -85,6 +81,10 @@ array_api_tests/test_special_cases.py::test_binary[nextafter(x1_i is NaN or x2_i
 array_api_tests/test_special_cases.py::test_binary[nextafter(x1_i is -0 and x2_i is +0) -> +0]
 array_api_tests/test_special_cases.py::test_binary[nextafter(x1_i is +0 and x2_i is -0) -> -0]
 
+# log1p and expm1 fail to propagate -0 because onnxruntime's where fails to do so
+array_api_tests/test_special_cases.py::test_unary[log1p(x_i is -0) -> -0]
+array_api_tests/test_special_cases.py::test_unary[expm1(x_i is -0) -> -0]
+
 array_api_tests/test_special_cases.py::test_unary[acos(x_i < -1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[acos(x_i > 1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[acosh(x_i < 1) -> NaN]
@@ -92,17 +92,6 @@ array_api_tests/test_special_cases.py::test_unary[asin(x_i < -1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[asin(x_i > 1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[atanh(x_i < -1) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[atanh(x_i > 1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[expm1(x_i is +0) -> +0]
-array_api_tests/test_special_cases.py::test_unary[expm1(x_i is +infinity) -> +infinity]
-array_api_tests/test_special_cases.py::test_unary[expm1(x_i is -0) -> -0]
-array_api_tests/test_special_cases.py::test_unary[expm1(x_i is -infinity) -> -1]
-array_api_tests/test_special_cases.py::test_unary[expm1(x_i is NaN) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[log1p(x_i < -1) -> NaN]
-array_api_tests/test_special_cases.py::test_unary[log1p(x_i is +0) -> +0]
-array_api_tests/test_special_cases.py::test_unary[log1p(x_i is +infinity) -> +infinity]
-array_api_tests/test_special_cases.py::test_unary[log1p(x_i is -0) -> -0]
-array_api_tests/test_special_cases.py::test_unary[log1p(x_i is -1) -> -infinity]
-array_api_tests/test_special_cases.py::test_unary[log1p(x_i is NaN) -> NaN]
 array_api_tests/test_special_cases.py::test_unary[signbit(isfinite(x_i) and x_i < 0) -> True]
 array_api_tests/test_special_cases.py::test_unary[signbit(isfinite(x_i) and x_i > 0) -> False]
 array_api_tests/test_special_cases.py::test_unary[signbit(x_i is +0) -> False]

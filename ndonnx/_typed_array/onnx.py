@@ -1928,6 +1928,38 @@ class TyArrayFloating(TyArrayNumber):
             return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
         return NotImplemented
 
+    @overload
+    def __add__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __add__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
+    @overload
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__add__(other)
+
+    @overload
+    def __sub__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __sub__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
+    @overload
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__sub__(other)
+
+    @overload
+    def __mul__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__mul__(other)
+
+    @overload
+    def __truediv__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__truediv__(other)
+
     def ceil(self) -> Self:
         return type(self)(op.ceil(self._var))
 
@@ -2073,6 +2105,14 @@ class TyArrayFloating(TyArrayNumber):
     def exp(self) -> Self:
         return type(self)(op.exp(self._var))
 
+    def expm1(self) -> Self:
+        # expm1(x) = (u - 1) * x / log(u) with u = exp(x); == x where u == 1.
+        # Analog of Goldberg's log1p (see below).
+        u = self.exp()
+        d = u - 1.0
+        tail = (d == -1.0) | u.isinf()
+        return where(u == 1.0, self, where(tail, d, d * self / u.log()))
+
     def log(self) -> Self:
         return type(self)(op.log(self._var))
 
@@ -2083,6 +2123,16 @@ class TyArrayFloating(TyArrayNumber):
     def log10(self) -> Self:
         res = self.log() / float(np.log(10))
         return safe_cast(type(self), res)
+
+    def log1p(self) -> Self:
+        # log1p(x) = log(u) * x / (u - 1) with u = 1 + x; == x where u == 1.
+        # Goldberg, "What Every Computer Scientist Should Know About
+        # Floating-Point Arithmetic", Theorem 4:
+        # https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+        u = self + 1.0
+        d = u - 1.0
+        short_circuit = (u == 1.0) | (self.isinf() & (self > 0.0))
+        return where(short_circuit, self, u.log() * (self / d))
 
     def sin(self) -> Self:
         return type(self)(op.sin(self._var))
