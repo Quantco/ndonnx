@@ -21,6 +21,7 @@ import spox.opset.ai.onnx.ml.v4 as ml
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 from spox.opset.ai.onnx.v21 import abs as abs
+from spox.opset.ai.onnx.v21 import add as add
 from spox.opset.ai.onnx.v21 import and_ as and_
 from spox.opset.ai.onnx.v21 import bitwise_and as bitwise_and
 from spox.opset.ai.onnx.v21 import bitwise_not as bitwise_not
@@ -30,16 +31,23 @@ from spox.opset.ai.onnx.v21 import cast as cast
 from spox.opset.ai.onnx.v21 import ceil as ceil
 from spox.opset.ai.onnx.v21 import compress as compress
 from spox.opset.ai.onnx.v21 import const as const
+from spox.opset.ai.onnx.v21 import div as div
+from spox.opset.ai.onnx.v21 import equal as equal
 from spox.opset.ai.onnx.v21 import exp as exp  # Only for floats in both standards
 from spox.opset.ai.onnx.v21 import expand as expand
 from spox.opset.ai.onnx.v21 import floor as floor
 from spox.opset.ai.onnx.v21 import gather as gather
 from spox.opset.ai.onnx.v21 import gather_elements as gather_elements
 from spox.opset.ai.onnx.v21 import gather_nd as gather_nd
+from spox.opset.ai.onnx.v21 import greater as greater
+from spox.opset.ai.onnx.v21 import greater_or_equal as greater_or_equal
 from spox.opset.ai.onnx.v21 import isinf as isinf
 from spox.opset.ai.onnx.v21 import isnan as isnan
+from spox.opset.ai.onnx.v21 import less as less
+from spox.opset.ai.onnx.v21 import less_or_equal as less_or_equal
 from spox.opset.ai.onnx.v21 import log as log
 from spox.opset.ai.onnx.v21 import mod as mod
+from spox.opset.ai.onnx.v21 import mul as mul
 from spox.opset.ai.onnx.v21 import not_ as not_
 from spox.opset.ai.onnx.v21 import or_ as or_
 from spox.opset.ai.onnx.v21 import reciprocal as reciprocal
@@ -51,6 +59,7 @@ from spox.opset.ai.onnx.v21 import size as size
 from spox.opset.ai.onnx.v21 import slice as slice
 from spox.opset.ai.onnx.v21 import squeeze as squeeze
 from spox.opset.ai.onnx.v21 import string_concat as string_concat
+from spox.opset.ai.onnx.v21 import sub as sub
 from spox.opset.ai.onnx.v21 import tile as tile
 from spox.opset.ai.onnx.v21 import transpose as transpose
 from spox.opset.ai.onnx.v21 import unsqueeze as unsqueeze
@@ -176,18 +185,6 @@ def _warn_lossy(fun_name: str, unsupported: np.dtype, via: type[np.generic]):
         f"'{fun_name}' is not implemented for '{unsupported}' in onnxruntime. A lossy cast to '{np.dtype(via)}' is used instead"
     )
 
-
-# Add, Sub, Mul, Div, and the comparison operators support the full set of
-# numeric data types in onnxruntime; no detour is required.
-add = op.add
-equal = op.equal
-greater = op.greater
-greater_or_equal = op.greater_or_equal
-less = op.less
-less_or_equal = op.less_or_equal
-mul = op.mul
-sub = op.sub
-div = op.div
 
 _mapping_float_only: _MappingDictType = {(np.float64,): Warn(np.float32)}
 acos = _wrap_unary(op.acos, _mapping_float_only)
