@@ -10,6 +10,10 @@ Changelog
 0.22.0 (unreleased)
 -------------------
 
+**New feature**
+
+- Added support for :func:`ndonnx.log1p` and :func:`ndonnx.expm1`.
+
 **Other change**
 
 - Models build with ndonnx now target the operator support of ``onnxruntime >=1.26.0``.
