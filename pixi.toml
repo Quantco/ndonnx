@@ -83,7 +83,7 @@ python = "3.14.*"
 [feature.oldies.dependencies]
 python = "3.11.*"
 numpy = "2.0.*"
-onnxruntime = "==1.26"
+onnxruntime = "==1.26.0"
 
 [environments]
 default = ["test", "lint"]
