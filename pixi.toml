@@ -10,7 +10,7 @@ postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-
 [dependencies]
 numpy = ">=2"
 onnx = ">=1.16"
-onnxruntime = ">=1.20"
+onnxruntime = ">=1.26.0"
 pip = "*"
 python = ">=3.11"
 setuptools = ">=61"
@@ -83,7 +83,7 @@ python = "3.14.*"
 [feature.oldies.dependencies]
 python = "3.11.*"
 numpy = "2.0.*"
-onnxruntime = "==1.20.1"
+onnxruntime = "==1.26"
 
 [environments]
 default = ["test", "lint"]
