@@ -17,6 +17,7 @@ Changelog
 **Other change**
 
 - Models built with ndonnx now expect the operator support found in ``onnxruntime >=1.26.0``.
+- Fixed deprecation warnings emitted from ``numpy >=2.5``.
 
 
 0.21.0 (2026-08-07)
