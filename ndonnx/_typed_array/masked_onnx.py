@@ -411,7 +411,7 @@ class TyMaArray(TyMaArrayBase):
     def is_constant(self) -> bool:
         if self.mask is None:
             return self.data.is_constant
-        return self.data.is_constant and self.data.is_constant
+        return self.data.is_constant and self.mask.is_constant
 
     def _pass_through_same_type(self, fun_name: str, *args, **kwargs) -> Self:
         data = getattr(self.data, fun_name)(*args, **kwargs)
@@ -755,7 +755,9 @@ class TyMaArrayFloating(TyMaArrayNumber):
     cos = _make_unary_member_same_type("cos")  # type: ignore
     cosh = _make_unary_member_same_type("cosh")  # type: ignore
     exp = _make_unary_member_same_type("exp")  # type: ignore
+    expm1 = _make_unary_member_same_type("expm1")  # type: ignore
     log = _make_unary_member_same_type("log")  # type: ignore
+    log1p = _make_unary_member_same_type("log1p")  # type: ignore
     log2 = _make_unary_member_same_type("log2")  # type: ignore
     log10 = _make_unary_member_same_type("log10")  # type: ignore
     sin = _make_unary_member_same_type("sin")  # type: ignore

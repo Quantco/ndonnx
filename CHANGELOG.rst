@@ -7,9 +7,12 @@
 Changelog
 =========
 
-
-0.21.1 (unreleased)
+0.22.0 (unreleased)
 -------------------
+
+**New feature**
+
+- Added support for :func:`ndonnx.log1p` and :func:`ndonnx.expm1`.
 
 **Other change**
 

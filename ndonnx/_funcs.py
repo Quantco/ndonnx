@@ -449,15 +449,11 @@ def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
 
 
 def expm1(x: Array, /) -> Array:
-    # Requires special operator to meet standards precision requirements
-    # TODO: Add upstream tracking issue
-    raise NotImplementedError
+    return Array._from_tyarray(x._tyarray.expm1())
 
 
 def log1p(x: Array, /) -> Array:
-    # Requires special operator to meet standards precision requirements
-    # TODO: Add upstream tracking issue
-    raise NotImplementedError
+    return Array._from_tyarray(x._tyarray.log1p())
 
 
 def conj(x: Array, /) -> Array:
