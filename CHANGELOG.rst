@@ -14,6 +14,10 @@ Changelog
 
 - Added support for :func:`ndonnx.log1p` and :func:`ndonnx.expm1`.
 
+**Other change**
+
+- Fixed deprecation warnings emitted from ``numpy >=2.5``.
+
 
 0.21.0 (2026-08-07)
 -------------------
