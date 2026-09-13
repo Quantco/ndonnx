@@ -104,6 +104,30 @@ def test_where(x_ty, y_ty, res_ty):
     assert_equal_dtype_shape(res, res_ty, shape)
 
 
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (np.asarray([1, 2], dtype=np.int32), np.int64(3)),
+        (np.float32(1), np.asarray([2, 3], dtype=np.float64)),
+        (1, np.asarray([2, 3], dtype=np.int32)),
+        (np.int8(1), np.int64(2)),
+        (np.str_("x"), np.str_("y")),
+        (1, 2.0),
+    ],
+)
+def test_where_scalar_branches(x, y):
+    cond = np.asarray([True, False])
+    candidate = ndx.where(
+        ndx.asarray(cond),
+        ndx.asarray(x) if isinstance(x, np.ndarray) else x,
+        ndx.asarray(y) if isinstance(y, np.ndarray) else y,
+    )
+
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(), np.where(cond, x, y), strict=True
+    )
+
+
 @pytest.mark.parametrize("shape", [(), (1,), (2, 2)])
 @pytest.mark.parametrize("dtype", [None, ndx.int32, ndx.float64, ndx.utf8])
 def test_ones(dtype, shape):
@@ -165,6 +189,17 @@ def test_raise_if_neither_argument_is_array():
         ndx.add(1, 1)
 
 
+def test_operator_backed_function_numpy_array_operand():
+    x = ndx.asarray([1, 2], dtype=ndx.int32)
+    y = np.array([3, 4], dtype=np.int64)
+
+    candidate = ndx.add(x, y)
+    expected = np.asarray([1, 2], dtype=np.int32) + y
+
+    assert candidate.dtype == ndx.int64
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
+
+
 def test_sign():
     # onnxruntime's sign is broken for int64 input with two or more
     # elements on Linux and Windows. It is able to correctly process
@@ -190,6 +225,40 @@ def test_clip(array, min, max):
         return npx.clip(npx.asarray(array), min, max)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+def test_clip_numpy_scalar_promotion():
+    array = np.asarray([1, 2], dtype=np.float32)
+    min = np.float64(1.5)
+
+    candidate = ndx.clip(ndx.asarray(array), min=min)
+    expected = np.clip(array, min, None)
+
+    assert candidate.dtype == ndx.float64
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
+
+
+@pytest.mark.parametrize("op", ["maximum", "minimum", "logaddexp"])
+def test_elementwise_numpy_scalar_promotion(op):
+    array = np.asarray([1, 2], dtype=np.float32)
+    scalar = np.float64(1.5)
+
+    candidate = getattr(ndx, op)(ndx.asarray(array), scalar)
+    expected = getattr(np, op)(array, scalar)
+
+    assert candidate.dtype == ndx.float64
+    np.testing.assert_allclose(candidate.unwrap_numpy(), expected, strict=True)
+
+
+@pytest.mark.parametrize("op", ["logical_and", "logical_or", "logical_xor"])
+def test_logical_numpy_scalar(op):
+    array = np.asarray([True, False])
+    scalar = np.bool_(True)
+
+    candidate = getattr(ndx, op)(ndx.asarray(array), scalar)
+    expected = getattr(np, op)(array, scalar)
+
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
 
 
 def test_minimum():

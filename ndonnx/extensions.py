@@ -15,11 +15,14 @@ import ndonnx._typed_array.datetime
 import ndonnx._typed_array.funcs
 import ndonnx._typed_array.masked_onnx
 import ndonnx._typed_array.onnx
+from ndonnx.types import BooleanScalar, IntegerScalar, Scalar
 
-SCALAR = TypeVar("SCALAR", int, float, str)
-
-KEY: TypeAlias = SCALAR
-VALUE = TypeVar("VALUE", int, float, str)
+# Keys may be promoted from float16, but LabelEncoder cannot produce float16 values.
+_StaticMapValueScalar: TypeAlias = (
+    BooleanScalar | IntegerScalar | float | np.float32 | np.float64 | str | np.str_
+)
+KEY = TypeVar("KEY", bound=Scalar)
+VALUE = TypeVar("VALUE", bound=_StaticMapValueScalar)
 
 
 @deprecated(
@@ -41,7 +44,7 @@ def shape(x: ndx.Array, /) -> ndx.Array:
     return x.dynamic_shape
 
 
-def isin(x: ndx.Array, /, items: Sequence[SCALAR]) -> ndx.Array:
+def isin(x: ndx.Array, /, items: Sequence[Scalar]) -> ndx.Array:
     """Return true where the input ``Array`` contains an element in ``items``.
 
     ``NaN`` values do **not** compare equal.
@@ -129,7 +132,7 @@ def static_map(
     return ndx.Array._from_tyarray(x._tyarray.apply_mapping(mapping, default))
 
 
-def fill_null(x: ndx.Array, /, value: ndx.Array | SCALAR) -> ndx.Array:
+def fill_null(x: ndx.Array, /, value: ndx.Array | Scalar) -> ndx.Array:
     """Returns a new ``Array`` with the null values filled with the given value.
 
     Parameters

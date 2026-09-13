@@ -652,7 +652,7 @@ def label_encoder(
                 np.uint16,
                 np.uint32,
             ): np.int64,
-            (np.float32,): np.float64,
+            (np.float16, np.float32): np.float64,
             (
                 np.uint64,
             ): np.int64,  # We also cast the key/values, so we don't lose precision.
@@ -663,7 +663,15 @@ def label_encoder(
     t2 = _detour_type(
         values_tensor.dtype,
         {
-            (np.bool_, np.int8, np.int32, np.uint8, np.uint16, np.uint32): np.int64,
+            (
+                np.bool_,
+                np.int8,
+                np.int16,
+                np.int32,
+                np.uint8,
+                np.uint16,
+                np.uint32,
+            ): np.int64,
             (np.float32,): np.float64,
             (
                 np.uint64,
@@ -721,6 +729,7 @@ def range(
     via_dtype = _detour_type(
         in_dtype,
         mapping={
+            (np.float16,): np.float32,
             (np.int8, np.uint8): np.int16,
             (np.uint16,): np.int32,
             (np.uint32,): np.int64,

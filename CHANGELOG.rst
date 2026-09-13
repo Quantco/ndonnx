@@ -16,7 +16,7 @@ Changelog
 
 **Bug fix**
 
-- Supported NumPy scalar values are now accepted by the type annotations of :func:`ndonnx.asarray`.
+- NumPy scalar support has been expanded for scalar data and operand arguments, including construction, promotion, selection, elementwise functions, and extensions.
 
 **Other change**
 

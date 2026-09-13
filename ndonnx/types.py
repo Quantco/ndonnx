@@ -29,9 +29,8 @@ SetitemKey: TypeAlias = Union[
 PyScalar = bool | int | float | str
 # Use concrete classes so this alias remains valid in isinstance. The longlong
 # classes can be distinct from the fixed-width aliases on supported platforms.
-NumpyScalar = (
-    np.bool_
-    | np.int8
+_NumpyIntegerScalar = (
+    np.int8
     | np.int16
     | np.int32
     | np.int64
@@ -41,12 +40,14 @@ NumpyScalar = (
     | np.uint32
     | np.uint64
     | np.ulonglong
-    | np.float16
-    | np.float32
-    | np.float64
-    | np.str_
 )
+_NumpyFloatingScalar = np.float16 | np.float32 | np.float64
+BooleanScalar = bool | np.bool_
+IntegerScalar = int | _NumpyIntegerScalar
+NumericScalar = int | float | _NumpyIntegerScalar | _NumpyFloatingScalar
+NumpyScalar = np.bool_ | _NumpyIntegerScalar | _NumpyFloatingScalar | np.str_
 Scalar = PyScalar | NumpyScalar
+ArrayOperandScalar = Scalar | np.datetime64 | np.timedelta64
 NestedSequence = Sequence["Scalar | NestedSequence"]
 
 DTypeAlias: TypeAlias = (

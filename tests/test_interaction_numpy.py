@@ -44,6 +44,96 @@ def test_asarray_nested_numpy_scalars():
     np.testing.assert_array_equal(candidate.unwrap_numpy(), np.asarray([1, 2]))
 
 
+def test_custom_dtype_receives_original_numpy_scalar():
+    received = []
+
+    class RecordingDType(type(ndx.int64)):
+        def __ndx_create__(self, val):
+            received.append(val)
+            return ndx.int64.__ndx_create__(val)
+
+    scalar = np.int64(3)
+    ndx.asarray(scalar, dtype=RecordingDType())
+
+    assert received[0] is scalar
+
+
+def test_custom_dtype_arange_receives_original_numpy_scalars():
+    received = []
+
+    class RecordingDType(type(ndx.int64)):
+        def __ndx_arange__(self, start, stop, step=1):
+            received.extend((start, stop, step))
+            return ndx.int64.__ndx_arange__(start, stop, step)
+
+    args = (np.int8(0), np.int8(3), np.int8(1))
+    ndx.arange(*args, dtype=RecordingDType())
+
+    assert all(candidate is expected for candidate, expected in zip(received, args))
+
+
+def test_custom_dtype_inferred_arange_numpy_scalar_dispatch():
+    from ndonnx._experimental import onnx
+
+    received = []
+
+    class RecordingArray(onnx.TyArrayInt64):
+        def __init__(self, var):
+            assert var.unwrap_tensor().dtype == np.dtype(np.int64)
+            self._var = var
+
+        @property
+        def dtype(self):
+            return dtype
+
+    class RecordingDType(type(ndx.int64)):
+        def unwrap_numpy(self):
+            return np.dtype(np.int64)
+
+        def _build(self, var):
+            return RecordingArray(var)
+
+        def __ndx_create__(self, val):
+            return self._build(ndx.int64.__ndx_create__(val).disassemble())
+
+        def __ndx_result_type__(self, other):
+            raise AssertionError(
+                "range dispatch must not require common-type promotion"
+            )
+
+        def __ndx_arange__(self, start, stop, step=1):
+            received.extend((start, stop, step))
+            return ndx.int64.__ndx_arange__(start, stop, step)
+
+    dtype = RecordingDType()
+    start = ndx.asarray(0, dtype=dtype)
+    stop = ndx.asarray(3, dtype=dtype)
+    step = np.int64(1)
+
+    candidate = ndx.arange(start, stop, step)
+
+    assert received[0] is start._tyarray
+    assert received[1] is stop._tyarray
+    assert received[2] is step
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), [0, 1, 2])
+
+
+def test_custom_dtype_result_type_numpy_scalar_order():
+    received = []
+
+    class RecordingDType(type(ndx.int64)):
+        def __ndx_result_type__(self, other):
+            received.append(other)
+            return self
+
+    dtype = RecordingDType()
+    weak = 1.0
+
+    assert ndx.result_type(dtype, weak, np.float32(1)) is dtype
+    assert received[0] == ndx.float32
+    assert received[1] is weak
+
+
 @pytest.mark.parametrize(
     "op",
     [
@@ -92,20 +182,24 @@ def test_dunders_numpy_generic(op, np_arr, np_gen):
     assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
-def test_datetime_generics():
-    np_arr = np.asarray([100], dtype="datetime64[s]")
-    scalar = np.asarray([42], dtype="datetime64[s]")[0]
+def test_temporal_numpy_scalar_dunders():
+    datetime_array = np.asarray([100], dtype="datetime64[s]")
+    timedelta_array = np.asarray([10], dtype="timedelta64[s]")
 
-    def do(npx):
-        return npx.asarray(np_arr) - scalar
+    cases = [
+        (operator.add, datetime_array, np.timedelta64(1, "s")),
+        (operator.add, np.timedelta64(1, "s"), datetime_array),
+        (operator.sub, datetime_array, np.datetime64(0, "s")),
+        (operator.add, timedelta_array, np.timedelta64(1, "s")),
+    ]
+    for op, lhs, rhs in cases:
+        candidate = op(
+            ndx.asarray(lhs) if isinstance(lhs, np.ndarray) else lhs,
+            ndx.asarray(rhs) if isinstance(rhs, np.ndarray) else rhs,
+        )
+        expected = op(lhs, rhs)
 
-    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np), strict=True)
-
-    # backward
-    def do(npx):  # type: ignore[no-redef]
-        return npx.asarray(np_arr) - scalar
-
-    assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+        np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
 
 
 def test_numpy_array_ndx_array_reverse_dunder_called_correctly():

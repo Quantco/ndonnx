@@ -21,10 +21,18 @@ from ._typed_array import TyArrayBase, onnx
 from ._typed_array import funcs as tyfuncs
 from ._typed_array.masked_onnx import TyMaArray
 from .extensions import get_mask
-from .types import DTypeAlias, GetItemKey, OnnxShape, PyScalar, SetitemKey
+from .types import (
+    ArrayOperandScalar,
+    DTypeAlias,
+    GetItemKey,
+    OnnxShape,
+    PyScalar,
+    Scalar,
+    SetitemKey,
+)
 
 _BinaryOp = Callable[
-    ["Array", "PyScalar | Array | np.ndarray | np.generic"],
+    ["Array", "ArrayOperandScalar | Array | np.ndarray"],
     "Array",
 ]
 _Axisparam = int | tuple[int, ...] | None
@@ -36,7 +44,7 @@ def _build_forward(
     this_name: str,
     reflected_name: str,
 ) -> _BinaryOp:
-    def fun(self, rhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
+    def fun(self, rhs: ArrayOperandScalar | Array | np.ndarray) -> Array:
         if isinstance(rhs, np.ndarray | np.generic):
             rhs = Array._constant(value=np.asarray(rhs), dtype=None)
         if isinstance(rhs, PyScalar):
@@ -61,7 +69,7 @@ def _build_backward(
     this_name: str,
     reflected_name: str,
 ) -> _BinaryOp:
-    def fun(self, lhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
+    def fun(self, lhs: ArrayOperandScalar | Array | np.ndarray) -> Array:
         if isinstance(lhs, np.ndarray | np.generic):
             lhs = Array._constant(value=np.asarray(lhs), dtype=None)
         if isinstance(lhs, PyScalar):
@@ -331,7 +339,7 @@ class Array:
     def __setitem__(
         self,
         key: SetitemKey,
-        value: str | int | float | bool | Array,
+        value: Scalar | Array,
         /,
     ) -> None:
         # Specs say that the data type of self must not be changed.
@@ -366,12 +374,18 @@ class Array:
 
     # We spell out __eq__ and __ne__ so that mypy may pick up the
     # change in return type (Array rather than bool)
-    def __eq__(self, other: PyScalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
+    def __eq__(  # type: ignore[override]
+        self,
+        other: ArrayOperandScalar | Array | np.ndarray,  # type: ignore[override]
+    ) -> Array:
         if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
             return NotImplemented
         return Array._from_tyarray(self._tyarray == _astyarray_or_pyscalar(other))
 
-    def __ne__(self, other: PyScalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
+    def __ne__(  # type: ignore[override]
+        self,
+        other: ArrayOperandScalar | Array | np.ndarray,  # type: ignore[override]
+    ) -> Array:
         if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
             return NotImplemented
         return Array._from_tyarray(self._tyarray != _astyarray_or_pyscalar(other))

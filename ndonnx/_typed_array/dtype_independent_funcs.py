@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from functools import reduce
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
 from ndonnx import DType
-from ndonnx.types import PyScalar
+from ndonnx.types import NumpyScalar, PyScalar, Scalar
 
 from . import TyArrayBase, promote
 from ._utils import validate_op_result
@@ -44,19 +44,23 @@ def result_type(first: DType, *others: DType) -> DType: ...
 
 @overload
 def result_type(
-    first: TyArrayBase | DType, *others: TyArrayBase | DType | PyScalar
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | Scalar
 ) -> DType: ...
 
 
 def result_type(
-    first: TyArrayBase | DType, *others: TyArrayBase | DType | PyScalar
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | Scalar
 ) -> DType:
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
-    def get_dtype_or_scalar(obj: TyArrayBase | DType | PyScalar) -> DType | PyScalar:
+    def get_dtype_or_scalar(obj: TyArrayBase | DType | Scalar) -> DType | PyScalar:
+        if isinstance(obj, NumpyScalar):
+            from ndonnx._from_numpy_dtype import from_numpy_dtype
+
+            return from_numpy_dtype(obj.dtype)
         if isinstance(obj, PyScalar):
             return obj
         if isinstance(obj, TyArrayBase):

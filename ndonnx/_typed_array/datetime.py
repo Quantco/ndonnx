@@ -20,6 +20,7 @@ from ndonnx._experimental import (
     onnx,
     safe_cast,
 )
+from ndonnx.types import IntegerScalar
 
 if TYPE_CHECKING:
     from types import NotImplementedType
@@ -27,7 +28,13 @@ if TYPE_CHECKING:
 
     from spox import Var
 
-    from ndonnx.types import NestedSequence, OnnxShape, PyScalar, Scalar
+    from ndonnx.types import (
+        NestedSequence,
+        NumericScalar,
+        OnnxShape,
+        PyScalar,
+        Scalar,
+    )
 
 
 Unit = Literal["ns", "us", "ms", "s"]
@@ -74,9 +81,9 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
 
     def __ndx_arange__(
         self,
-        start: int | float | TyArrayBase,
-        stop: int | float | TyArrayBase,
-        step: int | float | TyArrayBase = 1,
+        start: NumericScalar | TyArrayBase,
+        stop: NumericScalar | TyArrayBase,
+        step: NumericScalar | TyArrayBase = 1,
     ) -> TIMEARRAY_co:
         # check if we would get the same unit as self. Otherwise, we
         # return not implemented, and rely on this function being
@@ -88,7 +95,7 @@ class BaseTimeDType(DType[TIMEARRAY_co]):
                 if _result_unit(self.unit, s.dtype.unit) != self.unit:
                     return NotImplemented
                 sss_promoted.append(s.astype(type(s.dtype)(unit=s.dtype.unit)))
-            elif isinstance(s, int):
+            elif isinstance(s, IntegerScalar):
                 sss_promoted.append(onnx.const(s).astype(self))
             else:
                 return NotImplemented
@@ -144,7 +151,7 @@ class DateTime64DType(BaseTimeDType["TyArrayDateTime"]):
             return onnx.const(val.astype(np.int64)).astype(DateTime64DType(unit=unit))
         elif isinstance(val, TyArrayDateTime):
             return val.__ndx_cast_to__(self)
-        elif isinstance(val, int) or (
+        elif isinstance(val, IntegerScalar) or (
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
             return onnx.int64.__ndx_create__(val).astype(self)
@@ -177,7 +184,7 @@ class TimeDelta64DType(BaseTimeDType["TyArrayTimeDelta"]):
             return onnx.const(val.astype(np.int64)).astype(TimeDelta64DType(unit=unit))
         elif isinstance(val, TyArrayTimeDelta):
             return val.__ndx_cast_to__(self)
-        elif isinstance(val, int) or (
+        elif isinstance(val, IntegerScalar) or (
             isinstance(val, np.ndarray) and val.dtype.kind == "i"
         ):
             return onnx.int64.__ndx_create__(val).astype(self)
