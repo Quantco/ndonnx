@@ -37,6 +37,12 @@ def test_arange_pyscalar(start, stop, step, dtype: ndx.DType | None):
     np.testing.assert_array_equal(np_res, ndx_res, strict=True)
 
 
+# A bare-integer step against datetime/timedelta bounds triggers NumPy's
+# deprecation of the implicit 'generic' timedelta unit. That bare-integer
+# behavior is exactly what we assert works identically in numpy and ndonnx.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "start, stop, step",
     [

@@ -40,6 +40,11 @@ def test_value_prop_datetime(unit: Unit):
     )
 
 
+# ndonnx and numpy are fed identical bare-integer operands here; the bare int
+# triggers NumPy's deprecation of the implicit 'generic' timedelta unit.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 def test_arithmetic(unit: Unit):
     arr_np = np.array([1, 2, "NaT"], f"datetime64[{unit}]")
     arr = ndx.asarray(arr_np)
@@ -74,6 +79,11 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype):
     assert_equal_dtype_shape(arr + scalar, res_dtype, shape)
 
 
+# ndonnx and numpy are fed the identical bare-integer scalar here; the bare int
+# triggers NumPy's deprecation of the implicit 'generic' timedelta unit.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "op",
     [
@@ -236,6 +246,11 @@ def test_subtraction_datetime_arrays(x, y, unit1, unit2, forward):
     np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
 
 
+# ndonnx and numpy are fed the identical bare-integer scalar here; the bare int
+# triggers NumPy's deprecation of the implicit 'generic' timedelta unit.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 @pytest.mark.parametrize("x", ["NaT", "1900-01-12"])
 def test_subtraction_datetime_scalar(x, unit):
     np_x = np.array(x, f"datetime64[{unit}]")
@@ -431,7 +446,7 @@ def test_timedelta_arithmetic(op, unit1, unit2):
         dtype=f"timedelta64[{unit1}]",
     )
     rhs = np.asarray(
-        [timedelta(days=1), np.timedelta64("NaT"), timedelta(days=2)],
+        [timedelta(days=1), np.timedelta64("NaT", unit2), timedelta(days=2)],
         dtype=f"timedelta64[{unit2}]",
     )
     pd_result = op(lhs, rhs)

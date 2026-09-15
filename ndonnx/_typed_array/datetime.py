@@ -533,7 +533,7 @@ class TyArrayDateTime(TimeBaseArray):
         data = self._data.unwrap_numpy()
 
         out = data.astype(f"datetime64[{self.dtype.unit}]")
-        out[is_nat] = np.array("NaT", "datetime64")
+        out[is_nat] = np.array("NaT", f"datetime64[{self.dtype.unit}]")
         return out
 
     def __ndx_cast_to__(
