@@ -33,6 +33,8 @@ DTypeAlias: TypeAlias = (
     | Literal["int8", "int16", "int32", "int64"]
     | Literal["uint8", "uint16", "uint32", "uint64"]
     | Literal["float16", "float32", "float64"]
+    | Literal["datetime64[s]", "datetime64[ms]", "datetime64[us]", "datetime64[ns]"]
+    | Literal["timedelta64[s]", "timedelta64[ms]", "timedelta64[us]", "timedelta64[ns]"]
 )
 
 __all__ = [

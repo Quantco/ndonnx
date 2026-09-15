@@ -100,3 +100,40 @@ def test_time_dtype_creation_from_time_dtype(
         return npx.asarray(arr, dtype=new_dtype)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.parametrize(
+    "alias",
+    [
+        int,
+        bool,
+        float,
+        "bool",
+        "int",
+        "float",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float16",
+        "float32",
+        "float64",
+        "datetime64[s]",
+        "datetime64[ms]",
+        "datetime64[us]",
+        "datetime64[ns]",
+        "timedelta64[s]",
+        "timedelta64[ms]",
+        "timedelta64[us]",
+        "timedelta64[ns]",
+    ],
+)
+def test_dtype_aliases_resolve(alias):
+    def do(npx):
+        return npx.asarray(1, dtype=alias)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
