@@ -20,7 +20,7 @@ from ndonnx._experimental import (
     onnx,
     safe_cast,
 )
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import NestedSequence, NumericScalar, OnnxShape, PyScalar, Scalar
 
 if TYPE_CHECKING:
     from spox import Var
@@ -30,15 +30,15 @@ DTYPE = TypeVar("DTYPE", bound=DType)
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
-KEY = TypeVar("KEY", int, float, str)
-VALUE = TypeVar("VALUE", int, float, str)
+KEY = TypeVar("KEY", bound=Scalar)
+VALUE = TypeVar("VALUE", bound=Scalar)
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
     _unmasked_dtype: onnx._OnnxDType
 
     def __ndx_create__(
-        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
+        self, val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_MA_ARRAY_ONNX:
         if isinstance(val, np.ma.MaskedArray):
             data = onnx.const(val.data)
@@ -83,9 +83,9 @@ class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
 
     def __ndx_arange__(
         self,
-        start: int | float | TyArrayBase,
-        stop: int | float | TyArrayBase,
-        step: int | float | TyArrayBase = 1,
+        start: NumericScalar | TyArrayBase,
+        stop: NumericScalar | TyArrayBase,
+        step: NumericScalar | TyArrayBase = 1,
     ) -> TY_MA_ARRAY_ONNX:
         # Get everything onto the same type
         data = self._unmasked_dtype.__ndx_arange__(start, stop, step)

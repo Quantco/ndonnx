@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import operator
+from itertools import permutations
 
 import numpy as np
 import pytest
@@ -476,10 +477,38 @@ def test_creation_ones_like():
         ((ndx.int32, ndx.asarray([1, 2, 3], dtype=ndx.int64)), ndx.int64),
         ((ndx.float32, ndx.float64), ndx.float64),
         ((ndx.float64, ndx.int32), ndx.float64),
+        ((ndx.int32, np.int64(1)), ndx.int64),
+        ((ndx.float32, np.float16(1)), ndx.float32),
+        ((ndx.float32, np.float64(1)), ndx.float64),
+        ((ndx.uint8, np.uint64(1)), ndx.uint64),
+        ((ndx.int32, 1), ndx.int32),
+        ((ndx.float32, 1.0), ndx.float32),
+        ((ndx.uint8, 1), ndx.uint8),
     ],
 )
 def test_result_type(args, expected):
     assert ndx.result_type(*args) == expected
+
+
+@pytest.mark.parametrize("order", list(permutations(range(3))))
+@pytest.mark.parametrize(
+    "dtype, weak, scalar, expected",
+    [
+        (ndx.int32, 1, np.int64(1), ndx.int64),
+        (ndx.int8, 1.0, np.float16(1), ndx.float32),
+        (ndx.int8, 1.0, np.float32(1), ndx.float32),
+        (ndx.float32, 1.0, np.float64(1), ndx.float64),
+        (ndx.uint8, 1, np.uint64(1), ndx.uint64),
+    ],
+)
+def test_result_type_numpy_scalar_permutations(dtype, weak, scalar, expected, order):
+    scalar_args = (dtype, weak, scalar)
+    array_args = (dtype, weak, ndx.asarray(scalar))
+
+    candidate = ndx.result_type(*(scalar_args[i] for i in order))
+
+    assert candidate == expected
+    assert candidate == ndx.result_type(*(array_args[i] for i in order))
 
 
 def test_ceil():

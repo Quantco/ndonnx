@@ -62,6 +62,48 @@ def test_datetime_from_np_array(ty, unit):
     np.testing.assert_array_equal(arr.unwrap_numpy(), np_arr, strict=True)
 
 
+@pytest.mark.parametrize("cls", [ndx.DateTime64DType, ndx.TimeDelta64DType])
+@pytest.mark.parametrize(
+    "scalar_type", [int, np.int8, np.int64, np.uint64, np.longlong, np.ulonglong]
+)
+def test_temporal_integer_scalar_data(cls, scalar_type, unit):
+    dtype = cls(unit)
+    scalar = scalar_type(3)
+    expected = np.asarray(3, dtype=dtype.unwrap_numpy())
+
+    candidate = ndx.asarray(scalar, dtype=dtype)
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
+
+    full = ndx.full((2,), scalar, dtype=dtype)
+    full_like = ndx.full_like(full, scalar)
+    for filled in (full, full_like):
+        np.testing.assert_array_equal(
+            filled.unwrap_numpy(), np.full((2,), expected), strict=True
+        )
+
+
+@pytest.mark.parametrize("cls", [ndx.DateTime64DType, ndx.TimeDelta64DType])
+@pytest.mark.parametrize("scalar_type", [np.int64, np.uint64])
+def test_temporal_numpy_integer_assignment(cls, scalar_type, unit):
+    dtype = cls(unit)
+    candidate = ndx.full((2,), 0, dtype=dtype)
+
+    candidate[0] = scalar_type(3)
+
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(),
+        np.asarray([3, 0], dtype=dtype.unwrap_numpy()),
+        strict=True,
+    )
+
+
+@pytest.mark.parametrize("cls", [ndx.DateTime64DType, ndx.TimeDelta64DType])
+@pytest.mark.parametrize("scalar_type", [float, np.float16, np.float32, np.float64])
+def test_temporal_floating_scalar_data_rejected(cls, scalar_type, unit):
+    with pytest.raises(ValueError, match="failed to instantiate"):
+        ndx.asarray(scalar_type(3), dtype=cls(unit))
+
+
 @pytest.mark.parametrize(
     "scalar, dtype, res_dtype",
     [

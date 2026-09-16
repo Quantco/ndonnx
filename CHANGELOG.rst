@@ -14,6 +14,10 @@ Changelog
 
 - Added support for :func:`ndonnx.log1p` and :func:`ndonnx.expm1`.
 
+**Bug fix**
+
+- NumPy scalar support has been expanded for scalar data and operand arguments, including construction, promotion, selection, elementwise functions, and extensions.
+
 **Other change**
 
 - Fixed deprecation warnings emitted from ``numpy >=2.5``.

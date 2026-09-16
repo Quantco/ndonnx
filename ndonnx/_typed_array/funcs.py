@@ -5,13 +5,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from functools import reduce
 from types import NotImplementedType
-from typing import Literal, TypeVar, overload
+from typing import Literal, TypeVar, get_args, overload
 
 import numpy as np
 from spox import Var
 
 from ndonnx import DType, from_numpy_dtype
-from ndonnx.types import NestedSequence, PyScalar
+from ndonnx.types import NestedSequence, NumericScalar, NumpyScalar, PyScalar, Scalar
 
 from . import TyArrayBase, datetime, masked_onnx, onnx, promote
 from ._utils import validate_op_result
@@ -34,7 +34,7 @@ def _infer_sequence(
 
 
 def _infer_dtype(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence | np.generic,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
 ) -> DType:
     if isinstance(val, np.generic):
         return from_numpy_dtype(val.dtype)
@@ -70,20 +70,20 @@ def _infer_dtype(
 
 @overload
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: DType[TY_ARRAY_BASE_co],
 ) -> TY_ARRAY_BASE_co: ...
 
 
 @overload
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: None | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: None | DType[TY_ARRAY_BASE_co] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
@@ -126,19 +126,21 @@ def result_type(first: DType, *others: DType) -> DType: ...
 
 @overload
 def result_type(
-    first: TyArrayBase | DType, *others: TyArrayBase | DType | PyScalar
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | Scalar
 ) -> DType: ...
 
 
 def result_type(
-    first: TyArrayBase | DType, *others: TyArrayBase | DType | PyScalar
+    first: TyArrayBase | DType, *others: TyArrayBase | DType | Scalar
 ) -> DType:
     def get_dtype(obj: TyArrayBase | DType) -> DType:
         if isinstance(obj, TyArrayBase):
             return obj.dtype
         return obj
 
-    def get_dtype_or_scalar(obj: TyArrayBase | DType | PyScalar) -> DType | PyScalar:
+    def get_dtype_or_scalar(obj: TyArrayBase | DType | Scalar) -> DType | PyScalar:
+        if isinstance(obj, NumpyScalar):
+            return from_numpy_dtype(obj.dtype)
         if isinstance(obj, PyScalar):
             return obj
         if isinstance(obj, TyArrayBase):
@@ -203,6 +205,9 @@ def where(
 ) -> TyArrayBase:
     if not isinstance(cond, onnx.TyArrayBool):
         raise TypeError("'cond' must be a boolean data type.")
+
+    if not isinstance(x, TyArrayBase) and not isinstance(y, TyArrayBase):
+        x = astyarray(x)
 
     res: NotImplementedType | TyArrayBase = NotImplemented
     if isinstance(x, TyArrayBase):
@@ -294,19 +299,43 @@ def minimum(
 
 def arange(
     dtype: DType[TY_ARRAY_BASE_co] | None,
-    start: int | float | TyArrayBase,
-    stop: int | float | TyArrayBase,
-    step: int | float | TyArrayBase = 1,
+    start: NumericScalar | TyArrayBase,
+    stop: NumericScalar | TyArrayBase,
+    step: NumericScalar | TyArrayBase = 1,
 ) -> TyArrayBase:
+    args = [start, stop, step]
+    dtypes: list[DType]
     if dtype is None:
-        if all(isinstance(el, int) for el in [start, stop, step]):
-            dtypes: list[DType] = [onnx.int64]
-        elif all(isinstance(el, int | float) for el in [start, stop, step]):
+        if any(isinstance(el, NumpyScalar) for el in args):
+            array_dtypes = [el.dtype for el in args if isinstance(el, TyArrayBase)]
+            if any(
+                type(dt) not in get_args(onnx.DTypes | masked_onnx.DTypes)
+                for dt in array_dtypes
+            ):
+                # Temporal and custom dtypes interpret their own scalar range
+                # parameters, just as they do for Python scalar arguments.
+                dtypes = array_dtypes
+            else:
+                promotion_args: list[DType | PyScalar] = [
+                    (
+                        el.dtype
+                        if isinstance(el, TyArrayBase)
+                        else from_numpy_dtype(el.dtype)
+                        if isinstance(el, NumpyScalar)
+                        else el
+                    )
+                    for el in args
+                ]
+                promotion_args.sort(key=lambda el: isinstance(el, DType), reverse=True)
+                first, *others = promotion_args
+                assert isinstance(first, DType)
+                dtypes = [_result_dtype(first, *others)]
+        elif all(isinstance(el, int) for el in args):
+            dtypes = [onnx.int64]
+        elif all(isinstance(el, int | float) for el in args):
             dtypes = [onnx.float64]
         else:
-            dtypes = [
-                el.dtype for el in [start, stop, step] if isinstance(el, TyArrayBase)
-            ]
+            dtypes = [el.dtype for el in args if isinstance(el, TyArrayBase)]
     else:
         dtypes = [dtype]
     for dtype_ in dtypes:

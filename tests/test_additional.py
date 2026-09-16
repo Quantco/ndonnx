@@ -3,6 +3,7 @@
 
 
 import numpy as np
+import onnxruntime as ort
 import pytest
 
 import ndonnx as ndx
@@ -144,6 +145,81 @@ def test_static_map(x, mapping, default, expected):
     assert_array_equal(actual.unwrap_numpy(), expected)
 
 
+def test_static_map_numpy_float16_key():
+    x = ndx.asarray([1.0, 2.0], dtype=ndx.float32)
+
+    candidate = nda.static_map(x, {np.float16(1): 3}, default=0)
+
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(), np.asarray([3, 0], dtype=np.int64), strict=True
+    )
+
+
+def test_static_map_numpy_float16_input_execution():
+    x = ndx.argument(shape=(3,), dtype=ndx.float16)
+    candidate = nda.static_map(x, {np.float16(1): 3, np.float16(2): 4}, default=0)
+
+    actual = run(
+        ndx.build({"x": x}, {"y": candidate}),
+        {"x": np.asarray([1, 2, 3], dtype=np.float16)},
+    )["y"]
+
+    assert_array_equal(actual, np.asarray([3, 4, 0], dtype=np.int64))
+
+
+@pytest.mark.parametrize(
+    "scalar_type, mapped, default",
+    [
+        (np.int16, 32767, -32768),
+        (np.int32, 2, 0),
+        (np.int64, 2, 0),
+        (np.float32, 2.5, 0.5),
+        (np.float64, 2.5, 0.5),
+        (np.str_, "mapped", "missing"),
+        (np.bool_, True, False),
+    ],
+)
+def test_static_map_numpy_output_execution(scalar_type, mapped, default):
+    x = ndx.argument(shape=(2,), dtype=ndx.int32)
+    mapped, default = scalar_type(mapped), scalar_type(default)
+    candidate = nda.static_map(x, {1: mapped}, default=default)
+
+    # Test kernel support independently of ORT's string-attribute optimizer bug.
+    options = ort.SessionOptions()
+    options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
+    session = ort.InferenceSession(
+        ndx.build({"x": x}, {"y": candidate}).SerializeToString(),
+        sess_options=options,
+    )
+    (actual,) = session.run(None, {"x": np.asarray([1, 3], dtype=np.int32)})
+
+    assert candidate.dtype == ndx.from_numpy_dtype(np.asarray(mapped).dtype)
+    expected = np.asarray(
+        [mapped, default], dtype=object if scalar_type is np.str_ else None
+    )
+    assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([1, 2], [False, True, True, False]),
+        ([np.nan, 1, 2], [False, True, True, False]),
+        ([np.nan], [False, False, False, False]),
+    ],
+)
+def test_isin_numpy_float16_input_execution(values, expected):
+    x = ndx.argument(shape=(4,), dtype=ndx.float16)
+    candidate = nda.isin(x, [np.float16(value) for value in values])
+
+    actual = run(
+        ndx.build({"x": x}, {"y": candidate}),
+        {"x": np.asarray([np.nan, 1, 2, 3], dtype=np.float16)},
+    )["y"]
+
+    assert_array_equal(actual, np.asarray(expected, dtype=np.bool_))
+
+
 @pytest.mark.parametrize(
     "np_arr, test_items, desired",
     [
@@ -177,6 +253,19 @@ def test_isin(np_arr, test_items, desired):
     actual = nda.isin(arr, test_items)
 
     np.testing.assert_equal(actual.unwrap_numpy(), desired)
+
+
+@pytest.mark.parametrize("scalar_type", [float, np.float16, np.float32, np.float64])
+@pytest.mark.parametrize("values", [[np.nan], [np.nan, 1], [np.nan, 1, 2]])
+def test_isin_numpy_floating_nan(scalar_type, values):
+    array = np.asarray([np.nan, 1, 2, 3], dtype=np.float32)
+    items = [scalar_type(value) for value in values]
+
+    candidate = nda.isin(ndx.asarray(array), items)
+
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(), np.isin(array, items), strict=True
+    )
 
 
 @pytest.mark.parametrize(

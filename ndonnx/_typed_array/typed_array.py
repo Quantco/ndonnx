@@ -12,7 +12,7 @@ import numpy as np
 
 from ndonnx import DType
 from ndonnx._typed_array import safe_cast
-from ndonnx.types import OnnxShape, PyScalar
+from ndonnx.types import NumericScalar, OnnxShape, PyScalar
 
 if TYPE_CHECKING:
     from spox import Var
@@ -444,7 +444,7 @@ class TyArrayBase(ABC):
         self,
         *,
         axis: int | tuple[int, ...] | None = None,
-        correction: int | float = 0.0,
+        correction: NumericScalar = 0.0,
         keepdims: bool = False,
     ) -> Self:
         raise _make_type_error("std", self.dtype)
@@ -453,7 +453,7 @@ class TyArrayBase(ABC):
         self,
         *,
         axis: int | tuple[int, ...] | None = None,
-        correction: int | float = 0.0,
+        correction: NumericScalar = 0.0,
         keepdims: bool = False,
     ) -> Self:
         raise _make_type_error("var", self.dtype)

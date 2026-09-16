@@ -51,3 +51,20 @@ def test_repeat(x, repeats, axis):
         return npx.repeat(npx.asarray(x), repeats_, axis=axis)
 
     np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+def test_repeat_numpy_integer_scalar():
+    x = ndx.asarray([1, 2], dtype=ndx.int32)
+
+    candidate = ndx.repeat(x, np.int64(2))
+
+    np.testing.assert_array_equal(
+        candidate.unwrap_numpy(), np.repeat(np.asarray([1, 2], dtype=np.int32), 2)
+    )
+
+
+def test_repeat_numpy_floating_scalar_raises():
+    x = ndx.asarray([1, 2], dtype=ndx.int32)
+
+    with pytest.raises(TypeError, match="integer scalar"):
+        ndx.repeat(x, np.float64(2))  # type: ignore[arg-type]

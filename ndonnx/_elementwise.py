@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 """Element-wise free functions.
 
@@ -12,6 +12,7 @@ from typing import TypeVar
 
 import ndonnx as ndx
 from ndonnx import Array, DType
+from ndonnx.types import BooleanScalar, IntegerScalar, NumericScalar
 
 from ._array_tyarray_interop import unwrap_tyarray
 from ._typed_array import funcs as tyfuncs
@@ -34,8 +35,15 @@ def _ensure_array_in_args(fn: F) -> F:
 
 
 @_ensure_array_in_args
-def add(a: Array | int | float, b: Array | int | float) -> Array:
-    return ndx.asarray(a + b)
+def add(
+    a: Array | BooleanScalar | NumericScalar,
+    b: Array | BooleanScalar | NumericScalar,
+) -> Array:
+    if isinstance(a, Array):
+        return ndx.asarray(a + b)
+    if isinstance(b, Array):
+        return ndx.asarray(a + b)
+    raise AssertionError("unreachable")
 
 
 def abs(array: Array, /) -> Array:
@@ -74,12 +82,18 @@ def atanh(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def bitwise_and(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+def bitwise_and(
+    x1: Array | BooleanScalar | IntegerScalar,
+    x2: Array | BooleanScalar | IntegerScalar,
+    /,
+) -> Array:
     return ndx.asarray(x1 & x2)
 
 
 @_ensure_array_in_args
-def bitwise_left_shift(x1: Array | int, x2: Array | int, /) -> Array:
+def bitwise_left_shift(
+    x1: Array | IntegerScalar, x2: Array | IntegerScalar, /
+) -> Array:
     return ndx.asarray(x1 << x2)
 
 
@@ -88,17 +102,27 @@ def bitwise_invert(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def bitwise_or(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+def bitwise_or(
+    x1: Array | BooleanScalar | IntegerScalar,
+    x2: Array | BooleanScalar | IntegerScalar,
+    /,
+) -> Array:
     return ndx.asarray(x1 | x2)
 
 
 @_ensure_array_in_args
-def bitwise_right_shift(x1: Array | int, x2: Array | int, /) -> Array:
+def bitwise_right_shift(
+    x1: Array | IntegerScalar, x2: Array | IntegerScalar, /
+) -> Array:
     return ndx.asarray(x1 >> x2)
 
 
 @_ensure_array_in_args
-def bitwise_xor(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+def bitwise_xor(
+    x1: Array | BooleanScalar | IntegerScalar,
+    x2: Array | BooleanScalar | IntegerScalar,
+    /,
+) -> Array:
     return ndx.asarray(x1 ^ x2)
 
 
@@ -109,10 +133,10 @@ def ceil(array: Array, /) -> Array:
 def clip(
     x: Array,
     /,
-    min: None | int | float | Array = None,
-    max: None | int | float | Array = None,
+    min: None | NumericScalar | Array = None,
+    max: None | NumericScalar | Array = None,
 ) -> Array:
-    min_max: list[int | float | DType] = []
+    min_max: list[NumericScalar | DType] = []
     if min is not None:
         if isinstance(min, Array):
             min_max.append(min.dtype)
@@ -144,8 +168,12 @@ def copysign(x1: Array | int | float, x2: Array | int | float, /) -> Array:
 
 
 @_ensure_array_in_args
-def divide(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    return ndx.asarray(x1 / x2)
+def divide(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
+    if isinstance(x1, Array):
+        return ndx.asarray(x1 / x2)
+    if isinstance(x2, Array):
+        return ndx.asarray(x1 / x2)
+    raise AssertionError("unreachable")
 
 
 def exp(array: Array, /) -> Array:
@@ -157,7 +185,11 @@ def expm1(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def equal(x1: Array | int | float | bool, x2: Array | int | float | bool, /) -> Array:
+def equal(
+    x1: Array | BooleanScalar | NumericScalar,
+    x2: Array | BooleanScalar | NumericScalar,
+    /,
+) -> Array:
     return ndx.asarray(x1 == x2)
 
 
@@ -166,17 +198,21 @@ def floor(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def floor_divide(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    return ndx.asarray(x1 // x2)
+def floor_divide(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
+    if isinstance(x1, Array):
+        return ndx.asarray(x1 // x2)
+    if isinstance(x2, Array):
+        return ndx.asarray(x1 // x2)
+    raise AssertionError("unreachable")
 
 
 @_ensure_array_in_args
-def greater(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def greater(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return ndx.asarray(x1 > x2)
 
 
 @_ensure_array_in_args
-def greater_equal(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def greater_equal(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return ndx.asarray(x1 >= x2)
 
 
@@ -198,12 +234,12 @@ def isnan(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def less(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def less(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return ndx.asarray(x1 < x2)
 
 
 @_ensure_array_in_args
-def less_equal(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def less_equal(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return ndx.asarray(x1 <= x2)
 
 
@@ -224,14 +260,14 @@ def log10(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def logaddexp(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def logaddexp(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logaddexp(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
 
 
 @_ensure_array_in_args
-def logical_and(x1: Array | bool, x2: Array | bool, /) -> Array:
+def logical_and(x1: Array | BooleanScalar, x2: Array | BooleanScalar, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logical_and(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
@@ -242,32 +278,40 @@ def logical_not(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def logical_or(x1: Array | bool, x2: Array | bool, /) -> Array:
+def logical_or(x1: Array | BooleanScalar, x2: Array | BooleanScalar, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logical_or(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
 
 
 @_ensure_array_in_args
-def logical_xor(x1: Array | bool, x2: Array | bool, /) -> Array:
+def logical_xor(x1: Array | BooleanScalar, x2: Array | BooleanScalar, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logical_xor(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
 
 
 @_ensure_array_in_args
-def maximum(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def maximum(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return Array._from_tyarray(tyfuncs.maximum(unwrap_tyarray(x1), unwrap_tyarray(x2)))
 
 
 @_ensure_array_in_args
-def minimum(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def minimum(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
     return Array._from_tyarray(tyfuncs.minimum(unwrap_tyarray(x1), unwrap_tyarray(x2)))
 
 
 @_ensure_array_in_args
-def multiply(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    return ndx.asarray(x1 * x2)
+def multiply(
+    x1: Array | BooleanScalar | NumericScalar,
+    x2: Array | BooleanScalar | NumericScalar,
+    /,
+) -> Array:
+    if isinstance(x1, Array):
+        return ndx.asarray(x1 * x2)
+    if isinstance(x2, Array):
+        return ndx.asarray(x1 * x2)
+    raise AssertionError("unreachable")
 
 
 def negative(x: Array, /) -> Array:
@@ -283,7 +327,9 @@ def nextafter(x1: Array | int | float, x2: Array | int | float, /) -> Array:
 
 @_ensure_array_in_args
 def not_equal(
-    x1: Array | int | float | bool, x2: Array | int | float | bool, /
+    x1: Array | BooleanScalar | NumericScalar,
+    x2: Array | BooleanScalar | NumericScalar,
+    /,
 ) -> Array:
     return ndx.asarray(x1 != x2)
 
@@ -293,8 +339,12 @@ def positive(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def pow(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    return ndx.asarray(x1**x2)
+def pow(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
+    if isinstance(x1, Array):
+        return ndx.asarray(x1**x2)
+    if isinstance(x2, Array):
+        return ndx.asarray(x1**x2)
+    raise AssertionError("unreachable")
 
 
 def real(x: Array, /) -> Array:
@@ -306,8 +356,12 @@ def reciprocal(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def remainder(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    return ndx.asarray(x1 % x2)
+def remainder(x1: Array | NumericScalar, x2: Array | NumericScalar, /) -> Array:
+    if isinstance(x1, Array):
+        return ndx.asarray(x1 % x2)
+    if isinstance(x2, Array):
+        return ndx.asarray(x1 % x2)
+    raise AssertionError("unreachable")
 
 
 def round(x: Array, /) -> Array:
@@ -339,8 +393,16 @@ def sqrt(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def subtract(x1: Array | int | float, x2: Array | int | float, /) -> Array:
-    return ndx.asarray(x1 - x2)
+def subtract(
+    x1: Array | BooleanScalar | NumericScalar,
+    x2: Array | BooleanScalar | NumericScalar,
+    /,
+) -> Array:
+    if isinstance(x1, Array):
+        return ndx.asarray(x1 - x2)
+    if isinstance(x2, Array):
+        return ndx.asarray(x1 - x2)
+    raise AssertionError("unreachable")
 
 
 def tan(x: Array, /) -> Array:

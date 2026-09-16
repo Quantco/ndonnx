@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import builtins
 import math
+import operator
 from collections.abc import Sequence
 from typing import Literal, NamedTuple, overload
 from warnings import warn
@@ -13,7 +14,16 @@ import numpy as np
 from spox import Var
 
 import ndonnx as ndx
-from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import (
+    DTypeAlias,
+    IntegerScalar,
+    NestedSequence,
+    NumericScalar,
+    NumpyScalar,
+    OnnxShape,
+    PyScalar,
+    Scalar,
+)
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
@@ -86,7 +96,7 @@ def argument(
 
 
 def asarray(
-    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
+    obj: Array | Scalar | np.ndarray | NestedSequence | Var,
     /,
     *,
     dtype: ndx.DType | DTypeAlias | None = None,
@@ -146,10 +156,10 @@ def any(
 
 
 def arange(
-    start: int | float | Array,
+    start: NumericScalar | Array,
     /,
-    stop: int | float | Array | None = None,
-    step: int | float | Array = 1,
+    stop: NumericScalar | Array | None = None,
+    step: NumericScalar | Array = 1,
     *,
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
@@ -161,7 +171,7 @@ def arange(
         if isinstance(item, Array):
             if not item.ndim == 0:
                 raise ValueError("array arguments to 'arange' must be of rank 0")
-        elif not isinstance(item, int | float):
+        elif not isinstance(item, NumericScalar):
             raise TypeError(
                 f"unexpected type for 'start', 'stop', or 'step': `{type(item)}`"
             )
@@ -379,7 +389,7 @@ def std(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    correction: int | float = 0.0,
+    correction: NumericScalar = 0.0,
     keepdims: bool = False,
 ) -> Array:
     return Array._from_tyarray(
@@ -406,7 +416,7 @@ def var(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    correction: int | float = 0.0,
+    correction: NumericScalar = 0.0,
     keepdims: bool = False,
 ) -> Array:
     return Array._from_tyarray(
@@ -493,7 +503,7 @@ def flip(x: Array, /, *, axis: int | tuple[int, ...] | None = None) -> Array:
 
 def full(
     shape: int | tuple[int, ...] | Array,
-    fill_value: bool | int | float | str,
+    fill_value: Scalar,
     *,
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
@@ -522,7 +532,7 @@ def full(
 def full_like(
     x: Array,
     /,
-    fill_value: bool | int | float | str,
+    fill_value: Scalar,
     *,
     dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
@@ -558,8 +568,8 @@ def isdtype(dtype: DType, kind: DType | str | tuple[DType | str, ...]) -> bool:
 
 
 def linspace(
-    start: int | float | complex,
-    stop: int | float | complex,
+    start: NumericScalar | complex,
+    stop: NumericScalar | complex,
     /,
     num: int,
     *,
@@ -631,44 +641,49 @@ def reshape(
     return Array._from_tyarray(x._tyarray.reshape(shape))
 
 
-def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Array:
+def repeat(
+    x: Array, repeats: IntegerScalar | Array, /, *, axis: int | None = None
+) -> Array:
     repeats_: int | onnx.TyArrayInt64
-    if isinstance(repeats, int):
-        repeats_ = repeats
-    elif isinstance(repeats._tyarray, onnx.TyArrayInteger):
+    if isinstance(repeats, IntegerScalar):
+        repeats_ = operator.index(repeats)
+    elif isinstance(repeats, Array) and isinstance(
+        repeats._tyarray, onnx.TyArrayInteger
+    ):
         repeats_ = repeats._tyarray.astype(onnx.int64)
     else:
         raise TypeError(
-            f"'repeats' argument must be of type 'int' or an array with an integer data type, found `{repeats}`"
+            "'repeats' argument must be an integer scalar or an array with an "
+            f"integer data type, found `{repeats}`"
         )
 
     return Array._from_tyarray(x._tyarray.repeat(repeats_, axis=axis))
 
 
-def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
-    def dtype_or_scalar(obj: Array | DType | PyScalar) -> DType | PyScalar:
+def result_type(*arrays_and_dtypes: Array | DType | Scalar) -> DType:
+    def dtype_or_scalar(obj: Array | DType | Scalar) -> DType | PyScalar:
         if isinstance(obj, Array):
             return obj.dtype
+        if isinstance(obj, NumpyScalar):
+            return ndx.from_numpy_dtype(obj.dtype)
         return obj
 
     if len(arrays_and_dtypes) == 0:
         raise ValueError("at least one array or dtype is required")
-    items = sorted(
-        arrays_and_dtypes,
-        key=lambda item: int(isinstance(item, Array | DType)),
-        reverse=True,
-    )
-    first, *others = items
-
-    if not isinstance(first, Array | DType):
+    if not builtins.any(isinstance(item, Array | DType) for item in arrays_and_dtypes):
         raise ValueError(
             "arguments to 'result_type' must contain at least one 'Array' or 'DType' object"
         )
 
-    if isinstance(first, Array):
-        first = first.dtype
+    items = sorted(
+        (dtype_or_scalar(item) for item in arrays_and_dtypes),
+        key=lambda item: int(isinstance(item, DType)),
+        reverse=True,
+    )
+    first, *others = items
+    assert isinstance(first, DType)
 
-    return tyfuncs.result_type(first, *(dtype_or_scalar(el) for el in others))
+    return tyfuncs.result_type(first, *others)
 
 
 def roll(
@@ -820,8 +835,8 @@ def vecdot(x1: Array, x2: Array, /, *, axis: int = -1) -> Array:
 
 def where(
     cond: Array,
-    a: Array | int | float | bool | str,
-    b: Array | int | float | bool | str,
+    a: Array | Scalar,
+    b: Array | Scalar,
 ) -> Array:
     if not isinstance(cond._tyarray, onnx.TyArrayBool):
         raise TypeError(f"'cond' must be of data type 'bool', found `{cond.dtype}`")

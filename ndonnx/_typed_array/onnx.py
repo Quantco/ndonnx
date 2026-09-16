@@ -24,7 +24,7 @@ import numpy as np
 from spox import Tensor, Var, argument, build, inline
 
 from ndonnx import DType
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import NestedSequence, NumericScalar, OnnxShape, PyScalar, Scalar
 
 from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
@@ -61,8 +61,8 @@ TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=Tr
 
 TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
 
-KEY = TypeVar("KEY", int, float, str)
-VALUE = TypeVar("VALUE", int, float, str)
+KEY = TypeVar("KEY", bound=Scalar)
+VALUE = TypeVar("VALUE", bound=Scalar)
 
 
 P = ParamSpec("P")
@@ -150,7 +150,7 @@ class _OnnxDType(DType[TY_ARRAY_co]):
         return NotImplemented
 
     def __ndx_create__(
-        self, val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence
+        self, val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence
     ) -> TY_ARRAY_co | NotImplementedType:
         if isinstance(val, Var):
             return _var_to_tyarray(val).astype(self)
@@ -204,18 +204,65 @@ class _OnnxDType(DType[TY_ARRAY_co]):
 class _Number(_OnnxDType[TY_ARRAY_co]):
     def __ndx_arange__(
         self,
-        start: int | float | TyArrayBase,
-        stop: int | float | TyArrayBase,
-        step: int | float | TyArrayBase = 1,
+        start: NumericScalar | TyArrayBase,
+        stop: NumericScalar | TyArrayBase,
+        step: NumericScalar | TyArrayBase = 1,
     ) -> TY_ARRAY_co:
-        # onnxruntime has issues computing the correct number of
-        # elements if the arguments to this function include very
-        # large numbers. See hypothesis test examples.
+        scalar_args = [
+            el for el in [start, stop, step] if isinstance(el, NumericScalar)
+        ]
+        if len(scalar_args) == 3:
+            numpy_scalars = [el for el in scalar_args if isinstance(el, np.generic)]
+            if not numpy_scalars:
+                # onnxruntime has issues computing the correct number of
+                # elements for very large Python integers. See hypothesis tests.
+                return const(np.arange(start, stop, step)).astype(self)  # type: ignore
 
-        if all(isinstance(el, int | float) for el in [start, stop, step]):
-            return const(np.arange(start, stop, step)).astype(self)  # type: ignore
+            from .funcs import result_type as scalar_result_type
+
+            dtype = scalar_result_type(
+                const(numpy_scalars[0]),
+                *numpy_scalars[1:],
+                *(el for el in scalar_args if not isinstance(el, np.generic)),
+            )
+            assert isinstance(dtype, _Number)
+            if isinstance(dtype, Integer):
+                np_dtype = dtype.unwrap_numpy()
+                # Establish the strong dtype and validate weak scalar bounds
+                # before using Python integers for exact range arithmetic.
+                # Even int64/uint64 spans can overflow ONNX Range's length
+                # calculation. Python range never subtracts or steps in that dtype.
+                values = range(
+                    *(int(np.asarray(el, dtype=np_dtype)) for el in scalar_args)
+                )
+                return const(np.fromiter(values, dtype=np_dtype)).astype(self)
+
+            # NumPy scalar ranges are static, so construct them eagerly just as
+            # the pre-NumPy-scalar path did. Establish the semantic dtype before
+            # doing any range-length arithmetic: subtraction in an original
+            # integer dtype can wrap to a finite, incorrect value. Retain the
+            # promoted NumPy scalars when their length arithmetic is safe because
+            # their precision can affect floating range lengths. Otherwise use
+            # Python floats derived from those promoted values for construction.
+            np_dtype = dtype.unwrap_numpy()
+            promoted_args = cast(
+                tuple[NumericScalar, ...],
+                tuple(np.asarray(el, dtype=np_dtype)[()] for el in scalar_args),
+            )
+            start_, stop_, step_ = promoted_args
+            range_args = promoted_args
+            if step_ != 0 and all(np.isfinite(el) for el in promoted_args):
+                with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+                    promoted_span = stop_ - start_
+                    promoted_length_ratio = promoted_span / step_
+                if not np.isfinite(promoted_span) or not np.isfinite(
+                    promoted_length_ratio
+                ):
+                    range_args = tuple(float(el) for el in promoted_args)
+            floating_values = np.arange(*range_args, dtype=np_dtype)
+            return const(floating_values).astype(self)
         sss = [
-            const(el, self) if isinstance(el, int | float) else el.astype(self)
+            const(el, self) if isinstance(el, NumericScalar) else el.astype(self)
             for el in [start, stop, step]
         ]
         return self._build(op.range(*[arr._var for arr in sss]))
@@ -960,7 +1007,11 @@ class TyArray(TyArrayBase):
 
     def isin(self, items: Sequence[VALUE]) -> TyArrayBool:
         # Filter out nan values since we never want to compare equal to them (NumPy semantics)
-        items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
+        items = [
+            el
+            for el in items
+            if not isinstance(el, float | np.floating) or not np.isnan(el)
+        ]
 
         # Optimizations:
         if len(items) == 0:
@@ -2024,7 +2075,7 @@ class TyArrayFloating(TyArrayNumber):
         /,
         *,
         axis: int | tuple[int, ...] | None = None,
-        correction: int | float = 0.0,
+        correction: NumericScalar = 0.0,
         keepdims: bool = False,
     ) -> Self:
         res = self.variance(axis=axis, correction=correction, keepdims=keepdims).sqrt()
@@ -2035,7 +2086,7 @@ class TyArrayFloating(TyArrayNumber):
         /,
         *,
         axis: int | tuple[int, ...] | None = None,
-        correction: int | float = 0.0,
+        correction: NumericScalar = 0.0,
         keepdims: bool = False,
     ) -> Self:
         if axis is None:
@@ -2352,9 +2403,7 @@ def _var_to_tyarray(var: Var) -> TyArray:
 
 
 @overload
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]
-) -> TY_ARRAY_co: ...
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]) -> TY_ARRAY_co: ...
 
 
 @overload
@@ -2362,14 +2411,10 @@ def const(obj: int, dtype: None = None) -> TyArrayInt64: ...
 
 
 @overload
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
-) -> TyArray: ...
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType | None = None) -> TyArray: ...
 
 
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
-) -> TyArray:
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType | None = None) -> TyArray:
     """Create a constant from the given value.
 
     The `dtype` argument may be used in favor of a subsequent `astype` call to create a
