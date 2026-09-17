@@ -39,6 +39,14 @@ DTYPE_ALIAS_MAP = {
     "float16": onnx.float16,
     "float32": onnx.float32,
     "float64": onnx.float64,
+    "datetime64[s]": ndx.DateTime64DType("s"),
+    "datetime64[ms]": ndx.DateTime64DType("ms"),
+    "datetime64[us]": ndx.DateTime64DType("us"),
+    "datetime64[ns]": ndx.DateTime64DType("ns"),
+    "timedelta64[s]": ndx.TimeDelta64DType("s"),
+    "timedelta64[ms]": ndx.TimeDelta64DType("ms"),
+    "timedelta64[us]": ndx.TimeDelta64DType("us"),
+    "timedelta64[ns]": ndx.TimeDelta64DType("ns"),
 }
 
 
