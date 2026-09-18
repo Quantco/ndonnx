@@ -481,3 +481,53 @@ def test_result_type(dtype_cls, unit1, unit2):
         return npx.result_type(dtype1, dtype2)
 
     assert do(np) == do(ndx).unwrap_numpy()
+
+
+@pytest.mark.parametrize("dtype_name", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize(
+    "values, comparison_values",
+    [
+        ([1, 2], [1, 3]),
+        ([1, 2], []),
+        ([1, "NaT"], [1, 3]),
+        (["NaT"], ["NaT", 1]),
+    ],
+)
+def test_isin_basic(dtype_name, values, comparison_values, unit):
+    values = np.array(values, dtype=f"{dtype_name}[{unit}]")
+    comparison_values = np.array(comparison_values, dtype=f"{dtype_name}[{unit}]")
+
+    result = ndx.extensions.isin(ndx.asarray(values), comparison_values)
+    expected = np.isin(values, comparison_values)
+
+    np.testing.assert_array_equal(result.unwrap_numpy(), expected)
+
+
+@pytest.mark.parametrize("values_dtype", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize(
+    "comparison_values",
+    [
+        np.array([1, 2]),
+        np.array([1.0, 2.0]),
+        np.array(["hello"]),
+        [1, np.datetime64(3, "ns")],
+    ],
+)
+def test_isin_raises(values_dtype, comparison_values, unit):
+    values = np.array([1, 2, 3], dtype=f"{values_dtype}[{unit}]")
+
+    with pytest.raises(TypeError, match="comparison values for 'isin'"):
+        ndx.extensions.isin(ndx.asarray(values), comparison_values)
+
+
+@pytest.mark.parametrize("dtype_name", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize("values_unit", get_args(Unit))
+@pytest.mark.parametrize("comparison_unit", get_args(Unit))
+def test_isin_cross_unit(dtype_name, values_unit, comparison_unit):
+    values = np.array([int(1e9), int(2e9)], dtype=f"{dtype_name}[{values_unit}]")
+    comparison_value = values[:1].astype(f"{dtype_name}[{comparison_unit}]")
+
+    result = ndx.extensions.isin(ndx.asarray(values), comparison_value)
+    expected = np.isin(values, comparison_value)
+
+    np.testing.assert_array_equal(result.unwrap_numpy(), expected)
