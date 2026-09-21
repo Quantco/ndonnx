@@ -18,14 +18,13 @@ if TYPE_CHECKING:
     from spox import Var
 
     from .onnx import (
-        KEY,
-        VALUE,
         GetitemIndex,
         SetitemIndex,
         TyArrayBool,
         TyArrayInt64,
         TyArrayInteger,
     )
+    from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 _Self_co = TypeVar("_Self_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
@@ -775,7 +774,7 @@ class TyArrayBase(ABC):
     # Non-standard functions that reflect free functions #
     ######################################################
 
-    def isin(self, items: Sequence[VALUE], /) -> TyArrayBool:
+    def isin(self, items: Sequence[ISIN_SCALAR], /) -> TyArrayBool:
         """Return for each element in ``self`` that is found in ``items``.
 
         ``NaN`` values do **not** compare equal.
@@ -795,7 +794,7 @@ class TyArrayBase(ABC):
         raise _make_type_error("isin", self.dtype)
 
     def apply_mapping(
-        self, mapping: Mapping[KEY, VALUE], default: VALUE
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
     ) -> TyArrayBase:
         """Map values in ``self`` based on the static ``mapping``.
 
