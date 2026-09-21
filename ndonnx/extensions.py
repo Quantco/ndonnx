@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Literal, TypeAlias, TypeVar, get_args
+from typing import Literal, TypeVar, get_args
 
 import numpy as np
 from typing_extensions import TypeIs, deprecated
@@ -14,12 +14,9 @@ import ndonnx._typed_array as tydx
 import ndonnx._typed_array.datetime
 import ndonnx._typed_array.funcs
 import ndonnx._typed_array.masked_onnx
-import ndonnx._typed_array.onnx
+from ndonnx._typed_array.types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 SCALAR = TypeVar("SCALAR", int, float, str)
-
-KEY: TypeAlias = SCALAR
-VALUE = TypeVar("VALUE", int, float, str)
 
 
 @deprecated(
@@ -41,7 +38,7 @@ def shape(x: ndx.Array, /) -> ndx.Array:
     return x.dynamic_shape
 
 
-def isin(x: ndx.Array, /, items: Sequence[SCALAR]) -> ndx.Array:
+def isin(x: ndx.Array, /, items: Sequence[ISIN_SCALAR]) -> ndx.Array:
     """Return true where the input ``Array`` contains an element in ``items``.
 
     ``NaN`` values do **not** compare equal.
@@ -67,8 +64,8 @@ def isin(x: ndx.Array, /, items: Sequence[SCALAR]) -> ndx.Array:
 def static_map(
     x: ndx.Array,
     /,
-    mapping: Mapping[KEY, VALUE],
-    default: VALUE | None = None,
+    mapping: Mapping[MAPPING_KEY, MAPPING_VALUE],
+    default: MAPPING_VALUE | None = None,
 ) -> ndx.Array:
     """Map values in ``x`` based on the static ``mapping``.
 

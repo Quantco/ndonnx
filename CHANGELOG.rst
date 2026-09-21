@@ -7,13 +7,14 @@
 Changelog
 =========
 
-0.22.0 (2026-09-17)
+0.22.0 (2026-09-21)
 -------------------
 
-**New feature**
+**New features**
 
 - Added support for :func:`ndonnx.log1p` and :func:`ndonnx.expm1`.
 - Most functions and methods accepting ``dtype`` as an argument now support the following additional aliases: ``datetime64[s]``, ``datetime64[ms]``, ``datetime64[us]``, ``datetime64[ns]``, ``timedelta64[s]``, ``timedelta64[ms]``, ``timedelta64[us]``, ``timedelta64[ns]``.
+- Arrays with timedelta or datetime data types now support the ``ndonnx.extensions.isin`` operation.
 
 **Other change**
 
