@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import operator
 from abc import abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args
 
 import numpy as np
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from spox import Var
 
+    from ndonnx._typed_array import ISIN_SCALAR
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
 
@@ -294,6 +295,21 @@ class TimeBaseArray(TyArrayBase):
 
     def isnan(self) -> onnx.TyArrayBool:
         return self.is_nat
+
+    def isin(self, items: Sequence[ISIN_SCALAR], /) -> onnx.TyArrayBool:
+        target_dtype = self.dtype.unwrap_numpy()
+        np_items = np.asarray(items)
+        if target_dtype.kind != np_items.dtype.kind:
+            raise TypeError(
+                f"comparison values for 'isin' on a time-like array must be of "
+                "the corresponding numpy type, but this array has type "
+                f"`{target_dtype}` and the comparison values have type "
+                f"`{np_items.dtype}`"
+            )
+
+        int_items = np_items.astype(target_dtype).astype(np.int64).tolist()
+        result = self._data.isin(int_items)
+        return result & ~self.is_nat
 
     def _apply_comp(
         self,

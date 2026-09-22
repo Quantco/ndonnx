@@ -25,6 +25,8 @@ from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 if TYPE_CHECKING:
     from spox import Var
 
+    from .types import ISIN_SCALAR
+
 
 DTYPE = TypeVar("DTYPE", bound=DType)
 
@@ -574,7 +576,7 @@ class TyMaArray(TyMaArrayBase):
             return make_nullable(x, None).__ndx_where__(cond, self)
         return NotImplemented
 
-    def isin(self, items: Sequence[onnx.VALUE]) -> onnx.TyArrayBool:
+    def isin(self, items: Sequence[ISIN_SCALAR]) -> onnx.TyArrayBool:
         data = self.data.isin(items)
         # Masked values always return False
         if self.mask is None:

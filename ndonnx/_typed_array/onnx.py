@@ -22,6 +22,7 @@ from typing import (
 
 import numpy as np
 from spox import Tensor, Var, argument, build, inline
+from typing_extensions import TypeIs
 
 from ndonnx import DType
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar
@@ -31,6 +32,7 @@ from . import TyArrayBase, safe_cast
 from . import ort_compat as op
 from .dtype_independent_funcs import maximum, minimum, where, zeros
 from .indexing import FancySlice
+from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
 """Alias signaling that this must be a rank-0 integer tensor."""
@@ -60,10 +62,6 @@ TY_ARRAY_BASE = TypeVar("TY_ARRAY_BASE", bound="TyArrayBase")
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
 TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
-
-KEY = TypeVar("KEY", int, float, str)
-VALUE = TypeVar("VALUE", int, float, str)
-
 
 P = ParamSpec("P")
 TY_ARRAY_OUT = TypeVar("TY_ARRAY_OUT", bound="TyArray")
@@ -958,7 +956,12 @@ class TyArray(TyArrayBase):
             return TyArrayBool(var)
         return NotImplemented
 
-    def isin(self, items: Sequence[VALUE]) -> TyArrayBool:
+    def isin(self, items: Sequence[ISIN_SCALAR]) -> TyArrayBool:
+        if not is_non_time_seq(items):
+            raise ValueError(
+                f"unexpected type in 'items' for 'isin' on `{self.dtype}`: `{items}`"
+            )
+
         # Filter out nan values since we never want to compare equal to them (NumPy semantics)
         items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
 
@@ -972,7 +975,9 @@ class TyArray(TyArrayBase):
         mapping = dict(zip(items, (True,) * len(items)))
         return safe_cast(TyArrayBool, self.apply_mapping(mapping, False))
 
-    def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+    def apply_mapping(
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
+    ) -> TyArray:
         if not mapping:
             return safe_cast(TyArray, const(default).broadcast_to(self.dynamic_shape))
         np_arr_dtype = self.dtype.unwrap_numpy()
@@ -2269,7 +2274,9 @@ class TyArrayBool(TyArray):
     def logical_not(self) -> Self:
         return ~self
 
-    def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+    def static_map(
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
+    ) -> TyArray:
         mapping_ = {bool(k): v for k, v in mapping.items()}
 
         true_val = mapping_.get(True, default)
@@ -2988,3 +2995,15 @@ def _binary(
         return safe_cast(otype, _var_to_tyarray(res))
 
     return do
+
+
+def is_non_time_seq(
+    xs: Sequence[int]
+    | Sequence[float]
+    | Sequence[str]
+    | Sequence[np.datetime64]
+    | Sequence[np.timedelta64],
+) -> TypeIs[Sequence[int] | Sequence[float] | Sequence[str]]:
+    """Narrow `Sequence[ISIN_SCALAR]` (or other sequences) to primitive types."""
+    # Inputs are spelled out explicitly to ensure a mypy error when we update `ISIN_SCALAR`
+    return not any(isinstance(x, np.datetime64 | np.timedelta64) for x in xs)
