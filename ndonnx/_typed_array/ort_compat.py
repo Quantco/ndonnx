@@ -8,6 +8,8 @@ https://github.com/microsoft/onnxruntime/blob/v1.26.0/docs/OperatorKernels.md
 Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md``
 between two tags (e.g.
 https://github.com/microsoft/onnxruntime/compare/v1.20.1..v1.26.0/).
+
+Missing float16 kernel support is mitigated in onnxruntime via the InsertCastTransformer: https://github.com/microsoft/onnxruntime/blob/8c546c37b43caaca1fa25db430dab94b901cf277/onnxruntime/core/optimizer/insert_cast_transformer.h#L14-L19
 """
 
 from __future__ import annotations
@@ -252,7 +254,7 @@ def reduce_op(
     return fun(data)
 
 
-# tensor(float), tensor(int32), tensor(int64)
+# tensor(double), tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_prod: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
     (np.uint32,): np.int64,
@@ -268,7 +270,7 @@ _mapping_reduce_sum: _MappingDictType = {
 }
 reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_sum)
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32),
+# tensor(bool), tensor(double), tensor(float), tensor(int32),
 # tensor(int64), tensor(int8), tensor(uint8)
 _mapping_reduce_max: _MappingDictType = {
     (np.int16, np.uint16): np.int32,
@@ -277,16 +279,16 @@ _mapping_reduce_max: _MappingDictType = {
 }
 reduce_max = partial(reduce_op, spox_op=op.reduce_max, mapping=_mapping_reduce_max)
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32),
+# tensor(bool), tensor(double), tensor(float), tensor(int32),
 # tensor(int64), tensor(int8), tensor(uint8)
 _mapping_reduce_min: _MappingDictType = {
     (np.int16, np.uint16): np.int32,
     (np.uint32,): np.int64,
-    (np.uint32, np.uint64): Warn(np.float64),
+    (np.uint64,): Warn(np.float64),
 }
 reduce_min = partial(reduce_op, spox_op=op.reduce_min, mapping=_mapping_reduce_min)
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32)
+# tensor(double), tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_mean: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
     (np.uint64, np.int64): Warn(np.float64),
@@ -350,9 +352,8 @@ def pow(a: Var, b: Var, /) -> Var:
     compat_args = []
     did_warn = False
 
-    # 1.19.2 support:
-    # T = tensor(double), tensor(float), tensor(float16), tensor(int32), tensor(int64)
-    # T1 = tensor(double), tensor(float), tensor(float16), tensor(int32), tensor(int64)
+    # T = tensor(double), tensor(float), tensor(int32), tensor(int64)
+    # T1 = tensor(double), tensor(float), tensor(int32), tensor(int64)
     mapping: _MappingDictType = {
         (np.uint8, np.int8, np.int16, np.uint16): np.int32,
         (np.uint32,): np.int64,
@@ -389,7 +390,7 @@ _min_max_mapping: _MappingDictType = {
 def max(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
-    if dtype_in.kind == "i":
+    if dtype_in == np.int64:
         # The max, min, and clip operator appears to be strangely broken in onnxruntime
         # See: https://github.com/microsoft/onnxruntime/pull/25280
         # We work around it by using the where operator in those
@@ -460,8 +461,8 @@ def top_k(
     largest: int = 1,
     sorted: int = 1,
 ) -> tuple[Var, Var]:
-    # tensor(double), tensor(float), tensor(float16), tensor(int16),
-    # tensor(int32), tensor(int64), tensor(int8), tensor(uint8)
+    # tensor(double), tensor(float), tensor(int16), tensor(int32),
+    # tensor(int64), tensor(int8), tensor(uint8)
     mapping: _MappingDictType = {
         (np.uint16,): np.int32,
         (np.uint32,): np.int64,
