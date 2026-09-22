@@ -10,7 +10,7 @@ Changelog
 0.23.0 (unreleased)
 -------------------
 
-**Breaking changes**
+**Breaking change**
 
 - Removed functions, methods, and aliases that have been deprecated since 0.10.0. Use the following replacements instead:
 
@@ -31,6 +31,10 @@ Changelog
   - ``ndonnx.NullableFloating`` → :func:`ndonnx.extensions.is_nullable_float_dtype`
   - ``ndonnx.NullableIntegral`` → :func:`ndonnx.extensions.is_nullable_integer_dtype`
   - ``ndonnx.UnsupportedOperationError`` and ``ndonnx.CastError`` → these are no longer raised; catch ``TypeError`` instead.
+
+**Other change**
+
+- Models built with ndonnx now expect the operator support found in ``onnxruntime >=1.26.0``.
 
 
 0.22.0 (2026-09-21)
