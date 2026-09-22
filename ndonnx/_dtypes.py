@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 import numpy as np
 from spox import Var
-from typing_extensions import deprecated
 
 if TYPE_CHECKING:
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
@@ -87,12 +86,6 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
     def __repr__(self) -> str:
         return self.__class__.__name__
-
-    @deprecated(
-        "'to_numpy_dtype' is deprecated. Use the 'unwrap_numpy' method instead",
-    )
-    def to_numpy_dtype(self) -> np.dtype:
-        return self.unwrap_numpy()
 
     def unwrap_numpy(self) -> np.dtype:
         raise ValueError(f"`{self}` provides no corresponding NumPy data type")
