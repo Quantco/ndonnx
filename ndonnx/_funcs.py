@@ -13,7 +13,8 @@ import numpy as np
 from spox import Var
 
 import ndonnx as ndx
-from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
+from ndonnx._typed_array.types import PyScalar, Scalar
+from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
@@ -48,6 +49,12 @@ DTYPE_ALIAS_MAP = {
     "timedelta64[us]": ndx.TimeDelta64DType("us"),
     "timedelta64[ns]": ndx.TimeDelta64DType("ns"),
 }
+
+
+def numpy_scalar_to_array(scalar: Scalar) -> PyScalar | np.ndarray:
+    if isinstance(scalar, np.generic):
+        return np.asarray(scalar)
+    return scalar
 
 
 @overload
@@ -94,7 +101,7 @@ def argument(
 
 
 def asarray(
-    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
+    obj: Array | Scalar | np.ndarray | NestedSequence | Var,
     /,
     *,
     dtype: ndx.DType | DTypeAlias | None = None,
@@ -132,6 +139,8 @@ def asarray(
                 out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])
                 out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
                 return reshape(out, out_shape)
+        if isinstance(obj, Scalar):
+            obj = numpy_scalar_to_array(obj)
         return Array._from_tyarray(tyfuncs.astyarray(obj, dtype=dtype))
 
 
