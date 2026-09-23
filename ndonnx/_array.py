@@ -18,22 +18,23 @@ from ndonnx import DType
 from ._namespace_info import Device, device
 from ._typed_array import TyArrayBase, onnx
 from ._typed_array import funcs as tyfuncs
-from .types import DTypeAlias, GetItemKey, OnnxShape, PyScalar, SetitemKey
+from ._typed_array.types import PyScalar, Scalar
+from .types import DTypeAlias, GetItemKey, OnnxShape, SetitemKey
 
 _BinaryOp = Callable[
-    ["Array", "PyScalar | Array | np.ndarray | np.generic"],
+    ["Array", "Scalar | Array | np.ndarray | np.generic"],
     "Array",
 ]
 _Axisparam = int | tuple[int, ...] | None
 
 
 def _build_forward(
-    std_op: Callable[[TyArrayBase, PyScalar], TyArrayBase],
+    std_op: Callable[[TyArrayBase, Scalar], TyArrayBase],
     sigil: str,
     this_name: str,
     reflected_name: str,
 ) -> _BinaryOp:
-    def fun(self, rhs: PyScalar | Array | np.ndarray | np.generic) -> Array:
+    def fun(self, rhs: Scalar | Array | np.ndarray | np.generic) -> Array:
         if isinstance(rhs, np.ndarray | np.generic):
             rhs = Array._constant(value=np.asarray(rhs), dtype=None)
         if isinstance(rhs, PyScalar):
@@ -53,7 +54,7 @@ def _build_forward(
 
 
 def _build_backward(
-    std_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+    std_op: Callable[[TyArrayBase | Scalar, TyArrayBase | Scalar], TyArrayBase],
     sigil: str,
     this_name: str,
     reflected_name: str,
@@ -78,7 +79,7 @@ def _build_backward(
 
 
 def _make_binary_dunder(
-    std_op: Callable[[TyArrayBase | PyScalar, TyArrayBase | PyScalar], TyArrayBase],
+    std_op: Callable[[TyArrayBase | Scalar, TyArrayBase | Scalar], TyArrayBase],
     sigil: str,
     forward_name: str,
     backward_name: str,
@@ -325,13 +326,13 @@ class Array:
 
     # We spell out __eq__ and __ne__ so that mypy may pick up the
     # change in return type (Array rather than bool)
-    def __eq__(self, other: PyScalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
-        if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
+    def __eq__(self, other: Scalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
+        if not isinstance(other, Scalar | Array | np.ndarray | np.generic):
             return NotImplemented
         return Array._from_tyarray(self._tyarray == _astyarray_or_pyscalar(other))
 
-    def __ne__(self, other: PyScalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
-        if not isinstance(other, PyScalar | Array | np.ndarray | np.generic):
+    def __ne__(self, other: Scalar | Array | np.ndarray | np.generic) -> Array:  # type: ignore[override]
+        if not isinstance(other, Scalar | Array | np.ndarray | np.generic):
             return NotImplemented
         return Array._from_tyarray(self._tyarray != _astyarray_or_pyscalar(other))
 
@@ -411,7 +412,7 @@ class Array:
 
 
 def _astyarray_or_pyscalar(
-    val: PyScalar | Array | Var | np.ndarray | np.generic,
+    val: Scalar | Array | Var | np.ndarray | np.generic,
 ) -> TyArrayBase | PyScalar:
     if isinstance(val, np.generic):
         val = np.asarray(val)
