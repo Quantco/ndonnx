@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Literal, TypeVar, get_args
 
 import numpy as np
-from typing_extensions import TypeIs, deprecated
+from typing_extensions import TypeIs
 
 import ndonnx as ndx
 import ndonnx._typed_array as tydx
@@ -17,25 +17,6 @@ import ndonnx._typed_array.masked_onnx
 from ndonnx._typed_array.types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 SCALAR = TypeVar("SCALAR", int, float, str)
-
-
-@deprecated(
-    "'ndonnx.shape' is deprecated in favor of 'ndonnx.Array.dynamic_shape'",
-)
-def shape(x: ndx.Array, /) -> ndx.Array:
-    """Returns shape of an array.
-
-    Parameters
-    ----------
-    x: Array
-        Array to get shape of
-
-    Returns
-    -------
-    out: Array
-        Array of shape
-    """
-    return x.dynamic_shape
 
 
 def isin(x: ndx.Array, /, items: Sequence[ISIN_SCALAR]) -> ndx.Array:
@@ -443,6 +424,5 @@ __all__ = [
     "isin",
     "make_nullable",
     "put",
-    "shape",
     "static_map",
 ]

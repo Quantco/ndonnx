@@ -10,6 +10,28 @@ Changelog
 0.23.0 (unreleased)
 -------------------
 
+**Breaking change**
+
+- Removed functions, methods, and aliases that have been deprecated since 0.10.0. Use the following replacements instead:
+
+  - ``ndonnx.Array.null`` → :func:`ndonnx.extensions.get_mask`
+  - ``ndonnx.Array.values`` → :func:`ndonnx.extensions.get_data`
+  - ``ndonnx.Array.to_numpy`` → :meth:`ndonnx.Array.unwrap_numpy`
+  - ``ndonnx.Array.spox_var`` → :meth:`ndonnx.Array.unwrap_spox` (or :meth:`ndonnx.Array.disassemble`)
+  - ``ndonnx.DType.to_numpy_dtype`` → :meth:`ndonnx.DType.unwrap_numpy`
+  - ``ndonnx.shape`` → :attr:`ndonnx.Array.dynamic_shape`
+  - ``ndonnx.additional`` → :mod:`ndonnx.extensions`
+  - ``ndonnx.array`` → :func:`ndonnx.argument`
+  - ``ndonnx.from_spox_var`` → :func:`ndonnx.asarray`
+  - ``ndonnx.Floating`` → :func:`ndonnx.extensions.is_float_dtype`
+  - ``ndonnx.Integral`` → :func:`ndonnx.extensions.is_integer_dtype`
+  - ``ndonnx.Numerical`` → :func:`ndonnx.extensions.is_numeric_dtype`
+  - ``ndonnx.CoreType`` → :func:`ndonnx.extensions.is_onnx_dtype`
+  - ``ndonnx.Nullable`` and ``ndonnx.NullableCore`` → :func:`ndonnx.extensions.is_nullable_dtype`
+  - ``ndonnx.NullableFloating`` → :func:`ndonnx.extensions.is_nullable_float_dtype`
+  - ``ndonnx.NullableIntegral`` → :func:`ndonnx.extensions.is_nullable_integer_dtype`
+  - ``ndonnx.UnsupportedOperationError`` and ``ndonnx.CastError`` → these are no longer raised; catch ``TypeError`` instead.
+
 **Other change**
 
 - Models built with ndonnx now expect the operator support found in ``onnxruntime >=1.26.0``.
