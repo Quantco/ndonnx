@@ -17,13 +17,13 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-requires-python = ">=3.10"
-dependencies = ["numpy", "spox>=0.10", "typing_extensions"]
+requires-python = ">=3.11"
+dependencies = ["numpy>=2", "spox>=0.17", "typing_extensions"]
 keywords = ["numpy", "onnx", "array-api"]
 
 [project.urls]
@@ -49,7 +49,6 @@ ignore = [
     "N803",  # https://docs.astral.sh/ruff/rules/invalid-argument-name
     "N806",  # https://docs.astral.sh/ruff/rules/non-lowercase-variable-in-function
     "E501",  # https://docs.astral.sh/ruff/faq/#is-the-ruff-linter-compatible-with-black
-    "UP038", # https://github.com/astral-sh/ruff/issues/7871
     "N807",  # Free functions may start/end with dunders __array_namespace_info__
     "UP007",
 ]
@@ -75,7 +74,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = '3.10'
+python_version = '3.11'
 no_implicit_optional = true
 check_untyped_defs = true
 # TODO: apply mypy to tests, too (update pre-commit-config, analogously)

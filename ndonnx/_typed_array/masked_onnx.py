@@ -7,10 +7,9 @@ import operator
 from abc import abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, TypeVar, overload
+from typing import TYPE_CHECKING, Self, TypeVar, overload
 
 import numpy as np
-from typing_extensions import Self
 
 from ndonnx import DateTime64DType, DType, TimeDelta64DType
 from ndonnx._experimental import (
@@ -25,6 +24,8 @@ from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
 if TYPE_CHECKING:
     from spox import Var
+
+    from .types import ISIN_SCALAR
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
@@ -412,7 +413,7 @@ class TyMaArray(TyMaArrayBase):
     def is_constant(self) -> bool:
         if self.mask is None:
             return self.data.is_constant
-        return self.data.is_constant and self.data.is_constant
+        return self.data.is_constant and self.mask.is_constant
 
     def _pass_through_same_type(self, fun_name: str, *args, **kwargs) -> Self:
         data = getattr(self.data, fun_name)(*args, **kwargs)
@@ -575,7 +576,7 @@ class TyMaArray(TyMaArrayBase):
             return make_nullable(x, None).__ndx_where__(cond, self)
         return NotImplemented
 
-    def isin(self, items: Sequence[onnx.VALUE]) -> onnx.TyArrayBool:
+    def isin(self, items: Sequence[ISIN_SCALAR]) -> onnx.TyArrayBool:
         data = self.data.isin(items)
         # Masked values always return False
         if self.mask is None:
@@ -691,7 +692,7 @@ class TyMaArrayNumber(TyMaArray):
     __sub__, __rsub__ = _make_binary_pair(operator.sub)  # type: ignore
     __mod__, __rmod__ = _make_binary_pair(operator.mod)  # type: ignore
     __mul__, __rmul__ = _make_binary_pair(operator.mul)  # type: ignore
-    __truediv__, __rtruedive__ = _make_binary_pair(operator.truediv)  # type: ignore
+    __truediv__, __rtruediv__ = _make_binary_pair(operator.truediv)  # type: ignore
     __ge__, _ = _make_binary_pair(operator.ge)  # type: ignore
     __le__, _ = _make_binary_pair(operator.le)  # type: ignore
     __gt__, _ = _make_binary_pair(operator.gt)  # type: ignore
@@ -756,7 +757,9 @@ class TyMaArrayFloating(TyMaArrayNumber):
     cos = _make_unary_member_same_type("cos")  # type: ignore
     cosh = _make_unary_member_same_type("cosh")  # type: ignore
     exp = _make_unary_member_same_type("exp")  # type: ignore
+    expm1 = _make_unary_member_same_type("expm1")  # type: ignore
     log = _make_unary_member_same_type("log")  # type: ignore
+    log1p = _make_unary_member_same_type("log1p")  # type: ignore
     log2 = _make_unary_member_same_type("log2")  # type: ignore
     log10 = _make_unary_member_same_type("log10")  # type: ignore
     sin = _make_unary_member_same_type("sin")  # type: ignore

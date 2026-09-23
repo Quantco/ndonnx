@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
@@ -40,6 +40,11 @@ def test_value_prop_datetime(unit: Unit):
     )
 
 
+# ndonnx and numpy are fed identical bare-integer operands here; the bare int
+# triggers NumPy's deprecation of the implicit 'generic' timedelta unit.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 def test_arithmetic(unit: Unit):
     arr_np = np.array([1, 2, "NaT"], f"datetime64[{unit}]")
     arr = ndx.asarray(arr_np)
@@ -74,6 +79,11 @@ def test_add_pyscalar_datetime(scalar, dtype, res_dtype):
     assert_equal_dtype_shape(arr + scalar, res_dtype, shape)
 
 
+# ndonnx and numpy are fed the identical bare-integer scalar here; the bare int
+# triggers NumPy's deprecation of the implicit 'generic' timedelta unit.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "op",
     [
@@ -236,6 +246,11 @@ def test_subtraction_datetime_arrays(x, y, unit1, unit2, forward):
     np.testing.assert_array_equal(actual.unwrap_numpy(), desired, strict=True)
 
 
+# ndonnx and numpy are fed the identical bare-integer scalar here; the bare int
+# triggers NumPy's deprecation of the implicit 'generic' timedelta unit.
+@pytest.mark.filterwarnings(
+    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 @pytest.mark.parametrize("x", ["NaT", "1900-01-12"])
 def test_subtraction_datetime_scalar(x, unit):
     np_x = np.array(x, f"datetime64[{unit}]")
@@ -307,6 +322,48 @@ def test_clip(data, min, max, unit):
 
 
 @pytest.mark.parametrize(
+    "x, indices, axis",
+    [
+        ([1, "NaT", 0], [1, 2, 0, -1], None),
+        ([[1, "NaT", 0], [10, 20, 30]], [-1, 2, 0], -1),
+        ([[1, "NaT", 0], [10, 20, 30]], [-1, 1, 0], 0),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["datetime64[s]", "timedelta64[s]"])
+def test_take(x, indices, axis, dtype):
+    np_arr = np.asarray(x, dtype=dtype)
+
+    def do(npx):
+        indices_ = np.asarray(indices, dtype=np.int64)
+        return npx.take(npx.asarray(np_arr), npx.asarray(indices_), axis=axis)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[s]", "timedelta64[s]"])
+def test_take_along_axis(dtype):
+    np_arr = np.asarray(
+        [
+            [1, "NaT", 0],
+            [10, 20, 30],
+        ],
+        dtype=dtype,
+    )
+
+    def do(npx):
+        indices = np.asarray(
+            [
+                [1],
+                [-1],
+            ],
+            dtype=np.int64,
+        )
+        return npx.take_along_axis(npx.asarray(np_arr), npx.asarray(indices), axis=-1)
+
+    np.testing.assert_array_equal(do(ndx).unwrap_numpy(), do(np))
+
+
+@pytest.mark.parametrize(
     "date",
     [
         "1970-01-01",
@@ -351,8 +408,10 @@ def test_unit_conversion_preserves_nat(from_unit, to_unit, time_dtype):
 @pytest.mark.parametrize("to_unit", get_args(Unit))
 @pytest.mark.parametrize("time_dtype", ["datetime64", "timedelta64"])
 def test_unit_conversion(from_unit, to_unit, time_dtype):
-    # make sure we are above 1e9 so that a conversion from ns to s is lossless
-    np_arr0 = np.asarray([int(1e12), -int(1e12)], f"{time_dtype}[{from_unit}]")
+    # Make sure we are at least 1e9 so that a conversion from ns to s is
+    # lossless, but also make sure conversion from s to ns does not overflow
+    # (max seconds in dateimte64[ns] = (2^63 - 1) / 10^9 ≈ 9e9).
+    np_arr0 = np.asarray([int(5e9), -int(5e9)], f"{time_dtype}[{from_unit}]")
     np_to_dtype = np.dtype(f"{time_dtype}[{to_unit}]")
     np_arr1 = np_arr0.astype(np_to_dtype)
     arr0 = ndx.asarray(np_arr0)
@@ -387,7 +446,7 @@ def test_timedelta_arithmetic(op, unit1, unit2):
         dtype=f"timedelta64[{unit1}]",
     )
     rhs = np.asarray(
-        [timedelta(days=1), np.timedelta64("NaT"), timedelta(days=2)],
+        [timedelta(days=1), np.timedelta64("NaT", unit2), timedelta(days=2)],
         dtype=f"timedelta64[{unit2}]",
     )
     pd_result = op(lhs, rhs)
@@ -422,3 +481,42 @@ def test_result_type(dtype_cls, unit1, unit2):
         return npx.result_type(dtype1, dtype2)
 
     assert do(np) == do(ndx).unwrap_numpy()
+
+
+@pytest.mark.parametrize("dtype_name", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize(
+    "values, comparison",
+    [
+        ([int(1e9), int(2e9)], [int(1e9), int(3e9)]),
+        ([int(1e9), int(2e9)], []),
+        ([int(1e9), "NaT"], [int(1e9), int(3e9)]),
+        (["NaT"], ["NaT", int(1e9)]),
+    ],
+)
+@pytest.mark.parametrize("values_unit", get_args(Unit))
+@pytest.mark.parametrize("comparison_unit", get_args(Unit))
+def test_isin_basic(dtype_name, values, comparison, values_unit, comparison_unit):
+    values = np.array(values, dtype=f"{dtype_name}[{values_unit}]")
+    comparison = np.array(comparison, dtype=f"{dtype_name}[{comparison_unit}]")
+
+    result = ndx.extensions.isin(ndx.asarray(values), comparison)
+    expected = np.isin(values, comparison)
+
+    np.testing.assert_array_equal(result.unwrap_numpy(), expected)
+
+
+@pytest.mark.parametrize("values_dtype", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize(
+    "comparison",
+    [
+        np.array([1, 2]),
+        np.array([1.0, 2.0]),
+        np.array(["hello"]),
+        [1, np.datetime64(3, "ns")],
+    ],
+)
+def test_isin_raises(values_dtype, comparison, unit):
+    values = np.array([1, 2, 3], dtype=f"{values_dtype}[{unit}]")
+
+    with pytest.raises(TypeError, match="comparison values for 'isin'"):
+        ndx.extensions.isin(ndx.asarray(values), comparison)

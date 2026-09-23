@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
@@ -52,6 +52,8 @@ class SchemaV1:
     input_schema: dict[str, DTypeInfoV1]
     output_schema: dict[str, DTypeInfoV1]
     version: Literal[1]
+    input_prefix: str = ""
+    output_prefix: str = ""
 
     @classmethod
     def parse_json(cls, s: str, /) -> SchemaV1:
@@ -65,6 +67,8 @@ class SchemaV1:
                 k: DTypeInfoV1(**v) for k, v in parsed["output_schema"].items()
             },
             version=1,
+            input_prefix=parsed.get("input_prefix", ""),
+            output_prefix=parsed.get("output_prefix", ""),
         )
 
     def to_json(self) -> str:

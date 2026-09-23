@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -6,14 +6,14 @@ from __future__ import annotations
 import builtins
 import math
 from collections.abc import Sequence
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, overload
 from warnings import warn
 
 import numpy as np
 from spox import Var
 
 import ndonnx as ndx
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
@@ -21,27 +21,75 @@ from ._namespace_info import Device
 from ._typed_array import funcs as tyfuncs
 from ._typed_array import onnx
 
+DTYPE_ALIAS_MAP = {
+    bool: onnx.bool_,
+    int: onnx.int64,
+    float: onnx.float64,
+    "bool": onnx.bool_,
+    "int": onnx.int64,
+    "float": onnx.float64,
+    "int8": onnx.int8,
+    "int16": onnx.int16,
+    "int32": onnx.int32,
+    "int64": onnx.int64,
+    "uint8": onnx.uint8,
+    "uint16": onnx.uint16,
+    "uint32": onnx.uint32,
+    "uint64": onnx.uint64,
+    "float16": onnx.float16,
+    "float32": onnx.float32,
+    "float64": onnx.float64,
+    "datetime64[s]": ndx.DateTime64DType("s"),
+    "datetime64[ms]": ndx.DateTime64DType("ms"),
+    "datetime64[us]": ndx.DateTime64DType("us"),
+    "datetime64[ns]": ndx.DateTime64DType("ns"),
+    "timedelta64[s]": ndx.TimeDelta64DType("s"),
+    "timedelta64[ms]": ndx.TimeDelta64DType("ms"),
+    "timedelta64[us]": ndx.TimeDelta64DType("us"),
+    "timedelta64[ns]": ndx.TimeDelta64DType("ns"),
+}
+
+
+@overload
+def normalize_dtype(dtype: None) -> None: ...
+
+
+@overload
+def normalize_dtype(dtype: DType | DTypeAlias) -> DType: ...
+
+
+def normalize_dtype(dtype: DType | DTypeAlias | None) -> DType | None:
+    """Normalize a ``dtype`` argument, mapping aliases to DType instances."""
+    if dtype is None or isinstance(dtype, DType):
+        return dtype
+    if mapped_dtype := DTYPE_ALIAS_MAP.get(dtype):
+        return mapped_dtype
+
+    raise TypeError(f"unrecognized dtype argument: `{dtype}`")
+
 
 def argument(
     *,
     shape: OnnxShape,
-    dtype: ndx.DType,
+    dtype: ndx.DType | DTypeAlias,
 ) -> Array:
-    """Creates a new lazy ndonnx array. This is used to define inputs to an ONNX model.
+    """Creates a new lazy ndonnx array.
 
-    Parameters
-    ----------
-    shape
-        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
-        `None`-dimensions denote unknown dimensions.
-    dtype
-        The data type of the array.
+    This is used to define inputs to an ONNX model.
+        Parameters
+        ----------
+        shape
+            The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
+            `None`-dimensions denote unknown dimensions.
+        dtype
+            The data type of the array.
 
-    Returns
-    -------
-    Array
-        The new array representing input(s) of the computational graphs.
+        Returns
+        -------
+        Array
+            The new array representing input(s) of the computational graphs.
     """
+    dtype = normalize_dtype(dtype)
     return Array._argument(shape=shape, dtype=dtype)
 
 
@@ -49,10 +97,11 @@ def asarray(
     obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
     /,
     *,
-    dtype: ndx.DType | None = None,
+    dtype: ndx.DType | DTypeAlias | None = None,
     device: None | Device = None,
     copy: bool | None = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if not copy and copy is not None:
         # Must copy or raise
         if not isinstance(obj, Array):
@@ -110,9 +159,10 @@ def arange(
     stop: int | float | Array | None = None,
     step: int | float | Array = 1,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     for item in [start, stop, step]:
         if item is None:
             continue
@@ -166,8 +216,14 @@ def nonzero(x: Array, /) -> tuple[Array, ...]:
 
 
 def astype(
-    x: Array, dtype: DType, /, *, copy: bool = True, device: None | Device = None
+    x: Array,
+    dtype: DType | DTypeAlias,
+    /,
+    *,
+    copy: bool = True,
+    device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if not copy and x.dtype == dtype:
         return x
     return x.astype(dtype)
@@ -223,9 +279,10 @@ def cumulative_prod(
     /,
     *,
     axis: int | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     data = x._tyarray.cumulative_prod(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
@@ -237,9 +294,10 @@ def cumulative_sum(
     /,
     *,
     axis: int | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     include_initial: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     data = x._tyarray.cumulative_sum(
         axis=axis, dtype=dtype, include_initial=include_initial
     )
@@ -307,9 +365,10 @@ def prod(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     return Array._from_tyarray(
         x._tyarray.prod(axis=axis, dtype=dtype, keepdims=keepdims)
     )
@@ -341,9 +400,10 @@ def sum(
     /,
     *,
     axis: int | tuple[int, ...] | None = None,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     keepdims: bool = False,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     return Array._from_tyarray(
         x._tyarray.sum(axis=axis, dtype=dtype, keepdims=keepdims)
     )
@@ -365,14 +425,18 @@ def var(
 def empty(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     return zeros(shape=shape, dtype=dtype)
 
 
 def empty_like(
-    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+    x: Array,
+    /,
+    *,
+    dtype: DType | DTypeAlias | None = None,
+    device: None | Device = None,
 ) -> Array:
     return zeros_like(x, dtype=dtype)
 
@@ -393,15 +457,11 @@ def expand_dims(x: Array, /, *, axis: int = 0) -> Array:
 
 
 def expm1(x: Array, /) -> Array:
-    # Requires special operator to meet standards precision requirements
-    # TODO: Add upstream tracking issue
-    raise NotImplementedError
+    return Array._from_tyarray(x._tyarray.expm1())
 
 
 def log1p(x: Array, /) -> Array:
-    # Requires special operator to meet standards precision requirements
-    # TODO: Add upstream tracking issue
-    raise NotImplementedError
+    return Array._from_tyarray(x._tyarray.log1p())
 
 
 def conj(x: Array, /) -> Array:
@@ -420,7 +480,7 @@ def eye(
     /,
     *,
     k: int = 0,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
     nparr = np.eye(n_rows, n_cols, k=k)
@@ -443,9 +503,10 @@ def full(
     shape: int | tuple[int, ...] | Array,
     fill_value: bool | int | float | str,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     if dtype is None:
         dtype = tyfuncs._infer_dtype(fill_value)
 
@@ -471,9 +532,10 @@ def full_like(
     /,
     fill_value: bool | int | float | str,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
+    dtype = normalize_dtype(dtype)
     shape = x.dynamic_shape
     fill = asarray(fill_value, dtype=dtype or x.dtype)
     return broadcast_to(fill, shape)
@@ -509,11 +571,11 @@ def linspace(
     /,
     num: int,
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
     endpoint: bool = True,
 ) -> Array:
-    dtype = dtype or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     if not isinstance(dtype, onnx.DTypes):
         raise ValueError(f"only primitive data types are supported, found `{dtype}`")
     return asarray(np.linspace(start, stop, num=num, endpoint=endpoint), dtype=dtype)
@@ -530,18 +592,22 @@ def matrix_transpose(x: Array, /) -> Array:
 def ones(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = dtype or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(tyfuncs.ones(dtype, shape))
 
 
 def ones_like(
-    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+    x: Array,
+    /,
+    *,
+    dtype: DType | DTypeAlias | None = None,
+    device: None | Device = None,
 ) -> Array:
-    dtype = dtype or x.dtype
+    dtype = normalize_dtype(dtype) or x.dtype
     return full_like(x, 1, dtype=dtype)
 
 
@@ -594,7 +660,7 @@ def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
         return obj
 
     if len(arrays_and_dtypes) == 0:
-        ValueError("at least one array or dtype is required")
+        raise ValueError("at least one array or dtype is required")
     items = sorted(
         arrays_and_dtypes,
         key=lambda item: int(isinstance(item, Array | DType)),
@@ -658,6 +724,12 @@ def take(x: Array, indices: Array, /, *, axis: int | None = None) -> Array:
         raise TypeError(
             f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
+    if indices.ndim != 1:
+        raise ValueError("'indices' must be a 1D array")
+    if axis is None and x.ndim > 1:
+        raise ValueError(
+            "'axis' argument must be provided if 'x' has more than one axis"
+        )
     return Array._from_tyarray(x._tyarray.take(indices._tyarray, axis=axis))
 
 
@@ -666,6 +738,13 @@ def take_along_axis(x: Array, indices: Array, /, *, axis: int = -1) -> Array:
         raise TypeError(
             f"'indices' must be of data type 'int64' found `{indices.dtype}`"
         )
+    if indices.ndim != x.ndim:
+        raise ValueError("'x' and 'indices' must have the same number of axes")
+    if not (-x.ndim <= axis < x.ndim):
+        raise ValueError(
+            "'axis' argument must be compatible with number of axes in 'x'"
+        )
+
     return Array._from_tyarray(x._tyarray.take_along_axis(indices._tyarray, axis=axis))
 
 
@@ -761,18 +840,22 @@ def where(
 def zeros(
     shape: int | tuple[int, ...],
     *,
-    dtype: DType | None = None,
+    dtype: DType | DTypeAlias | None = None,
     device: None | Device = None,
 ) -> Array:
-    dtype = dtype or ndx._default_float
+    dtype = normalize_dtype(dtype) or ndx._default_float
     shape = (shape,) if isinstance(shape, int) else shape
     return Array._from_tyarray(tyfuncs.zeros(dtype, shape))
 
 
 def zeros_like(
-    x: Array, /, *, dtype: DType | None = None, device: None | Device = None
+    x: Array,
+    /,
+    *,
+    dtype: DType | DTypeAlias | None = None,
+    device: None | Device = None,
 ) -> Array:
-    dtype = dtype or x.dtype
+    dtype = normalize_dtype(dtype) or x.dtype
     return full_like(x, 0, dtype=dtype)
 
 

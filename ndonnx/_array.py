@@ -12,16 +12,13 @@ from typing import Any
 
 import numpy as np
 from spox import Var
-from typing_extensions import deprecated
 
 from ndonnx import DType
 
 from ._namespace_info import Device, device
 from ._typed_array import TyArrayBase, onnx
 from ._typed_array import funcs as tyfuncs
-from ._typed_array.masked_onnx import TyMaArray
-from .extensions import get_mask
-from .types import GetItemKey, OnnxShape, PyScalar, SetitemKey
+from .types import DTypeAlias, GetItemKey, OnnxShape, PyScalar, SetitemKey
 
 _BinaryOp = Callable[
     ["Array", "PyScalar | Array | np.ndarray | np.generic"],
@@ -40,7 +37,6 @@ def _build_forward(
         if isinstance(rhs, np.ndarray | np.generic):
             rhs = Array._constant(value=np.asarray(rhs), dtype=None)
         if isinstance(rhs, PyScalar):
-            # Note: NumPy generic are subclasses of Python scalars in np1x
             return Array._from_tyarray(std_op(self._tyarray, rhs))
         if not isinstance(rhs, Array):
             return NotImplemented
@@ -66,7 +62,6 @@ def _build_backward(
         if isinstance(lhs, np.ndarray | np.generic):
             lhs = Array._constant(value=np.asarray(lhs), dtype=None)
         if isinstance(lhs, PyScalar):
-            # Note: NumPy generic are subclasses of Python scalars in np1x
             return Array._from_tyarray(std_op(lhs, self._tyarray))
         if not isinstance(lhs, Array):
             return NotImplemented
@@ -89,7 +84,6 @@ def _make_binary_dunder(
     backward_name: str,
 ) -> tuple[_BinaryOp, _BinaryOp]:
     """Create a forward and reflected version for a binary dunder method."""
-
     # If we return 'NotImplemented' from methods such as __add__ the
     # interpreter will create an error message that does not display
     # the arrays dtype. E.g. `"TypeError: ... +: Not Implemented for
@@ -212,7 +206,7 @@ class Array:
         """
         # Special cases that allow for shortcuts
         if self.ndim == 0:
-            Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
+            return Array._from_tyarray(onnx.const(1, dtype=onnx.int64))
         size = self._tyarray.dynamic_size
         return Array._from_tyarray(size)
 
@@ -220,50 +214,15 @@ class Array:
     def T(self) -> Array:  # noqa: N802
         return Array._from_tyarray(self._tyarray.T)
 
-    @property
-    @deprecated(
-        "'Array.null' is deprecated in favor of 'ndonnx.extensions.get_mask'",
-    )
-    def null(self) -> None | Array:
-        return get_mask(self)
+    def astype(self, dtype: DType | DTypeAlias, *, copy=True) -> Array:
+        from ._funcs import normalize_dtype  # avoid a circular import
 
-    @property
-    @deprecated(
-        "'Array.values' is deprecated in favor of 'ndonnx.extensions.get_data'",
-    )
-    def values(self) -> Array:
-        if isinstance(self._tyarray, TyMaArray):
-            return Array._from_tyarray(self._tyarray.data)
-        if isinstance(self._tyarray, onnx.TyArray):
-            return Array._from_tyarray(self._tyarray)
-        raise ValueError(f"`{self.dtype}` is not a nullable built-in type")
-
-    def astype(self, dtype: DType, *, copy=True) -> Array:
+        dtype = normalize_dtype(dtype)
         new_data = self._tyarray.astype(dtype, copy=copy)
         return Array._from_tyarray(new_data)
 
     def copy(self) -> Array:
         return Array._from_tyarray(self._tyarray.copy())
-
-    @deprecated(
-        "'Array.to_numpy' is deprecated in favor of 'Array.unwrap_numpy'",
-    )
-    def to_numpy(self) -> np.ndarray | None:
-        try:
-            return self.unwrap_numpy()
-        except ValueError:
-            return None
-
-    @deprecated(
-        "'Array.spox_var' is deprecated in favor of 'Array.disassemble' or 'Array.unwrap_spox'",
-    )
-    def spox_var(self) -> Var:
-        """Unwrap the underlying ``spox.Var`` object if ``self`` is of primitive data
-        type.
-
-        Otherwise, raise an exception.
-        """
-        return self.unwrap_spox()
 
     def unwrap_spox(self) -> Var:
         """Unwrap the underlying ``spox.Var`` object if ``self`` is of primitive data
@@ -514,11 +473,13 @@ def _normalize_setitem_key_item(
         if isinstance(el, int | None):
             return el
         if not isinstance(el.dtype, onnx.Integer):
-            IndexError(
+            raise IndexError(
                 f"arrays in 'slice' objects must be of integer data types; found `{el.dtype}"
             )
         if el.ndim != 0:
-            IndexError(f"arrays in 'slice' objects must be rank-0; found `{el.ndim}")
+            raise IndexError(
+                f"arrays in 'slice' objects must be rank-0; found `{el.ndim}"
+            )
         return el._tyarray.astype(onnx.int64)
 
     if isinstance(item, slice):

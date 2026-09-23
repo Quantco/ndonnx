@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import operator
 from abc import abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args
 
 import numpy as np
@@ -23,10 +23,11 @@ from ndonnx._experimental import (
 
 if TYPE_CHECKING:
     from types import NotImplementedType
+    from typing import Self
 
     from spox import Var
-    from typing_extensions import Self
 
+    from ndonnx._typed_array import ISIN_SCALAR
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 
 
@@ -237,8 +238,18 @@ class TimeBaseArray(TyArrayBase):
         /,
     ) -> None:
         if self.dtype != value.dtype:
-            TypeError(f"data type of 'value' must much array's, found `{value.dtype}`")
+            raise TypeError(
+                f"data type of 'value' must match array's, found `{value.dtype}`"
+            )
         self._data.put(key, value._data)
+
+    def take(self, indices: onnx.TyArrayInt64, /, *, axis: int | None = None) -> Self:
+        data = self._data.take(indices, axis=axis)
+        return type(self)(data, unit=self.dtype.unit)
+
+    def take_along_axis(self, indices: onnx.TyArrayInt64, /, *, axis: int = -1) -> Self:
+        data = self._data.take_along_axis(indices, axis=axis)
+        return type(self)(data, unit=self.dtype.unit)
 
     @property
     def dynamic_shape(self) -> onnx.TyArrayInt64:
@@ -284,6 +295,21 @@ class TimeBaseArray(TyArrayBase):
 
     def isnan(self) -> onnx.TyArrayBool:
         return self.is_nat
+
+    def isin(self, items: Sequence[ISIN_SCALAR], /) -> onnx.TyArrayBool:
+        target_dtype = self.dtype.unwrap_numpy()
+        np_items = np.asarray(items)
+        if target_dtype.kind != np_items.dtype.kind:
+            raise TypeError(
+                f"comparison values for 'isin' on a time-like array must be of "
+                "the corresponding numpy type, but this array has type "
+                f"`{target_dtype}` and the comparison values have type "
+                f"`{np_items.dtype}`"
+            )
+
+        int_items = np_items.astype(target_dtype).astype(np.int64).tolist()
+        result = self._data.isin(int_items)
+        return result & ~self.is_nat
 
     def _apply_comp(
         self,
@@ -523,7 +549,7 @@ class TyArrayDateTime(TimeBaseArray):
         data = self._data.unwrap_numpy()
 
         out = data.astype(f"datetime64[{self.dtype.unit}]")
-        out[is_nat] = np.array("NaT", "datetime64")
+        out[is_nat] = np.array("NaT", f"datetime64[{self.dtype.unit}]")
         return out
 
     def __ndx_cast_to__(
@@ -674,7 +700,6 @@ def _coerce_other(
 ) -> tuple[onnx.TyArrayInt64, onnx.TyArrayBool] | NotImplementedType:
     """Validate that dtypes are compatible and get ``data`` and ``is_nat`` mask from
     other."""
-
     if isinstance(other, int):
         return (onnx.const(other, dtype=onnx.int64), _NAT_SENTINEL == other)
     elif type(this) is type(other):

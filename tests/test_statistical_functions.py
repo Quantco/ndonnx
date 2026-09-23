@@ -1,9 +1,8 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import numpy as np
 import pytest
-from packaging.version import parse
 
 import ndonnx as ndx
 
@@ -23,13 +22,6 @@ ARRAYS = [
     np.array([[-3], [-1], [2], [3]]),
     np.array([[], [], [], []]),
 ]
-
-
-if parse(np.__version__).major < 2:
-    pytest.skip(
-        reason="Statistical functions are not tested on NumPy 1 due to API incompatibilities",
-        allow_module_level=True,
-    )
 
 
 def _compare_to_numpy(ndx_fun, np_fun, np_array, kwargs):

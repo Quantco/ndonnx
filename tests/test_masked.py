@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import math
@@ -10,7 +10,7 @@ import pytest
 import ndonnx as ndx
 import ndonnx.extensions as nda
 
-from .utils import assert_array_equal, get_numpy_array_api_namespace, run
+from .utils import assert_array_equal, run
 
 
 def testfill_null():
@@ -99,15 +99,8 @@ def test_unary_none_propagation(fn_name, args, kwargs):
     a = ndx.asarray(a_np, dtype=ndx.nfloat32)
     b = fn(a, *args)
 
-    # model = ndx.build({"a": a}, {"b": b})
-    # ret_b = run(model, {"a": inp_a})["b"]
     missing_a = a_np.mask
-    if np.__version__ < "2":
-        if not (np_fn := getattr(np.ma, fn_name, None)):
-            pytest.skip(reason=f"function `{fn_name}` not supported for np1x.")
-    else:
-        npx = get_numpy_array_api_namespace()
-        np_fn = getattr(npx, fn_name)
+    np_fn = getattr(np, fn_name)
 
     # Numpy might complain about invalid values
     with warnings.catch_warnings():
@@ -320,3 +313,13 @@ def test_static_map_int64():
         [10, 0],
         candidate.unwrap_numpy().data[~candidate.unwrap_numpy().mask],  # type: ignore
     )
+
+
+def test_is_constant_on_partially_constant_array():
+    x = ndx.argument(shape=(3,), dtype=ndx.int64)
+    data = ndx.asarray(np.array([1, 2, 3], dtype=np.int64))
+    arr = ndx.extensions.make_nullable(data, x > 0)
+
+    assert arr._tyarray.data.is_constant
+    assert not arr._tyarray.mask.is_constant
+    assert not arr._tyarray.is_constant

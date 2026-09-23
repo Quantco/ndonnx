@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 import numpy as np
 from spox import Var
-from typing_extensions import deprecated
 
 if TYPE_CHECKING:
     from ndonnx.types import NestedSequence, OnnxShape, PyScalar
@@ -37,8 +36,8 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
     def __ndx_cast_from__(self, arr: TyArrayBase) -> TY_ARRAY_BASE:
         """Convert the given array to this data type.
 
-        This function is used to implement ``TyArrayBase.astype`` and
-        should not be called directly.
+        This function is used to implement ``TyArrayBase.astype`` and should not be
+        called directly.
         """
         ...
 
@@ -87,12 +86,6 @@ class DType(ABC, Generic[TY_ARRAY_BASE]):
 
     def __repr__(self) -> str:
         return self.__class__.__name__
-
-    @deprecated(
-        "'to_numpy_dtype' is deprecated. Use the 'unwrap_numpy' method instead",
-    )
-    def to_numpy_dtype(self) -> np.dtype:
-        return self.unwrap_numpy()
 
     def unwrap_numpy(self) -> np.dtype:
         raise ValueError(f"`{self}` provides no corresponding NumPy data type")

@@ -22,11 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347
         with:
-          environments: default lint
+          environments: default default-py311 lint
       - name: pre-commit
         run: pixi run pre-commit-run --color=always --show-diff-on-failure
 
@@ -43,17 +43,15 @@ jobs:
           - macos-latest
           - windows-latest
         environment:
-          - py310
-          - min-onnxruntime
-          - np1x
+          - oldies
           - default
     steps:
       - name: Checkout branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347
         with:
           environments: ${{ matrix.environment }}
       - name: Install repository

@@ -1,9 +1,8 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import numpy as np
 import pytest
-from packaging.version import parse
 
 import ndonnx as ndx
 
@@ -42,10 +41,6 @@ def test_reshape_with_array():
         [np.ma.array([[1], [2]]), np.ma.array([[3.0], [4.0]])],
         [np.ma.array([[1], [2]]), np.ma.array([[3.0], [4.0]], mask=[[True], [False]])],
     ],
-)
-@pytest.mark.skipif(
-    parse(np.__version__).major < 2,
-    reason="NumPy 1.x does not provide `concat` function",
 )
 def test_concat(np_arrays, axis):
     def do(npx):

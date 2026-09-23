@@ -6,10 +6,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from types import NotImplementedType
-from typing import TYPE_CHECKING, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Literal, Self, TypeVar, overload
 
 import numpy as np
-from typing_extensions import Self
 
 from ndonnx import DType
 from ndonnx._typed_array import safe_cast
@@ -19,14 +18,13 @@ if TYPE_CHECKING:
     from spox import Var
 
     from .onnx import (
-        KEY,
-        VALUE,
         GetitemIndex,
         SetitemIndex,
         TyArrayBool,
         TyArrayInt64,
         TyArrayInteger,
     )
+    from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 _Self_co = TypeVar("_Self_co", bound="TyArrayBase", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
@@ -55,6 +53,7 @@ class TyArrayBase(ABC):
     @abstractmethod
     def __ndx_value_repr__(self) -> dict[str, str]:
         """A string representation of the fields to be used in ``Array.__repr__```."""
+
         # Note: It is unfortunate that this part of the API relies on
         # the rather useless `dict[str, str]` type hint. `TypedDict`
         # is not a viable solution (?) since it does not play nicely
@@ -775,7 +774,7 @@ class TyArrayBase(ABC):
     # Non-standard functions that reflect free functions #
     ######################################################
 
-    def isin(self, items: Sequence[VALUE], /) -> TyArrayBool:
+    def isin(self, items: Sequence[ISIN_SCALAR], /) -> TyArrayBool:
         """Return for each element in ``self`` that is found in ``items``.
 
         ``NaN`` values do **not** compare equal.
@@ -795,7 +794,7 @@ class TyArrayBase(ABC):
         raise _make_type_error("isin", self.dtype)
 
     def apply_mapping(
-        self, mapping: Mapping[KEY, VALUE], default: VALUE
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
     ) -> TyArrayBase:
         """Map values in ``self`` based on the static ``mapping``.
 

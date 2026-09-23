@@ -12,6 +12,7 @@ from typing import (
     Concatenate,
     Literal,
     ParamSpec,
+    Self,
     TypeAlias,
     TypeGuard,
     TypeVar,
@@ -21,7 +22,7 @@ from typing import (
 
 import numpy as np
 from spox import Tensor, Var, argument, build, inline
-from typing_extensions import Self
+from typing_extensions import TypeIs
 
 from ndonnx import DType
 from ndonnx.types import NestedSequence, OnnxShape, PyScalar
@@ -31,21 +32,26 @@ from . import TyArrayBase, safe_cast
 from . import ort_compat as op
 from .dtype_independent_funcs import maximum, minimum, where, zeros
 from .indexing import FancySlice
+from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
 """Alias signaling that this must be a rank-0 integer tensor."""
+
 _BoolMask: TypeAlias = "TyArrayBool"
 """Alias signaling that this must be a rank-1 boolean tensor."""
+
 SetitemItem: TypeAlias = "int | slice | EllipsisType | _ScalarInt"
 """A single item; i.e. not a tuple nor a boolean mask.
 
 This does not include `None`.
 """
+
 GetitemItem: TypeAlias = "int | slice | EllipsisType | _ScalarInt | None"
 """A single item (; i.e. not a tuple nor a boolean mask) for __getitem__.
 
 This includes `None`.
 """
+
 SetitemIndex: TypeAlias = "SetitemItem | tuple[SetitemItem, ...] | _BoolMask"
 GetitemIndex: TypeAlias = "GetitemItem | tuple[GetitemItem, ...] | _BoolMask"
 
@@ -57,10 +63,6 @@ TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=Tr
 
 TY_ARRAY_NUMBER = TypeVar("TY_ARRAY_NUMBER", bound="TyArrayNumber")
 
-KEY = TypeVar("KEY", int, float, str)
-VALUE = TypeVar("VALUE", int, float, str)
-
-
 P = ParamSpec("P")
 TY_ARRAY_OUT = TypeVar("TY_ARRAY_OUT", bound="TyArray")
 
@@ -70,12 +72,11 @@ def _inline(
 ) -> Callable[Concatenate[TY_ARRAY, P], TY_ARRAY_OUT]:
     """Build the wrapped function as a self-contained ONNX graph and inline it.
 
-    This is useful for functions which have to use the `If` operator
-    in order to work around bugs in the onnxruntime. Without this
-    wrapper, value propagation will be executed in either arm of the
-    `If` node and subsequently fail in one of them (it is the point of
-    the `If` node to avoid the computation of the problematic branch
-    at inference time).
+    This is useful for functions which have to use the `If` operator in order to work
+    around bugs in the onnxruntime. Without this wrapper, value propagation will be
+    executed in either arm of the `If` node and subsequently fail in one of them (it is
+    the point of the `If` node to avoid the computation of the problematic branch at
+    inference time).
     """
 
     @wraps(fun)
@@ -561,10 +562,10 @@ class TyArray(TyArrayBase):
                 key = key[tuple(idx)]
             self._var = op.where(key._var, value._var, self._var)
             return
-        elif value.ndim != 1:
-            # NumPy semantics
-            TypeError(
-                f"assignment value must be 0 or 1-dimensional for boolean indexing, got `{value.ndim}`"
+        if key.ndim == self.ndim and value.ndim > 1:
+            raise TypeError(
+                "ndonnx boolean array indexing assignment requires a 0 or "
+                f"1-dimensional input, input has {value.ndim} dimensions"
             )
 
         # The following is essentially doing `self[ndx.nonzero(key)] = value`
@@ -955,7 +956,12 @@ class TyArray(TyArrayBase):
             return TyArrayBool(var)
         return NotImplemented
 
-    def isin(self, items: Sequence[VALUE]) -> TyArrayBool:
+    def isin(self, items: Sequence[ISIN_SCALAR]) -> TyArrayBool:
+        if not is_non_time_seq(items):
+            raise ValueError(
+                f"unexpected type in 'items' for 'isin' on `{self.dtype}`: `{items}`"
+            )
+
         # Filter out nan values since we never want to compare equal to them (NumPy semantics)
         items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
 
@@ -969,7 +975,9 @@ class TyArray(TyArrayBase):
         mapping = dict(zip(items, (True,) * len(items)))
         return safe_cast(TyArrayBool, self.apply_mapping(mapping, False))
 
-    def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+    def apply_mapping(
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
+    ) -> TyArray:
         if not mapping:
             return safe_cast(TyArray, const(default).broadcast_to(self.dynamic_shape))
         np_arr_dtype = self.dtype.unwrap_numpy()
@@ -982,9 +990,6 @@ class TyArray(TyArrayBase):
             return self.astype(result_dtype_key).apply_mapping(mapping, default)
 
         values = np.array(list(mapping.values()))
-        # Compat for Windows on numpy 1.x
-        if values.dtype == np.int32:
-            values = values.astype(np.int64)
         if values.dtype.kind in ("O", "U"):
             values = values.astype(str)
             # Don't use values.dtype to cast the default since it may
@@ -1454,6 +1459,15 @@ class TyArrayNumber(TyArray):
     def __radd__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.add, forward=False, result_type=TyArrayNumber)
 
+    def __rfloordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        # See comment in TyArraySignedInteger.__floordiv__ for further
+        # context and why this may be a good example for the `__r*__`
+        # methods.
+        if isinstance(other, int | float):
+            rhs, lhs = promote(self, other)
+            return lhs.__floordiv__(rhs)
+        return NotImplemented
+
     @overload
     def __ge__(self, other: TyArrayNumber | int | float) -> TyArrayBool: ...
 
@@ -1516,6 +1530,12 @@ class TyArrayNumber(TyArray):
     def __rmul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.mul, forward=False, result_type=TyArrayNumber)
 
+    def __rmod__(self, other) -> TyArrayBase:
+        if isinstance(other, int | float):
+            b, a = promote(self, other)
+            return a.__mod__(b)
+        return NotImplemented
+
     def __pow__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
         return self._apply(other, op.pow, forward=True, result_type=TyArrayNumber)
 
@@ -1542,18 +1562,6 @@ class TyArrayNumber(TyArray):
 
     def __rtruediv__(self, other) -> TyArrayBase:
         return self._apply(other, op.div, forward=False, result_type=TyArrayNumber)
-
-    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
-        if isinstance(other, TyArrayNumber | int | float):
-            promo_result, _ = promote(self, other)
-            return (self / other).floor().astype(promo_result.dtype)
-        return NotImplemented
-
-    def __rfloordiv__(self, other) -> TyArrayBase:
-        if isinstance(other, int | float):
-            promo_result, _ = promote(self, other)
-            return (other / self).floor().astype(promo_result.dtype)
-        return NotImplemented
 
     def sign(self) -> Self:
         return type(self)(op.sign(self._var))
@@ -1700,15 +1708,16 @@ class TyArrayInteger(TyArrayNumber):
     def __ror__(self, other) -> TyArrayBase:
         return self._apply_int_only(other, op.bitwise_or, forward=False)
 
-    def __mod__(self, other) -> TyArrayInteger:
-        return self._apply_int_only(
-            other, lambda a, b: op.mod(a, b, fmod=0), forward=True
-        )
+    def __mod__(self, other) -> TyArrayBase:
+        if isinstance(other, type(self)):
+            var = op.mod(self._var, other._var, fmod=0)
+            return safe_cast(type(self), _var_to_tyarray(var))
 
-    def __rmod__(self, other) -> TyArrayInteger:
-        return self._apply_int_only(
-            other, lambda a, b: op.mod(a, b, fmod=0), forward=False
-        )
+        if isinstance(other, TyArrayNumber | int | float):
+            a, b = promote(self, other)
+            return a.__mod__(b)
+
+        return NotImplemented
 
     def __xor__(self, other) -> TyArrayBase:
         return self._apply_int_only(other, op.bitwise_xor, forward=True)
@@ -1780,6 +1789,36 @@ class TyArrayInteger(TyArrayNumber):
 
 
 class TyArraySignedInteger(TyArrayInteger):
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        # TODO: At the time of writing I believe this to be a good
+        # general approach to implementing dunder methods. We should
+        # consider combing through the existing one to have them all
+        # on the same footing.
+        #
+        # 1. Select the cases where we know exactly what to do without
+        # further promotion.
+        # 2. Select the cases where we know that a type promotion
+        # should happen (i.e `isinstance(other, int | float | TyArrayNumber)`,
+        # but the ultimate implementation depends on the result of the
+        # promotion.
+        # 3. `return NotImplemented`
+        # 4. `__r*__` only ever deals with python scalars and there it
+        # always must use `promote`. These should actually live in `TyArray`.
+        if isinstance(other, type(self)):
+            # div operator truncates towards zero, but we need to floor
+            trunc = _binary(op.div, type(self))(self, other)
+            needs_fix = safe_cast(
+                TyArrayBool, ((self ^ other) < 0) & ((self % other) != 0)
+            )
+            return trunc - needs_fix.astype(self.dtype)
+
+        if isinstance(other, TyArrayNumber | int | float):
+            # Deferred to the promoted type.
+            a, b = promote(self, other)
+            return a.__floordiv__(b)
+
+        return NotImplemented
+
     # The array-api standard defines the right shift as arithmetic
     # (i.e. sign-propagating). The ONNX standard is logical.
 
@@ -1795,6 +1834,18 @@ class TyArraySignedInteger(TyArrayInteger):
 
 
 class TyArrayUnsignedInteger(TyArrayInteger):
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        if isinstance(other, type(self)):
+            # div does truncation, but that is fine if we only deal with unsigned integers
+            return _binary(op.div, type(self))(self, other)
+
+        if isinstance(other, TyArrayNumber | int | float):
+            # Deferred to the promoted type.
+            a, b = promote(self, other)
+            return a.__floordiv__(b)
+
+        return NotImplemented
+
     def __abs__(self) -> Self:
         return self.copy()
 
@@ -1834,34 +1885,41 @@ class TyArrayUnsignedInteger(TyArrayInteger):
 
 
 class TyArrayFloating(TyArrayNumber):
+    def __floordiv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        if isinstance(other, type(self)):
+            return _binary(op.div, type(self))(self, other).floor()
+
+        if isinstance(other, TyArrayNumber | int | float):
+            a, b = promote(self, other)
+            return a.__floordiv__(b)
+
+        return NotImplemented
+
     def __mod__(self, other) -> TyArrayBase:
-        if isinstance(other, TyArrayFloating | float):
+        if isinstance(other, type(self)):
             # This function is complicated for two reasons:
             # 1. The ONNX standard is undefined if dividend is 0, but the array-api is not.
             # 2. The array-api follows the Python semantics, which are rather odd.
-            a, b = promote(self, other)
-            var = op.mod(a._var, b._var, fmod=1)
+            var = op.mod(self._var, other._var, fmod=1)
             mod = safe_cast(TyArrayFloating, _var_to_tyarray(var))
             # NOTE: onnxruntime appears to have a bug where the sign
             # of zeros is only preserved if they are on the
             # false-branch!
             # TODO: File a bug!
-            fixed_mod = where((b < 0) == (mod < 0), mod, mod + b)
-            fixed_zeros = where(b > 0, const(0.0, mod.dtype), const(-0.0, mod.dtype))
+            fixed_mod = where((other < 0) == (mod < 0), mod, mod + other)
+            fixed_zeros = where(
+                other > 0, const(0.0, mod.dtype), const(-0.0, mod.dtype)
+            )
             return where(
-                safe_cast(TyArrayBool, ~((mod == 0.0) & (b != 0.0))),
+                safe_cast(TyArrayBool, ~((mod == 0.0) & (other != 0.0))),
                 fixed_mod,
                 fixed_zeros,
             )
+        if isinstance(other, TyArrayNumber | int | float):
+            a, b = promote(self, other)
+            return a.__mod__(b)
 
-        return super().__mod__(other)
-
-    def __rmod__(self, other) -> TyArrayBase:
-        if isinstance(other, TyArrayFloating | float):
-            b, a = promote(self, other)
-            var = op.mod(a._var, b._var, fmod=1)
-            return safe_cast(TyArrayFloating, _var_to_tyarray(var))
-        return super().__mod__(other)
+        return NotImplemented
 
     def __ndx_logaddexp__(self, x2: TyArrayBase | int | float, /) -> TyArrayFloating:
         if isinstance(x2, TyArrayNumber | int | float):
@@ -1874,6 +1932,38 @@ class TyArrayFloating(TyArrayNumber):
             x2, x1 = promote(self, x1)
             return safe_cast(TyArrayFloating, (x1.exp() + x2.exp()).log())
         return NotImplemented
+
+    @overload
+    def __add__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __add__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
+    @overload
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __add__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__add__(other)
+
+    @overload
+    def __sub__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __sub__(self, other: TyArrayNumber | int | float) -> TyArrayNumber: ...
+    @overload
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __sub__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__sub__(other)
+
+    @overload
+    def __mul__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __mul__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__mul__(other)
+
+    @overload
+    def __truediv__(self: Self, other: Self | int | float) -> Self: ...
+    @overload
+    def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase: ...
+    def __truediv__(self, other: TyArrayBase | PyScalar) -> TyArrayBase:
+        return super().__truediv__(other)
 
     def ceil(self) -> Self:
         return type(self)(op.ceil(self._var))
@@ -2020,6 +2110,14 @@ class TyArrayFloating(TyArrayNumber):
     def exp(self) -> Self:
         return type(self)(op.exp(self._var))
 
+    def expm1(self) -> Self:
+        # expm1(x) = (u - 1) * x / log(u) with u = exp(x); == x where u == 1.
+        # Analog of Goldberg's log1p (see below).
+        u = self.exp()
+        d = u - 1.0
+        tail = (d == -1.0) | u.isinf()
+        return where(u == 1.0, self, where(tail, d, d * self / u.log()))
+
     def log(self) -> Self:
         return type(self)(op.log(self._var))
 
@@ -2030,6 +2128,16 @@ class TyArrayFloating(TyArrayNumber):
     def log10(self) -> Self:
         res = self.log() / float(np.log(10))
         return safe_cast(type(self), res)
+
+    def log1p(self) -> Self:
+        # log1p(x) = log(u) * x / (u - 1) with u = 1 + x; == x where u == 1.
+        # Goldberg, "What Every Computer Scientist Should Know About
+        # Floating-Point Arithmetic", Theorem 4:
+        # https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+        u = self + 1.0
+        d = u - 1.0
+        short_circuit = (u == 1.0) | (self.isinf() & (self > 0.0))
+        return where(short_circuit, self, u.log() * (self / d))
 
     def sin(self) -> Self:
         return type(self)(op.sin(self._var))
@@ -2166,7 +2274,9 @@ class TyArrayBool(TyArray):
     def logical_not(self) -> Self:
         return ~self
 
-    def static_map(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyArray:
+    def static_map(
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
+    ) -> TyArray:
         mapping_ = {bool(k): v for k, v in mapping.items()}
 
         true_val = mapping_.get(True, default)
@@ -2269,17 +2379,10 @@ def const(
 ) -> TyArray:
     """Create a constant from the given value.
 
-    The `dtype` argument may be used in favor of a subsequent `astype` call to create a cleaner ONNX graph.
+    The `dtype` argument may be used in favor of a subsequent `astype` call to create a
+    cleaner ONNX graph.
     """
-    # don't blindly fall back to NumPy to maintain better np1x
-    # compatibility on Windows which defaults to int32
-    if isinstance(obj, bool):
-        obj = np.asarray(obj, dtype=bool)
-    if isinstance(obj, int):
-        if dtype is None:
-            obj = np.asarray(obj, dtype=np.int64)
-        else:
-            obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
+    # Special case for converting object arrays to string.
     if isinstance(obj, np.ndarray) and obj.dtype == object:
         if not all(isinstance(el, str) for el in obj.flatten()):
             raise ValueError(
@@ -2287,9 +2390,8 @@ def const(
             )
         obj = obj.astype(str)
     else:
-        obj = np.asarray(obj)
-    if dtype is not None:
-        obj = np.asarray(obj, dtype=dtype.unwrap_numpy())
+        obj = np.asarray(obj, dtype=dtype.unwrap_numpy() if dtype is not None else None)
+
     return _var_to_tyarray(op.const(obj))
 
 
@@ -2588,7 +2690,6 @@ def _move_ellipsis_back(
     key: tuple[SetitemItem, ...],
 ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[SetitemItem, ...]]:
     """Permute axes such that the ellipsis-axes are at the end."""
-
     if ... not in key:
         raise ValueError("No ellipsis found in 'key'")
     ellipsis_pos = key.index(...)
@@ -2884,3 +2985,25 @@ def _output_reduce_zero_size(
         )
         out_shape = out_shape.take(const(axes_to_keep, int64))
     return value.broadcast_to(out_shape)
+
+
+def _binary(
+    op: Callable[[Var, Var], Var], otype: type[TY_ARRAY]
+) -> Callable[[TY_ARRAY, TY_ARRAY], TY_ARRAY]:
+    def do(a: TY_ARRAY, b: TY_ARRAY) -> TY_ARRAY:
+        res = op(a._var, b._var)
+        return safe_cast(otype, _var_to_tyarray(res))
+
+    return do
+
+
+def is_non_time_seq(
+    xs: Sequence[int]
+    | Sequence[float]
+    | Sequence[str]
+    | Sequence[np.datetime64]
+    | Sequence[np.timedelta64],
+) -> TypeIs[Sequence[int] | Sequence[float] | Sequence[str]]:
+    """Narrow `Sequence[ISIN_SCALAR]` (or other sequences) to primitive types."""
+    # Inputs are spelled out explicitly to ensure a mypy error when we update `ISIN_SCALAR`
+    return not any(isinstance(x, np.datetime64 | np.timedelta64) for x in xs)

@@ -1,45 +1,25 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Literal, TypeAlias, TypeVar, get_args
+from typing import Literal, TypeVar, get_args
 
 import numpy as np
-from typing_extensions import TypeIs, deprecated
+from typing_extensions import TypeIs
 
 import ndonnx as ndx
-
-from . import _typed_array as tydx
-from ._typed_array.masked_onnx import TyMaArray
+import ndonnx._typed_array as tydx
+import ndonnx._typed_array.datetime
+import ndonnx._typed_array.funcs
+import ndonnx._typed_array.masked_onnx
+from ndonnx._typed_array.types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 SCALAR = TypeVar("SCALAR", int, float, str)
 
-KEY: TypeAlias = SCALAR
-VALUE = TypeVar("VALUE", int, float, str)
 
-
-@deprecated(
-    "'ndonnx.shape' is deprecated in favor of 'ndonnx.Array.dynamic_shape'",
-)
-def shape(x: ndx.Array, /) -> ndx.Array:
-    """Returns shape of an array.
-
-    Parameters
-    ----------
-    x: Array
-        Array to get shape of
-
-    Returns
-    -------
-    out: Array
-        Array of shape
-    """
-    return x.dynamic_shape
-
-
-def isin(x: ndx.Array, /, items: Sequence[SCALAR]) -> ndx.Array:
+def isin(x: ndx.Array, /, items: Sequence[ISIN_SCALAR]) -> ndx.Array:
     """Return true where the input ``Array`` contains an element in ``items``.
 
     ``NaN`` values do **not** compare equal.
@@ -65,8 +45,8 @@ def isin(x: ndx.Array, /, items: Sequence[SCALAR]) -> ndx.Array:
 def static_map(
     x: ndx.Array,
     /,
-    mapping: Mapping[KEY, VALUE],
-    default: VALUE | None = None,
+    mapping: Mapping[MAPPING_KEY, MAPPING_VALUE],
+    default: MAPPING_VALUE | None = None,
 ) -> ndx.Array:
     """Map values in ``x`` based on the static ``mapping``.
 
@@ -198,7 +178,7 @@ def make_nullable(
     null = None if null is None else null.copy()
 
     if null is None:
-        if isinstance(x._tyarray, TyMaArray):
+        if isinstance(x._tyarray, tydx.masked_onnx.TyMaArray):
             return x
         if isinstance(x._tyarray, tydx.onnx.TyArray):
             return ndx.Array._from_tyarray(
@@ -248,9 +228,9 @@ def get_data(x: ndx.Array, /) -> ndx.Array:
 def put(a: ndx.Array, indices: ndx.Array, updates: ndx.Array, /) -> None:
     """Replaces specified elements of an array with given values.
 
-    This function follows the semantics of `numpy.put` with
-    `mode="raises". The data types of the update array and the updates
-    must match. The indices must be provided as a 1D int64 array.
+    This function follows the semantics of `numpy.put` with `mode="raises". The data
+    types of the update array and the updates must match. The indices must be provided
+    as a 1D int64 array.
     """
     if not isinstance(indices._tyarray, tydx.onnx.TyArrayInt64):
         # using isinstance here to get the type narrowing below
@@ -399,6 +379,12 @@ def is_nullable_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.masked_onnx.DTypes]:
     return isinstance(dtype, tydx.masked_onnx.DTypes)
 
 
+def is_nullable_numeric_dtype(
+    dtype: ndx.DType, /
+) -> TypeIs[tydx.masked_onnx.NumericDTypes]:
+    return is_nullable_integer_dtype(dtype) or is_nullable_float_dtype(dtype)
+
+
 def is_nullable_integer_dtype(
     dtype: ndx.DType, /
 ) -> TypeIs[tydx.masked_onnx.IntegerDTypes]:
@@ -423,11 +409,13 @@ __all__ = [
     "datetime_to_year_month_day",
     "fill_null",
     "get_mask",
+    "get_data",
     "is_float_dtype",
     "is_integer_dtype",
     "is_nullable_dtype",
     "is_nullable_float_dtype",
     "is_nullable_integer_dtype",
+    "is_nullable_numeric_dtype",
     "is_numeric_dtype",
     "is_onnx_dtype",
     "is_signed_integer_dtype",
@@ -436,6 +424,5 @@ __all__ = [
     "isin",
     "make_nullable",
     "put",
-    "shape",
     "static_map",
 ]

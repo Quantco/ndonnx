@@ -13,5 +13,7 @@
             "meta": null
         }
     },
-    "version": 1
+    "version": 1,
+    "input_prefix": "",
+    "output_prefix": ""
 }

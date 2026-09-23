@@ -1,11 +1,15 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 """Compatibility layer to work around missing kernels in onnxruntime.
 
-Currently targets 1.20.1:
-https://github.com/microsoft/onnxruntime/blob/v1.20.1/docs/OperatorKernels.md
+Currently targets 1.26.0:
+https://github.com/microsoft/onnxruntime/blob/v1.26.0/docs/OperatorKernels.md
 
-Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md`` between two tags (e.g. https://github.com/microsoft/onnxruntime/compare/v1.19.0..v1.20.1/).
+Updates to this file may be informed by inspecting the diff for ``OperatorKernels.md``
+between two tags (e.g.
+https://github.com/microsoft/onnxruntime/compare/v1.20.1..v1.26.0/).
+
+Missing float16 kernel support is mitigated in onnxruntime via the InsertCastTransformer: https://github.com/microsoft/onnxruntime/blob/8c546c37b43caaca1fa25db430dab94b901cf277/onnxruntime/core/optimizer/insert_cast_transformer.h#L14-L19
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ import spox.opset.ai.onnx.ml.v4 as ml
 import spox.opset.ai.onnx.v21 as op
 from spox import Var
 from spox.opset.ai.onnx.v21 import abs as abs
+from spox.opset.ai.onnx.v21 import add as add
 from spox.opset.ai.onnx.v21 import and_ as and_
 from spox.opset.ai.onnx.v21 import bitwise_and as bitwise_and
 from spox.opset.ai.onnx.v21 import bitwise_not as bitwise_not
@@ -28,16 +33,23 @@ from spox.opset.ai.onnx.v21 import cast as cast
 from spox.opset.ai.onnx.v21 import ceil as ceil
 from spox.opset.ai.onnx.v21 import compress as compress
 from spox.opset.ai.onnx.v21 import const as const
+from spox.opset.ai.onnx.v21 import div as div
+from spox.opset.ai.onnx.v21 import equal as equal
 from spox.opset.ai.onnx.v21 import exp as exp  # Only for floats in both standards
 from spox.opset.ai.onnx.v21 import expand as expand
 from spox.opset.ai.onnx.v21 import floor as floor
 from spox.opset.ai.onnx.v21 import gather as gather
 from spox.opset.ai.onnx.v21 import gather_elements as gather_elements
 from spox.opset.ai.onnx.v21 import gather_nd as gather_nd
+from spox.opset.ai.onnx.v21 import greater as greater
+from spox.opset.ai.onnx.v21 import greater_or_equal as greater_or_equal
 from spox.opset.ai.onnx.v21 import isinf as isinf
 from spox.opset.ai.onnx.v21 import isnan as isnan
+from spox.opset.ai.onnx.v21 import less as less
+from spox.opset.ai.onnx.v21 import less_or_equal as less_or_equal
 from spox.opset.ai.onnx.v21 import log as log
 from spox.opset.ai.onnx.v21 import mod as mod
+from spox.opset.ai.onnx.v21 import mul as mul
 from spox.opset.ai.onnx.v21 import not_ as not_
 from spox.opset.ai.onnx.v21 import or_ as or_
 from spox.opset.ai.onnx.v21 import reciprocal as reciprocal
@@ -49,6 +61,7 @@ from spox.opset.ai.onnx.v21 import size as size
 from spox.opset.ai.onnx.v21 import slice as slice
 from spox.opset.ai.onnx.v21 import squeeze as squeeze
 from spox.opset.ai.onnx.v21 import string_concat as string_concat
+from spox.opset.ai.onnx.v21 import sub as sub
 from spox.opset.ai.onnx.v21 import tile as tile
 from spox.opset.ai.onnx.v21 import transpose as transpose
 from spox.opset.ai.onnx.v21 import unsqueeze as unsqueeze
@@ -169,49 +182,11 @@ def _wrap_binary(
     return wrapped
 
 
-def _mitigate_segfault_from_zero_dims(
-    fun: Callable[[Var, Var], Var],
-) -> Callable[[Var, Var], Var]:
-    """ORT crashes for mut/mat/mul if one of the terms is a rank-1 with zero
-    elements."""
-
-    def wrapped(a: Var, b: Var) -> Var:
-        a_shape = a.unwrap_tensor().shape or ()
-        b_shape = b.unwrap_tensor().shape or ()
-        if len(a_shape) == 1 or len(b_shape):
-            a = op.unsqueeze(a, op.const([-1], dtype=np.int64))
-            b = op.unsqueeze(b, op.const([-1], dtype=np.int64))
-            res = fun(a, b)
-            return op.squeeze(res, op.const([-1], dtype=np.int64))
-        return fun(a, b)
-
-    return wrapped
-
-
 def _warn_lossy(fun_name: str, unsupported: np.dtype, via: type[np.generic]):
     warn(
         f"'{fun_name}' is not implemented for '{unsupported}' in onnxruntime. A lossy cast to '{np.dtype(via)}' is used instead"
     )
 
-
-# The following is a commonly used set of input types in numeric binary functions
-# T: tensor(double), tensor(float), tensor(int32), tensor(int64)
-_common_mapping: _MappingDictType = {
-    (np.uint8, np.int8, np.int16, np.uint16): np.int32,
-    (np.uint32,): np.int64,
-    (np.uint64,): Warn(np.int64),
-}
-add = _mitigate_segfault_from_zero_dims(_wrap_binary(op.add, _common_mapping))
-equal = _wrap_binary(op.equal, _common_mapping, cast_output=False)
-greater = _wrap_binary(op.greater, _common_mapping, cast_output=False)
-greater_or_equal = _wrap_binary(op.greater_or_equal, _common_mapping, cast_output=False)
-less = _wrap_binary(op.less, _common_mapping, cast_output=False)
-less_or_equal = _wrap_binary(op.less_or_equal, _common_mapping, cast_output=False)
-mul = _mitigate_segfault_from_zero_dims(_wrap_binary(op.mul, _common_mapping))
-sub = _mitigate_segfault_from_zero_dims(_wrap_binary(op.sub, _common_mapping))
-
-# div does not suffer of the segfault issues.
-div = _wrap_binary(op.div, _common_mapping)
 
 _mapping_float_only: _MappingDictType = {(np.float64,): Warn(np.float32)}
 acos = _wrap_unary(op.acos, _mapping_float_only)
@@ -228,11 +203,12 @@ _mapping_float_double: _MappingDictType = {
     (np.uint32, np.int32): np.float64,
     (np.uint64, np.int64): Warn(np.float64),
 }
-# T: tensor(double), tensor(float), tensor(int32), tensor(int64), tensor(int8)
+# tensor(double), tensor(float), tensor(int16), tensor(int32), tensor(int64),
+# tensor(int8)
 neg = _wrap_unary(
     op.neg,
     {
-        (np.uint8, np.int16, np.uint16): np.int32,
+        (np.uint8, np.uint16): np.int32,
         (np.uint32,): np.int64,
         (np.uint64,): Warn(np.int64),
     },
@@ -278,7 +254,7 @@ def reduce_op(
     return fun(data)
 
 
-# tensor(float), tensor(int32), tensor(int64)
+# tensor(double), tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_prod: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
     (np.uint32,): np.int64,
@@ -294,25 +270,25 @@ _mapping_reduce_sum: _MappingDictType = {
 }
 reduce_sum = partial(reduce_op, spox_op=op.reduce_sum, mapping=_mapping_reduce_sum)
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32),
-# tensor(int64)
+# tensor(bool), tensor(double), tensor(float), tensor(int32),
+# tensor(int64), tensor(int8), tensor(uint8)
 _mapping_reduce_max: _MappingDictType = {
-    (np.int8, np.int16, np.uint8, np.uint16): np.int32,
+    (np.int16, np.uint16): np.int32,
     (np.uint32,): np.int64,
     (np.uint64,): Warn(np.float64),
 }
 reduce_max = partial(reduce_op, spox_op=op.reduce_max, mapping=_mapping_reduce_max)
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32),
+# tensor(bool), tensor(double), tensor(float), tensor(int32),
 # tensor(int64), tensor(int8), tensor(uint8)
 _mapping_reduce_min: _MappingDictType = {
     (np.int16, np.uint16): np.int32,
     (np.uint32,): np.int64,
-    (np.uint32, np.uint64): Warn(np.float64),
+    (np.uint64,): Warn(np.float64),
 }
 reduce_min = partial(reduce_op, spox_op=op.reduce_min, mapping=_mapping_reduce_min)
 
-# tensor(double), tensor(float), tensor(float16), tensor(int32)
+# tensor(double), tensor(float), tensor(int32), tensor(int64)
 _mapping_reduce_mean: _MappingDictType = {
     (np.int8, np.int16, np.uint8, np.uint16): np.int32,
     (np.uint64, np.int64): Warn(np.float64),
@@ -376,9 +352,8 @@ def pow(a: Var, b: Var, /) -> Var:
     compat_args = []
     did_warn = False
 
-    # 1.19.2 support:
-    # T = tensor(double), tensor(float), tensor(float16), tensor(int32), tensor(int64)
-    # T1 = tensor(double), tensor(float), tensor(float16), tensor(int32), tensor(int64)
+    # T = tensor(double), tensor(float), tensor(int32), tensor(int64)
+    # T1 = tensor(double), tensor(float), tensor(int32), tensor(int64)
     mapping: _MappingDictType = {
         (np.uint8, np.int8, np.int16, np.uint16): np.int32,
         (np.uint32,): np.int64,
@@ -406,16 +381,16 @@ def pow(a: Var, b: Var, /) -> Var:
 
 
 _min_max_mapping: _MappingDictType = {
-    (np.int8, np.int16, np.uint8, np.uint16): np.int32,
+    (np.int16, np.uint16): np.int32,
 }
 
 
 # tensor(double), tensor(float), tensor(float16), tensor(int32),
-# tensor(int64), tensor(uint32), tensor(uint64)
+# tensor(int64), tensor(int8), tensor(uint32), tensor(uint64), tensor(uint8)
 def max(data_0: Sequence[Var], /) -> Var:
     xs = list(data_0)
     dtype_in = xs[0].unwrap_tensor().dtype
-    if dtype_in.kind == "i":
+    if dtype_in == np.int64:
         # The max, min, and clip operator appears to be strangely broken in onnxruntime
         # See: https://github.com/microsoft/onnxruntime/pull/25280
         # We work around it by using the where operator in those
@@ -486,8 +461,13 @@ def top_k(
     largest: int = 1,
     sorted: int = 1,
 ) -> tuple[Var, Var]:
-    # tensor(double), tensor(float), tensor(int32), tensor(int64)
-    mapping = _common_mapping
+    # tensor(double), tensor(float), tensor(int16), tensor(int32),
+    # tensor(int64), tensor(int8), tensor(uint8)
+    mapping: _MappingDictType = {
+        (np.uint16,): np.int32,
+        (np.uint32,): np.int64,
+        (np.uint64,): Warn(np.int64),
+    }
     # ORT only implements sorted=1
     sorted = 1
     dtype_in = X.unwrap_tensor().dtype
