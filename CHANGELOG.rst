@@ -32,6 +32,24 @@ Changelog
   - ``ndonnx.NullableIntegral`` → :func:`ndonnx.extensions.is_nullable_integer_dtype`
   - ``ndonnx.UnsupportedOperationError`` and ``ndonnx.CastError`` → these are no longer raised; catch ``TypeError`` instead.
 
+**New feature**
+
+- ndonnx's public interface now accepts objects of the following NumPy types (or a subset thereof):
+  - ``numpy.float16``
+  - ``numpy.float32``
+  - ``numpy.float64``
+  - ``numpy.int8``
+  - ``numpy.int16``
+  - ``numpy.int32``
+  - ``numpy.int64``
+  - ``numpy.uint8``
+  - ``numpy.uint16``
+  - ``numpy.uint32``
+  - ``numpy.uint64``
+  - ``numpy.bool``
+  - ``numpy.datetime64``
+  - ``numpy.timedelta64``
+
 **Other change**
 
 - Models built with ndonnx now expect the operator support found in ``onnxruntime >=1.26.0``.
