@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 """Element-wise free functions.
 
@@ -10,11 +10,13 @@ from collections.abc import Callable
 from functools import wraps
 from typing import TypeVar
 
+import numpy as np
+
 import ndonnx as ndx
 from ndonnx import Array, DType
-
-from ._array_tyarray_interop import unwrap_tyarray
-from ._typed_array import funcs as tyfuncs
+from ndonnx._array_tyarray_interop import unwrap_tyarray
+from ndonnx._typed_array import funcs as tyfuncs
+from ndonnx._typed_array.types import Bool, Floating, Integer
 
 F = TypeVar("F", bound=Callable[..., Array])
 
@@ -34,7 +36,7 @@ def _ensure_array_in_args(fn: F) -> F:
 
 
 @_ensure_array_in_args
-def add(a: Array | int | float, b: Array | int | float) -> Array:
+def add(a: Array | Integer | Floating, b: Array | Integer | Floating) -> Array:
     return ndx.asarray(a + b)
 
 
@@ -63,7 +65,7 @@ def atan(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def atan2(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def atan2(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     # Requires special operator to meet standards precision requirements
     # TODO: Add upstream tracking issue
     raise NotImplementedError
@@ -74,12 +76,12 @@ def atanh(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def bitwise_and(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+def bitwise_and(x1: Array | Integer | Bool, x2: Array | Integer | Bool, /) -> Array:
     return ndx.asarray(x1 & x2)
 
 
 @_ensure_array_in_args
-def bitwise_left_shift(x1: Array | int, x2: Array | int, /) -> Array:
+def bitwise_left_shift(x1: Array | Integer, x2: Array | Integer, /) -> Array:
     return ndx.asarray(x1 << x2)
 
 
@@ -88,17 +90,17 @@ def bitwise_invert(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def bitwise_or(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+def bitwise_or(x1: Array | Integer | Bool, x2: Array | Integer | Bool, /) -> Array:
     return ndx.asarray(x1 | x2)
 
 
 @_ensure_array_in_args
-def bitwise_right_shift(x1: Array | int, x2: Array | int, /) -> Array:
+def bitwise_right_shift(x1: Array | Integer, x2: Array | Integer, /) -> Array:
     return ndx.asarray(x1 >> x2)
 
 
 @_ensure_array_in_args
-def bitwise_xor(x1: Array | int | bool, x2: Array | int | bool, /) -> Array:
+def bitwise_xor(x1: Array | Integer | Bool, x2: Array | Integer | Bool, /) -> Array:
     return ndx.asarray(x1 ^ x2)
 
 
@@ -109,18 +111,22 @@ def ceil(array: Array, /) -> Array:
 def clip(
     x: Array,
     /,
-    min: None | int | float | Array = None,
-    max: None | int | float | Array = None,
+    min: None | Integer | Floating | Array = None,
+    max: None | Integer | Floating | Array = None,
 ) -> Array:
     min_max: list[int | float | DType] = []
     if min is not None:
         if isinstance(min, Array):
             min_max.append(min.dtype)
+        elif isinstance(min, np.generic):
+            min_max.append(ndx.from_numpy_dtype(np.dtype(min)))
         else:
             min_max.append(min)
     if max is not None:
         if isinstance(max, Array):
             min_max.append(max.dtype)
+        elif isinstance(max, np.generic):
+            min_max.append(ndx.from_numpy_dtype(np.dtype(max)))
         else:
             min_max.append(max)
     dtype = tyfuncs.result_type(x.dtype, *min_max)
@@ -139,12 +145,14 @@ def cosh(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def copysign(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def copysign(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     raise NotImplementedError
 
 
 @_ensure_array_in_args
-def divide(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def divide(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     return ndx.asarray(x1 / x2)
 
 
@@ -157,7 +165,9 @@ def expm1(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def equal(x1: Array | int | float | bool, x2: Array | int | float | bool, /) -> Array:
+def equal(
+    x1: Array | Integer | Floating | Bool, x2: Array | Integer | Floating | Bool, /
+) -> Array:
     return ndx.asarray(x1 == x2)
 
 
@@ -166,22 +176,26 @@ def floor(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def floor_divide(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def floor_divide(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return ndx.asarray(x1 // x2)
 
 
 @_ensure_array_in_args
-def greater(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def greater(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     return ndx.asarray(x1 > x2)
 
 
 @_ensure_array_in_args
-def greater_equal(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def greater_equal(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return ndx.asarray(x1 >= x2)
 
 
 @_ensure_array_in_args
-def hypot(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def hypot(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     raise NotImplementedError
 
 
@@ -198,12 +212,14 @@ def isnan(array: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def less(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def less(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     return ndx.asarray(x1 < x2)
 
 
 @_ensure_array_in_args
-def less_equal(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def less_equal(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return ndx.asarray(x1 <= x2)
 
 
@@ -224,14 +240,16 @@ def log10(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def logaddexp(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def logaddexp(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return Array._from_tyarray(
         tyfuncs.logaddexp(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
 
 
 @_ensure_array_in_args
-def logical_and(x1: Array | bool, x2: Array | bool, /) -> Array:
+def logical_and(x1: Array | Bool, x2: Array | Bool, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logical_and(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
@@ -242,31 +260,33 @@ def logical_not(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def logical_or(x1: Array | bool, x2: Array | bool, /) -> Array:
+def logical_or(x1: Array | Bool, x2: Array | Bool, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logical_or(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
 
 
 @_ensure_array_in_args
-def logical_xor(x1: Array | bool, x2: Array | bool, /) -> Array:
+def logical_xor(x1: Array | Bool, x2: Array | Bool, /) -> Array:
     return Array._from_tyarray(
         tyfuncs.logical_xor(unwrap_tyarray(x1), unwrap_tyarray(x2))
     )
 
 
 @_ensure_array_in_args
-def maximum(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def maximum(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     return Array._from_tyarray(tyfuncs.maximum(unwrap_tyarray(x1), unwrap_tyarray(x2)))
 
 
 @_ensure_array_in_args
-def minimum(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def minimum(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     return Array._from_tyarray(tyfuncs.minimum(unwrap_tyarray(x1), unwrap_tyarray(x2)))
 
 
 @_ensure_array_in_args
-def multiply(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def multiply(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return ndx.asarray(x1 * x2)
 
 
@@ -275,7 +295,9 @@ def negative(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def nextafter(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def nextafter(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     # Requires special ONNX operator
     # TODO: Add upstream tracking issue
     raise NotImplementedError
@@ -283,7 +305,7 @@ def nextafter(x1: Array | int | float, x2: Array | int | float, /) -> Array:
 
 @_ensure_array_in_args
 def not_equal(
-    x1: Array | int | float | bool, x2: Array | int | float | bool, /
+    x1: Array | Integer | Floating | Bool, x2: Array | Integer | Floating | Bool, /
 ) -> Array:
     return ndx.asarray(x1 != x2)
 
@@ -293,7 +315,7 @@ def positive(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def pow(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def pow(x1: Array | Integer | Floating, x2: Array | Integer | Floating, /) -> Array:
     return ndx.asarray(x1**x2)
 
 
@@ -306,7 +328,9 @@ def reciprocal(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def remainder(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def remainder(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return ndx.asarray(x1 % x2)
 
 
@@ -339,7 +363,9 @@ def sqrt(x: Array, /) -> Array:
 
 
 @_ensure_array_in_args
-def subtract(x1: Array | int | float, x2: Array | int | float, /) -> Array:
+def subtract(
+    x1: Array | Integer | Floating, x2: Array | Integer | Floating, /
+) -> Array:
     return ndx.asarray(x1 - x2)
 
 

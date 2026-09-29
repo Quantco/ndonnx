@@ -25,15 +25,13 @@ from ndonnx.types import NestedSequence, OnnxShape, PyScalar
 if TYPE_CHECKING:
     from spox import Var
 
-    from .types import ISIN_SCALAR
+    from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
 
 
 DTYPE = TypeVar("DTYPE", bound=DType)
 
 TY_MA_ARRAY_ONNX = TypeVar("TY_MA_ARRAY_ONNX", bound="TyMaArray", covariant=True)
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
-KEY = TypeVar("KEY", int, float, str)
-VALUE = TypeVar("VALUE", int, float, str)
 
 
 class _MaOnnxDType(DType[TY_MA_ARRAY_ONNX]):
@@ -532,7 +530,9 @@ class TyMaArray(TyMaArrayBase):
             mask = safe_cast(onnx.TyArrayBool, masks[0].concat(masks[1:], axis))
         return safe_cast(type(self), make_nullable(data, mask))
 
-    def apply_mapping(self, mapping: Mapping[KEY, VALUE], default: VALUE) -> TyMaArray:
+    def apply_mapping(
+        self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
+    ) -> TyMaArray:
         data = self._data.apply_mapping(mapping, default=default)
         return make_nullable(data, mask=self.mask)
 

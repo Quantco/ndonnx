@@ -11,10 +11,11 @@ import numpy as np
 from spox import Var
 
 from ndonnx import DType, from_numpy_dtype
-from ndonnx.types import NestedSequence, PyScalar
+from ndonnx.types import NestedSequence
 
 from . import TyArrayBase, datetime, masked_onnx, onnx, promote
 from ._utils import validate_op_result
+from .types import PyScalar, Scalar
 
 TY_ARRAY_BASE_co = TypeVar("TY_ARRAY_BASE_co", bound="TyArrayBase", covariant=True)
 
@@ -70,26 +71,28 @@ def _infer_dtype(
 
 @overload
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: DType[TY_ARRAY_BASE_co],
 ) -> TY_ARRAY_BASE_co: ...
 
 
 @overload
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: None | DType = None,
 ) -> TyArrayBase: ...
 
 
 def astyarray(
-    val: PyScalar | np.ndarray | TyArrayBase | Var | NestedSequence,
+    val: Scalar | np.ndarray | TyArrayBase | Var | NestedSequence,
     dtype: None | DType[TY_ARRAY_BASE_co] = None,
 ) -> TyArrayBase:
     """Conversion of values of various types into a built-in typed array.
 
     This function always copies.
     """
+    if isinstance(val, np.generic):
+        val = np.asarray(val)
     inferred_dtype = _infer_dtype(val) if dtype is None else dtype
     res = inferred_dtype.__ndx_create__(val)
     if res is NotImplemented:

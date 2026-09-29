@@ -13,7 +13,8 @@ import numpy as np
 from spox import Var
 
 import ndonnx as ndx
-from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape, PyScalar
+from ndonnx._typed_array.types import PyScalar, Scalar
+from ndonnx.types import DTypeAlias, NestedSequence, OnnxShape
 
 from ._array import Array, DType
 from ._array_tyarray_interop import unwrap_tyarray
@@ -94,7 +95,7 @@ def argument(
 
 
 def asarray(
-    obj: Array | PyScalar | np.ndarray | NestedSequence | Var,
+    obj: Array | Scalar | np.ndarray | NestedSequence | Var,
     /,
     *,
     dtype: ndx.DType | DTypeAlias | None = None,
@@ -132,6 +133,10 @@ def asarray(
                 out = concat([a.astype(dtype)[None, ...] for a in np_arr.flatten()])
                 out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
                 return reshape(out, out_shape)
+        if isinstance(obj, Scalar):
+            if isinstance(obj, np.generic):
+                obj = np.asarray(obj)
+
         return Array._from_tyarray(tyfuncs.astyarray(obj, dtype=dtype))
 
 
