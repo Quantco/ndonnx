@@ -51,12 +51,6 @@ DTYPE_ALIAS_MAP = {
 }
 
 
-def numpy_scalar_to_array(scalar: Scalar) -> PyScalar | np.ndarray:
-    if isinstance(scalar, np.generic):
-        return np.asarray(scalar)
-    return scalar
-
-
 @overload
 def normalize_dtype(dtype: None) -> None: ...
 
@@ -140,7 +134,9 @@ def asarray(
                 out_shape = concat([asarray(np_arr.shape), out.dynamic_shape[1:]])
                 return reshape(out, out_shape)
         if isinstance(obj, Scalar):
-            obj = numpy_scalar_to_array(obj)
+            if isinstance(obj, np.generic):
+                obj = np.asarray(obj)
+
         return Array._from_tyarray(tyfuncs.astyarray(obj, dtype=dtype))
 
 
