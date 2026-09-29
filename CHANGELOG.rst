@@ -7,7 +7,7 @@
 Changelog
 =========
 
-0.23.0 (unreleased)
+0.23.0 (2026-09-29)
 -------------------
 
 **Breaking change**
