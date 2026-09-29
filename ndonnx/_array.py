@@ -418,7 +418,7 @@ def _astyarray_or_pyscalar(
         val = np.asarray(val)
     if isinstance(val, Array):
         return val._tyarray
-    if isinstance(val, int | float | str):
+    if isinstance(val, PyScalar):
         return val
     return tyfuncs.astyarray(val)
 
