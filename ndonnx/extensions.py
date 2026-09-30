@@ -382,23 +382,23 @@ def is_nullable_dtype(dtype: ndx.DType, /) -> TypeIs[tydx.masked_onnx.DTypes]:
 def is_nullable_numeric_dtype(
     dtype: ndx.DType, /
 ) -> TypeIs[tydx.masked_onnx.NumericDTypes]:
+    """Return ``True`` if ``dtype`` is a nullable (i.e. "masked") integer or float
+    type."""
     return is_nullable_integer_dtype(dtype) or is_nullable_float_dtype(dtype)
 
 
 def is_nullable_integer_dtype(
     dtype: ndx.DType, /
 ) -> TypeIs[tydx.masked_onnx.IntegerDTypes]:
-    """Return ``True`` if ``dtype`` is a nullable integer (i.e. "masked") data type."""
+    """Return ``True`` if ``dtype`` is a nullable (i.e. "masked") integer type."""
     return isinstance(dtype, tydx.masked_onnx.IntegerDTypes)
 
 
 def is_nullable_float_dtype(
     dtype: ndx.DType, /
 ) -> TypeIs[tydx.masked_onnx.FloatDTypes]:
-    """Return ``True`` if ``dtype`` is a nullable integer (i.e. "masked") data type."""
-    if isinstance(dtype, tydx.masked_onnx.FloatDTypes):
-        return True
-    return False
+    """Return ``True`` if ``dtype`` is a nullable (i.e. "masked") float type."""
+    return isinstance(dtype, tydx.masked_onnx.FloatDTypes)
 
 
 def is_time_unit(s: str, /) -> TypeIs[tydx.datetime.Unit]:
