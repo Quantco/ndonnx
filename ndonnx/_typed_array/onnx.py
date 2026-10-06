@@ -2271,6 +2271,32 @@ class TyArrayBool(TyArray):
     def __ndx_rlogical_or__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.or_, forward=False)._var)
 
+    # Boolean scalar branches are expressed via logical operators
+    # since onnxruntime implements a boolean `Where` only via casts.
+    @overload
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArray, /
+    ) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(y, bool):
+            return ~cond | self if y else cond & self
+        return super().__ndx_where__(cond, y)
+
+    def __ndx_rwhere__(
+        self, cond: TyArrayBool, x: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(x, bool):
+            return cond | self if x else ~cond & self
+        return super().__ndx_rwhere__(cond, x)
+
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         # Use numeric implementation
         return self.astype(uint8).nonzero()

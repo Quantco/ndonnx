@@ -6,7 +6,7 @@ import pytest
 
 import ndonnx as ndx
 
-from .utils import assert_equal_dtype_shape
+from .utils import assert_array_equal, assert_equal_dtype_shape
 
 
 @pytest.mark.parametrize("k", [-1, 0, 1])
@@ -102,6 +102,25 @@ def test_where(x_ty, y_ty, res_ty):
     res = ndx.where(cond, x, y)
 
     assert_equal_dtype_shape(res, res_ty, shape)
+
+
+@pytest.mark.parametrize("scalar", [True, False])
+@pytest.mark.parametrize("scalar_is_x", [True, False])
+@pytest.mark.parametrize(
+    "cond, arr",
+    [
+        ([True, True, False, False], [True, False, True, False]),
+        ([[True], [False]], [True, False]),
+        (True, [True, False]),
+        ([True, False], True),
+    ],
+)
+def test_where_bool_python_scalar(cond, arr, scalar, scalar_is_x):
+    def do(npx):
+        c, a = npx.asarray(cond), npx.asarray(arr)
+        return npx.where(c, scalar, a) if scalar_is_x else npx.where(c, a, scalar)
+
+    assert_array_equal(do(ndx).unwrap_numpy(), do(np))
 
 
 @pytest.mark.parametrize("shape", [(), (1,), (2, 2)])
