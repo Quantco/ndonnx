@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.23.1 (unreleased)
+-------------------
+
+**Other change**
+
+- Ndonnx produces more efficient graphs for ``where`` operations with boolean operands.
+
+
 0.23.0 (2026-09-29)
 -------------------
 
