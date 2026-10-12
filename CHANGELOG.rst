@@ -7,6 +7,14 @@
 Changelog
 =========
 
+0.23.1 (2026-10-12)
+-------------------
+
+**Other change**
+
+- ``ndonnx.cumulative_sum`` with ``include_initial=True`` now yields more efficient graphs.
+
+
 0.23.0 (2026-09-29)
 -------------------
 
