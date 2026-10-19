@@ -12,6 +12,7 @@ Changelog
 
 **Other change**
 
+- ``ndonnx.cumulative_sum`` with ``include_initial=True`` now yields more efficient graphs.
 - Ndonnx produces more efficient graphs for ``where`` operations with boolean operands.
 
 

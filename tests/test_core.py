@@ -971,11 +971,16 @@ def test_dynamic_reshape_has_no_static_shape(x, shape):
         ([[1, 2, 50], [3, 4, 5]], 1),
         ([[[[1]]], [[[3]]]], 0),
         ([[[[1]]], [[[3]]]], 1),
+        ([1, 2, 3], -1),
+        ([[1, 2], [3, 4]], -1),
+        ([[1, 2, 50], [3, 4, 5]], -2),
+        ([[[[1]]], [[[3]]]], -3),
+        ([[[[1]]], [[[3]]]], -4),
     ],
 )
 @pytest.mark.parametrize(
     "cumsum_dtype",
-    [None, ndx.int32, ndx.float32, ndx.float64, ndx.uint8, ndx.int8],
+    [None, ndx.int32, ndx.float32, ndx.float64, ndx.uint8, ndx.int8, ndx.int16],
 )
 def test_cumulative_sum(array, axis, include_initial, array_dtype, cumsum_dtype):
     a = ndx.asarray(array, dtype=array_dtype)

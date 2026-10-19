@@ -1176,10 +1176,11 @@ class TyArrayNumber(TyArray):
             ),
         )
         if include_initial:
-            out_shape = out.dynamic_shape
-            out_shape[axis_] = const(1, dtype=int64)
-            zeros = safe_cast(type(self), const(0, out.dtype).broadcast_to(out_shape))
-            out = zeros.concat([out], axis=axis_)
+            pads = np.zeros(2 * self.ndim, np.int64)
+            pads[axis_ % self.ndim] = 1
+            out = safe_cast(
+                type(self), _var_to_tyarray(op.pad(out._var, op.const(pads)))
+            )
         return out
 
     def _accumulation_dtype(self, dtype: DType | None = None) -> DType:
