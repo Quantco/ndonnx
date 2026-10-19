@@ -471,6 +471,16 @@ class TyMaArray(TyMaArrayBase):
         self.data[index] = value.data
         if self.mask is None and value.mask is None:
             return
+        if (
+            value.mask is None
+            and self.mask is not None
+            and isinstance(index, onnx.TyArrayBool)
+            and index.ndim == self.ndim
+        ):
+            # Equivalent to the assignment below but avoids a boolean
+            # `Where` which onnxruntime only supports via casts.
+            self.mask = safe_cast(onnx.TyArrayBool, self.mask & ~index)
+            return
         if self.mask is None:
             # Create a new mask for self
             self.mask = onnx.const(False, onnx.bool_).broadcast_to(self.dynamic_shape)
