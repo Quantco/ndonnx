@@ -323,6 +323,34 @@ def cumsum(
     return fun(x)
 
 
+def pad(
+    data: Var,
+    pads: Var,
+    constant_value: Var | None = None,
+    axes: Var | None = None,
+    *,
+    mode: str = "constant",
+) -> Var:
+    # T = tensor(bool), tensor(double), tensor(float), tensor(int32), tensor(int64),
+    # tensor(int8), tensor(uint32), tensor(uint64), tensor(uint8)
+    mapping: _MappingDictType = {(np.int16, np.uint16): np.int32}
+    if constant_value is None:
+        fun = _wrap_unary(
+            partial(op.pad, pads=pads, axes=axes, mode=mode),
+            mapping,
+            fun_name=op.pad.__name__,
+        )
+        return fun(data)
+    fun_binary = _wrap_binary(
+        lambda data, constant_value: op.pad(
+            data, pads, constant_value, axes, mode=mode
+        ),
+        mapping,
+        fun_name=op.pad.__name__,
+    )
+    return fun_binary(data, constant_value)
+
+
 def bit_shift(
     X: Var,
     Y: Var,

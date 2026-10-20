@@ -170,6 +170,15 @@ def test_static_map(x, mapping, default, expected):
             [np.nan, 1],
             [False, False, True],
         ),
+        # numpy scalar items are accepted like their Python counterparts
+        (np.asarray([1, 2, 3]), [np.int64(2), np.int64(3)], [False, True, True]),
+        # numpy floating nan is filtered like a Python float nan, even for
+        # np.float32 which (unlike np.float64) is not a `float` subclass
+        (
+            np.asarray([np.nan, 1.0], np.float32),
+            [np.float32(np.nan), np.float32(1.0)],
+            [False, True],
+        ),
     ],
 )
 def test_isin(np_arr, test_items, desired):

@@ -22,17 +22,16 @@ from typing import (
 
 import numpy as np
 from spox import Tensor, Var, argument, build, inline
-from typing_extensions import TypeIs
 
 from ndonnx import DType
-from ndonnx.types import NestedSequence, OnnxShape, PyScalar
+from ndonnx.types import NestedSequence, OnnxShape
 
 from .._schema import DTypeInfoV1
 from . import TyArrayBase, safe_cast
 from . import ort_compat as op
 from .dtype_independent_funcs import maximum, minimum, where, zeros
 from .indexing import FancySlice
-from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE
+from .types import ISIN_SCALAR, MAPPING_KEY, MAPPING_VALUE, PyScalar, Scalar
 
 _ScalarInt: TypeAlias = "TyArrayInteger"
 """Alias signaling that this must be a rank-0 integer tensor."""
@@ -957,29 +956,37 @@ class TyArray(TyArrayBase):
         return NotImplemented
 
     def isin(self, items: Sequence[ISIN_SCALAR]) -> TyArrayBool:
-        if not is_non_time_seq(items):
+        # Filter out nan values since we never want to compare equal to them (NumPy semantics)
+        items = [
+            el
+            for el in items
+            if not (isinstance(el, float | np.floating) and np.isnan(el))
+        ]
+
+        np_items = np.asarray(items)
+        if np_items.dtype.kind not in "Uiufb":
             raise ValueError(
                 f"unexpected type in 'items' for 'isin' on `{self.dtype}`: `{items}`"
             )
 
-        # Filter out nan values since we never want to compare equal to them (NumPy semantics)
-        items = [el for el in items if not isinstance(el, float) or not np.isnan(el)]
-
         # Optimizations:
-        if len(items) == 0:
+        if len(np_items) == 0:
             return const(False, dtype=bool_).broadcast_to(self.dynamic_shape)
-        if len(items) == 1:
-            return safe_cast(TyArrayBool, self == const(items[0]))
+        if len(np_items) == 1:
+            return safe_cast(TyArrayBool, self == np_items.item())
 
         # label_encoder based implementation
-        mapping = dict(zip(items, (True,) * len(items)))
+        mapping = dict(zip(np_items, (True,) * len(np_items)))
         return safe_cast(TyArrayBool, self.apply_mapping(mapping, False))
 
     def apply_mapping(
         self, mapping: Mapping[MAPPING_KEY, MAPPING_VALUE], default: MAPPING_VALUE
     ) -> TyArray:
         if not mapping:
-            return safe_cast(TyArray, const(default).broadcast_to(self.dynamic_shape))
+            default_ = (
+                np.asarray(default) if isinstance(default, np.generic) else default
+            )
+            return safe_cast(TyArray, const(default_).broadcast_to(self.dynamic_shape))
         np_arr_dtype = self.dtype.unwrap_numpy()
         np_keys = np.array(list(mapping.keys()))
 
@@ -1169,10 +1176,11 @@ class TyArrayNumber(TyArray):
             ),
         )
         if include_initial:
-            out_shape = out.dynamic_shape
-            out_shape[axis_] = const(1, dtype=int64)
-            zeros = safe_cast(type(self), const(0, out.dtype).broadcast_to(out_shape))
-            out = zeros.concat([out], axis=axis_)
+            pads = np.zeros(2 * self.ndim, np.int64)
+            pads[axis_ % self.ndim] = 1
+            out = safe_cast(
+                type(self), _var_to_tyarray(op.pad(out._var, op.const(pads)))
+            )
         return out
 
     def _accumulation_dtype(self, dtype: DType | None = None) -> DType:
@@ -2264,6 +2272,32 @@ class TyArrayBool(TyArray):
     def __ndx_rlogical_or__(self, other: TyArrayBase | PyScalar, /) -> Self:
         return type(self)(self._apply(other, op.or_, forward=False)._var)
 
+    # Boolean scalar branches are expressed via logical operators
+    # since onnxruntime implements a boolean `Where` only via casts.
+    @overload
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArray, /
+    ) -> TyArray | NotImplementedType: ...
+
+    @overload
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType: ...
+
+    def __ndx_where__(
+        self, cond: TyArrayBool, y: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(y, bool):
+            return ~cond | self if y else cond & self
+        return super().__ndx_where__(cond, y)
+
+    def __ndx_rwhere__(
+        self, cond: TyArrayBool, x: TyArrayBase | PyScalar, /
+    ) -> TyArrayBase | NotImplementedType:
+        if isinstance(x, bool):
+            return cond | self if x else ~cond & self
+        return super().__ndx_rwhere__(cond, x)
+
     def nonzero(self) -> tuple[TyArrayInt64, ...]:
         # Use numeric implementation
         return self.astype(uint8).nonzero()
@@ -2359,9 +2393,7 @@ def _var_to_tyarray(var: Var) -> TyArray:
 
 
 @overload
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]
-) -> TY_ARRAY_co: ...
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType[TY_ARRAY_co]) -> TY_ARRAY_co: ...
 
 
 @overload
@@ -2369,14 +2401,10 @@ def const(obj: int, dtype: None = None) -> TyArrayInt64: ...
 
 
 @overload
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
-) -> TyArray: ...
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType | None = None) -> TyArray: ...
 
 
-def const(
-    obj: bool | int | float | str | np.ndarray, dtype: _OnnxDType | None = None
-) -> TyArray:
+def const(obj: Scalar | np.ndarray, dtype: _OnnxDType | None = None) -> TyArray:
     """Create a constant from the given value.
 
     The `dtype` argument may be used in favor of a subsequent `astype` call to create a
@@ -2995,15 +3023,3 @@ def _binary(
         return safe_cast(otype, _var_to_tyarray(res))
 
     return do
-
-
-def is_non_time_seq(
-    xs: Sequence[int]
-    | Sequence[float]
-    | Sequence[str]
-    | Sequence[np.datetime64]
-    | Sequence[np.timedelta64],
-) -> TypeIs[Sequence[int] | Sequence[float] | Sequence[str]]:
-    """Narrow `Sequence[ISIN_SCALAR]` (or other sequences) to primitive types."""
-    # Inputs are spelled out explicitly to ensure a mypy error when we update `ISIN_SCALAR`
-    return not any(isinstance(x, np.datetime64 | np.timedelta64) for x in xs)
