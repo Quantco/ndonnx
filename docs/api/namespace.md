@@ -10,5 +10,5 @@ Functions and constants in the `ndonnx` namespace.
       show_root_members_full_path: true
       filters:
         - "!^_"
-        - "!Array"
-		- "!DType"
+        - "!^Array$"
+        - "!^DType$"

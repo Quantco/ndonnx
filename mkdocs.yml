@@ -48,6 +48,7 @@ nav:
   - API Documentation:
       - Namespace: api/namespace.md
       - Array: api/array.md
+      - DType: api/dtype.md
       - Extensions: api/extensions.md
       - Data types: datatypes.md
   - Changelog: CHANGELOG.md

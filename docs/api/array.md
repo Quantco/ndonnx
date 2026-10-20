@@ -1,8 +1,8 @@
 # Array
 
 <!-- prettier-ignore -->
-::: ndonnx._array.Array
+::: ndonnx.Array
     options:
       summary: true
-    filters:
-      - "!^\_"
+      filters:
+        - "!^_"
