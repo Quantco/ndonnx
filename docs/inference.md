@@ -48,9 +48,9 @@ exporting to ONNX.
     import ndonnx as ndx
 
     y = ndx.argument(shape=("N",), dtype=ndx.nutf8)
-    print(y) # Array(dtype=NUtf8)
-    print(ndx.extensions.get_data(y)) # Array(dtype=Utf8)
-    print(ndx.extensions.get_mask(y)) # Array(dtype=Boolean)
+    print(y) # array(data: *lazy*, mask: *lazy*, shape=('N',), dtype=nutf8)
+    print(ndx.extensions.get_data(y)) # array(data: *lazy*, shape=('N',), dtype=utf8)
+    print(ndx.extensions.get_mask(y)) # array(data: *lazy*, shape=('N',), dtype=bool)
     ```
 
 The suffixes `_values` and `_null` are not present when using standard
@@ -88,7 +88,9 @@ For the example model above, we extract the following schema:
             "author": "ndonnx",
             "meta": null
         }
-    }
+    },
+    "input_prefix": "",
+    "output_prefix": ""
 }
 ```
 

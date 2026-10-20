@@ -45,15 +45,15 @@ be found in the [ndonnx.extensions][] module.
 import ndonnx as ndx
 import ndonnx.extensions as nde
 
-a = ndx.asarray([1.0, 2.0, 3.0])
+a = ndx.asarray([1, 2, 3])
 
 # Functions and operators as defined by the Array API
-b = 1 / ndx.logaddexp(a, 2.0)
-print(b) # Array([0.44651931 0.37502795 0.3021017 ], dtype=Float64)
+b = ndx.min(a)
+print(b) # array(data: 1, dtype=int64)
 
 # Functions unique to ndonnx
 c = nde.isin(a, [1, 3])
-print(c) # Array([True False True], dtype=Boolean)
+print(c) # array(data: [True, False, True], dtype=bool)
 ```
 
 ### Slicing, Indexing, and Broadcasting
@@ -68,11 +68,11 @@ a = ndx.asarray([1, 2, 3])
 
 # Indexing
 b = a[0]
-print(b) # Array(1, dtype=Int64)
+print(b) # array(data: 1, dtype=int64)
 
 # Slicing and broadcasting
 c = a[1:3] + 4
-print(c) # Array([6 7], dtype=Int64)
+print(c) # array(data: [6, 7], dtype=int64)
 ```
 
 ### Data Types
@@ -86,15 +86,15 @@ import ndonnx as ndx
 import numpy as np
 
 a = ndx.asarray(["foo", "bar", "baz"])
-print(a.dtype) # Utf8
+print(a.dtype) # utf8
 
 # Array of nullable integers
 b = ndx.asarray(np.ma.masked_array([1, 2, 3], mask=[0, 1, 0]))
-print(b) # Array([1 -- 3], dtype=NInt64)
+print(b) # array(data: [1, 2, 3], mask: [False, True, False], dtype=nint64)
 
 # Mix and match nullable data types
 c = b + ndx.asarray([1, 2, 3])
-print(c) # Array([2 -- 6], dtype=NInt64)
+print(c) # array(data: [2, 4, 6], mask: [False, True, False], dtype=nint64)
 ```
 
 ## Writing Array API compliant code

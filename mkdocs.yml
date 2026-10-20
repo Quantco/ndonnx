@@ -1,5 +1,5 @@
 site_name: ndonnx
-site_description: Export array-api compliant code to ONNX
+site_description: Export Array API compliant code to ONNX
 site_url: https://ndonnx.readthedocs.io/
 theme:
   palette:
@@ -70,7 +70,6 @@ nav:
   - Welcome: index.md
   - Guides:
       - Getting started: gettingstarted.md
-      # - Model conversion: modelconversion.md  # not very helpful
       - Spox interoperability: spoxintegration.md
   - Advanced use cases:
       - Experimental features: experimental.md
