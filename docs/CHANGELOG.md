@@ -12,41 +12,41 @@
 **Breaking change**
 
 - Removed functions, methods, and aliases that have been deprecated since 0.10.0. Use the following replacements instead:
-    - `ndonnx.Array.null` → [ndonnx.extensions.get_mask][]
-    - `ndonnx.Array.values` → [ndonnx.extensions.get_data][]
-    - `ndonnx.Array.to_numpy` → [ndonnx.Array.unwrap_numpy][]
-    - `ndonnx.Array.spox_var` → [ndonnx.Array.unwrap_spox][] (or [ndonnx.Array.disassemble][])
-    - `ndonnx.DType.to_numpy_dtype` → [ndonnx.DType.unwrap_numpy][]
-    - `ndonnx.shape` → [ndonnx.Array.dynamic_shape][]
-    - `ndonnx.additional` → [ndonnx.extensions][]
-    - `ndonnx.array` → [ndonnx.argument][]
-    - `ndonnx.from_spox_var` → [ndonnx.asarray][]
-    - `ndonnx.Floating` → [ndonnx.extensions.is_float_dtype][]
-    - `ndonnx.Integral` → [ndonnx.extensions.is_integer_dtype][]
-    - `ndonnx.Numerical` → [ndonnx.extensions.is_numeric_dtype][]
-    - `ndonnx.CoreType` → [ndonnx.extensions.is_onnx_dtype][]
-    - `ndonnx.Nullable` and `ndonnx.NullableCore` → [ndonnx.extensions.is_nullable_dtype][]
-    - `ndonnx.NullableFloating` → [ndonnx.extensions.is_nullable_float_dtype][]
-    - `ndonnx.NullableIntegral` → [ndonnx.extensions.is_nullable_integer_dtype][]
-    - `ndonnx.UnsupportedOperationError` and `ndonnx.CastError` → these are no longer raised; catch `TypeError` instead.
+  - `ndonnx.Array.null` → [ndonnx.extensions.get_mask][]
+  - `ndonnx.Array.values` → [ndonnx.extensions.get_data][]
+  - `ndonnx.Array.to_numpy` → [ndonnx.Array.unwrap_numpy][]
+  - `ndonnx.Array.spox_var` → [ndonnx.Array.unwrap_spox][] (or [ndonnx.Array.disassemble][])
+  - `ndonnx.DType.to_numpy_dtype` → [ndonnx.DType.unwrap_numpy][]
+  - `ndonnx.shape` → [ndonnx.Array.dynamic_shape][]
+  - `ndonnx.additional` → [ndonnx.extensions][]
+  - `ndonnx.array` → [ndonnx.argument][]
+  - `ndonnx.from_spox_var` → [ndonnx.asarray][]
+  - `ndonnx.Floating` → [ndonnx.extensions.is_float_dtype][]
+  - `ndonnx.Integral` → [ndonnx.extensions.is_integer_dtype][]
+  - `ndonnx.Numerical` → [ndonnx.extensions.is_numeric_dtype][]
+  - `ndonnx.CoreType` → [ndonnx.extensions.is_onnx_dtype][]
+  - `ndonnx.Nullable` and `ndonnx.NullableCore` → [ndonnx.extensions.is_nullable_dtype][]
+  - `ndonnx.NullableFloating` → [ndonnx.extensions.is_nullable_float_dtype][]
+  - `ndonnx.NullableIntegral` → [ndonnx.extensions.is_nullable_integer_dtype][]
+  - `ndonnx.UnsupportedOperationError` and `ndonnx.CastError` → these are no longer raised; catch `TypeError` instead.
 
 **New feature**
 
 - ndonnx's public interface now accepts objects of the following NumPy types (or a subset thereof):
-    - `numpy.float16`
-    - `numpy.float32`
-    - `numpy.float64`
-    - `numpy.int8`
-    - `numpy.int16`
-    - `numpy.int32`
-    - `numpy.int64`
-    - `numpy.uint8`
-    - `numpy.uint16`
-    - `numpy.uint32`
-    - `numpy.uint64`
-    - `numpy.bool`
-    - `numpy.datetime64`
-    - `numpy.timedelta64`
+  - `numpy.float16`
+  - `numpy.float32`
+  - `numpy.float64`
+  - `numpy.int8`
+  - `numpy.int16`
+  - `numpy.int32`
+  - `numpy.int64`
+  - `numpy.uint8`
+  - `numpy.uint16`
+  - `numpy.uint32`
+  - `numpy.uint64`
+  - `numpy.bool`
+  - `numpy.datetime64`
+  - `numpy.timedelta64`
 
 **Other change**
 
@@ -73,23 +73,23 @@
 **New feature**
 
 - Most functions and methods accepting `dtype` as an argument now support the following aliases:
-    - `bool`: `ndonnx.bool`
-    - `int`: `ndonnx.int64`
-    - `float`: `ndonnx.float64`
-    - `"bool"`: `ndonnx.bool`
-    - `"int"`: `ndonnx.int64`
-    - `"float"`: `ndonnx.float64`
-    - `"int8"`: `ndonnx.int8`
-    - `"int16"`: `ndonnx.int16`
-    - `"int32"`: `ndonnx.int32`
-    - `"int64"`: `ndonnx.int64`
-    - `"uint8"`: `ndonnx.uint8`
-    - `"uint16"`: `ndonnx.uint16`
-    - `"uint32"`: `ndonnx.uint32`
-    - `"uint64"`: `ndonnx.uint64`
-    - `"float16"`: `ndonnx.float16`
-    - `"float32"`: `ndonnx.float32`
-    - `"float64"`: `ndonnx.float64`
+  - `bool`: `ndonnx.bool`
+  - `int`: `ndonnx.int64`
+  - `float`: `ndonnx.float64`
+  - `"bool"`: `ndonnx.bool`
+  - `"int"`: `ndonnx.int64`
+  - `"float"`: `ndonnx.float64`
+  - `"int8"`: `ndonnx.int8`
+  - `"int16"`: `ndonnx.int16`
+  - `"int32"`: `ndonnx.int32`
+  - `"int64"`: `ndonnx.int64`
+  - `"uint8"`: `ndonnx.uint8`
+  - `"uint16"`: `ndonnx.uint16`
+  - `"uint32"`: `ndonnx.uint32`
+  - `"uint64"`: `ndonnx.uint64`
+  - `"float16"`: `ndonnx.float16`
+  - `"float32"`: `ndonnx.float32`
+  - `"float64"`: `ndonnx.float64`
 
 ## 0.20.0 (2026-06-16)
 
@@ -189,10 +189,10 @@
 **Bug fixes**
 
 - Fix a bug in `ndonnx.Array.__setitem__()` that occurred when all of the following applied:
-    - An `Ellipsis` was part of the key
-    - The `Ellipsis` expanded to at least one dimension
-    - The `Ellipsis` was not the last element of the key
-    - The assigned value was not a scalar or 1D array with length 1.
+  - An `Ellipsis` was part of the key
+  - The `Ellipsis` expanded to at least one dimension
+  - The `Ellipsis` was not the last element of the key
+  - The assigned value was not a scalar or 1D array with length 1.
 - [ndonnx.Array.dynamic_shape][] now returns a rank-0 array for all input ranks.
 - The error message of the `IndexingError` raised by `ndonnx.Array.__setitem__()` when providing a tuple-key containing int64-arrays is now accurate.
 - Using `slice` objects in the `ndonnx.Array.__setitem__()` no longer requires value propagation.
@@ -262,51 +262,51 @@ Technical release to address a PyPI publishing issue.
 **Bug fixes**
 
 - The following functions now correctly take the `keepdims` argument into account:
-    - [ndonnx.Array.sum][]
-    - [ndonnx.Array.prod][]
-    - [ndonnx.Array.max][]
-    - [ndonnx.Array.min][]
-    - [ndonnx.Array.all][]
-    - [ndonnx.Array.any][]
+  - [ndonnx.Array.sum][]
+  - [ndonnx.Array.prod][]
+  - [ndonnx.Array.max][]
+  - [ndonnx.Array.min][]
+  - [ndonnx.Array.all][]
+  - [ndonnx.Array.any][]
 
 **New features**
 
 - ndonnx gained partial support for `float16` data types.
 - The following functions are now exposed in the ndonnx namespace in accordance with the Array API standard:
-    - `ndonnx.__array_namespace_info__()`
-    - [ndonnx.maximum][]
-    - [ndonnx.minimum][]
-    - [ndonnx.meshgrid][]
-    - [ndonnx.moveaxis][]
-    - [ndonnx.tile][]
-    - [ndonnx.unstack][]
-    - [ndonnx.vecdot][]
+  - `ndonnx.__array_namespace_info__()`
+  - [ndonnx.maximum][]
+  - [ndonnx.minimum][]
+  - [ndonnx.meshgrid][]
+  - [ndonnx.moveaxis][]
+  - [ndonnx.tile][]
+  - [ndonnx.unstack][]
+  - [ndonnx.vecdot][]
 - The newly added [ndonnx.extensions][] module exposes the following functions:
-    - [datetime_to_year_month_day][ndonnx.extensions.datetime_to_year_month_day]
-    - [fill_null][ndonnx.extensions.fill_null]
-    - [get_mask][ndonnx.extensions.get_mask]
-    - [is_float_dtype][ndonnx.extensions.is_float_dtype]
-    - [is_integer_dtype][ndonnx.extensions.is_integer_dtype]
-    - [is_nullable_dtype][ndonnx.extensions.is_nullable_dtype]
-    - [is_nullable_float_dtype][ndonnx.extensions.is_nullable_float_dtype]
-    - [is_nullable_integer_dtype][ndonnx.extensions.is_nullable_integer_dtype]
-    - [is_numeric_dtype][ndonnx.extensions.is_numeric_dtype]
-    - [is_onnx_dtype][ndonnx.extensions.is_onnx_dtype]
-    - [is_signed_integer_dtype][ndonnx.extensions.is_signed_integer_dtype]
-    - [is_time_unit][ndonnx.extensions.is_time_unit]
-    - [is_unsigned_integer_dtype][ndonnx.extensions.is_unsigned_integer_dtype]
-    - [isin][ndonnx.extensions.isin]
-    - [make_nullable][ndonnx.extensions.make_nullable]
-    - [put][ndonnx.extensions.put]
-    - `shape()` (deprecated in favor of [ndonnx.Array.dynamic_shape][])
-    - [static_map][ndonnx.extensions.static_map]
+  - [datetime_to_year_month_day][ndonnx.extensions.datetime_to_year_month_day]
+  - [fill_null][ndonnx.extensions.fill_null]
+  - [get_mask][ndonnx.extensions.get_mask]
+  - [is_float_dtype][ndonnx.extensions.is_float_dtype]
+  - [is_integer_dtype][ndonnx.extensions.is_integer_dtype]
+  - [is_nullable_dtype][ndonnx.extensions.is_nullable_dtype]
+  - [is_nullable_float_dtype][ndonnx.extensions.is_nullable_float_dtype]
+  - [is_nullable_integer_dtype][ndonnx.extensions.is_nullable_integer_dtype]
+  - [is_numeric_dtype][ndonnx.extensions.is_numeric_dtype]
+  - [is_onnx_dtype][ndonnx.extensions.is_onnx_dtype]
+  - [is_signed_integer_dtype][ndonnx.extensions.is_signed_integer_dtype]
+  - [is_time_unit][ndonnx.extensions.is_time_unit]
+  - [is_unsigned_integer_dtype][ndonnx.extensions.is_unsigned_integer_dtype]
+  - [isin][ndonnx.extensions.isin]
+  - [make_nullable][ndonnx.extensions.make_nullable]
+  - [put][ndonnx.extensions.put]
+  - `shape()` (deprecated in favor of [ndonnx.Array.dynamic_shape][])
+  - [static_map][ndonnx.extensions.static_map]
 - Arrays now expose the [ndonnx.Array.device][] property to improve Array API compatibility. Note that serializing an ONNX model inherently postpones device placement decisions to the runtime so currently one abstract device is supported.
 - The [Array][ndonnx.Array] object gained the following member functions:
-    - [disassemble][ndonnx.Array.disassemble]
-    - [dynamic_shape][ndonnx.Array.dynamic_shape]
-    - [dynamic_size][ndonnx.Array.dynamic_size]
-    - [unwrap_numpy][ndonnx.Array.unwrap_numpy]
-    - [unwrap_spox][ndonnx.Array.unwrap_spox]
+  - [disassemble][ndonnx.Array.disassemble]
+  - [dynamic_shape][ndonnx.Array.dynamic_shape]
+  - [dynamic_size][ndonnx.Array.dynamic_size]
+  - [unwrap_numpy][ndonnx.Array.unwrap_numpy]
+  - [unwrap_spox][ndonnx.Array.unwrap_spox]
 
 **Deprecations**
 
@@ -379,18 +379,18 @@ Technical release to address a PyPI publishing issue.
 - Expose the [ndonnx.isdtype][] function.
 
 - Custom data types can now override array functions:
-    - [ndonnx.zeros][]
-    - [ndonnx.zeros_like][]
-    - [ndonnx.ones][]
-    - [ndonnx.ones_like][]
-    - [ndonnx.full][]
-    - [ndonnx.full_like][]
-    - [ndonnx.arange][]
-    - [ndonnx.eye][]
-    - [ndonnx.tril][]
-    - [ndonnx.triu][]
-    - [ndonnx.linspace][]
-    - [ndonnx.where][]
+  - [ndonnx.zeros][]
+  - [ndonnx.zeros_like][]
+  - [ndonnx.ones][]
+  - [ndonnx.ones_like][]
+  - [ndonnx.full][]
+  - [ndonnx.full_like][]
+  - [ndonnx.arange][]
+  - [ndonnx.eye][]
+  - [ndonnx.tril][]
+  - [ndonnx.triu][]
+  - [ndonnx.linspace][]
+  - [ndonnx.where][]
 
 - The `ndonnx._experimental.UniformShapeOperations` now provides implementations of shape operations that are generic across all data types where each constituent field has the same shape (that of the overall array).
 

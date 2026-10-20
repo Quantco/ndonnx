@@ -69,28 +69,28 @@ For the example model above, we extract the following schema:
 
 ```json
 {
-    "version": 1,
-    "input_schema": {
-        "x": {
-            "type_name": "Utf8",
-            "author": "ndonnx",
-            "meta": null
-        },
-        "y": {
-            "type_name": "NUtf8",
-            "author": "ndonnx",
-            "meta": null
-        }
+  "version": 1,
+  "input_schema": {
+    "x": {
+      "type_name": "Utf8",
+      "author": "ndonnx",
+      "meta": null
     },
-    "output_schema": {
-        "z": {
-            "type_name": "NUtf8",
-            "author": "ndonnx",
-            "meta": null
-        }
-    },
-    "input_prefix": "",
-    "output_prefix": ""
+    "y": {
+      "type_name": "NUtf8",
+      "author": "ndonnx",
+      "meta": null
+    }
+  },
+  "output_schema": {
+    "z": {
+      "type_name": "NUtf8",
+      "author": "ndonnx",
+      "meta": null
+    }
+  },
+  "input_prefix": "",
+  "output_prefix": ""
 }
 ```
 
