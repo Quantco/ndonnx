@@ -37,9 +37,9 @@ c = ndx.argument(shape=("N", "M"), dtype=ndx.utf8)
 ### The ndonnx namespace
 
 The top-level `ndonnx` namespace contains various functions such as
-`ndonnx.sum` that are mandated by the
-Array-API standard. Additional functions that go beyond the standard may
-be found in the `ndonnx.extensions` module.
+[ndonnx.sum][] that are mandated by the
+Array API standard. Additional functions that go beyond the standard may
+be found in the [ndonnx.extensions][] module.
 
 ```python
 import ndonnx as ndx
@@ -58,7 +58,7 @@ print(c) # Array([True False True], dtype=Boolean)
 
 ### Slicing, Indexing, and Broadcasting
 
-Slicing, indexing and broadcasting is also defined by the Array-API
+Slicing, indexing, and broadcasting are also defined by the Array API
 standard and will thus feel familiar to NumPy users.
 
 ```python
@@ -135,7 +135,7 @@ def mean_drop_outliers(a, low=-5, high=5):
 x = ndx.argument(shape=("N",), dtype=ndx.float64)
 y = mean_drop_outliers(x)
 
-# Build and save my ONNX model to disk
+# Build the ONNX model and save it to disk
 model = ndx.build({"x": x}, {"y": y})
 onnx.save(model, "mean_drop_outliers.onnx")
 ```

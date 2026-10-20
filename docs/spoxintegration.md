@@ -26,8 +26,8 @@ interoperability with the lower level interface Spox has when needed.
 
 ### ndonnx to Spox
 
-Extract a `spox.Var` from an `ndonnx.Array` using the
-`ndonnx.Array.unwrap_spox` method. This allows you to use Spox to
+Extract a [spox.Var][] from an [ndonnx.Array][] using the
+[ndonnx.Array.unwrap_spox][] method. This allows you to use Spox to
 manipulate the ONNX graph more directly.
 
 ```python
@@ -45,8 +45,8 @@ var = op.string_split(var, delimiter=",")
 
 While this is trivial in the case of data types with a direct
 correspondence in ONNX, arrays with nullable data types like
-`ndonnx.nutf8` must first be decomposed into their constituent parts.
-This is achieved via the `ndonnx.Array.disassemble` method.
+[ndonnx.nutf8][] must first be decomposed into their constituent parts.
+This is achieved via the [ndonnx.Array.disassemble][] method.
 
 ```python
 import ndonnx as ndx
@@ -60,7 +60,7 @@ null_var = x.disassemble()["null"]
 ### Spox to ndonnx
 
 Taking the `var` from the earlier example, we can convert it back to an
-`ndonnx.Array` using the `ndonnx.asarray` function.
+[ndonnx.Array][] using the [ndonnx.asarray][] function.
 
 ```python
 import ndonnx as ndx
@@ -106,4 +106,5 @@ print(out)
 ```
 
 !!! note
-See [value propagation with custom operators](experimental.md#value-propagation-with-custom-operators) on how to ensure that value propagation is functioning even when using custom ONNX operators.
+
+    See [value propagation with custom operators](experimental.md#value-propagation-with-custom-operators) on how to ensure that value propagation is functioning even when using custom ONNX operators.

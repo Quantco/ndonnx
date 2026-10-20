@@ -1,13 +1,13 @@
 # Experimental
 
-This section documents features found in the `ndonnx._experimental`
+This section documents features found in the `ndonnx._future`
 module. Breaking changes may occur in this module with no prior notice.
 
 ## Value propagation with custom operators
 
 ndonnx strives to provide a user experience where operations between
 constant arrays produce constant arrays whose values the user may
-inspect using the `Array.unwrap_numpy` member function.
+inspect using the [Array.unwrap_numpy][ndonnx.Array.unwrap_numpy] member function.
 However, values cannot be propagated across custom operators by default.
 Value propagation may be enabled in scenarios where a custom operator
 exists for the onnxruntime in the form of a shared library:

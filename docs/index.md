@@ -2,14 +2,14 @@
 
 ndonnx is an ONNX-backed Python array library that implements the [Array
 API standard](https://data-apis.org/array-api/latest/).
-ndonnx can be use to export large existing NumPy code bases to ONNX with minimal effort.
+ndonnx can be used to export large existing NumPy code bases to ONNX with minimal effort.
 It was designed from the ground up with the following priorities in mind:
 
 - Correctness
-- First class developer experience
-- Seamless interoperability with [spox](https://spox.readthedocs.io/en/latest/index.html)
+- First-class developer experience
+- Seamless interoperability with [Spox](https://spox.readthedocs.io/en/latest/index.html)
 
-### Example
+## Example
 
 ```python
 import ndonnx as ndx

@@ -13,7 +13,7 @@ Existing tooling revolves around [ONNX converter
 libraries](https://onnx.ai/onnx/intro/converters.html). The fundamental
 problem with this approach is that inference logic must be **duplicated**.
 It is first expressed in an API suitable for training using host
-libraries like NumPy or PyTorch and then reimplemented again in terms of
+libraries like NumPy or PyTorch and then reimplemented in terms of
 ONNX operators using a library like
 [Spox](https://github.com/quantco/spox). This is error-prone and hard to
 maintain as the host library evolves and the latest API changes need to

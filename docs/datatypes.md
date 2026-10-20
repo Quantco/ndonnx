@@ -1,7 +1,7 @@
 # Data Types
 
 ndonnx currently exposes the following data types.
-Primitive" data types have a directly corresponding data type in the ONNX standard.
+"Primitive" data types have a directly corresponding data type in the ONNX standard.
 
 | Name          | Description                                                      | Array API | ONNX primitive |
 | ------------- | ---------------------------------------------------------------- | --------- | -------------- |
@@ -18,6 +18,7 @@ Primitive" data types have a directly corresponding data type in the ONNX standa
 | `uint64`      | 64-bit unsigned integer                                          | Yes       | Yes            |
 | `bool`        | Boolean                                                          | Yes       | Yes            |
 | `utf8`        | UTF-8 string                                                     | No        | Yes            |
+| `nfloat16`    | Nullable 16-bit floating point number                            | No        | No             |
 | `nfloat32`    | Nullable 32-bit floating point number                            | No        | No             |
 | `nfloat64`    | Nullable 64-bit floating point number                            | No        | No             |
 | `nint8`       | Nullable 8-bit signed integer                                    | No        | No             |

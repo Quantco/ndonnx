@@ -39,11 +39,11 @@ pytest tests -n auto
 
 ## Quick start
 
-`ndonnx` is an ONNX based python array library.
+`ndonnx` is an ONNX-based Python array library.
 
 It has a couple of key features:
 
-- It implements the [`Array API`](https://data-apis.org/array-api/) standard. Standard compliant code can be executed without changes across numerous backends such as like NumPy, JAX and now ndonnx.
+- It implements the [Array API](https://data-apis.org/array-api/) standard. Standard-compliant code can be executed without changes across numerous backends such as NumPy, JAX and now ndonnx.
 
     ```python
     import numpy as np
@@ -58,20 +58,20 @@ It has a couple of key features:
     jax_result = mean_drop_outliers(jnp.asarray([-10, 0.5, 1, 5]))
     onnx_result = mean_drop_outliers(ndx.asarray([-10, 0.5, 1, 5]))
 
-    assert np_result == onnx_result.to_numpy() == jax_result == 0.75
+    assert np_result == onnx_result.unwrap_numpy() == jax_result == 0.75
     ```
 
-- It supports ONNX export. This allows you persist your logic into an ONNX computation graph.
+- It supports ONNX export. This allows you to persist your logic into an ONNX computation graph.
 
     ```python
     import ndonnx as ndx
     import onnx
 
     # Instantiate placeholder ndonnx array
-    x = ndx.array(shape=("N",), dtype=ndx.float32)
+    x = ndx.argument(shape=("N",), dtype=ndx.float32)
     y = mean_drop_outliers(x)
 
-    # Build and save ONNX model to disk
+    # Build the ONNX model and save it to disk
     model = ndx.build({"x": x}, {"y": y})
     onnx.save(model, "mean_drop_outliers.onnx")
     ```
@@ -93,7 +93,7 @@ In the future we will be enabling a stable API for an extensible data type syste
 
 ## Array API coverage
 
-Array API compatibility tested against the official `array-api-tests` suite.
+Array API compatibility is tested against the official `array-api-tests` suite.
 Missing coverage is tracked in the `skips.txt` file.
 Contributions are welcome!
 

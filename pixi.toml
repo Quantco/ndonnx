@@ -19,13 +19,6 @@ spox = ">=0.17"
 typing_extensions = "*"
 
 [feature.docs.dependencies]
-make = "*"
-numpydoc = "*"
-sphinx = "*"
-sphinxcontrib-apidoc = "*"
-sphinx_rtd_theme = "*"
-sphinx-toolbox = "*"
-nbsphinx = "*"
 mkdocstrings = "*"
 mkdocstrings-python = "*"
 griffe-inherited-docstrings = "*"
