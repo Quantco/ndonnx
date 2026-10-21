@@ -5,6 +5,6 @@ build:
     - curl -fsSL https://pixi.sh/install.sh | bash
     - chmod +x ~/.pixi/bin/pixi
     - ~/.pixi/bin/pixi run -e docs postinstall
-    - ~/.pixi/bin/pixi run -e docs docs
+    - ~/.pixi/bin/pixi run -e docs docs-build
     - mkdir -p $READTHEDOCS_OUTPUT/html/
-    - cp -r docs/_build/html/** $READTHEDOCS_OUTPUT/html/
+    - cp -r site/** $READTHEDOCS_OUTPUT/html/

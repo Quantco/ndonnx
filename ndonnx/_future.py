@@ -1,8 +1,5 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
-
-# Copyright (c) QuantCo 2024-2024
-# SPDX-License-Identifier: LicenseRef-QuantCo
 
 import importlib.util
 from collections.abc import Callable

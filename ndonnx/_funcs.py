@@ -77,18 +77,19 @@ def argument(
     """Creates a new lazy ndonnx array.
 
     This is used to define inputs to an ONNX model.
-        Parameters
-        ----------
-        shape
-            The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
-            `None`-dimensions denote unknown dimensions.
-        dtype
-            The data type of the array.
 
-        Returns
-        -------
-        Array
-            The new array representing input(s) of the computational graphs.
+    Parameters
+    ----------
+    shape
+        The shape of the array. String-dimensions denote symbolic dimensions and must be globally consistent.
+        `None`-dimensions denote unknown dimensions.
+    dtype
+        The data type of the array.
+
+    Returns
+    -------
+    Array
+        The new array representing input(s) of the computational graph.
     """
     dtype = normalize_dtype(dtype)
     return Array._argument(shape=shape, dtype=dtype)

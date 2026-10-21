@@ -19,15 +19,14 @@ spox = ">=0.17"
 typing_extensions = "*"
 
 [feature.docs.dependencies]
-make = "*"
-numpydoc = "*"
-sphinx = "*"
-sphinxcontrib-apidoc = "*"
-sphinx_rtd_theme = "*"
-sphinx-toolbox = "*"
-nbsphinx = "*"
+mkdocstrings = "*"
+mkdocstrings-python = "*"
+griffe-inherited-docstrings = "*"
+ruff = "*"
+zensical = ">=0.0.63"
 [feature.docs.tasks]
-docs = "cd docs && make html"
+docs = "zensical serve"
+docs-build = "zensical build --strict"
 
 [feature.build.dependencies]
 python-build = "*"

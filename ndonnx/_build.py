@@ -17,7 +17,7 @@ def build(
     input_prefix: str = "",
     output_prefix: str = "",
 ) -> onnx.ModelProto:
-    """Build and ONNX model from the provided argument-Arrays and outputs.
+    """Build an ONNX model from the provided argument-Arrays and outputs.
 
     Parameters
     ----------
