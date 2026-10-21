@@ -79,7 +79,7 @@ print(c) # array(data: [6, 7], dtype=int64)
 
 ndonnx provides not only Array API compliant data types but also strings
 and nullable variants. You can find a full list
-[here](datatypes.md).
+[here](api/data-types.md).
 
 ```python
 import ndonnx as ndx

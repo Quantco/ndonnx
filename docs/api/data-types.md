@@ -33,3 +33,48 @@ ndonnx currently exposes the following data types.
 | `nutf8`       | Nullable UTF-8 string                                            | No        | No             |
 | `datetime64`  | Datetime data type that follows NumPy's `datetime64` semantics   | No        | No             |
 | `timedelta64` | Timedelta data type that follows NumPy's `timedelta64` semantics | No        | No             |
+
+## Data type objects
+
+<!-- prettier-ignore -->
+::: ndonnx
+    options:
+      show_root_members_full_path: true
+      members:
+        - bool
+        - float16
+        - float32
+        - float64
+        - int8
+        - int16
+        - int32
+        - int64
+        - uint8
+        - uint16
+        - uint32
+        - uint64
+        - utf8
+        - nbool
+        - nfloat16
+        - nfloat32
+        - nfloat64
+        - nint8
+        - nint16
+        - nint32
+        - nint64
+        - nuint8
+        - nuint16
+        - nuint32
+        - nuint64
+        - nutf8
+        - DateTime64DType
+        - TimeDelta64DType
+
+## DType
+
+<!-- prettier-ignore -->
+::: ndonnx.DType
+    options:
+      summary: true
+      filters:
+        - "!^_"

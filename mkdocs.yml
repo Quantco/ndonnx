@@ -71,17 +71,30 @@ nav:
   - Guides:
       - Getting started: gettingstarted.md
       - Spox interoperability: spoxintegration.md
-  - Advanced use cases:
-      - Experimental features: experimental.md
       - Inference: inference.md
       - Adding metadata to an artifact: adding-metadata.md
+      - Experimental features: experimental.md
+  - How it works: how-it-works.md
   - API Documentation:
-      - Namespace: api/namespace.md
       - Array: api/array.md
-      - DType: api/dtype.md
+      - Data types: api/data-types.md
+      - Building ONNX models: api/building.md
+      - Constants: api/constants.md
+      - Functions:
+          - Creation functions: api/creation-functions.md
+          - Data type functions: api/data-type-functions.md
+          - Element-wise functions: api/elementwise-functions.md
+          - Indexing functions: api/indexing-functions.md
+          - Linear algebra functions: api/linear-algebra-functions.md
+          - Manipulation functions: api/manipulation-functions.md
+          - Searching functions: api/searching-functions.md
+          - Set functions: api/set-functions.md
+          - Sorting functions: api/sorting-functions.md
+          - Statistical functions: api/statistical-functions.md
+          - Utility functions: api/utility-functions.md
+      - Inspection: api/inspection.md
       - Extensions: api/extensions.md
       - Types: api/types.md
-      - Data types: datatypes.md
   - Changelog: CHANGELOG.md
   - Motivation: motivation.md
 

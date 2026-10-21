@@ -54,7 +54,7 @@ exporting to ONNX.
     ```
 
 The suffixes `_values` and `_null` are not present when using standard
-"core" [data types](datatypes.md) found in the ONNX standard.
+"core" [data types](api/data-types.md) found in the ONNX standard.
 
 ## Inspecting metadata
 

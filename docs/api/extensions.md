@@ -6,6 +6,7 @@ The functions are maintained in this module to reduce the risk of breaking chang
 <!-- prettier-ignore -->
 ::: ndonnx.extensions
     options:
-      show_root_members_full_path: true
+      show_root_members_full_path: false
       filters:
         - "!^_"
+        - "!SCALAR"
