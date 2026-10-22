@@ -3,11 +3,15 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 from onnx import ModelProto
 
 import ndonnx as ndx
 import ndonnx._typed_array as tydx
+from ndonnx.extensions import fill_null, get_mask
+
+from .utils import run
 
 
 @pytest.mark.parametrize(
@@ -142,7 +146,75 @@ def test_unused_inputs_not_in_schema():
 
     drop = ndx.build(inputs={"a": a}, outputs={"b": b}, drop_unused=True)
 
-    assert "a" in _get_input_schema(no_drop)
+    assert "a" in _get_input_schema(drop)
+
+
+_NULLABLE_SAMPLE_VALUES = {
+    ndx.nint64: np.array([1, 2], np.int64),
+    ndx.nfloat64: np.array([1.0, 2.0], np.float64),
+    ndx.nbool: np.array([True, False]),
+    ndx.nutf8: np.array(["a", "b"], np.str_),
+}
+
+
+@pytest.mark.parametrize("dtype", list(_NULLABLE_SAMPLE_VALUES))
+@pytest.mark.parametrize("prefix", ["", "in_"])
+def test_drop_unused_keeps_all_components_if_only_mask_is_used(dtype, prefix):
+    a = ndx.argument(shape=("N",), dtype=dtype)
+    mask = get_mask(a)
+    assert mask is not None
+    y = ndx.logical_not(mask)
+
+    mp = ndx.build({"a": a}, {"y": y}, drop_unused=True, input_prefix=prefix)
+
+    assert [i.name for i in mp.graph.input] == [f"{prefix}a_values", f"{prefix}a_null"]
+    assert list(_get_input_schema(mp)) == [f"{prefix}a"]
+
+    (res,) = run(
+        mp,
+        {
+            f"{prefix}a_values": _NULLABLE_SAMPLE_VALUES[dtype],
+            f"{prefix}a_null": np.array([False, True]),
+        },
+    ).values()
+    np.testing.assert_array_equal(res, [True, False])
+
+
+def test_drop_unused_keeps_all_components_if_only_values_are_used():
+    a = ndx.argument(shape=("N",), dtype=ndx.nint64)
+    y = fill_null(a, 0)
+
+    mp = ndx.build({"a": a}, {"y": y}, drop_unused=True)
+
+    assert [i.name for i in mp.graph.input] == ["a_values", "a_null"]
+    assert list(_get_input_schema(mp)) == ["a"]
+
+
+def test_drop_unused_drops_all_components_of_unused_array():
+    a = ndx.argument(shape=("N",), dtype=ndx.float64)
+    u = ndx.argument(shape=("N",), dtype=ndx.nint64)
+
+    mp = ndx.build({"a": a, "u": u}, {"y": a + 1}, drop_unused=True)
+
+    assert [i.name for i in mp.graph.input] == ["a"]
+    assert list(_get_input_schema(mp)) == ["a"]
+
+
+def test_drop_unused_preserves_input_order():
+    a = ndx.argument(shape=("N",), dtype=ndx.nint64)
+    b = ndx.argument(shape=("N",), dtype=ndx.float64)
+    c = ndx.argument(shape=("N",), dtype=ndx.nint64)
+    d = ndx.argument(shape=("N",), dtype=ndx.int64)
+    mask = get_mask(a)
+    assert mask is not None
+
+    # Use inputs in reverse order of their declaration
+    y = ndx.where(mask, d, b)
+
+    mp = ndx.build({"a": a, "b": b, "c": c, "d": d}, {"y": y}, drop_unused=True)
+
+    assert [i.name for i in mp.graph.input] == ["a_values", "a_null", "b", "d"]
+    assert list(_get_input_schema(mp)) == ["a", "b", "d"]
 
 
 def test_build_with_prefixes():

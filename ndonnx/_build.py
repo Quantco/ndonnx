@@ -26,7 +26,8 @@ def build(
     outputs
         Outputs of the model
     drop_unused
-        Drop unused inputs from the model.
+        Drop input arrays that are entirely unused from the model. Arrays
+        consisting of multiple components are kept or dropped as a whole.
     input_prefix
         Prefix to prepend to all input names in the graph.
     output_prefix
@@ -43,21 +44,25 @@ def build(
     ins = _arrays_to_vars(inputs)
     outs = _arrays_to_vars(outputs)
 
-    mp = spox_build(ins, outs, drop_unused_inputs=drop_unused)
+    if drop_unused:
+        # Determine which components are used, but prune entire arrays
+        # rather than individual components (e.g. ``_values``/``_null``).
+        used = {
+            inp.name
+            for inp in spox_build(ins, outs, drop_unused_inputs=True).graph.input
+        }
+        inputs = {
+            name: arr
+            for name, arr in inputs.items()
+            if any(n in used for n in _disassemble_named_array(name, arr))
+        }
+        ins = _arrays_to_vars(inputs)
 
-    # Find the names of inputs that have not been dropped, so that only these
-    # are inserted into the schema.
-    graph_inputs = [input.name for input in mp.graph.input]
-    kept_inputs = []
-    for name, arr in inputs.items():
-        if any(n in graph_inputs for n in _disassemble_named_array(name, arr)):
-            kept_inputs.append(name)
+    mp = spox_build(ins, outs, drop_unused_inputs=False)
 
     schema_v1 = {
         "ndonnx_schema": SchemaV1(
-            input_schema={
-                k: v.dtype.__ndx_infov1__ for k, v in inputs.items() if k in kept_inputs
-            },
+            input_schema={k: v.dtype.__ndx_infov1__ for k, v in inputs.items()},
             output_schema={k: v.dtype.__ndx_infov1__ for k, v in outputs.items()},
             version=1,
             input_prefix=input_prefix,

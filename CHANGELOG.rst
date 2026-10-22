@@ -10,6 +10,10 @@ Changelog
 0.23.1 (unreleased)
 -------------------
 
+**Bug fix**
+
+- :func:`ndonnx.build` with ``drop_unused=True`` no longer drops individual components (e.g. ``<name>_values``) of input arrays that are partially used, which previously produced models that could not be run. Unused inputs are now pruned per array and the graph inputs retain the order of ``inputs``.
+
 **Other change**
 
 - ``ndonnx.cumulative_sum`` with ``include_initial=True`` now yields more efficient graphs.
