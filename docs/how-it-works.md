@@ -27,7 +27,7 @@ The following snippet puts all of the above information into action:
 import ndonnx as ndx
 import onnx
 
-a = ndx.argument(shape=("N",), dtype=ndx.int64)  # (1)!
+a = ndx.argument(shape=("N", 2), dtype=ndx.int64)  # (1)!
 b = ndx.asarray([1, 2])  # (2)!
 
 result = (a + b) * 2  # (3)!
@@ -39,7 +39,7 @@ onnx.save_model(model_proto, "example.onnx")  # (5)!
 
 1. Create an argument array that will later be used a s a graph input
 2. Create an array with constant values. The data type is inferred according to the array-api specification.
-3. Perform any operations supported by the array-api. The `result` object contains the full computational graph with all constant values.
+3. Perform any operations supported by the array-api. The `result` object contains the full computational graph with all constant values. The resulting data type and shape is inferred.
 4. Export the computational graph to an `onnx.ModelProto` object.
 5. Serialize the model to a file.
 
