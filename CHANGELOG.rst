@@ -10,6 +10,11 @@ Changelog
 0.23.1 (unreleased)
 -------------------
 
+**Bug fixes**
+
+- :func:`ndonnx.result_type` now accepts NumPy scalars (e.g. ``numpy.int64``) and, following NumPy, treats them as their data type. Previously, they raised an ``AttributeError`` or, in the case of ``numpy.float64``, were treated like a Python ``float``.
+- The ``ndonnx.types.NestedSequence`` type hint now includes NumPy's numeric and boolean scalar types, so type checkers accept e.g. ``ndonnx.asarray([numpy.int8(1)])``.
+
 **Other change**
 
 - ``ndonnx.cumulative_sum`` with ``include_initial=True`` now yields more efficient graphs.
