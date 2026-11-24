@@ -658,8 +658,10 @@ def repeat(x: Array, repeats: int | Array, /, *, axis: int | None = None) -> Arr
     return Array._from_tyarray(x._tyarray.repeat(repeats_, axis=axis))
 
 
-def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
-    def dtype_or_scalar(obj: Array | DType | PyScalar) -> DType | PyScalar:
+def result_type(*arrays_and_dtypes: Array | DType | Scalar) -> DType:
+    def dtype_or_scalar(obj: Array | DType | Scalar) -> DType | PyScalar:
+        if isinstance(obj, np.generic):
+            return ndx.from_numpy_dtype(obj.dtype)
         if isinstance(obj, Array):
             return obj.dtype
         return obj
@@ -667,21 +669,18 @@ def result_type(*arrays_and_dtypes: Array | DType | PyScalar) -> DType:
     if len(arrays_and_dtypes) == 0:
         raise ValueError("at least one array or dtype is required")
     items = sorted(
-        arrays_and_dtypes,
-        key=lambda item: int(isinstance(item, Array | DType)),
+        (dtype_or_scalar(el) for el in arrays_and_dtypes),
+        key=lambda item: int(isinstance(item, DType)),
         reverse=True,
     )
     first, *others = items
 
-    if not isinstance(first, Array | DType):
+    if not isinstance(first, DType):
         raise ValueError(
-            "arguments to 'result_type' must contain at least one 'Array' or 'DType' object"
+            "arguments to 'result_type' must contain at least one 'Array', 'DType', or NumPy scalar object"
         )
 
-    if isinstance(first, Array):
-        first = first.dtype
-
-    return tyfuncs.result_type(first, *(dtype_or_scalar(el) for el in others))
+    return tyfuncs.result_type(first, *others)
 
 
 def roll(

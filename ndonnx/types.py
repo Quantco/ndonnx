@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from types import EllipsisType
 from typing import TYPE_CHECKING, Literal, TypeAlias, Union
 
-from ndonnx._typed_array.types import PyScalar
+from ndonnx._typed_array.types import NpScalar, PyScalar
 
 if TYPE_CHECKING:
     from ._array import Array
@@ -26,7 +26,7 @@ SetitemKey: TypeAlias = Union[
     int | slice | EllipsisType, tuple[int | slice | EllipsisType, ...], "Array"
 ]
 
-NestedSequence = Sequence["PyScalar | NestedSequence"]
+NestedSequence = Sequence["PyScalar | NpScalar | NestedSequence"]
 
 DTypeAlias: TypeAlias = (
     (type[bool] | type[int] | type[float])

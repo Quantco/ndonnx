@@ -1,4 +1,4 @@
-# Copyright (c) QuantCo 2023-2025
+# Copyright (c) QuantCo 2023-2026
 # SPDX-License-Identifier: BSD-3-Clause
 
 import operator
@@ -83,3 +83,61 @@ def test_numpy_array_ndx_array_reverse_dunder_called_correctly():
     expected = np_arr + np_arr_2
 
     assert_array_equal(candidate.unwrap_numpy(), expected)
+
+
+@pytest.mark.parametrize(
+    "np_dtype, np_gen",
+    [
+        (np.int32, np.int64(1)),
+        (np.int64, np.int8(1)),
+        (np.uint8, np.int8(1)),
+        (np.int32, np.float32(1)),
+        (np.float32, np.float16(1)),
+        (np.float32, np.float32(1)),
+        # `np.float64` subclasses `float`, but must not be treated as a Python scalar.
+        (np.float32, np.float64(1)),
+        (np.bool, np.bool(True)),
+        (np.int8, np.bool(True)),
+    ],
+)
+def test_result_type_numpy_generic(np_dtype, np_gen):
+    arr = ndx.asarray(np.asarray([1], dtype=np_dtype))
+    expected = ndx.from_numpy_dtype(np.result_type(np_dtype, np_gen))
+
+    assert ndx.result_type(arr, np_gen) == expected
+    assert ndx.result_type(np_gen, arr) == expected
+    assert ndx.result_type(arr.dtype, np_gen) == expected
+    # Consistent with binary operations (addition is not defined for two booleans)
+    if expected != ndx.bool:
+        assert (arr + np_gen).dtype == expected
+
+
+def test_result_type_numpy_generic_datetime():
+    arr = ndx.asarray(np.asarray([1], dtype="datetime64[s]"))
+    np_gen = np.timedelta64(1, "ms")
+    expected = ndx.from_numpy_dtype(np.result_type(arr.unwrap_numpy(), np_gen))
+
+    assert ndx.result_type(arr, np_gen) == expected
+    assert (arr + np_gen).dtype == expected
+
+
+def test_result_type_numpy_generic_counts_as_dtype():
+    # NumPy scalars are treated as their data type rather than as Python scalars.
+    assert ndx.result_type(np.int8(1), 1) == ndx.int8
+    assert ndx.result_type(np.float64(1)) == ndx.float64
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        [np.int8(1)],
+        [np.uint16(1), np.uint16(2)],
+        [[np.float32(1)], [np.float32(2)]],
+        [np.bool(True), np.bool(False)],
+    ],
+)
+def test_asarray_sequence_of_numpy_generics(obj):
+    candidate = ndx.asarray(obj)
+    expected = np.asarray(obj)
+
+    np.testing.assert_array_equal(candidate.unwrap_numpy(), expected, strict=True)
